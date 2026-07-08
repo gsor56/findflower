@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FindFlower | Premium Botanical Identification by iBhx</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Fraunces', 'serif'],
+                    },
+                    colors: {
+                        neutral: {
+                            50: '#FAFAFA',
+                            100: '#F5F5F5',
+                            200: '#E5E5E5',
+                            300: '#D4D4D4',
+                            400: '#A3A3A3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                        },
+                        sage: {
+                            50: '#F2F5F2',
+                            100: '#E4EBE5',
+                            200: '#C9D6CB',
+                            400: '#7C9781',
+                            500: '#5F7A63',
+                            600: '#4C6650',
+                            700: '#3D5341',
+                        }
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 40px -2px rgba(0, 0, 0, 0.04)',
+                        'float': '0 10px 40px -10px rgba(0, 0, 0, 0.12)',
+                        'lift': '0 20px 60px -18px rgba(23, 23, 23, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Base styles and typography refinement */
+        body {
+            background-color: #FCFCFC;
+            color: #171717;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle motion classes triggered by Intersection Observer */
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-up.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .delay-100 { transition-delay: 100ms; }
+        .delay-200 { transition-delay: 200ms; }
+        .delay-300 { transition-delay: 300ms; }
+        .delay-400 { transition-delay: 400ms; }
+
+        /* Interface preview border pulse */
+        @keyframes pulse-border {
+            0% { border-color: rgba(95, 122, 99, 0.15); }
+            50% { border-color: rgba(95, 122, 99, 0.45); }
+            100% { border-color: rgba(95, 122, 99, 0.15); }
+        }
+        .scanning-element {
+            animation: pulse-border 3.5s infinite ease-in-out;
+        }
+
+        /* A soft scanning sweep across the preview image */
+        @keyframes scan-sweep {
+            0% { transform: translateY(-120%); opacity: 0; }
+            15% { opacity: 1; }
+            85% { opacity: 1; }
+            100% { transform: translateY(320%); opacity: 0; }
+        }
+        .scan-line {
+            animation: scan-sweep 4.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Gentle floating for decorative botanical art */
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-14px) rotate(1.5deg); }
+        }
+        .float-slow { animation: float-slow 9s infinite ease-in-out; }
+        .float-slower { animation: float-slow 13s infinite ease-in-out; }
+
+        /* SVG line that draws itself in when revealed */
+        .draw-path {
+            stroke-dasharray: 1200;
+            stroke-dashoffset: 1200;
+            transition: stroke-dashoffset 2.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .active .draw-path { stroke-dashoffset: 0; }
+
+        /* Image masking for the preview card */
+        .image-mask {
+            mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
+        }
+
+        /* Faint dotted grid background */
+        .grid-dots {
+            background-image: radial-gradient(rgba(23, 23, 23, 0.05) 1px, transparent 1px);
+            background-size: 28px 28px;
+            -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 0%, transparent 75%);
+            mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 0%, transparent 75%);
+        }
+
+        /* Card hover lift */
+        .hover-lift {
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px -20px rgba(23, 23, 23, 0.14);
+            border-color: rgba(95, 122, 99, 0.4);
+        }
+
+        /* Arrow nudge on button hover */
+        .cta-arrow { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+        .group:hover .cta-arrow { transform: translateX(4px); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+            .reveal-up { opacity: 1; transform: none; }
+            .draw-path { stroke-dashoffset: 0; }
+        }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
+                        <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    FindFlower
+                </a>
+                <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24 overflow-hidden">
+
+        <!-- HERO -->
+        <section class="relative max-w-7xl mx-auto px-6 flex flex-col items-center text-center mt-12 md:mt-20 mb-32">
+            <!-- Decorative background: grid + glow + floating botanical line art -->
+            <div class="absolute inset-0 -z-10 grid-dots"></div>
+            <div class="absolute inset-x-0 -top-20 -z-10 h-[520px] bg-[radial-gradient(ellipse_50%_50%_at_50%_35%,rgba(95,122,99,0.10),transparent_70%)]"></div>
+
+            <svg class="hidden lg:block absolute -left-4 top-24 -z-10 text-sage-200 float-slow" width="150" height="200" viewBox="0 0 150 200" fill="none">
+                <path d="M75 195C75 150 75 110 75 70M75 70C75 35 105 12 145 14C142 55 108 74 75 70ZM75 70C75 35 45 12 5 14C8 55 42 74 75 70ZM75 120C75 98 92 84 120 86C118 112 98 122 75 120ZM75 120C75 98 58 84 30 86C32 112 52 122 75 120Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg class="hidden lg:block absolute -right-2 top-40 -z-10 text-sage-200 float-slower" width="120" height="170" viewBox="0 0 150 200" fill="none">
+                <path d="M75 195C75 150 75 110 75 70M75 70C75 35 105 12 145 14C142 55 108 74 75 70ZM75 70C75 35 45 12 5 14C8 55 42 74 75 70Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+
+            <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
+                <span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>
+                Botanical identification, engineered by iBhx
+            </div>
+
+            <h1 class="reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 max-w-4xl leading-[1.05] mb-6">
+                Understand the <span class="font-serif italic font-normal text-sage-600">natural</span> world.
+            </h1>
+            <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-2xl leading-relaxed mb-10 font-light">
+                FindFlower provides precise botanical identification directly in your browser. Point, capture, and understand the flora around you — designed for clarity, built for discovery.
+            </p>
+            <div class="reveal-up delay-300 flex flex-col sm:flex-row items-center gap-4">
+                <a href="try.html" class="group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float flex items-center justify-center gap-2">
+                    Start Identifying
+                    <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+                <a href="#how" class="w-full sm:w-auto text-base font-medium text-neutral-600 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors">
+                    See how it works
+                </a>
+            </div>
+            <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">No installation · Works in your browser · Free during Beta</p>
+        </section>
+
+        <!-- PRODUCT PREVIEW -->
+        <section class="reveal-up max-w-5xl mx-auto px-6 mb-32 relative">
+            <div class="absolute inset-0 bg-gradient-to-b from-sage-50/60 to-transparent -z-10 rounded-[3rem]"></div>
+
+            <div class="bg-white border border-neutral-200/60 rounded-[2rem] shadow-lift overflow-hidden flex flex-col md:flex-row">
+                <!-- Simulated Image Upload/View Area -->
+                <div class="w-full md:w-3/5 bg-neutral-50 relative p-8 md:p-12 border-b md:border-b-0 md:border-r border-neutral-100 flex items-center justify-center">
+                    <div class="relative w-full aspect-[4/3] rounded-2xl overflow-hidden scanning-element border-2 border-sage-200 bg-white shadow-sm">
+                        <img src="https://images.unsplash.com/photo-1599598425947-330026206a05?auto=format&fit=crop&q=80&w=1200"
+                             alt="Sample leaf structure"
+                             class="w-full h-full object-cover opacity-95 image-mask" />
+
+                        <!-- Soft scanning sweep -->
+                        <div class="scan-line absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-transparent via-sage-400/25 to-transparent pointer-events-none"></div>
+
+                        <!-- Simulated UI elements over image -->
+                        <div class="absolute top-4 left-4 right-4 flex justify-between items-start">
+                            <div class="bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-md text-xs font-medium text-neutral-600 shadow-sm">
+                                IMG_8092.HEIC
+                            </div>
+                            <div class="bg-white/90 backdrop-blur-sm p-1.5 rounded-md shadow-sm">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-neutral-900">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Corner focus brackets -->
+                        <div class="absolute bottom-5 left-5 w-6 h-6 border-l-2 border-b-2 border-white/70 rounded-bl"></div>
+                        <div class="absolute bottom-5 right-5 w-6 h-6 border-r-2 border-b-2 border-white/70 rounded-br"></div>
+                    </div>
+                </div>
+
+                <!-- Simulated Result Area -->
+                <div class="w-full md:w-2/5 p-8 md:p-12 flex flex-col justify-center bg-white">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="w-2 h-2 rounded-full bg-sage-500"></div>
+                        <span class="text-xs font-medium tracking-wide text-neutral-500 uppercase">Analysis Complete</span>
+                    </div>
+
+                    <h3 class="text-3xl font-medium tracking-tight text-neutral-900 mb-1">Monstera deliciosa</h3>
+                    <p class="text-sm font-medium text-neutral-500 italic mb-6">Family: Araceae</p>
+
+                    <p class="text-sm text-neutral-600 leading-relaxed mb-8">
+                        A species of flowering plant native to tropical forests of southern Mexico, south to Panama. Sourced live from Wikipedia for verified, peer-reviewed botanical context.
+                    </p>
+
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-sm text-neutral-500">Confidence Match</span>
+                                <span class="text-sm font-medium text-neutral-900">98.4%</span>
+                            </div>
+                            <div class="h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
+                                <div class="h-full rounded-full bg-sage-500" style="width: 98.4%"></div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-t border-neutral-100">
+                            <span class="text-sm text-neutral-500">Classification</span>
+                            <span class="text-sm font-medium text-sage-600">Verified</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STATS STRIP -->
+        <section class="max-w-7xl mx-auto px-6 mb-36">
+            <div class="reveal-up grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 border-y border-neutral-200 py-12">
+                <div class="text-center md:border-r border-neutral-200">
+                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">500</div>
+                    <div class="text-sm text-neutral-500 font-light">Botanical classes</div>
+                </div>
+                <div class="text-center md:border-r border-neutral-200">
+                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">&lt;2s</div>
+                    <div class="text-sm text-neutral-500 font-light">Average result time</div>
+                </div>
+                <div class="text-center md:border-r border-neutral-200">
+                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">100%</div>
+                    <div class="text-sm text-neutral-500 font-light">Runs in the browser</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">Weekly</div>
+                    <div class="text-sm text-neutral-500 font-light">Model refinements</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HOW IT WORKS -->
+        <section id="how" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
+            <div class="reveal-up max-w-2xl mb-16">
+                <span class="text-sm font-medium text-sage-600 mb-4 block">How it works</span>
+                <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
+                    Three unhurried steps, from a photograph to real understanding.
+                </h2>
+            </div>
+
+            <div class="relative grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+                <!-- Connecting line -->
+                <div class="hidden md:block absolute top-6 left-[16%] right-[16%] h-px bg-gradient-to-r from-sage-200 via-neutral-200 to-sage-200 -z-0"></div>
+
+                <!-- Step 1 -->
+                <div class="reveal-up relative flex flex-col items-start bg-[#FCFCFC]">
+                    <div class="w-12 h-12 rounded-full bg-white border border-neutral-200 flex items-center justify-center mb-6 shadow-subtle relative z-10">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </div>
+                    <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-2">Step 01</span>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Capture or upload</h4>
+                    <p class="text-base text-neutral-500 font-light leading-relaxed">
+                        Point your camera at a plant, or drop in a photo you already have. A single clear image of a leaf or bloom is all FindFlower needs to begin.
+                    </p>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="reveal-up delay-100 relative flex flex-col items-start bg-[#FCFCFC]">
+                    <div class="w-12 h-12 rounded-full bg-white border border-neutral-200 flex items-center justify-center mb-6 shadow-subtle relative z-10">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+                    </div>
+                    <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-2">Step 02</span>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Instant analysis</h4>
+                    <p class="text-base text-neutral-500 font-light leading-relaxed">
+                        The identification engine reads structure, form, and detail in moments — entirely inside your browser, with your image never leaving the page unnecessarily.
+                    </p>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="reveal-up delay-200 relative flex flex-col items-start bg-[#FCFCFC]">
+                    <div class="w-12 h-12 rounded-full bg-white border border-neutral-200 flex items-center justify-center mb-6 shadow-subtle relative z-10">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                    </div>
+                    <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-2">Step 03</span>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Learn the species</h4>
+                    <p class="text-base text-neutral-500 font-light leading-relaxed">
+                        Receive the species, family, and confidence — paired with rich, verified context drawn live from Wikipedia, so you leave knowing more than a name.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABOUT / EXPLANATION -->
+        <section id="about" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center">
+                <div class="reveal-up relative">
+                    <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-8">
+                        A quiet tool for <br class="hidden md:block" />a complex world.
+                    </h2>
+                    <!-- Elegant self-drawing botanical line -->
+                    <svg class="w-full max-w-sm text-sage-400" viewBox="0 0 400 220" fill="none">
+                        <path class="draw-path" d="M40 200C40 150 60 120 100 110C70 108 50 88 52 58C82 62 100 84 100 110C102 74 128 50 168 52C166 88 140 110 100 110C140 112 168 138 168 176C132 172 108 148 100 110M100 110C160 120 200 90 210 40C250 60 250 110 210 130C176 146 130 138 100 110Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="reveal-up delay-100 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                    <p>
+                        FindFlower was engineered to bridge the gap between human curiosity and botanical science. By simply providing a photograph, users receive immediate, structurally accurate classifications of flora from their surroundings.
+                    </p>
+                    <p>
+                        We believe software should enhance our connection to the physical world, not abstract it. That’s why our identification engine is designed to be unobtrusive, highly responsive, and strictly focused on delivering precise information when you need it.
+                    </p>
+                    <p>
+                        Every detail is considered by the team at iBhx, from the moment you upload an image to the clarity of the result you read. FindFlower is built slowly and deliberately, so that what reaches you always feels calm, considered, and genuinely useful.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRUST / ARCHITECTURE -->
+        <section id="architecture" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
+            <div class="reveal-up max-w-2xl mb-14">
+                <span class="text-sm font-medium text-sage-600 mb-4 block">Why FindFlower</span>
+                <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
+                    Built on principles we don’t compromise on.
+                </h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <!-- Feature 1 -->
+                <div class="reveal-up hover-lift flex flex-col bg-white border border-neutral-200/70 rounded-2xl p-8">
+                    <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
+                            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                            <line x1="2" y1="9" x2="22" y2="9"></line>
+                            <circle cx="6" cy="6.5" r="0.6" fill="currentColor" stroke="none"></circle>
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Browser-based architecture</h4>
+                    <p class="text-base text-neutral-500 font-light leading-relaxed">
+                        No heavy applications or complex installations. FindFlower runs securely and seamlessly within your modern web browser, granting instant access wherever you are.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="reveal-up delay-100 hover-lift flex flex-col bg-white border border-neutral-200/70 rounded-2xl p-8">
+                    <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Verified knowledge</h4>
+                    <p class="text-base text-neutral-500 font-light leading-relaxed">
+                        Identification is only the first step. Every positive match queries live, structured data from Wikipedia, providing rich, peer-verified botanical context instantly.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="reveal-up delay-200 hover-lift flex flex-col bg-white border border-neutral-200/70 rounded-2xl p-8">
+                    <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Continuous improvement</h4>
+                    <p class="text-base text-neutral-500 font-light leading-relaxed">
+                        We are building carefully. As of our current Beta, the model recognizes 500 distinct botanical classes — and we refine our dataset and accuracy every single week.
+                    </p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- PHILOSOPHY STATEMENT -->
+        <section class="max-w-4xl mx-auto px-6 mb-40 text-center">
+            <div class="reveal-up">
+                <svg class="mx-auto mb-8 text-sage-400" width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <p class="text-2xl md:text-4xl font-serif font-normal text-neutral-800 leading-snug tracking-tight">
+                    “The more clearly we can name the living world, the more closely we tend to care for it.”
+                </p>
+                <p class="mt-8 text-sm font-medium text-neutral-500">The team at iBhx</p>
+            </div>
+        </section>
+
+        <!-- FINAL CTA -->
+        <section class="max-w-7xl mx-auto px-6 mb-24">
+            <div class="reveal-up relative bg-neutral-900 rounded-[2rem] p-12 md:p-20 text-center flex flex-col items-center overflow-hidden">
+                <!-- Subtle glow + line art inside dark card -->
+                <div class="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(95,122,99,0.35),transparent_70%)]"></div>
+                <svg class="absolute -bottom-6 -right-6 text-white/5 float-slower" width="220" height="220" viewBox="0 0 150 200" fill="none"><path d="M75 195C75 150 75 110 75 70M75 70C75 35 105 12 145 14C142 55 108 74 75 70ZM75 70C75 35 45 12 5 14C8 55 42 74 75 70ZM75 120C75 98 92 84 120 86C118 112 98 122 75 120ZM75 120C75 98 58 84 30 86C32 112 52 122 75 120Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+                <div class="relative">
+                    <h2 class="text-3xl md:text-5xl font-medium tracking-tight text-white mb-6">
+                        Ready to explore?
+                    </h2>
+                    <p class="text-neutral-400 text-lg mb-10 max-w-xl mx-auto font-light">
+                        Join the Beta today and experience the fastest, calmest way to understand the plant life around you.
+                    </p>
+                    <a href="try.html" class="group inline-flex items-center gap-2 text-base font-medium bg-white text-neutral-900 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors">
+                        Try FindFlower Now
+                        <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="col-span-2">
+                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        FindFlower
+                    </span>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">
+                        A premium botanical identification product by iBhx. Built for clarity and precision.
+                    </p>
+                </div>
+
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
+                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
+                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
+                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
+                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
+                    <span>Model Version: Beta 0.9.4</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px 0px -10% 0px',
+                threshold: 0.15
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.reveal-up').forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>

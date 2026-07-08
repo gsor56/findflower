@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try FindFlower | Identify a flower</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Fraunces', 'serif'],
+                    },
+                    colors: {
+                        neutral: {
+                            50: '#FAFAFA', 100: '#F5F5F5', 200: '#E5E5E5', 300: '#D4D4D4',
+                            400: '#A3A3A3', 500: '#737373', 600: '#525252', 700: '#404040',
+                            800: '#262626', 900: '#171717',
+                        },
+                        sage: {
+                            50: '#F2F5F2', 100: '#E4EBE5', 200: '#C9D6CB',
+                            400: '#7C9781', 500: '#5F7A63', 600: '#4C6650', 700: '#3D5341',
+                        }
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 40px -2px rgba(0, 0, 0, 0.04)',
+                        'float': '0 10px 40px -10px rgba(0, 0, 0, 0.12)',
+                        'lift': '0 20px 60px -18px rgba(23, 23, 23, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #FCFCFC;
+            color: #171717;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-up.active { opacity: 1; transform: translateY(0); }
+        .delay-100 { transition-delay: 100ms; }
+        .delay-200 { transition-delay: 200ms; }
+
+        /* Segmented control */
+        .seg-btn { transition: color .3s ease; }
+        .seg-btn[aria-selected="true"] { color: #171717; }
+        .seg-btn[aria-selected="false"] { color: #737373; }
+        .seg-indicator { transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1), width .4s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        /* Scan sweep during identification */
+        @keyframes scan-sweep {
+            0% { transform: translateY(-120%); opacity: 0; }
+            15% { opacity: 1; } 85% { opacity: 1; }
+            100% { transform: translateY(320%); opacity: 0; }
+        }
+        .scan-line { animation: scan-sweep 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1); }
+
+        /* Confidence bar fill */
+        .conf-fill { transition: width 1s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        /* Dropzone hover */
+        .dropzone { transition: border-color .3s ease, background-color .3s ease; }
+        .dropzone.dragging { border-color: #5F7A63; background-color: #F2F5F2; }
+
+        .cta-arrow { transition: transform .35s cubic-bezier(0.16, 1, 0.3, 1); }
+        .group:hover .cta-arrow { transform: translateX(4px); }
+
+        /* Spinner */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin .9s linear infinite; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+            .reveal-up { opacity: 1; transform: none; }
+        }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- HEADER (shared) -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
+                        <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    FindFlower
+                </a>
+                <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="try.html" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full">
+                    Try Now
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24">
+
+        <!-- INTRO -->
+        <section class="max-w-7xl mx-auto px-6 mb-12 md:mb-16">
+            <div class="reveal-up max-w-2xl">
+                <span class="text-sm font-medium text-sage-600 mb-4 block">The workspace</span>
+                <h1 class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-5">
+                    Identify a <span class="font-serif italic font-normal text-sage-600">flower</span>.
+                </h1>
+                <p class="text-lg text-neutral-500 font-light leading-relaxed">
+                    Capture with your camera, upload a photo, or paste a link. FindFlower runs entirely in your browser and returns the species, a confidence score, and verified context from Wikipedia.
+                </p>
+            </div>
+        </section>
+
+        <!-- WORKSPACE -->
+        <section class="max-w-7xl mx-auto px-6">
+            <div class="reveal-up grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- LEFT: INPUT -->
+                <div class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-8 flex flex-col">
+                    <!-- Status -->
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-sm font-medium tracking-wide text-neutral-500 uppercase">Input</h2>
+                        <div id="modelStatus" class="flex items-center gap-2 text-xs font-medium text-neutral-500">
+                            <span id="modelDot" class="w-1.5 h-1.5 rounded-full bg-neutral-300"></span>
+                            <span id="modelStatusText">Loading model…</span>
+                        </div>
+                    </div>
+
+                    <!-- Segmented control -->
+                    <div class="relative bg-neutral-100 rounded-full p-1 flex mb-6 text-sm font-medium">
+                        <div id="segIndicator" class="seg-indicator absolute top-1 bottom-1 left-1 rounded-full bg-white shadow-sm" style="width: calc((100% - 0.5rem) / 3);"></div>
+                        <button class="seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="camera" aria-selected="true">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Camera
+                        </button>
+                        <button class="seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="upload" aria-selected="false">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                            Upload
+                        </button>
+                        <button class="seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="url" aria-selected="false">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            Link
+                        </button>
+                    </div>
+
+                    <!-- Panels -->
+                    <div class="flex-1">
+                        <!-- Camera -->
+                        <div data-panel="camera" class="panel">
+                            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 flex items-center justify-center">
+                                <video id="camVideo" class="w-full h-full object-cover hidden" playsinline muted></video>
+                                <div id="camPlaceholder" class="text-center px-6">
+                                    <svg class="mx-auto mb-4 text-neutral-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                    <p class="text-sm text-neutral-400 font-light">Camera is off</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-3 mt-4">
+                                <button id="camStart" class="flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:bg-neutral-50 transition-colors">Enable camera</button>
+                                <button id="camCapture" class="flex-1 text-sm font-medium bg-neutral-900 text-white px-4 py-2.5 rounded-full hover:bg-neutral-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>Capture</button>
+                            </div>
+                        </div>
+
+                        <!-- Upload -->
+                        <div data-panel="upload" class="panel hidden">
+                            <label id="dropzone" for="fileInput" class="dropzone cursor-pointer flex flex-col items-center justify-center text-center aspect-[4/3] rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 px-6">
+                                <svg class="mb-4 text-sage-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                                <p class="text-sm font-medium text-neutral-700 mb-1">Drop an image here</p>
+                                <p class="text-xs text-neutral-400 font-light">or click to browse · JPG, PNG, WEBP</p>
+                                <input id="fileInput" type="file" accept="image/*" class="hidden" />
+                            </label>
+                        </div>
+
+                        <!-- URL -->
+                        <div data-panel="url" class="panel hidden">
+                            <div class="aspect-[4/3] rounded-2xl border border-neutral-200 bg-neutral-50 flex flex-col justify-center px-6 md:px-8">
+                                <label class="text-sm font-medium text-neutral-700 mb-2 block">Image or YouTube link</label>
+                                <div class="flex gap-2">
+                                    <input id="urlInput" type="url" placeholder="https://…" class="flex-1 text-sm bg-white border border-neutral-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                                    <button id="urlLoad" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-full hover:bg-neutral-800 transition-colors">Load</button>
+                                </div>
+                                <p class="text-xs text-neutral-400 font-light mt-3 leading-relaxed">
+                                    Direct image links and YouTube URLs (thumbnail) are supported. Some sources block in-browser reading; if a link can’t be read, download and upload it instead.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview + Identify -->
+                    <div class="mt-6 pt-6 border-t border-neutral-100">
+                        <div class="flex items-center gap-4">
+                            <div class="relative w-20 h-20 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 flex items-center justify-center">
+                                <img id="previewImg" class="w-full h-full object-cover hidden" alt="Selected preview" crossorigin="anonymous" />
+                                <span id="previewEmpty" class="text-[11px] text-neutral-400 font-light text-center px-1">No image</span>
+                                <div id="previewScan" class="scan-line absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-transparent via-sage-400/40 to-transparent hidden"></div>
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-sm text-neutral-500 font-light leading-snug" id="previewHint">Select an image to begin. Everything runs privately on your device.</p>
+                            </div>
+                        </div>
+                        <button id="identifyBtn" class="group w-full mt-5 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
+                            <span id="identifyLabel">Identify flower</span>
+                            <svg id="identifyArrow" class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- RIGHT: RESULT -->
+                <div class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-8 flex flex-col min-h-[520px]">
+                    <h2 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-6">Result</h2>
+
+                    <!-- Empty state -->
+                    <div id="resEmpty" class="flex-1 flex flex-col items-center justify-center text-center px-6">
+                        <div class="w-14 h-14 rounded-2xl bg-sage-50 flex items-center justify-center mb-5">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-500"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </div>
+                        <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Your identification will appear here, complete with a confidence score and botanical context.</p>
+                    </div>
+
+                    <!-- Loading state -->
+                    <div id="resLoading" class="hidden flex-1 flex flex-col items-center justify-center text-center">
+                        <svg class="spin text-sage-500 mb-5" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
+                        <p class="text-neutral-500 font-light">Analyzing image…</p>
+                    </div>
+
+                    <!-- Result content -->
+                    <div id="resContent" class="hidden flex-1 flex-col">
+                        <div class="flex items-start gap-5 mb-6">
+                            <div class="w-24 h-24 rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0">
+                                <img id="resImg" class="w-full h-full object-cover" alt="Identified flower" />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-2 h-2 rounded-full bg-sage-500"></div>
+                                    <span class="text-xs font-medium tracking-wide text-neutral-500 uppercase">Best match</span>
+                                </div>
+                                <h3 id="resName" class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 capitalize leading-tight mb-1 truncate"></h3>
+                                <p id="resFamily" class="text-sm font-medium text-neutral-500 italic"></p>
+                            </div>
+                        </div>
+
+                        <!-- Confidence -->
+                        <div class="mb-6">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <span class="text-sm text-neutral-500">Confidence</span>
+                                <span id="resConfVal" class="text-sm font-medium text-neutral-900">—</span>
+                            </div>
+                            <div class="h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
+                                <div id="resConfBar" class="conf-fill h-full rounded-full bg-sage-500" style="width:0%"></div>
+                            </div>
+                            <p id="resConfNote" class="text-xs text-neutral-400 font-light mt-2"></p>
+                        </div>
+
+                        <!-- Alternatives -->
+                        <div id="resAlts" class="mb-6 hidden">
+                            <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-3">Other possibilities</p>
+                            <div id="resAltsList" class="space-y-2"></div>
+                        </div>
+
+                        <!-- Wikipedia -->
+                        <div class="mb-6 pt-6 border-t border-neutral-100">
+                            <p id="resWiki" class="text-sm text-neutral-600 font-light leading-relaxed mb-3"></p>
+                            <a id="resWikiLink" href="#" target="_blank" rel="noopener" class="group inline-flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-700 transition-colors">
+                                Read full article on Wikipedia
+                                <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                            </a>
+                        </div>
+
+                        <!-- Feedback -->
+                        <div id="feedbackBox" class="mt-auto pt-6 border-t border-neutral-100">
+                            <div id="fbPrompt">
+                                <p class="text-sm font-medium text-neutral-700 mb-3">Was this identification correct?</p>
+                                <div class="flex gap-3">
+                                    <button id="fbYes" class="flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-sage-400 hover:text-sage-700 transition-colors">Yes, correct</button>
+                                    <button id="fbNo" class="flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-neutral-400 transition-colors">No, incorrect</button>
+                                </div>
+                            </div>
+                            <div id="fbCorrection" class="hidden">
+                                <p class="text-sm font-medium text-neutral-700 mb-2">Thank you. What is it, if you know?</p>
+                                <div class="flex gap-2">
+                                    <input id="fbInput" type="text" placeholder="Correct flower name (optional)" class="flex-1 text-sm bg-white border border-neutral-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                                    <button id="fbSubmit" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-full hover:bg-neutral-800 transition-colors">Send</button>
+                                </div>
+                            </div>
+                            <div id="fbThanks" class="hidden flex items-center gap-2 text-sm text-sage-700">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+                                Thank you — your feedback helps FindFlower improve.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error state -->
+                    <div id="resError" class="hidden flex-1 flex-col items-center justify-center text-center px-6">
+                        <div class="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="text-neutral-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        </div>
+                        <p id="resErrorText" class="text-neutral-500 font-light max-w-xs leading-relaxed"></p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Reassurance line -->
+            <p class="reveal-up delay-100 text-center text-xs text-neutral-400 font-light mt-8">
+                Images are processed locally in your browser and are not uploaded to any server. Predictions are a best guess and may be imperfect.
+            </p>
+        </section>
+
+    </main>
+
+    <!-- FOOTER (shared) -->
+    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="col-span-2">
+                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        FindFlower
+                    </span>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">
+                        A premium botanical identification product by iBhx. Built for clarity and precision.
+                    </p>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
+                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
+                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
+                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
+                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
+                    <span>Model Version: Beta 0.9.4</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // ---- Config ----
+        const MODEL_URL = './model/model.json';
+        const CLASSES_URL = './model/class_names.json';
+        const INPUT_SIZE = 224;
+
+        // ---- State ----
+        let model = null;
+        let classNames = [];
+        let currentImageEl = null; // an <img> or <canvas> ready for inference
+        let lastPrediction = null;
+
+        // ---- Elements ----
+        const $ = (id) => document.getElementById(id);
+        const modelDot = $('modelDot'), modelStatusText = $('modelStatusText');
+        const identifyBtn = $('identifyBtn'), identifyLabel = $('identifyLabel'), identifyArrow = $('identifyArrow');
+        const previewImg = $('previewImg'), previewEmpty = $('previewEmpty'), previewHint = $('previewHint'), previewScan = $('previewScan');
+
+        // ---- Reveal animations ----
+        document.addEventListener('DOMContentLoaded', () => {
+            const obs = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
+            }, { threshold: 0.15 });
+            document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
+        });
+
+        // ---- Segmented control ----
+        const segButtons = document.querySelectorAll('.seg-btn');
+        const segIndicator = $('segIndicator');
+        const panels = document.querySelectorAll('.panel');
+        function selectMode(mode, index) {
+            segButtons.forEach(b => b.setAttribute('aria-selected', b.dataset.mode === mode ? 'true' : 'false'));
+            segIndicator.style.transform = `translateX(${index * 100}%)`;
+            panels.forEach(p => p.classList.toggle('hidden', p.dataset.panel !== mode));
+            if (mode !== 'camera') stopCamera();
+        }
+        segButtons.forEach((b, i) => b.addEventListener('click', () => selectMode(b.dataset.mode, i)));
+
+        // ---- Load model ----
+        async function loadModel() {
+            try {
+                const res = await fetch(CLASSES_URL);
+                classNames = await res.json();
+                model = await tf.loadLayersModel(MODEL_URL);
+                // warm up
+                tf.tidy(() => model.predict(tf.zeros([1, INPUT_SIZE, INPUT_SIZE, 3])));
+                modelDot.className = 'w-1.5 h-1.5 rounded-full bg-sage-500';
+                modelStatusText.textContent = 'Model ready';
+                refreshIdentifyState();
+            } catch (err) {
+                console.error(err);
+                modelDot.className = 'w-1.5 h-1.5 rounded-full bg-red-400';
+                modelStatusText.textContent = 'Model failed to load';
+            }
+        }
+        loadModel();
+
+        // ---- Set current image for inference + preview ----
+        function setImage(sourceEl, displaySrc) {
+            currentImageEl = sourceEl;
+            previewImg.src = displaySrc;
+            previewImg.classList.remove('hidden');
+            previewEmpty.classList.add('hidden');
+            previewHint.textContent = 'Ready to identify.';
+            refreshIdentifyState();
+        }
+        function refreshIdentifyState() {
+            identifyBtn.disabled = !(model && currentImageEl);
+        }
+
+        // ---- Camera ----
+        let stream = null;
+        const camVideo = $('camVideo'), camPlaceholder = $('camPlaceholder');
+        const camStart = $('camStart'), camCapture = $('camCapture');
+        camStart.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                camVideo.srcObject = stream;
+                await camVideo.play();
+                camVideo.classList.remove('hidden');
+                camPlaceholder.classList.add('hidden');
+                camCapture.disabled = false;
+                camStart.textContent = 'Camera on';
+            } catch (err) {
+                console.error(err);
+                camPlaceholder.querySelector('p').textContent = 'Camera unavailable or permission denied';
+            }
+        });
+        function stopCamera() {
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+            camVideo.classList.add('hidden');
+            camPlaceholder.classList.remove('hidden');
+            camCapture.disabled = true;
+            camStart.textContent = 'Enable camera';
+        }
+        camCapture.addEventListener('click', () => {
+            if (!stream) return;
+            const canvas = document.createElement('canvas');
+            canvas.width = camVideo.videoWidth;
+            canvas.height = camVideo.videoHeight;
+            canvas.getContext('2d').drawImage(camVideo, 0, 0);
+            setImage(canvas, canvas.toDataURL('image/jpeg', 0.92));
+        });
+
+        // ---- Upload ----
+        const fileInput = $('fileInput'), dropzone = $('dropzone');
+        function handleFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => setImage(img, url);
+            img.src = url;
+        }
+        fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+        ['dragenter', 'dragover'].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('dragging'); }));
+        ['dragleave', 'drop'].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragging'); }));
+        dropzone.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+        // ---- URL ----
+        const urlInput = $('urlInput'), urlLoad = $('urlLoad');
+        function youTubeId(u) {
+            const m = u.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+            return m ? m[1] : null;
+        }
+        urlLoad.addEventListener('click', () => {
+            const raw = urlInput.value.trim();
+            if (!raw) return;
+            let src = raw;
+            const yt = youTubeId(raw);
+            if (yt) src = `https://img.youtube.com/vi/${yt}/hqdefault.jpg`;
+            else if (/tiktok\.com/.test(raw)) { showError('TikTok links can’t be read directly in the browser. Please download the frame and upload it instead.'); return; }
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => { setImage(img, src); showState('empty'); };
+            img.onerror = () => showError('That link could not be loaded as an image. Try a direct image URL, or download and upload the photo.');
+            img.src = src;
+        });
+
+        // ---- Result states ----
+        const resEmpty = $('resEmpty'), resLoading = $('resLoading'), resContent = $('resContent'), resError = $('resError');
+        function showState(state) {
+            resEmpty.classList.toggle('hidden', state !== 'empty');
+            resLoading.classList.toggle('hidden', state !== 'loading');
+            resError.classList.toggle('hidden', state !== 'error');
+            resError.classList.toggle('flex', state === 'error');
+            resContent.classList.toggle('hidden', state !== 'content');
+            resContent.classList.toggle('flex', state === 'content');
+        }
+        function showError(msg) { $('resErrorText').textContent = msg; showState('error'); }
+
+        // ---- Inference ----
+        function preprocess(el) {
+            return tf.tidy(() =>
+                tf.browser.fromPixels(el)
+                    .resizeBilinear([INPUT_SIZE, INPUT_SIZE])
+                    .toFloat()
+                    .div(255.0)           // model's internal Rescaling maps [0,1] -> [-1,1]
+                    .expandDims(0)
+            );
+        }
+        identifyBtn.addEventListener('click', async () => {
+            if (!model || !currentImageEl) return;
+            showState('loading');
+            previewScan.classList.remove('hidden');
+            identifyBtn.disabled = true;
+            identifyLabel.textContent = 'Analyzing…';
+            identifyArrow.classList.add('hidden');
+            await new Promise(r => setTimeout(r, 50)); // let UI paint
+
+            try {
+                const input = preprocess(currentImageEl);
+                const logits = model.predict(input);
+                const data = await logits.data();
+                input.dispose(); logits.dispose();
+
+                const ranked = Array.from(data)
+                    .map((p, i) => ({ name: classNames[i] || `class ${i}`, p }))
+                    .sort((a, b) => b.p - a.p);
+
+                lastPrediction = ranked[0];
+                renderResult(ranked);
+            } catch (err) {
+                console.error(err);
+                showError('This image could not be analyzed. If it came from a link, cross-origin rules may block reading its pixels — please upload the file directly.');
+            } finally {
+                previewScan.classList.add('hidden');
+                identifyLabel.textContent = 'Identify flower';
+                identifyArrow.classList.remove('hidden');
+                identifyBtn.disabled = false;
+            }
+        });
+
+        // ---- Clean a class label into a Wikipedia-friendly query ----
+        function cleanName(name) { return name.replace(/\?+$/, '').trim(); }
+
+        function renderResult(ranked) {
+            const top = ranked[0];
+            const pct = (top.p * 100);
+            $('resName').textContent = cleanName(top.name);
+            $('resFamily').textContent = '';
+            $('resConfVal').textContent = pct.toFixed(1) + '%';
+            $('resConfBar').style.width = '0%';
+            requestAnimationFrame(() => { $('resConfBar').style.width = Math.max(4, pct).toFixed(1) + '%'; });
+
+            const note = $('resConfNote');
+            if (pct >= 70) note.textContent = 'High confidence match.';
+            else if (pct >= 40) note.textContent = 'Moderate confidence — compare with the possibilities below.';
+            else note.textContent = 'Low confidence — this may be a species outside the current Beta set.';
+
+            // Alternatives
+            const alts = ranked.slice(1, 4);
+            const altsWrap = $('resAlts'), altsList = $('resAltsList');
+            altsList.innerHTML = '';
+            if (alts.length) {
+                altsWrap.classList.remove('hidden');
+                alts.forEach(a => {
+                    const row = document.createElement('div');
+                    row.className = 'flex items-center justify-between';
+                    row.innerHTML = `<span class="text-sm text-neutral-600 capitalize">${cleanName(a.name)}</span><span class="text-sm font-medium text-neutral-400">${(a.p*100).toFixed(1)}%</span>`;
+                    altsList.appendChild(row);
+                });
+            } else altsWrap.classList.add('hidden');
+
+            // Reset feedback UI
+            $('fbPrompt').classList.remove('hidden');
+            $('fbCorrection').classList.add('hidden');
+            $('fbThanks').classList.add('hidden');
+
+            // Result image defaults to user's own preview; Wikipedia may override
+            $('resImg').src = previewImg.src;
+
+            showState('content');
+            fetchWiki(cleanName(top.name));
+        }
+
+        // ---- Wikipedia ----
+        async function fetchWiki(name) {
+            const wikiP = $('resWiki'), wikiLink = $('resWikiLink'), resImg = $('resImg'), resFamily = $('resFamily');
+            wikiP.textContent = 'Loading botanical context…';
+            const title = name.charAt(0).toUpperCase() + name.slice(1);
+            try {
+                const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title));
+                if (!res.ok) throw new Error('not found');
+                const d = await res.json();
+                if (d.type === 'disambiguation' || !d.extract) throw new Error('ambiguous');
+                wikiP.textContent = d.extract;
+                wikiLink.href = (d.content_urls && d.content_urls.desktop && d.content_urls.desktop.page)
+                    || ('https://en.wikipedia.org/wiki/' + encodeURIComponent(title));
+                if (d.thumbnail && d.thumbnail.source) resImg.src = d.thumbnail.source;
+                if (d.description) resFamily.textContent = d.description;
+            } catch (err) {
+                wikiP.textContent = 'A detailed article wasn’t found automatically for this name. You can search Wikipedia directly for more context.';
+                wikiLink.href = 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(name);
+            }
+        }
+
+        // ---- Feedback (stored locally; future human-in-the-loop signal) ----
+        function saveFeedback(correct, correction) {
+            try {
+                const log = JSON.parse(localStorage.getItem('ff_feedback') || '[]');
+                log.push({
+                    predicted: lastPrediction ? cleanName(lastPrediction.name) : null,
+                    confidence: lastPrediction ? lastPrediction.p : null,
+                    correct: correct,
+                    correction: correction || null
+                });
+                localStorage.setItem('ff_feedback', JSON.stringify(log));
+            } catch (e) { /* storage unavailable — ignore */ }
+        }
+        $('fbYes').addEventListener('click', () => {
+            saveFeedback(true, null);
+            $('fbPrompt').classList.add('hidden');
+            $('fbThanks').classList.remove('hidden');
+        });
+        $('fbNo').addEventListener('click', () => {
+            $('fbPrompt').classList.add('hidden');
+            $('fbCorrection').classList.remove('hidden');
+        });
+        $('fbSubmit').addEventListener('click', () => {
+            saveFeedback(false, $('fbInput').value.trim());
+            $('fbCorrection').classList.add('hidden');
+            $('fbThanks').classList.remove('hidden');
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact | FindFlower</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+                    colors: {
+                        neutral: { 50:'#FAFAFA',100:'#F5F5F5',200:'#E5E5E5',300:'#D4D4D4',400:'#A3A3A3',500:'#737373',600:'#525252',700:'#404040',800:'#262626',900:'#171717' },
+                        sage: { 50:'#F2F5F2',100:'#E4EBE5',200:'#C9D6CB',400:'#7C9781',500:'#5F7A63',600:'#4C6650',700:'#3D5341' }
+                    },
+                    boxShadow: { 'subtle':'0 4px 40px -2px rgba(0,0,0,0.04)','float':'0 10px 40px -10px rgba(0,0,0,0.12)','lift':'0 20px 60px -18px rgba(23,23,23,0.15)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color:#FCFCFC; color:#171717; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        .reveal-up { opacity:0; transform:translateY(24px); transition:opacity .9s cubic-bezier(0.16,1,0.3,1), transform .9s cubic-bezier(0.16,1,0.3,1); }
+        .reveal-up.active { opacity:1; transform:translateY(0); }
+        .delay-100{transition-delay:100ms}
+        .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
+        .group:hover .cta-arrow { transform:translateX(4px); }
+        .grid-dots { background-image:radial-gradient(rgba(23,23,23,0.05) 1px,transparent 1px); background-size:28px 28px; -webkit-mask-image:radial-gradient(ellipse 60% 50% at 50% 25%,black 0%,transparent 75%); mask-image:radial-gradient(ellipse 60% 50% at 50% 25%,black 0%,transparent 75%); }
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    FindFlower
+                </a>
+                <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24">
+
+        <!-- INTRO -->
+        <section class="relative max-w-7xl mx-auto px-6 mb-16">
+            <div class="absolute inset-0 -z-10 grid-dots"></div>
+            <div class="max-w-3xl">
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Contact</span>
+                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">We’d like to <span class="font-serif italic font-normal text-sage-600">hear</span> from you.</h1>
+                <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
+                    Whether it’s a bug, a feature you wish existed, a misidentified flower, or a question about the API — a real person at iBhx reads every message. Tell us what’s on your mind.
+                </p>
+            </div>
+        </section>
+
+        <section class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                <!-- FORM -->
+                <div class="lg:col-span-7">
+                    <div class="reveal-up bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-10">
+                        <form id="contactForm" class="space-y-6">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                <div>
+                                    <label for="name" class="text-sm font-medium text-neutral-900 mb-2 block">Name</label>
+                                    <input id="name" type="text" required placeholder="Your name" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                                </div>
+                                <div>
+                                    <label for="email" class="text-sm font-medium text-neutral-900 mb-2 block">Email</label>
+                                    <input id="email" type="email" required placeholder="you@example.com" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                                </div>
+                            </div>
+                            <div>
+                                <label for="topic" class="text-sm font-medium text-neutral-900 mb-2 block">What’s this about?</label>
+                                <select id="topic" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition appearance-none">
+                                    <option>General question</option>
+                                    <option>Bug report</option>
+                                    <option>Feature request</option>
+                                    <option>A misidentified flower</option>
+                                    <option>API &amp; developer access</option>
+                                    <option>Privacy &amp; data</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="message" class="text-sm font-medium text-neutral-900 mb-2 block">Message</label>
+                                <textarea id="message" rows="6" required placeholder="Tell us what happened, or what you’d like to see…" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition resize-none"></textarea>
+                            </div>
+                            <div class="pt-1">
+                                <button type="submit" class="group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float flex items-center justify-center gap-2">
+                                    Send message
+                                    <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                                </button>
+                                <p class="text-xs text-neutral-400 font-light text-center mt-4 leading-relaxed">This opens a pre-filled email in your mail app, so nothing is sent until you review and hit send yourself.</p>
+                            </div>
+                        </form>
+
+                        <!-- Confirmation -->
+                        <div id="contactDone" class="hidden text-center py-6">
+                            <div class="w-14 h-14 rounded-2xl bg-sage-50 flex items-center justify-center mx-auto mb-5">
+                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                            </div>
+                            <h3 class="text-2xl font-medium tracking-tight text-neutral-900 mb-2">Your draft is ready</h3>
+                            <p class="text-neutral-500 font-light max-w-sm mx-auto leading-relaxed mb-6">We’ve opened a pre-filled email in your mail app. Review it and hit send — we’ll take it from there.</p>
+                            <button id="contactAgain" class="text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Write another message</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SIDE INFO -->
+                <div class="lg:col-span-5 space-y-6">
+                    <div class="reveal-up bg-white border border-neutral-200/70 rounded-2xl p-8">
+                        <div class="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center mb-5">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="m22 6-10 7L2 6"/></svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-neutral-900 mb-2">Email us directly</h3>
+                        <p class="text-neutral-500 font-light leading-relaxed mb-4">Prefer your own mail client? Reach the team at:</p>
+                        <a href="mailto:support@findflower.ibhx.dev" class="group inline-flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-700 transition-colors">
+                            support@findflower.ibhx.dev
+                            <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        </a>
+                    </div>
+
+                    <div class="reveal-up delay-100 bg-white border border-neutral-200/70 rounded-2xl p-8">
+                        <div class="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center mb-5">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-neutral-900 mb-2">Response times</h3>
+                        <p class="text-neutral-500 font-light leading-relaxed">
+                            We’re a small team and we read everything. During the Beta, expect a reply within <span class="text-neutral-900">two to three business days</span>. Bug reports affecting identification are prioritised.
+                        </p>
+                    </div>
+
+                    <div class="reveal-up delay-100 bg-sage-50 border border-sage-100 rounded-2xl p-8">
+                        <h3 class="text-lg font-medium text-neutral-900 mb-2">Faster paths</h3>
+                        <p class="text-neutral-600 font-light leading-relaxed mb-4">Some things have a dedicated home:</p>
+                        <ul class="space-y-2.5 text-sm">
+                            <li><a href="feedback.html" class="text-sage-700 hover:text-sage-600 font-medium">Report a misidentified flower →</a></li>
+                            <li><a href="api.html" class="text-sage-700 hover:text-sage-600 font-medium">Developer &amp; API questions →</a></li>
+                            <li><a href="privacy.html" class="text-sage-700 hover:text-sage-600 font-medium">Privacy &amp; your data →</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="col-span-2">
+                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        FindFlower
+                    </span>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">A premium botanical identification product by iBhx. Built for clarity and precision.</p>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
+                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
+                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
+                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
+                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
+                    <span>Model Version: Beta 0.9.4</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
+            document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
+
+            const form = document.getElementById('contactForm');
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const topic = document.getElementById('topic').value;
+                const message = document.getElementById('message').value.trim();
+                const subject = encodeURIComponent('[' + topic + '] FindFlower — ' + name);
+                const body = encodeURIComponent(message + '\n\n— ' + name + '\n' + email);
+                window.location.href = 'mailto:support@findflower.ibhx.dev?subject=' + subject + '&body=' + body;
+                form.classList.add('hidden');
+                document.getElementById('contactDone').classList.remove('hidden');
+            });
+            document.getElementById('contactAgain').addEventListener('click', () => {
+                form.reset();
+                document.getElementById('contactDone').classList.add('hidden');
+                form.classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

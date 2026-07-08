@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service | FindFlower</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+                    colors: {
+                        neutral: { 50:'#FAFAFA',100:'#F5F5F5',200:'#E5E5E5',300:'#D4D4D4',400:'#A3A3A3',500:'#737373',600:'#525252',700:'#404040',800:'#262626',900:'#171717' },
+                        sage: { 50:'#F2F5F2',100:'#E4EBE5',200:'#C9D6CB',400:'#7C9781',500:'#5F7A63',600:'#4C6650',700:'#3D5341' }
+                    },
+                    boxShadow: { 'subtle':'0 4px 40px -2px rgba(0,0,0,0.04)','float':'0 10px 40px -10px rgba(0,0,0,0.12)','lift':'0 20px 60px -18px rgba(23,23,23,0.15)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color:#FCFCFC; color:#171717; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        .reveal-up { opacity:0; transform:translateY(24px); transition:opacity .9s cubic-bezier(0.16,1,0.3,1), transform .9s cubic-bezier(0.16,1,0.3,1); }
+        .reveal-up.active { opacity:1; transform:translateY(0); }
+        .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
+        .group:hover .cta-arrow { transform:translateX(4px); }
+        .toc-link.active { color:#171717; font-weight:500; }
+        .toc-link.active .toc-dot { background:#5F7A63; }
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    FindFlower
+                </a>
+                <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24">
+
+        <!-- HEADER BLOCK -->
+        <section class="max-w-7xl mx-auto px-6 mb-16">
+            <div class="max-w-3xl">
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Legal</span>
+                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">Terms of Service</h1>
+                <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
+                    A clear agreement, written to be read. These terms explain what FindFlower is, what it isn’t, and how to use it responsibly.
+                </p>
+                <p class="reveal-up text-sm text-neutral-400 font-light mt-6">Last updated 8 July 2026 · Applies to the FindFlower Beta</p>
+            </div>
+        </section>
+
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+            <!-- TOC -->
+            <aside class="hidden lg:block lg:col-span-3">
+                <nav class="sticky top-24 space-y-1 text-sm">
+                    <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">On this page</p>
+                    <a href="#aid" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>An identification aid</a>
+                    <a href="#accuracy" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Accuracy &amp; limits</a>
+                    <a href="#responsibility" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Your responsibility</a>
+                    <a href="#acceptable" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Acceptable use</a>
+                    <a href="#changes" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Changes to these terms</a>
+                </nav>
+            </aside>
+
+            <!-- CONTENT -->
+            <div class="lg:col-span-9 space-y-16">
+
+                <!-- Critical notice card -->
+                <div class="reveal-up bg-neutral-900 rounded-[2rem] p-8 md:p-10">
+                    <div class="flex items-start gap-4">
+                        <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-400"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-medium text-white mb-2">Please read this first</h2>
+                            <p class="text-neutral-400 font-light leading-relaxed">FindFlower is a helpful identification aid, not a definitive authority. It can be wrong. Never rely on it alone for decisions about edibility, medicinal use, toxicity, or safety. When it matters, confirm with a qualified expert.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <section id="aid" class="reveal-up scroll-mt-24">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">FindFlower is an identification aid</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
+                        <p>FindFlower helps you recognise flowers from a photograph and learn about them. It is a supportive tool for curiosity and learning — a starting point for understanding the plant life around you, not a certified botanical authority.</p>
+                        <p>By using FindFlower, you agree to these terms. If you do not agree, please don’t use the product.</p>
+                    </div>
+                </section>
+
+                <section id="accuracy" class="reveal-up scroll-mt-24">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Predictions may be wrong</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
+                        <p>Machine identification is probabilistic. Results are a best estimate, expressed with a confidence score and a set of alternatives precisely because they are not guaranteed to be correct.</p>
+                        <p>The current Beta model recognises a limited set of botanical classes. A flower outside that set may be misidentified or matched to the closest thing the model knows. Treat every result as a considered suggestion to verify, not a fact.</p>
+                    </div>
+                </section>
+
+                <section id="responsibility" class="reveal-up scroll-mt-24">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Your responsibility when using results</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
+                        <p>You are responsible for how you act on FindFlower’s output. Because a mistaken identification can have real consequences, you agree not to rely on it for any decision affecting health or safety — including whether a plant is safe to touch, eat, or use — without independent, expert confirmation.</p>
+                        <p>To the extent permitted by law, FindFlower and iBhx are not liable for outcomes arising from reliance on the product’s predictions.</p>
+                    </div>
+                </section>
+
+                <section id="acceptable" class="reveal-up scroll-mt-24">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Acceptable use</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
+                        <p>We ask that you use FindFlower fairly and lawfully. In particular, please do not:</p>
+                    </div>
+                    <ul class="mt-5 space-y-3">
+                        <li class="flex items-start gap-3 text-neutral-600 font-light text-lg"><span class="w-1.5 h-1.5 rounded-full bg-sage-500 mt-3 flex-shrink-0"></span>Upload content you don’t have the right to use, or that is unlawful or harmful.</li>
+                        <li class="flex items-start gap-3 text-neutral-600 font-light text-lg"><span class="w-1.5 h-1.5 rounded-full bg-sage-500 mt-3 flex-shrink-0"></span>Attempt to disrupt, overload, reverse-engineer, or misuse the service or its API.</li>
+                        <li class="flex items-start gap-3 text-neutral-600 font-light text-lg"><span class="w-1.5 h-1.5 rounded-full bg-sage-500 mt-3 flex-shrink-0"></span>Present FindFlower’s output as certified or authoritative identification.</li>
+                        <li class="flex items-start gap-3 text-neutral-600 font-light text-lg"><span class="w-1.5 h-1.5 rounded-full bg-sage-500 mt-3 flex-shrink-0"></span>Use the product to break any applicable law or the rights of others.</li>
+                    </ul>
+                </section>
+
+                <section id="changes" class="reveal-up scroll-mt-24">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Changes to these terms</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
+                        <p>As FindFlower evolves, these terms may be updated. Material changes will be reflected here with a revised date. Continued use after an update means you accept the revised terms.</p>
+                        <p>Questions about anything here? The <a href="contact.html" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> reaches a real person.</p>
+                    </div>
+                </section>
+
+                <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-4">
+                    <a href="privacy.html" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors">
+                        Read the Privacy Policy
+                        <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                    <a href="contact.html" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Ask a question</a>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="col-span-2">
+                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        FindFlower
+                    </span>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">A premium botanical identification product by iBhx. Built for clarity and precision.</p>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
+                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
+                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
+                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
+                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
+                    <span>Model Version: Beta 0.9.4</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
+            document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
+
+            const links = [...document.querySelectorAll('.toc-link')];
+            const map = new Map(links.map(l => [l.getAttribute('href').slice(1), l]));
+            const secObs = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); const l = map.get(e.target.id); if (l) l.classList.add('active'); } });
+            }, { rootMargin: '-20% 0px -70% 0px' });
+            map.forEach((_, id) => { const el = document.getElementById(id); if (el) secObs.observe(el); });
+        });
+    </script>
+</body>
+</html>

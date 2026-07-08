@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy | FindFlower</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+                    colors: {
+                        neutral: { 50:'#FAFAFA',100:'#F5F5F5',200:'#E5E5E5',300:'#D4D4D4',400:'#A3A3A3',500:'#737373',600:'#525252',700:'#404040',800:'#262626',900:'#171717' },
+                        sage: { 50:'#F2F5F2',100:'#E4EBE5',200:'#C9D6CB',400:'#7C9781',500:'#5F7A63',600:'#4C6650',700:'#3D5341' }
+                    },
+                    boxShadow: { 'subtle':'0 4px 40px -2px rgba(0,0,0,0.04)','float':'0 10px 40px -10px rgba(0,0,0,0.12)','lift':'0 20px 60px -18px rgba(23,23,23,0.15)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color:#FCFCFC; color:#171717; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        .reveal-up { opacity:0; transform:translateY(24px); transition:opacity .9s cubic-bezier(0.16,1,0.3,1), transform .9s cubic-bezier(0.16,1,0.3,1); }
+        .reveal-up.active { opacity:1; transform:translateY(0); }
+        .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
+        .group:hover .cta-arrow { transform:translateX(4px); }
+        .toc-link.active { color:#171717; font-weight:500; }
+        .toc-link.active .toc-dot { background:#5F7A63; }
+        .prose p { line-height:1.75; }
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    FindFlower
+                </a>
+                <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24">
+
+        <!-- HEADER BLOCK -->
+        <section class="max-w-7xl mx-auto px-6 mb-16">
+            <div class="max-w-3xl">
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Legal</span>
+                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">Privacy at FindFlower</h1>
+                <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
+                    We built FindFlower to run on your device, so privacy isn’t an afterthought — it’s the architecture. This page explains, in plain language, exactly what happens to your data.
+                </p>
+                <p class="reveal-up text-sm text-neutral-400 font-light mt-6">Last updated 8 July 2026 · Applies to the FindFlower Beta</p>
+            </div>
+        </section>
+
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+            <!-- TOC -->
+            <aside class="hidden lg:block lg:col-span-3">
+                <nav class="sticky top-24 space-y-1 text-sm">
+                    <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">On this page</p>
+                    <a href="#collect" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>What we collect</a>
+                    <a href="#images" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>How images are handled</a>
+                    <a href="#feedback" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Feedback data</a>
+                    <a href="#sharing" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Third parties</a>
+                    <a href="#control" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Your control</a>
+                </nav>
+            </aside>
+
+            <!-- CONTENT -->
+            <div class="lg:col-span-9 space-y-16">
+
+                <!-- Summary card -->
+                <div class="reveal-up bg-sage-50 border border-sage-100 rounded-[2rem] p-8 md:p-10">
+                    <h2 class="text-lg font-medium text-neutral-900 mb-5">The short version</h2>
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-sage-600 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
+                            <p class="text-neutral-600 font-light">Identification runs in your browser. Your photos are not uploaded to a server to be recognised.</p>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-sage-600 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
+                            <p class="text-neutral-600 font-light">Feedback is only ever sent when you choose to send it.</p>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-sage-600 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
+                            <p class="text-neutral-600 font-light">We don’t sell your data, and we don’t use it for advertising.</p>
+                        </li>
+                    </ul>
+                </div>
+
+                <section id="collect" class="reveal-up scroll-mt-24 prose">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">What we collect</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>FindFlower is designed to collect as little as possible. During the Beta, the core identification experience requires no account and no personal information.</p>
+                        <p>We collect three narrow categories of data, and only in specific circumstances: <span class="text-neutral-900 font-normal">account details</span> if you sign in for developer access (handled by Auth0, such as your name and email), <span class="text-neutral-900 font-normal">feedback you deliberately submit</span>, and <span class="text-neutral-900 font-normal">basic, anonymous usage information</span> a browser naturally exposes when loading a page. We do not build advertising profiles.</p>
+                    </div>
+                </section>
+
+                <section id="images" class="reveal-up scroll-mt-24 prose">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">How uploaded images are handled</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>This is the heart of our design. When you capture, upload, or link an image, the recognition model runs <span class="text-neutral-900 font-normal">locally in your browser</span>. The image is processed on your own device to produce a prediction and is not transmitted to us for that purpose.</p>
+                        <p>Because the work happens on your side, your photos stay with you. When you close the tab, the image is gone from the page — we hold no copy. The one exception is if you deliberately attach a photo to a feedback submission, described next.</p>
+                    </div>
+                </section>
+
+                <section id="feedback" class="reveal-up scroll-mt-24 prose">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Whether feedback is saved, and why</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>Feedback is optional and always initiated by you. During the Beta, the feedback you provide is stored locally on your device so the experience keeps working offline and privately.</p>
+                        <p>When the improvement pipeline launches, submitted corrections — and any photo you choose to attach — will be used for a single purpose: <span class="text-neutral-900 font-normal">making future model versions more accurate</span>. This is the human-in-the-loop that helps FindFlower recognise more species over time. We will never repurpose that data for advertising or sell it.</p>
+                    </div>
+                </section>
+
+                <section id="sharing" class="reveal-up scroll-mt-24 prose">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Sharing with third parties</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>We do not sell your personal data. We rely on a small number of trusted services strictly to operate the product: <span class="text-neutral-900 font-normal">Auth0</span> for secure sign-in, and <span class="text-neutral-900 font-normal">Wikipedia</span> to fetch the reference summaries shown alongside a result. When context is loaded, a request for the species name is made to Wikipedia, subject to their own privacy terms.</p>
+                        <p>Beyond these operational providers, your data is not shared. We may disclose information only where genuinely required by law.</p>
+                    </div>
+                </section>
+
+                <section id="control" class="reveal-up scroll-mt-24 prose">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Your privacy, in your control</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>You decide what to share. Nothing leaves your device quietly in the background. You can clear locally stored feedback at any time from your browser, and if you hold a developer account you can request its deletion.</p>
+                        <p>If anything here is unclear, we’d rather you ask than wonder. Reach us through the <a href="contact.html" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> and a person will respond.</p>
+                    </div>
+                </section>
+
+                <!-- Related -->
+                <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-4">
+                    <a href="terms.html" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors">
+                        Read the Terms of Service
+                        <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                    <a href="contact.html" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Contact us about privacy</a>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="col-span-2">
+                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        FindFlower
+                    </span>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">A premium botanical identification product by iBhx. Built for clarity and precision.</p>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
+                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
+                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
+                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
+                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
+                    <span>Model Version: Beta 0.9.4</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
+            document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
+
+            const links = [...document.querySelectorAll('.toc-link')];
+            const map = new Map(links.map(l => [l.getAttribute('href').slice(1), l]));
+            const secObs = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); const l = map.get(e.target.id); if (l) l.classList.add('active'); } });
+            }, { rootMargin: '-20% 0px -70% 0px' });
+            map.forEach((_, id) => { const el = document.getElementById(id); if (el) secObs.observe(el); });
+        });
+    </script>
+</body>
+</html>

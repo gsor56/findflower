@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing | FindFlower</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+                    colors: {
+                        neutral: { 50:'#FAFAFA',100:'#F5F5F5',200:'#E5E5E5',300:'#D4D4D4',400:'#A3A3A3',500:'#737373',600:'#525252',700:'#404040',800:'#262626',900:'#171717' },
+                        sage: { 50:'#F2F5F2',100:'#E4EBE5',200:'#C9D6CB',400:'#7C9781',500:'#5F7A63',600:'#4C6650',700:'#3D5341' }
+                    },
+                    boxShadow: { 'subtle':'0 4px 40px -2px rgba(0,0,0,0.04)','float':'0 10px 40px -10px rgba(0,0,0,0.12)','lift':'0 20px 60px -18px rgba(23,23,23,0.15)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color:#FCFCFC; color:#171717; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        .reveal-up { opacity:0; transform:translateY(24px); transition:opacity .9s cubic-bezier(0.16,1,0.3,1), transform .9s cubic-bezier(0.16,1,0.3,1); }
+        .reveal-up.active { opacity:1; transform:translateY(0); }
+        .delay-100{transition-delay:100ms}.delay-200{transition-delay:200ms}
+        .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
+        .group:hover .cta-arrow { transform:translateX(4px); }
+        .grid-dots { background-image:radial-gradient(rgba(23,23,23,0.05) 1px,transparent 1px); background-size:28px 28px; -webkit-mask-image:radial-gradient(ellipse 60% 50% at 50% 25%,black 0%,transparent 75%); mask-image:radial-gradient(ellipse 60% 50% at 50% 25%,black 0%,transparent 75%); }
+        .hover-lift { transition:transform .5s cubic-bezier(0.16,1,0.3,1), box-shadow .5s cubic-bezier(0.16,1,0.3,1), border-color .5s ease; }
+        .hover-lift:hover { transform:translateY(-6px); box-shadow:0 20px 50px -20px rgba(23,23,23,0.14); border-color:rgba(95,122,99,0.4); }
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} .hover-lift:hover{transform:none} }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- HEADER -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    FindFlower
+                </a>
+                <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="text-neutral-900 transition-colors">Pricing</a>
+                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24">
+
+        <!-- INTRO -->
+        <section class="relative max-w-3xl mx-auto px-6 text-center mt-8 md:mt-16 mb-16">
+            <div class="absolute inset-0 -z-10 grid-dots"></div>
+            <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Pricing</span>
+            <h1 class="reveal-up delay-100 text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                Simple plans, <span class="font-serif italic font-normal text-sage-600">honest</span> and clear.
+            </h1>
+            <p class="reveal-up delay-200 text-lg text-neutral-500 font-light leading-relaxed max-w-xl mx-auto">
+                FindFlower is free to use while in Beta. As we introduce the hosted API and team features, these are the plans we’re shaping. Pricing is being finalised.
+            </p>
+        </section>
+
+        <!-- TIERS -->
+        <section class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+
+                <!-- FREE -->
+                <div class="reveal-up hover-lift bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-8 flex flex-col">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-medium tracking-tight text-neutral-900 mb-1">Free</h2>
+                        <p class="text-sm text-neutral-500 font-light">For the curious, and everyday identification.</p>
+                    </div>
+                    <div class="mb-6 pb-6 border-b border-neutral-100">
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-medium tracking-tight text-neutral-900">TBD</span>
+                            <span class="text-sm text-neutral-400 font-light">pricing to be announced</span>
+                        </div>
+                        <span class="inline-block mt-3 text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Free during Beta</span>
+                    </div>
+                    <ul class="space-y-3 flex-1 mb-8">
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Unlimited in-browser identification</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Camera, upload, and link input</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Confidence scores and alternatives</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Live Wikipedia context</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Private, on-device processing</li>
+                    </ul>
+                    <a href="try.html" class="text-sm font-medium border border-neutral-200 text-neutral-800 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors text-center">Start identifying</a>
+                </div>
+
+                <!-- DEVELOPER (highlighted) -->
+                <div class="reveal-up delay-100 relative bg-neutral-900 rounded-[2rem] shadow-lift p-8 flex flex-col overflow-hidden">
+                    <div class="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(95,122,99,0.35),transparent_70%)]"></div>
+                    <div class="relative flex flex-col h-full">
+                        <div class="mb-6">
+                            <div class="flex items-center gap-2 mb-1">
+                                <h2 class="text-xl font-medium tracking-tight text-white">Developer</h2>
+                                <span class="text-xs font-medium text-neutral-900 bg-sage-400 px-2.5 py-0.5 rounded-full">Most popular</span>
+                            </div>
+                            <p class="text-sm text-neutral-400 font-light">For builders integrating FindFlower into their own apps.</p>
+                        </div>
+                        <div class="mb-6 pb-6 border-b border-neutral-700">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl font-medium tracking-tight text-white">TBD</span>
+                                <span class="text-sm text-neutral-500 font-light">pricing to be announced</span>
+                            </div>
+                            <span class="inline-block mt-3 text-xs font-medium text-sage-300 bg-white/5 border border-white/10 px-2.5 py-1 rounded-full">API preview</span>
+                        </div>
+                        <ul class="space-y-3 flex-1 mb-8">
+                            <li class="flex items-start gap-2.5 text-sm text-neutral-300 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-400 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Everything in Free</li>
+                            <li class="flex items-start gap-2.5 text-sm text-neutral-300 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-400 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Hosted REST API access &amp; keys</li>
+                            <li class="flex items-start gap-2.5 text-sm text-neutral-300 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-400 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Identify by upload, camera &amp; URL endpoints</li>
+                            <li class="flex items-start gap-2.5 text-sm text-neutral-300 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-400 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Feedback &amp; Wikipedia endpoints</li>
+                            <li class="flex items-start gap-2.5 text-sm text-neutral-300 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-400 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Generous request quota</li>
+                            <li class="flex items-start gap-2.5 text-sm text-neutral-300 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-400 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Email support</li>
+                        </ul>
+                        <a href="login.html" class="group text-sm font-medium bg-white text-neutral-900 px-6 py-3 rounded-full hover:bg-neutral-100 transition-colors text-center flex items-center justify-center gap-2">
+                            Get API access
+                            <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- BUSINESS -->
+                <div class="reveal-up delay-200 hover-lift bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-8 flex flex-col">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-medium tracking-tight text-neutral-900 mb-1">Business</h2>
+                        <p class="text-sm text-neutral-500 font-light">For teams and products operating at scale.</p>
+                    </div>
+                    <div class="mb-6 pb-6 border-b border-neutral-100">
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-4xl font-medium tracking-tight text-neutral-900">TBD</span>
+                            <span class="text-sm text-neutral-400 font-light">custom pricing</span>
+                        </div>
+                        <span class="inline-block mt-3 text-xs font-medium text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-full">Let’s talk</span>
+                    </div>
+                    <ul class="space-y-3 flex-1 mb-8">
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Everything in Developer</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>High-volume &amp; custom rate limits</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Custom species &amp; model tuning</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>SLA &amp; priority support</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Dedicated onboarding</li>
+                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Invoicing &amp; account management</li>
+                    </ul>
+                    <a href="contact.html" class="text-sm font-medium border border-neutral-200 text-neutral-800 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors text-center">Contact sales</a>
+                </div>
+
+            </div>
+
+            <!-- Assurance line -->
+            <p class="reveal-up text-center text-sm text-neutral-400 font-light mt-10 max-w-xl mx-auto leading-relaxed">
+                Final pricing will be announced before any plan becomes paid. Nothing you use today will start charging without clear notice — the Beta stays free while it lasts.
+            </p>
+        </section>
+
+        <!-- FAQ -->
+        <section class="max-w-3xl mx-auto px-6 mt-32">
+            <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 text-center mb-12">Common questions</h2>
+            <div class="space-y-4">
+                <div class="reveal-up bg-white border border-neutral-200/70 rounded-2xl p-6 md:p-8">
+                    <h3 class="text-base font-medium text-neutral-900 mb-2">Is FindFlower really free right now?</h3>
+                    <p class="text-neutral-500 font-light leading-relaxed">Yes. Throughout the Beta, identifying flowers in your browser is completely free, with no account required.</p>
+                </div>
+                <div class="reveal-up bg-white border border-neutral-200/70 rounded-2xl p-6 md:p-8">
+                    <h3 class="text-base font-medium text-neutral-900 mb-2">When will prices be set?</h3>
+                    <p class="text-neutral-500 font-light leading-relaxed">Pricing is being finalised alongside the hosted API. We’ll announce it clearly here and give existing users advance notice before anything changes.</p>
+                </div>
+                <div class="reveal-up bg-white border border-neutral-200/70 rounded-2xl p-6 md:p-8">
+                    <h3 class="text-base font-medium text-neutral-900 mb-2">Do I need a plan to use the on-device SDK?</h3>
+                    <p class="text-neutral-500 font-light leading-relaxed">No. The on-device SDK runs the model in your own app with no key and no per-request cost. Paid plans apply to the hosted API and team features. See the <a href="api.html" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">API page</a>.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="col-span-2">
+                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        FindFlower
+                    </span>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">A premium botanical identification product by iBhx. Built for clarity and precision.</p>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
+                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
+                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
+                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
+                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
+                    <span>Model Version: Beta 0.9.4</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
+            document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
+        });
+    </script>
+</body>
+</html>
