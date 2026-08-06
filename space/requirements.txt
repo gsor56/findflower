@@ -1,4 +1,5 @@
 torch
+torchvision
 transformers>=4.40
 pillow
 fastapi
