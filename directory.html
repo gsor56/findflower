@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Directory | FindFlower — Browse botanical species</title>
+    <meta name="description" content="Browse a living directory of common flowering plants. Each entry is enriched live from Wikipedia with a photo, scientific name, and botanical context.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="species.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Fraunces', 'serif'],
+                    },
+                    colors: {
+                        neutral: {
+                            50: '#FAFAFA',
+                            100: '#F5F5F5',
+                            200: '#E5E5E5',
+                            300: '#D4D4D4',
+                            400: '#A3A3A3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                        },
+                        sage: {
+                            50: '#F2F5F2',
+                            100: '#E4EBE5',
+                            200: '#C9D6CB',
+                            400: '#7C9781',
+                            500: '#5F7A63',
+                            600: '#4C6650',
+                            700: '#3D5341',
+                        }
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 40px -2px rgba(0, 0, 0, 0.04)',
+                        'float': '0 10px 40px -10px rgba(0, 0, 0, 0.12)',
+                        'lift': '0 20px 60px -18px rgba(23, 23, 23, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Base styles and typography refinement */
+        body {
+            background-color: #FCFCFC;
+            color: #171717;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Subtle motion classes triggered by Intersection Observer */
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-up.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .delay-100 { transition-delay: 100ms; }
+        .delay-200 { transition-delay: 200ms; }
+        .delay-300 { transition-delay: 300ms; }
+        .delay-400 { transition-delay: 400ms; }
+
+        /* Gentle floating for decorative botanical art */
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-14px) rotate(1.5deg); }
+        }
+        .float-slow { animation: float-slow 9s infinite ease-in-out; }
+        .float-slower { animation: float-slow 13s infinite ease-in-out; }
+
+        /* Faint dotted grid background */
+        .grid-dots {
+            background-image: radial-gradient(rgba(23, 23, 23, 0.05) 1px, transparent 1px);
+            background-size: 28px 28px;
+            -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 0%, transparent 75%);
+            mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 0%, transparent 75%);
+        }
+
+        /* Card hover lift */
+        .hover-lift {
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px -20px rgba(23, 23, 23, 0.14);
+            border-color: rgba(95, 122, 99, 0.4);
+        }
+
+        /* Arrow nudge on button hover */
+        .cta-arrow { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+        .group:hover .cta-arrow { transform: translateX(4px); }
+
+        /* Skeleton shimmer while a card hydrates from Wikipedia */
+        @keyframes shimmer {
+            0% { background-position: -400px 0; }
+            100% { background-position: 400px 0; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #F1F1F1 25%, #E8E8E8 37%, #F1F1F1 63%);
+            background-size: 800px 100%;
+            animation: shimmer 1.4s infinite linear;
+        }
+
+        /* Per-card fade + slight rise when its data resolves */
+        .card-in {
+            opacity: 0;
+            transform: translateY(12px);
+            transition: opacity .6s cubic-bezier(0.16, 1, 0.3, 1), transform .6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-in.ready { opacity: 1; transform: translateY(0); }
+
+        /* Ambient sage glow — slow, low-opacity radial blob behind the hero. */
+        @keyframes glow-drift {
+            0%, 100% { opacity: 0.35; transform: translate(-50%, 0) scale(1); }
+            50%      { opacity: 0.6;  transform: translate(-50%, -2%) scale(1.08); }
+        }
+        .ambient-glow {
+            position: absolute;
+            top: -10%;
+            left: 50%;
+            width: min(760px, 90vw);
+            height: min(760px, 90vw);
+            transform: translate(-50%, 0);
+            background: radial-gradient(circle at center,
+                rgba(124, 151, 129, 0.28) 0%,
+                rgba(124, 151, 129, 0.14) 38%,
+                rgba(124, 151, 129, 0) 70%);
+            filter: blur(28px);
+            border-radius: 9999px;
+            pointer-events: none;
+            z-index: -1;
+            animation: glow-drift 11s infinite ease-in-out;
+        }
+
+        /* Soft "breathing" pulse for status badges (Beta tag, live dots). */
+        @keyframes breathe {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.55; }
+        }
+        .breathe { animation: breathe 3.2s infinite ease-in-out; }
+
+        /* Gentle lift for buttons — subtle scale + shadow, quick and smooth. */
+        .lift-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .lift-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+            .reveal-up { opacity: 1; transform: none; }
+            .card-in { opacity: 1; transform: none; }
+            .ambient-glow { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- HEADER (shared) -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
+                        <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    FindFlower
+                </a>
+                <span class="breathe text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="directory.html" class="text-neutral-900 transition-colors">Directory</a>
+                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="try.html" class="lift-btn group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="relative pt-32 pb-24 overflow-hidden">
+
+        <!-- Page-level decorative botanical line art — faint, non-interactive. -->
+        <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <!-- Slow-breathing sage glow behind the intro -->
+            <div class="ambient-glow"></div>
+            <!-- Fern sprig, left gutter -->
+            <svg class="hidden lg:block absolute left-[-2.5rem] top-[24%] text-sage-200 opacity-70 float-slow" width="120" height="250" viewBox="0 0 120 260" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M60 255C60 205 58 150 60 40"/>
+                <path d="M60 212C48 207 34 198 26 184M60 212C72 207 86 198 94 184"/>
+                <path d="M60 172C46 168 32 158 24 142M60 172C74 168 88 158 96 142"/>
+                <path d="M60 132C48 129 36 120 30 106M60 132C72 129 84 120 90 106"/>
+                <path d="M60 94C50 91 40 84 34 72M60 94C70 91 80 84 86 72"/>
+                <path d="M60 44C60 44 54 30 44 22M60 44C60 44 66 30 76 22"/>
+            </svg>
+
+            <!-- Single leaf with veins, right gutter -->
+            <svg class="hidden lg:block absolute right-[-2rem] top-[44%] text-sage-200 opacity-60 float-slower" width="96" height="160" viewBox="0 0 100 160" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M50 8C18 40 18 110 50 152C82 110 82 40 50 8Z"/>
+                <path d="M50 22L50 140"/>
+                <path d="M50 56C40 63 32 69 26 79M50 56C60 63 68 69 74 79"/>
+                <path d="M50 92C40 99 32 105 26 115M50 92C60 99 68 105 74 115"/>
+            </svg>
+
+            <!-- Flowering stem, left gutter (lower) -->
+            <svg class="hidden xl:block absolute left-[-1.5rem] top-[70%] text-sage-200 opacity-60 float-slow" width="110" height="210" viewBox="0 0 120 220" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M62 215C60 160 58 110 62 62"/>
+                <path d="M62 62c0-14 11-24 27-24-1 14-13 24-27 24Zm0 0c0-14-11-24-27-24 1 14 13 24 27 24Z"/>
+                <path d="M62 150c-14-2-26-12-30-26 16 0 28 10 30 26Z"/>
+                <path d="M62 118c12-2 24-10 28-24-14 0-26 8-28 24Z"/>
+            </svg>
+
+            <!-- Berry branch, right gutter (lower) -->
+            <svg class="hidden lg:block absolute right-[-2.5rem] top-[86%] text-sage-200 opacity-60 float-slower" width="120" height="190" viewBox="0 0 120 200" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 20C52 42 82 92 100 186"/>
+                <path d="M40 52c-12-6-20-18-20-32 14 2 24 12 24 26M58 92c-12-6-20-18-20-32 14 2 24 12 24 26M78 140c-12-6-20-18-20-32 14 2 24 12 24 26"/>
+                <circle cx="52" cy="60" r="3.5"/><circle cx="70" cy="100" r="3.5"/><circle cx="90" cy="150" r="3.5"/>
+            </svg>
+        </div>
+
+        <!-- INTRO -->
+        <section class="max-w-7xl mx-auto px-6 mb-12 md:mb-16">
+            <div class="reveal-up max-w-2xl">
+                <span class="text-sm font-medium text-sage-600 mb-4 block">The directory</span>
+                <h1 class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-5">
+                    Browse the <span class="font-serif italic font-normal text-sage-600">botanical</span> library.
+                </h1>
+                <p class="text-lg text-neutral-500 font-light leading-relaxed">
+                    A curated set of common flowering species. Each entry is enriched live from Wikipedia — no local database — with a photograph, its scientific name, and a link to the full profile.
+                </p>
+            </div>
+
+            <!-- Search / filter -->
+            <div class="reveal-up delay-100 mt-8 flex items-center gap-3 max-w-md">
+                <div class="relative flex-1">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    <input id="dirSearch" type="text" placeholder="Filter this directory…" class="w-full text-sm bg-white border border-neutral-200 rounded-full pl-11 pr-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                </div>
+                <span id="dirCount" class="text-xs font-medium text-neutral-400 whitespace-nowrap"></span>
+            </div>
+        </section>
+
+        <!-- GRID -->
+        <section class="max-w-7xl mx-auto px-6">
+            <div id="dirGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+
+            <!-- Empty-filter state -->
+            <div id="dirEmpty" class="hidden text-center py-20">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-sage-50 flex items-center justify-center mb-5">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-500"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <p class="text-neutral-500 font-light">No species match that filter.</p>
+            </div>
+
+            <!-- Note -->
+            <p class="reveal-up text-center text-xs text-neutral-400 font-light mt-12 max-w-xl mx-auto leading-relaxed">
+                Photos and summaries are loaded on demand from Wikipedia &amp; Wikimedia Commons (CC BY-SA). Cards below the fold load as you scroll, and everything is cached for your session.
+            </p>
+        </section>
+
+    </main>
+
+    <!-- FOOTER (shared) -->
+    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="col-span-2">
+                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        FindFlower
+                    </span>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">
+                        A premium botanical identification product by iBhx. Built for clarity and precision.
+                    </p>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a></li>
+                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
+                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
+                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
+                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
+                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
+                    <span>Model Version: Beta 0.9.4</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // ---- Seed list: ~40 common flowering species, aligned to Wikipedia
+        //      article titles. `q` is the article/query title; `common` is the
+        //      friendly label shown before data resolves. De-duplicated from the
+        //      model's class list (no rose/roses or sunflower/sunflowers pairs).
+        const SEED = [
+            { common: 'Rose',              q: 'Rose' },
+            { common: 'Tulip',             q: 'Tulip' },
+            { common: 'Sunflower',         q: 'Common sunflower' },
+            { common: 'Common Daisy',      q: 'Bellis perennis' },
+            { common: 'Dandelion',         q: 'Taraxacum' },
+            { common: 'Marigold',          q: 'Tagetes' },
+            { common: 'Petunia',           q: 'Petunia' },
+            { common: 'Snapdragon',        q: 'Antirrhinum' },
+            { common: 'Foxglove',          q: 'Digitalis' },
+            { common: 'Hibiscus',          q: 'Hibiscus' },
+            { common: 'Sacred Lotus',      q: 'Nelumbo nucifera' },
+            { common: 'Water Lily',        q: 'Nymphaea' },
+            { common: 'Corn Poppy',        q: 'Papaver rhoeas' },
+            { common: 'Carnation',         q: 'Dianthus caryophyllus' },
+            { common: 'Sweet Pea',         q: 'Lathyrus odoratus' },
+            { common: 'Bird of Paradise',  q: 'Strelitzia' },
+            { common: 'Tiger Lily',        q: 'Lilium lancifolium' },
+            { common: 'Daffodil',          q: 'Narcissus (plant)' },
+            { common: 'Buttercup',         q: 'Ranunculus' },
+            { common: 'Columbine',         q: 'Aquilegia' },
+            { common: 'Clematis',          q: 'Clematis' },
+            { common: 'Magnolia',          q: 'Magnolia' },
+            { common: 'Camellia',          q: 'Camellia' },
+            { common: 'Azalea',            q: 'Azalea' },
+            { common: 'Cyclamen',          q: 'Cyclamen' },
+            { common: 'Poinsettia',        q: 'Poinsettia' },
+            { common: 'Frangipani',        q: 'Plumeria' },
+            { common: 'Bougainvillea',     q: 'Bougainvillea' },
+            { common: 'Passion Flower',    q: 'Passiflora' },
+            { common: 'Morning Glory',     q: 'Morning glory' },
+            { common: 'Geranium',          q: 'Geranium' },
+            { common: 'Pelargonium',       q: 'Pelargonium' },
+            { common: 'Anthurium',         q: 'Anthurium' },
+            { common: 'Bee Balm',          q: 'Monarda' },
+            { common: 'Blanket Flower',    q: 'Gaillardia' },
+            { common: 'Gazania',           q: 'Gazania' },
+            { common: 'Osteospermum',      q: 'Osteospermum' },
+            { common: 'Black-eyed Susan',  q: 'Rudbeckia hirta' },
+            { common: 'Purple Coneflower', q: 'Echinacea purpurea' },
+            { common: 'Canna Lily',        q: 'Canna (plant)' },
+        ];
+
+        const grid = document.getElementById('dirGrid');
+        const emptyState = document.getElementById('dirEmpty');
+        const search = document.getElementById('dirSearch');
+        const countEl = document.getElementById('dirCount');
+
+        countEl.textContent = SEED.length + ' species';
+
+        // ---- Build a card in skeleton state; return its element + a hydrate() ----
+        function buildCard(seed) {
+            const href = 'species.html?name=' + encodeURIComponent(seed.q);
+            const a = document.createElement('a');
+            a.href = href;
+            a.className = 'card-in group flex flex-col bg-white border border-neutral-200/70 rounded-2xl overflow-hidden hover-lift';
+            a.dataset.name = (seed.common + ' ' + seed.q).toLowerCase();
+            a.innerHTML =
+                '<div class="relative aspect-[4/3] bg-neutral-100 overflow-hidden">' +
+                    '<div class="ph skeleton absolute inset-0"></div>' +
+                    '<img class="thumb w-full h-full object-cover opacity-0 transition-opacity duration-700" alt="' + seed.common + '" loading="lazy" />' +
+                '</div>' +
+                '<div class="p-4 flex-1 flex flex-col">' +
+                    '<h4 class="cname text-base font-medium text-neutral-900 leading-tight">' + seed.common + '</h4>' +
+                    '<p class="sname text-sm font-light text-sage-600 italic mt-1 min-h-[1.25rem]">' +
+                        '<span class="inline-block w-24 h-3 rounded skeleton align-middle"></span>' +
+                    '</p>' +
+                    '<span class="mt-3 inline-flex items-center gap-1 text-xs font-medium text-neutral-400 group-hover:text-sage-600 transition-colors">' +
+                        'View profile' +
+                        '<svg class="cta-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
+                    '</span>' +
+                '</div>';
+            return a;
+        }
+
+        // ---- Hydrate a card from the shared module (one summary request) ----
+        async function hydrate(card, seed) {
+            const ph = card.querySelector('.ph');
+            const img = card.querySelector('.thumb');
+            const sname = card.querySelector('.sname');
+            const cname = card.querySelector('.cname');
+            try {
+                const info = await ffFetchSpecies(seed.q);
+                // Scientific name (binomial) or Wikipedia short description; fallback tidy.
+                if (info && info.binomial) {
+                    sname.textContent = info.binomial;
+                } else if (info && info.description) {
+                    sname.innerHTML = '';
+                    sname.textContent = info.description;
+                    sname.classList.remove('italic');
+                } else {
+                    sname.innerHTML = '';
+                    sname.textContent = '—';
+                    sname.classList.remove('italic');
+                    sname.classList.add('text-neutral-400');
+                }
+                // Prefer the canonical Wikipedia title if it's cleaner than our seed label.
+                if (info && info.title && info.found) cname.textContent = info.title;
+
+                if (info && info.image) {
+                    // Only reveal the image once it actually decodes — text stays first.
+                    img.onload = () => { img.classList.remove('opacity-0'); if (ph) ph.remove(); };
+                    img.onerror = () => { if (ph) { ph.classList.remove('skeleton'); ph.classList.add('bg-sage-50'); } };
+                    img.src = info.image;
+                } else if (ph) {
+                    // No image available — retire the shimmer to a calm sage placeholder.
+                    ph.classList.remove('skeleton');
+                    ph.classList.add('bg-sage-50');
+                    ph.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="text-sage-300"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+                }
+            } catch (e) {
+                // Graceful per-card failure — never a broken-looking card.
+                sname.innerHTML = '';
+                sname.textContent = '—';
+                sname.classList.remove('italic');
+                if (ph) { ph.classList.remove('skeleton'); ph.classList.add('bg-neutral-100'); }
+            } finally {
+                requestAnimationFrame(() => card.classList.add('ready'));
+            }
+        }
+
+        // ---- Lazy-load: only hydrate a card when it nears the viewport, so 40
+        //      cards don't fire 40 requests at once. ----
+        const io = ('IntersectionObserver' in window)
+            ? new IntersectionObserver((entries, obs) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const card = entry.target;
+                        obs.unobserve(card);
+                        hydrate(card, SEED[+card.dataset.idx]);
+                    }
+                });
+            }, { rootMargin: '200px 0px' })
+            : null;
+
+        // ---- Render all cards (skeletons appear instantly) ----
+        const cards = SEED.map((seed, i) => {
+            const card = buildCard(seed);
+            card.dataset.idx = i;
+            grid.appendChild(card);
+            if (io) io.observe(card);
+            else hydrate(card, seed); // fallback: hydrate immediately
+            return card;
+        });
+
+        // ---- Client-side filter over the already-loaded seed labels ----
+        search.addEventListener('input', () => {
+            const term = search.value.trim().toLowerCase();
+            let visible = 0;
+            cards.forEach(card => {
+                const match = !term || card.dataset.name.indexOf(term) !== -1;
+                card.classList.toggle('hidden', !match);
+                if (match) visible++;
+            });
+            countEl.textContent = visible + (visible === 1 ? ' species' : ' species');
+            emptyState.classList.toggle('hidden', visible !== 0);
+        });
+    })();
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('active');
+                });
+            }, { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.15 });
+            document.querySelectorAll('.reveal-up').forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>
