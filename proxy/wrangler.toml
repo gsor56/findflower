@@ -7,4 +7,4 @@ compatibility_date = "2025-01-01"
 #
 # CORS allowlist: dev + current public testing domain.
 [vars]
-ALLOWED_ORIGINS = "http://localhost:8000,https://findflower.cu.ma"
+ALLOWED_ORIGINS = "http://localhost:8000,https://findflower.me"
