@@ -16,9 +16,9 @@ A lightweight, on-device flower identification tool — no uploads, no waiting, 
 </p>
 
 <p>
-  <a href="https://findflower.cu.ma"><b>🌐 Live Demo</b></a> ·
-  <a href="https://findflower.cu.ma/contact.html"><b>🐛 Report a Bug</b></a> ·
-  <a href="https://findflower.cu.ma/how.html"><b>📖 How it Works</b></a>
+  <a href="https://findflower.me"><b>🌐 Live Demo</b></a> ·
+  <a href="https://findflower.me/contact.html"><b>🐛 Report a Bug</b></a> ·
+  <a href="https://findflower.me/how.html"><b>📖 How it Works</b></a>
 </p>
 
 </div>
@@ -61,7 +61,7 @@ Everything runs client-side using **TensorFlow.js** — your photos are never se
 <tr><td>ViT model upgrade</td><td>🚧 Planned</td></tr>
 </table>
 
-Got a misidentification? Hit **"No, incorrect"** right on the [try page](https://findflower.cu.ma/try.html) — every bit of feedback helps retrain the model.
+Got a misidentification? Hit **"No, incorrect"** right on the [try page](https://findflower.me/try.html) — every bit of feedback helps retrain the model.
 
 <br>
 
@@ -99,7 +99,7 @@ cd findflower
 
 ## 🤝 Contributing
 
-This is a solo, student-built project — feedback, bug reports, and suggestions are genuinely welcome. Open an issue or reach out via the [contact page](https://findflower.cu.ma/contact.html).
+This is a solo, student-built project — feedback, bug reports, and suggestions are genuinely welcome. Open an issue or reach out via the [contact page](https://findflower.me/contact.html).
 
 <br>
 

@@ -1,6 +1,5 @@
-torch
-torchvision
-transformers>=4.40
+onnxruntime
+numpy
 pillow
 fastapi
 uvicorn[standard]

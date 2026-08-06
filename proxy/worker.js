@@ -23,7 +23,7 @@
  *                     the *private* Space's endpoint
  *   PROXY_SECRET    - shared secret the Space checks (X-Proxy-Secret)
  *   ALLOWED_ORIGINS - comma-separated CORS allowlist, e.g.
- *                     "http://localhost:8000,https://findflower.cu.ma"
+ *                     "http://localhost:8000,https://findflower.me"
  */
 
 const TOP_K = 5;
