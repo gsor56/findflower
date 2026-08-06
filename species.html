@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Species | FindFlower</title>
+    <meta name="description" content="A live botanical profile — scientific name, family, toxicity, growing conditions and related species, enriched from Wikipedia and Wikidata.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="species.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Fraunces', 'serif'],
+                    },
+                    colors: {
+                        neutral: {
+                            50: '#FAFAFA',
+                            100: '#F5F5F5',
+                            200: '#E5E5E5',
+                            300: '#D4D4D4',
+                            400: '#A3A3A3',
+                            500: '#737373',
+                            600: '#525252',
+                            700: '#404040',
+                            800: '#262626',
+                            900: '#171717',
+                        },
+                        sage: {
+                            50: '#F2F5F2',
+                            100: '#E4EBE5',
+                            200: '#C9D6CB',
+                            400: '#7C9781',
+                            500: '#5F7A63',
+                            600: '#4C6650',
+                            700: '#3D5341',
+                        }
+                    },
+                    boxShadow: {
+                        'subtle': '0 4px 40px -2px rgba(0, 0, 0, 0.04)',
+                        'float': '0 10px 40px -10px rgba(0, 0, 0, 0.12)',
+                        'lift': '0 20px 60px -18px rgba(23, 23, 23, 0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #FCFCFC;
+            color: #171717;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .reveal-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-up.active { opacity: 1; transform: translateY(0); }
+        .delay-100 { transition-delay: 100ms; }
+        .delay-200 { transition-delay: 200ms; }
+        .delay-300 { transition-delay: 300ms; }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-14px) rotate(1.5deg); }
+        }
+        .float-slow { animation: float-slow 9s infinite ease-in-out; }
+        .float-slower { animation: float-slow 13s infinite ease-in-out; }
+
+        .hover-lift {
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease;
+        }
+        .hover-lift:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 50px -20px rgba(23, 23, 23, 0.14);
+            border-color: rgba(95, 122, 99, 0.4);
+        }
+
+        .cta-arrow { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+        .group:hover .cta-arrow { transform: translateX(4px); }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spin { animation: spin .9s linear infinite; }
+
+        @keyframes shimmer {
+            0% { background-position: -400px 0; }
+            100% { background-position: 400px 0; }
+        }
+        .skeleton {
+            background: linear-gradient(90deg, #F1F1F1 25%, #E8E8E8 37%, #F1F1F1 63%);
+            background-size: 800px 100%;
+            animation: shimmer 1.4s infinite linear;
+        }
+
+        /* Ambient sage glow — slow, low-opacity radial blob behind the hero. */
+        @keyframes glow-drift {
+            0%, 100% { opacity: 0.35; transform: translate(-50%, 0) scale(1); }
+            50%      { opacity: 0.6;  transform: translate(-50%, -2%) scale(1.08); }
+        }
+        .ambient-glow {
+            position: absolute;
+            top: -10%;
+            left: 50%;
+            width: min(760px, 90vw);
+            height: min(760px, 90vw);
+            transform: translate(-50%, 0);
+            background: radial-gradient(circle at center,
+                rgba(124, 151, 129, 0.28) 0%,
+                rgba(124, 151, 129, 0.14) 38%,
+                rgba(124, 151, 129, 0) 70%);
+            filter: blur(28px);
+            border-radius: 9999px;
+            pointer-events: none;
+            z-index: -1;
+            animation: glow-drift 11s infinite ease-in-out;
+        }
+
+        /* Soft "breathing" pulse for status badges (Beta tag, live dots). */
+        @keyframes breathe {
+            0%, 100% { opacity: 1; }
+            50%      { opacity: 0.55; }
+        }
+        .breathe { animation: breathe 3.2s infinite ease-in-out; }
+
+        /* Gentle lift for buttons — subtle scale + shadow, quick and smooth. */
+        .lift-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .lift-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation: none !important; transition: none !important; }
+            .reveal-up { opacity: 1; transform: none; }
+            .ambient-glow { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- HEADER (shared) -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
+                        <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    FindFlower
+                </a>
+                <span class="breathe text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="directory.html" class="text-neutral-900 transition-colors">Directory</a>
+                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="relative pt-28 md:pt-32 pb-24 overflow-hidden">
+
+        <!-- Decorative botanical line art (faint, non-interactive) -->
+        <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <!-- Slow-breathing sage glow behind the profile -->
+            <div class="ambient-glow"></div>
+            <svg class="hidden lg:block absolute right-[-2rem] top-[30%] text-sage-200 opacity-60 float-slower" width="96" height="160" viewBox="0 0 100 160" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M50 8C18 40 18 110 50 152C82 110 82 40 50 8Z"/>
+                <path d="M50 22L50 140"/>
+                <path d="M50 56C40 63 32 69 26 79M50 56C60 63 68 69 74 79"/>
+                <path d="M50 92C40 99 32 105 26 115M50 92C60 99 68 105 74 115"/>
+            </svg>
+            <svg class="hidden xl:block absolute left-[-1.5rem] top-[64%] text-sage-200 opacity-60 float-slow" width="110" height="210" viewBox="0 0 120 220" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M62 215C60 160 58 110 62 62"/>
+                <path d="M62 62c0-14 11-24 27-24-1 14-13 24-27 24Zm0 0c0-14-11-24-27-24 1 14 13 24 27 24Z"/>
+                <path d="M62 150c-14-2-26-12-30-26 16 0 28 10 30 26Z"/>
+                <path d="M62 118c12-2 24-10 28-24-14 0-26 8-28 24Z"/>
+            </svg>
+        </div>
+
+        <div class="max-w-5xl mx-auto px-6">
+
+            <!-- Breadcrumb -->
+            <nav class="reveal-up mb-8 flex items-center gap-2 text-sm text-neutral-400 font-light">
+                <a href="directory.html" class="group inline-flex items-center gap-1.5 hover:text-sage-600 transition-colors">
+                    <svg class="rotate-180 cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    Directory
+                </a>
+                <span aria-hidden="true">/</span>
+                <span id="crumbName" class="text-neutral-500">Species</span>
+            </nav>
+
+            <!-- LOADING -->
+            <div id="spLoading" class="py-16 flex flex-col items-center justify-center text-center">
+                <svg class="spin text-sage-500 mb-5" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
+                <p class="text-neutral-500 font-light">Loading botanical profile…</p>
+            </div>
+
+            <!-- MISSING ?name= prompt -->
+            <div id="spPrompt" class="hidden py-16 text-center max-w-md mx-auto">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-sage-50 flex items-center justify-center mb-5">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-500"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <h1 class="text-2xl font-medium tracking-tight text-neutral-900 mb-2">No species selected</h1>
+                <p class="text-neutral-500 font-light mb-6">Pick a plant from the directory to see its full botanical profile.</p>
+                <a href="directory.html" class="lift-btn group inline-flex items-center gap-1.5 text-sm font-medium bg-neutral-900 text-white px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors">
+                    Browse the directory
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+
+            <!-- CONTENT -->
+            <article id="spContent" class="hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+                    <!-- Image column -->
+                    <div class="lg:col-span-2">
+                        <div class="reveal-up relative rounded-[2rem] overflow-hidden bg-neutral-100 border border-neutral-200/70 shadow-subtle aspect-[4/5]">
+                            <div id="spImgPh" class="skeleton absolute inset-0"></div>
+                            <img id="spImg" class="w-full h-full object-cover opacity-0 transition-opacity duration-700" alt="" loading="lazy" />
+                        </div>
+                        <p id="spAttribution" class="text-[11px] text-neutral-400 font-light mt-3 leading-relaxed px-1"></p>
+                    </div>
+
+                    <!-- Text column -->
+                    <div class="lg:col-span-3">
+                        <div class="reveal-up delay-100">
+                            <span class="text-sm font-medium text-sage-600 mb-3 block">Botanical profile</span>
+                            <h1 id="spName" class="text-3xl md:text-4xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-2 capitalize"></h1>
+                            <p id="spBinomial" class="text-base font-light text-neutral-500 italic mb-5"></p>
+                            <p id="spSummary" class="text-base text-neutral-600 font-light leading-relaxed mb-6"></p>
+
+                            <a id="spWikiLink" href="#" target="_blank" rel="noopener" class="group inline-flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-700 transition-colors">
+                                Read the full article on Wikipedia
+                                <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Facts grid -->
+                <div class="reveal-up delay-200 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10">
+                    <!-- Family -->
+                    <div class="rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-subtle">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
+                            <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Family</span>
+                        </div>
+                        <p id="factFamily" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                    </div>
+                    <!-- Native range -->
+                    <div class="rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-subtle">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Native range</span>
+                        </div>
+                        <p id="factRange" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                    </div>
+                    <!-- Toxicity -->
+                    <div class="rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-subtle">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                            <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Toxicity</span>
+                        </div>
+                        <p id="factToxic" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                    </div>
+                    <!-- Growing conditions -->
+                    <div class="rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-subtle">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
+                            <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Growing conditions</span>
+                        </div>
+                        <p id="factGrow" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                    </div>
+                    <!-- Growth habit (Trefle) -->
+                    <div class="rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-subtle">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 22V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5Zm0 0c0-3-2-5-5-5 0 3 2 5 5 5ZM12 14c0-2.5 1.6-4 4-4 0 2.5-1.6 4-4 4Zm0 0c0-2.5-1.6-4-4-4 0 2.5 1.6 4 4 4Z"/></svg>
+                            <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Growth habit</span>
+                        </div>
+                        <p id="factHabit" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                    </div>
+                    <!-- Sunlight (Trefle) -->
+                    <div class="rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-subtle">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                            <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Sunlight</span>
+                        </div>
+                        <p id="factSun" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                    </div>
+                </div>
+
+                <!-- Edibility note (only shown when affirmatively documented) -->
+                <div id="spEdibleWrap" class="hidden reveal-up mt-4 flex items-start gap-2.5 rounded-2xl border border-sage-200 bg-sage-50 p-5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600 flex-shrink-0 mt-0.5"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><path d="M12 22V9M9 6c1.5 0 3 1 3 3"/></svg>
+                    <p id="spEdible" class="text-sm text-sage-700 font-light leading-snug"></p>
+                </div>
+
+                <!-- Related plants -->
+                <section id="spRelatedWrap" class="hidden mt-14">
+                    <h2 class="reveal-up text-sm font-medium tracking-wide text-neutral-500 uppercase mb-5">Related plants</h2>
+                    <div id="spRelated" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+                </section>
+            </article>
+
+        </div>
+    </main>
+
+    <!-- FOOTER (shared) -->
+    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+                <div class="col-span-2">
+                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        FindFlower
+                    </span>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">
+                        A premium botanical identification product by iBhx. Built for clarity and precision.
+                    </p>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a></li>
+                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
+                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
+                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
+                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
+                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
+                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
+                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <div class="flex gap-4 mt-4 md:mt-0">
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
+                    <span>Model Version: Beta 0.9.4</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    (function () {
+        'use strict';
+        const $ = (id) => document.getElementById(id);
+        const UNKNOWN = (typeof window.FF_SPECIES_UNKNOWN === 'string')
+            ? window.FF_SPECIES_UNKNOWN : 'Not documented in the source article.';
+
+        const params = new URLSearchParams(window.location.search);
+        const rawName = params.get('name');
+
+        const loading = $('spLoading'), prompt = $('spPrompt'), content = $('spContent');
+
+        function show(el) {
+            [loading, prompt, content].forEach(x => x.classList.add('hidden'));
+            el.classList.remove('hidden');
+        }
+
+        // Honest fact rendering — fall back to UNKNOWN, never imply "safe".
+        function setFact(id, value) {
+            const el = $(id);
+            if (value && String(value).trim()) {
+                el.textContent = String(value).trim();
+                el.classList.remove('text-neutral-400', 'italic');
+                el.classList.add('text-neutral-700');
+            } else {
+                el.textContent = UNKNOWN;
+                el.classList.remove('text-neutral-700');
+                el.classList.add('text-neutral-400', 'italic');
+            }
+        }
+
+        function renderRelated(list) {
+            const wrap = $('spRelatedWrap'), holder = $('spRelated');
+            if (!list || !list.length) { wrap.classList.add('hidden'); return; }
+            holder.innerHTML = '';
+            list.forEach(rel => {
+                const a = document.createElement('a');
+                a.href = 'species.html?name=' + encodeURIComponent(rel.name);
+                a.className = 'reveal-up group flex items-center gap-2 bg-white border border-neutral-200/70 rounded-xl px-4 py-3 hover-lift';
+                a.innerHTML =
+                    '<span class="w-1.5 h-1.5 rounded-full bg-sage-400 flex-shrink-0"></span>' +
+                    '<span class="text-sm text-neutral-700 font-light leading-snug truncate">' + rel.name + '</span>' +
+                    '<svg class="cta-arrow ml-auto text-neutral-300 group-hover:text-sage-500 transition-colors flex-shrink-0" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+                holder.appendChild(a);
+            });
+            wrap.classList.remove('hidden');
+            // Let the reveal observer pick up the freshly-added related cards.
+            attachReveal(holder.querySelectorAll('.reveal-up'));
+        }
+
+        function render(info, displayName) {
+            const name = (info && info.found && info.title) ? info.title : displayName;
+            document.title = name + ' | FindFlower';
+            $('crumbName').textContent = name;
+            $('spName').textContent = name;
+
+            // Binomial / scientific name (falls back to short description, then hides).
+            const bin = $('spBinomial');
+            if (info && info.binomial) { bin.textContent = info.binomial; bin.classList.remove('hidden'); }
+            else if (info && info.description) { bin.textContent = info.description; bin.classList.remove('italic'); bin.classList.remove('hidden'); }
+            else { bin.classList.add('hidden'); }
+
+            // Summary.
+            if (info && info.summary) {
+                $('spSummary').textContent = info.summary;
+            } else {
+                $('spSummary').textContent = 'A detailed article wasn’t found automatically for this name. Use the Wikipedia link to search for more context.';
+            }
+
+            // Wikipedia link.
+            $('spWikiLink').href = (info && info.articleUrl) || ('https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(displayName));
+
+            // Image (text is already painted first; reveal image only once decoded).
+            const img = $('spImg'), ph = $('spImgPh');
+            if (info && info.image) {
+                img.alt = name;
+                img.onload = () => { img.classList.remove('opacity-0'); if (ph) ph.remove(); };
+                img.onerror = () => { if (ph) { ph.classList.remove('skeleton'); ph.classList.add('bg-sage-50'); } };
+                img.src = info.originalImage || info.image;
+            } else if (ph) {
+                ph.classList.remove('skeleton');
+                ph.classList.add('bg-sage-50', 'flex', 'items-center', 'justify-center');
+                ph.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="text-sage-300"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            }
+
+            // Attribution (visible CC BY-SA credit).
+            $('spAttribution').textContent = (info && info.attribution) || 'Source: Wikipedia (CC BY-SA)';
+
+            // Facts.
+            setFact('factFamily', info && info.family);
+            setFact('factRange', info && info.range);
+            setFact('factToxic', info && info.toxic);
+            setFact('factGrow', info && info.grow);
+            setFact('factHabit', info && info.growthHabit);
+            setFact('factSun', info && info.sunlight);
+
+            // Edibility note — only when Trefle affirmatively documents it.
+            const edWrap = $('spEdibleWrap');
+            if (info && info.edibleNote) {
+                $('spEdible').textContent = info.edibleNote;
+                edWrap.classList.remove('hidden');
+            } else {
+                edWrap.classList.add('hidden');
+            }
+
+            // Related plants.
+            renderRelated(info && info.related);
+
+            show(content);
+            // Re-run reveal observer over the now-visible content.
+            attachReveal(content.querySelectorAll('.reveal-up'));
+        }
+
+        // ---- Load ----
+        if (!rawName || !ffCleanName(rawName)) {
+            show(prompt);
+        } else {
+            const displayName = ffCleanName(rawName);
+            ffFetchSpecies(displayName, { related: true })
+                .then(info => render(info, displayName))
+                .catch(() => render(null, displayName));
+        }
+
+        // ---- Reveal observer (shared with a small helper so we can attach to
+        //      dynamically-added elements too) ----
+        let _observer = null;
+        function getObserver() {
+            if (_observer) return _observer;
+            _observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+            }, { root: null, rootMargin: '0px 0px -8% 0px', threshold: 0.12 });
+            return _observer;
+        }
+        function attachReveal(nodes) {
+            const obs = getObserver();
+            nodes.forEach(el => obs.observe(el));
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            attachReveal(document.querySelectorAll('.reveal-up'));
+        });
+    })();
+    </script>
+</body>
+</html>

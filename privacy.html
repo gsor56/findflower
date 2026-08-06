@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>Privacy | FindFlower</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,6 +53,7 @@
                 <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a>
                 <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
             </nav>
             <div class="flex items-center gap-4">
@@ -72,7 +74,7 @@
                 <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Legal</span>
                 <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">Privacy at FindFlower</h1>
                 <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
-                    We built FindFlower to run on your device, so privacy isn’t an afterthought — it’s the architecture. This page explains, in plain language, exactly what happens to your data.
+                    We built FindFlower to collect as little as possible and to be honest about what happens to your photos. This page explains, in plain language, exactly what happens to your data — including the fact that identification now runs on a server, not on your device.
                 </p>
                 <p class="reveal-up text-sm text-neutral-400 font-light mt-6">Last updated 8 July 2026 · Applies to the FindFlower Beta</p>
             </div>
@@ -101,7 +103,7 @@
                     <ul class="space-y-4">
                         <li class="flex items-start gap-3">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-sage-600 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
-                            <p class="text-neutral-600 font-light">Identification runs in your browser. Your photos are not uploaded to a server to be recognised.</p>
+                            <p class="text-neutral-600 font-light">To identify a flower, your photo is sent to our inference service to be analysed. It is used only to return a prediction and is not stored afterwards.</p>
                         </li>
                         <li class="flex items-start gap-3">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-sage-600 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
@@ -125,8 +127,8 @@
                 <section id="images" class="reveal-up scroll-mt-24 prose">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">How uploaded images are handled</h2>
                     <div class="space-y-4 text-neutral-600 font-light text-lg">
-                        <p>This is the heart of our design. When you capture, upload, or link an image, the recognition model runs <span class="text-neutral-900 font-normal">locally in your browser</span>. The image is processed on your own device to produce a prediction and is not transmitted to us for that purpose.</p>
-                        <p>Because the work happens on your side, your photos stay with you. When you close the tab, the image is gone from the page — we hold no copy. The one exception is if you deliberately attach a photo to a feedback submission, described next.</p>
+                        <p>When you capture, upload, or link an image, it is sent to our inference service to be analyzed. The service returns a prediction and the image is <span class="text-neutral-900 font-normal">not stored afterwards</span>. The model weights and training data remain private on the server — only the predicted species and confidence score come back to your browser.</p>
+                        <p>Your photos are used only to produce the identification you requested. We hold no copy after the prediction is returned. The one exception is if you deliberately attach a photo to a feedback submission, described next.</p>
                     </div>
                 </section>
 
@@ -149,7 +151,7 @@
                 <section id="control" class="reveal-up scroll-mt-24 prose">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Your privacy, in your control</h2>
                     <div class="space-y-4 text-neutral-600 font-light text-lg">
-                        <p>You decide what to share. Nothing leaves your device quietly in the background. You can clear locally stored feedback at any time from your browser, and if you hold a developer account you can request its deletion.</p>
+                        <p>You decide what to share. Feedback is never sent quietly in the background. You can clear locally stored feedback at any time from your browser, and if you hold a developer account you can request its deletion.</p>
                         <p>If anything here is unclear, we’d rather you ask than wonder. Reach us through the <a href="contact.html" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> and a person will respond.</p>
                     </div>
                 </section>
@@ -183,6 +185,7 @@
                     <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
                     <ul class="space-y-3 text-sm text-neutral-500 font-light">
                         <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a></li>
                         <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
                         <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
                         <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>

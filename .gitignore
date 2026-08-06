@@ -1,0 +1,27 @@
+# --- Secrets / credentials (NEVER commit) ---
+kaggle.json
+*.env
+.env
+*secret*.txt
+proxy/.wrangler/
+
+# --- Local tooling / editor state ---
+.claude/
+.vscode/
+.idea/
+
+# --- Python caches ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Dead build copy: never deployed, holds stale copy + old CNN weights ---
+dist/
+
+# --- Project scratch / logs ---
+_klog/
+_fix_model.py
+
+# --- OS junk ---
+Thumbs.db
+.DS_Store

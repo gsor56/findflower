@@ -1,0 +1,10 @@
+name = "findflower-proxy"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Public config only. Secrets (HF_TOKEN) are NOT stored here — set them with:
+#   wrangler secret put HF_TOKEN
+#
+# CORS allowlist: dev + current public testing domain.
+[vars]
+ALLOWED_ORIGINS = "http://localhost:8000,https://findflower.cu.ma"

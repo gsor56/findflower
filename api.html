@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>API Reference | FindFlower</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -101,6 +102,7 @@
                 <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
                 <a href="api.html" class="text-neutral-900 transition-colors">API</a>
+                <a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a>
                 <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
             </nav>
             <div class="flex items-center gap-4">
@@ -127,7 +129,7 @@
                     The FindFlower API.
                 </h1>
                 <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
-                    The same identification engine that powers FindFlower, available for your own projects. Bring a photo, get a species, a confidence score, and verified context — through an on-device SDK you can use today, or a hosted REST API in preview.
+                    The same identification engine that powers FindFlower, available for your own projects. Bring a photo, get a species, a confidence score, and verified context — through a direct call to our hosted endpoint you can use today, or a full REST API in preview.
                 </p>
             </div>
         </section>
@@ -142,12 +144,12 @@
                         </div>
                         <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Available now</span>
                     </div>
-                    <h3 class="text-lg font-medium text-neutral-900 mb-2">On-device SDK</h3>
+                    <h3 class="text-lg font-medium text-neutral-900 mb-2">Direct endpoint</h3>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        Load the model directly in your web or Node application with TensorFlow.js. Inference runs on your users’ devices — no server, no API key, no per-request cost.
+                        POST a photo to our hosted endpoint from any web or server app and get the species, a confidence score, and ranked alternatives back as JSON. No key required during Beta.
                     </p>
                     <a href="#sdk" class="group inline-flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-700 transition-colors mt-4">
-                        Jump to the SDK
+                        Jump to the quickstart
                         <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
                 </div>
@@ -186,7 +188,7 @@
                     <a href="#feedback" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Feedback</a>
                     <a href="#wikipedia" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Wikipedia info</a>
                     <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3 mt-6">Integrate</p>
-                    <a href="#sdk" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>On-device SDK</a>
+                    <a href="#sdk" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Direct endpoint</a>
                 </nav>
             </aside>
 
@@ -197,7 +199,7 @@
                 <section id="credentials" class="scroll-mt-24">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Authentication</h2>
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-8 max-w-2xl">
-                        The hosted API authenticates with a bearer key sent in the <span class="font-mono text-sm text-neutral-700">Authorization</span> header. Keys are tied to your developer account — sign in to generate yours. The on-device SDK needs no key.
+                        The hosted API authenticates with a bearer key sent in the <span class="font-mono text-sm text-neutral-700">Authorization</span> header. Keys are tied to your developer account — sign in to generate yours. The direct endpoint needs no key during Beta.
                     </p>
 
                     <div class="bg-white border border-neutral-200/70 rounded-2xl overflow-hidden">
@@ -254,7 +256,7 @@
 <span class="tok-key">Accept:</span> application/json</div>
                     <div class="mt-4 flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                        <p>The base host is a placeholder during preview. The request and response shapes below are stable and match the on-device SDK output.</p>
+                        <p>The base host is a placeholder during preview. The request and response shapes below are stabilising; the direct endpoint quickstart lower down works against the live Beta today.</p>
                     </div>
                 </section>
 
@@ -437,46 +439,50 @@ curl https://api.findflower.ibhx.dev/v1/wikipedia?name=<span class="tok-str">sun
                     </div>
                 </section>
 
-                <!-- ON-DEVICE SDK -->
+                <!-- DIRECT ENDPOINT -->
                 <section id="sdk" class="scroll-mt-24">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Available now</span>
                     </div>
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">On-device SDK</h2>
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Direct endpoint</h2>
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        Run identification entirely in your own app with TensorFlow.js. This path is live today — it uses the exact model that powers FindFlower and requires no key. Point the loader at the hosted model files, then preprocess to 224×224.
+                        The quickest way to integrate today. POST an image to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download and no key to manage during Beta — just send the photo.
                     </p>
-
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Install</h4>
-                    <div class="code p-5 mb-6">npm install @tensorflow/tfjs</div>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Identify an image</h4>
                     <div class="code p-5 mb-6">
-<span class="tok-key">import</span> * <span class="tok-key">as</span> tf <span class="tok-key">from</span> <span class="tok-str">"@tensorflow/tfjs"</span>;
+<span class="tok-com">// send the image as multipart/form-data under the "file" field</span>
+<span class="tok-key">async function</span> identify(fileOrBlob) {
+  <span class="tok-key">const</span> form = <span class="tok-key">new</span> FormData();
+  form.append(<span class="tok-str">"file"</span>, fileOrBlob, <span class="tok-str">"flower.jpg"</span>);
 
-<span class="tok-com">// 1 · load the model and class labels (host these alongside your app)</span>
-<span class="tok-key">const</span> model = <span class="tok-key">await</span> tf.loadLayersModel(<span class="tok-str">"https://findflower.ibhx.dev/model/model.json"</span>);
-<span class="tok-key">const</span> classes = <span class="tok-key">await</span> (<span class="tok-key">await</span> fetch(<span class="tok-str">"https://findflower.ibhx.dev/model/class_names.json"</span>)).json();
-
-<span class="tok-com">// 2 · preprocess to 224×224; the model rescales [0,1] → [-1,1] internally</span>
-<span class="tok-key">function</span> identify(imgEl) {
-  <span class="tok-key">const</span> input = tf.tidy(() =>
-    tf.browser.fromPixels(imgEl)
-      .resizeBilinear([<span class="tok-num">224</span>, <span class="tok-num">224</span>])
-      .toFloat().div(<span class="tok-num">255</span>).expandDims(<span class="tok-num">0</span>)
-  );
-  <span class="tok-key">const</span> probs = model.predict(input).dataSync();
-  input.dispose();
-
-  <span class="tok-key">return</span> [...probs]
-    .map((p, i) => ({ name: classes[i], confidence: p }))
-    .sort((a, b) => b.confidence - a.confidence)
-    .slice(<span class="tok-num">0</span>, <span class="tok-num">5</span>);
+  <span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(<span class="tok-str">"https://findflower-proxy.fofi.workers.dev"</span>, {
+    <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
+    <span class="tok-key">body</span>: form
+  });
+  <span class="tok-key">if</span> (!res.ok) <span class="tok-key">throw new</span> Error(<span class="tok-str">`Identify failed: ${res.status}`</span>);
+  <span class="tok-key">return</span> res.json();
 }</div>
 
+                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
+                    <div class="code p-5 mb-6">
+{
+  <span class="tok-key">"flower"</span>: <span class="tok-str">"sunflower"</span>,
+  <span class="tok-key">"confidence"</span>: <span class="tok-num">0.9412</span>,
+  <span class="tok-key">"top_k"</span>: [
+    { <span class="tok-key">"name"</span>: <span class="tok-str">"sunflower"</span>, <span class="tok-key">"confidence"</span>: <span class="tok-num">0.9412</span> },
+    { <span class="tok-key">"name"</span>: <span class="tok-str">"black-eyed susan"</span>, <span class="tok-key">"confidence"</span>: <span class="tok-num">0.0331</span> }
+    <span class="tok-mut">/* …up to 5 ranked entries… */</span>
+  ]
+}</div>
+
+                    <div class="flex items-start gap-2 text-sm text-neutral-500 font-light mb-3">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>
+                        <p>The endpoint is a lightweight proxy in front of a hosted model server. If it has been idle it can cold-start (roughly 30–90s on the first request), so allow a generous timeout and show a friendly loading state.</p>
+                    </div>
                     <div class="flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                        <p>The current Beta model recognises 107 botanical classes. Predictions are a best guess — always surface the confidence score and the runners-up so your users can judge for themselves.</p>
+                        <p>The current Beta model recognises 116 botanical classes. Predictions are a best guess — always surface the confidence score and the runners-up so your users can judge for themselves.</p>
                     </div>
                 </section>
 
@@ -524,6 +530,7 @@ curl https://api.findflower.ibhx.dev/v1/wikipedia?name=<span class="tok-str">sun
                     <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
                     <ul class="space-y-3 text-sm text-neutral-500 font-light">
                         <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a></li>
                         <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
                         <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
                         <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>

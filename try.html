@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>Try FindFlower | Identify a flower</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+    <script src="species.js"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
@@ -110,6 +112,7 @@
                 <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a>
                 <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
             </nav>
 
@@ -132,7 +135,7 @@
                     Identify a <span class="font-serif italic font-normal text-sage-600">flower</span>.
                 </h1>
                 <p class="text-lg text-neutral-500 font-light leading-relaxed">
-                    Capture with your camera, upload a photo, or paste a link. FindFlower runs entirely in your browser and returns the species, a confidence score, and verified context from Wikipedia.
+                    Capture with your camera, upload a photo, or paste a link. FindFlower sends your image to our inference service and returns the species, a confidence score, and verified context from Wikipedia.
                 </p>
             </div>
         </section>
@@ -148,7 +151,7 @@
                         <h2 class="text-sm font-medium tracking-wide text-neutral-500 uppercase">Input</h2>
                         <div id="modelStatus" class="flex items-center gap-2 text-xs font-medium text-neutral-500">
                             <span id="modelDot" class="w-1.5 h-1.5 rounded-full bg-neutral-300"></span>
-                            <span id="modelStatusText">Loading model…</span>
+                            <span id="modelStatusText">Ready to identify</span>
                         </div>
                     </div>
 
@@ -220,7 +223,7 @@
                                 <div id="previewScan" class="scan-line absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-transparent via-sage-400/40 to-transparent hidden"></div>
                             </div>
                             <div class="flex-1">
-                                <p class="text-sm text-neutral-500 font-light leading-snug" id="previewHint">Select an image to begin. Everything runs privately on your device.</p>
+                                <p class="text-sm text-neutral-500 font-light leading-snug" id="previewHint">Select an image to begin. Your photo is sent securely for identification and not stored.</p>
                             </div>
                         </div>
                         <button id="identifyBtn" class="group w-full mt-5 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
@@ -245,7 +248,8 @@
                     <!-- Loading state -->
                     <div id="resLoading" class="hidden flex-1 flex flex-col items-center justify-center text-center">
                         <svg class="spin text-sage-500 mb-5" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
-                        <p class="text-neutral-500 font-light">Analyzing image…</p>
+                        <p id="resLoadingMain" class="text-neutral-500 font-light">Analyzing image…</p>
+                        <p id="resLoadingSub" class="text-neutral-400 font-light text-sm mt-2"></p>
                     </div>
 
                     <!-- Result content -->
@@ -282,13 +286,50 @@
                             <div id="resAltsList" class="space-y-2"></div>
                         </div>
 
-                        <!-- Wikipedia -->
-                        <div class="mb-6 pt-6 border-t border-neutral-100">
-                            <p id="resWiki" class="text-sm text-neutral-600 font-light leading-relaxed mb-3"></p>
-                            <a id="resWikiLink" href="#" target="_blank" rel="noopener" class="group inline-flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-700 transition-colors">
-                                Read full article on Wikipedia
-                                <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                            </a>
+                        <!-- Species detail (live from Wikipedia + Wikidata) -->
+                        <div id="resDetail" class="mb-6 pt-6 border-t border-neutral-100">
+                            <!-- Binomial / scientific name -->
+                            <p id="resBinomial" class="hidden text-sm font-medium text-neutral-500 italic mb-3"></p>
+
+                            <!-- Summary -->
+                            <p id="resWiki" class="text-sm text-neutral-600 font-light leading-relaxed mb-5"></p>
+
+                            <!-- Structured facts grid; each cell fills in or shows a graceful fallback -->
+                            <div id="resFacts" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                                <!-- Native range -->
+                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                        <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Native range</span>
+                                    </div>
+                                    <p id="factRange" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                                </div>
+                                <!-- Toxicity -->
+                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                                        <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Toxicity</span>
+                                    </div>
+                                    <p id="factToxic" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                                </div>
+                                <!-- Growing conditions -->
+                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5 sm:col-span-2">
+                                    <div class="flex items-center gap-1.5 mb-1">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
+                                        <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Growing conditions</span>
+                                    </div>
+                                    <p id="factGrow" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 flex-wrap">
+                                <a id="resWikiLink" href="#" target="_blank" rel="noopener" class="group inline-flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-700 transition-colors">
+                                    Read full article on Wikipedia
+                                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                                </a>
+                                <!-- Attribution, per Wikipedia/Wikimedia reuse (CC BY-SA) -->
+                                <p id="resAttribution" class="text-[11px] text-neutral-400 font-light"></p>
+                            </div>
                         </div>
 
                         <!-- Feedback -->
@@ -327,7 +368,7 @@
 
             <!-- Reassurance line -->
             <p class="reveal-up delay-100 text-center text-xs text-neutral-400 font-light mt-8">
-                Images are processed locally in your browser and are not uploaded to any server. Predictions are a best guess and may be imperfect.
+                Images are sent to our inference service to be identified and are not stored afterwards. Predictions are a best guess and may be imperfect.
             </p>
         </section>
 
@@ -350,6 +391,7 @@
                     <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
                     <ul class="space-y-3 text-sm text-neutral-500 font-light">
                         <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
+                        <li><a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a></li>
                         <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
                         <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
                         <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
@@ -381,14 +423,12 @@
         'use strict';
 
         // ---- Config ----
-        const MODEL_URL = './model/model.json';
-        const CLASSES_URL = './model/class_names.json';
-        const INPUT_SIZE = 224;
+        // Inference runs server-side: browser -> Cloudflare Worker -> private
+        // model server. Swap in your deployed Worker URL.
+        const API_URL = 'https://findflower-proxy.fofi.workers.dev';
 
         // ---- State ----
-        let model = null;
-        let classNames = [];
-        let currentImageEl = null; // an <img> or <canvas> ready for inference
+        let currentBlob = null;    // the image bytes we'll send for inference
         let lastPrediction = null;
 
         // ---- Elements ----
@@ -417,28 +457,31 @@
         }
         segButtons.forEach((b, i) => b.addEventListener('click', () => selectMode(b.dataset.mode, i)));
 
-        // ---- Load model ----
-        async function loadModel() {
-            try {
-                const res = await fetch(CLASSES_URL);
-                classNames = await res.json();
-                model = await tf.loadLayersModel(MODEL_URL);
-                // warm up
-                tf.tidy(() => model.predict(tf.zeros([1, INPUT_SIZE, INPUT_SIZE, 3])));
-                modelDot.className = 'w-1.5 h-1.5 rounded-full bg-sage-500';
-                modelStatusText.textContent = 'Model ready';
-                refreshIdentifyState();
-            } catch (err) {
-                console.error(err);
-                modelDot.className = 'w-1.5 h-1.5 rounded-full bg-red-400';
-                modelStatusText.textContent = 'Model failed to load';
-            }
+        // ---- Model status ----
+        // Nothing to download in-browser anymore; identification happens on the
+        // server. Show "ready" so the existing status dot stays meaningful.
+        function initStatus() {
+            modelDot.className = 'w-1.5 h-1.5 rounded-full bg-sage-500';
+            modelStatusText.textContent = 'Ready to identify';
+            refreshIdentifyState();
         }
-        loadModel();
+        initStatus();
 
         // ---- Set current image for inference + preview ----
+        // Capture the image as a JPEG blob now (from <img> or <canvas>), so the
+        // Identify click just uploads bytes. Cross-origin URL images may taint
+        // the canvas and fail here — handled at identify time.
         function setImage(sourceEl, displaySrc) {
-            currentImageEl = sourceEl;
+            currentBlob = null;
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = sourceEl.naturalWidth || sourceEl.videoWidth || sourceEl.width;
+                canvas.height = sourceEl.naturalHeight || sourceEl.videoHeight || sourceEl.height;
+                canvas.getContext('2d').drawImage(sourceEl, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob((b) => { currentBlob = b; refreshIdentifyState(); }, 'image/jpeg', 0.92);
+            } catch (err) {
+                console.error('Could not read image pixels:', err);
+            }
             previewImg.src = displaySrc;
             previewImg.classList.remove('hidden');
             previewEmpty.classList.add('hidden');
@@ -446,7 +489,7 @@
             refreshIdentifyState();
         }
         function refreshIdentifyState() {
-            identifyBtn.disabled = !(model && currentImageEl);
+            identifyBtn.disabled = !currentBlob;
         }
 
         // ---- Camera ----
@@ -530,41 +573,69 @@
         }
         function showError(msg) { $('resErrorText').textContent = msg; showState('error'); }
 
-        // ---- Inference ----
-        function preprocess(el) {
-            return tf.tidy(() =>
-                tf.browser.fromPixels(el)
-                    .resizeBilinear([INPUT_SIZE, INPUT_SIZE])
-                    .toFloat()
-                    .div(255.0)           // model's internal Rescaling maps [0,1] -> [-1,1]
-                    .expandDims(0)
+        // ---- Inference (server-side via the Worker) ----
+        // The free inference host can cold-start (~30-90s) if it has gone idle.
+        // We keep the UI honest and moving with staged messages + a hard timeout,
+        // so the worst case is a clear message, never a frozen spinner.
+        const LOAD_STAGES = [
+            { at: 0,     main: 'Analyzing image…',        sub: '' },
+            { at: 6000,  main: 'Analyzing image…',        sub: 'Waking up the model — this can take a moment on the first try.' },
+            { at: 20000, main: 'Still working…',          sub: 'The model was asleep and is starting up. Hang tight.' },
+            { at: 45000, main: 'Almost there…',           sub: 'Cold start is taking longer than usual — nearly ready.' },
+        ];
+        const REQUEST_TIMEOUT_MS = 95000;
+
+        let loadTimers = [];
+        function startLoadingMessages() {
+            const mainEl = $('resLoadingMain'), subEl = $('resLoadingSub');
+            loadTimers.forEach(clearTimeout);
+            loadTimers = LOAD_STAGES.map(stage =>
+                setTimeout(() => { mainEl.textContent = stage.main; subEl.textContent = stage.sub; }, stage.at)
             );
         }
+        function stopLoadingMessages() {
+            loadTimers.forEach(clearTimeout);
+            loadTimers = [];
+            $('resLoadingSub').textContent = '';
+        }
+
         identifyBtn.addEventListener('click', async () => {
-            if (!model || !currentImageEl) return;
+            if (!currentBlob) return;
             showState('loading');
+            startLoadingMessages();
             previewScan.classList.remove('hidden');
             identifyBtn.disabled = true;
             identifyLabel.textContent = 'Analyzing…';
             identifyArrow.classList.add('hidden');
-            await new Promise(r => setTimeout(r, 50)); // let UI paint
+
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
             try {
-                const input = preprocess(currentImageEl);
-                const logits = model.predict(input);
-                const data = await logits.data();
-                input.dispose(); logits.dispose();
+                const form = new FormData();
+                form.append('file', currentBlob, 'flower.jpg');
+                const res = await fetch(API_URL, { method: 'POST', body: form, signal: controller.signal });
+                if (!res.ok) {
+                    const detail = await res.text().catch(() => '');
+                    throw new Error(`Server returned ${res.status}. ${detail}`);
+                }
+                const data = await res.json();
+                if (!data.top_k || !data.top_k.length) throw new Error('Empty prediction.');
 
-                const ranked = Array.from(data)
-                    .map((p, i) => ({ name: classNames[i] || `class ${i}`, p }))
-                    .sort((a, b) => b.p - a.p);
-
+                // Normalize to the shape renderResult already expects: {name, p}.
+                const ranked = data.top_k.map(x => ({ name: x.name, p: x.confidence }));
                 lastPrediction = ranked[0];
                 renderResult(ranked);
             } catch (err) {
                 console.error(err);
-                showError('This image could not be analyzed. If it came from a link, cross-origin rules may block reading its pixels — please upload the file directly.');
+                if (err.name === 'AbortError') {
+                    showError('The identifier is taking too long to respond (it may be starting up). Please try again in a moment.');
+                } else {
+                    showError('This image could not be analyzed right now. Please try again, or use a different photo.');
+                }
             } finally {
+                clearTimeout(timeout);
+                stopLoadingMessages();
                 previewScan.classList.add('hidden');
                 identifyLabel.textContent = 'Identify flower';
                 identifyArrow.classList.remove('hidden');
@@ -612,28 +683,78 @@
             $('resImg').src = previewImg.src;
 
             showState('content');
-            fetchWiki(cleanName(top.name));
+            loadSpeciesPanel(cleanName(top.name));
         }
 
-        // ---- Wikipedia ----
-        async function fetchWiki(name) {
-            const wikiP = $('resWiki'), wikiLink = $('resWikiLink'), resImg = $('resImg'), resFamily = $('resFamily');
-            wikiP.textContent = 'Loading botanical context…';
-            const title = name.charAt(0).toUpperCase() + name.slice(1);
-            try {
-                const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title));
-                if (!res.ok) throw new Error('not found');
-                const d = await res.json();
-                if (d.type === 'disambiguation' || !d.extract) throw new Error('ambiguous');
-                wikiP.textContent = d.extract;
-                wikiLink.href = (d.content_urls && d.content_urls.desktop && d.content_urls.desktop.page)
-                    || ('https://en.wikipedia.org/wiki/' + encodeURIComponent(title));
-                if (d.thumbnail && d.thumbnail.source) resImg.src = d.thumbnail.source;
-                if (d.description) resFamily.textContent = d.description;
-            } catch (err) {
-                wikiP.textContent = 'A detailed article wasn’t found automatically for this name. You can search Wikipedia directly for more context.';
-                wikiLink.href = 'https://en.wikipedia.org/w/index.php?search=' + encodeURIComponent(name);
+        // ============================================================
+        //  Species detail panel — data comes from the shared species.js
+        //  module (ffFetchSpecies); this function only paints try.html's
+        //  own result DOM. Rendering stays local because this panel's
+        //  markup is unique to the workspace.
+        // ============================================================
+
+        // Small helpers to keep the UI honest when a fact is missing.
+        const UNKNOWN = (typeof window.FF_SPECIES_UNKNOWN === 'string')
+            ? window.FF_SPECIES_UNKNOWN : 'Not documented in the source article.';
+        function setFact(id, value) {
+            const el = $(id);
+            if (value && value.trim()) {
+                el.textContent = value.trim();
+                el.classList.remove('text-neutral-400', 'italic');
+                el.classList.add('text-neutral-700');
+            } else {
+                el.textContent = UNKNOWN;
+                el.classList.remove('text-neutral-700');
+                el.classList.add('text-neutral-400', 'italic');
             }
+        }
+
+        // Fetch via the shared module, then paint. Graceful fallback on failure.
+        async function loadSpeciesPanel(name) {
+            const wikiP = $('resWiki'), wikiLink = $('resWikiLink');
+
+            // Reset the panel to a loading baseline every time.
+            wikiP.textContent = 'Loading botanical context…';
+            $('resBinomial').classList.add('hidden');
+            $('resAttribution').textContent = '';
+            ['factRange', 'factToxic', 'factGrow'].forEach(id => setFact(id, ''));
+
+            try {
+                const info = await ffFetchSpecies(name);
+                if (info && info.found) { applySpecies(info); return; }
+                showDetailFallback(info);
+            } catch (err) {
+                showDetailFallback(null);
+            }
+        }
+
+        // Keep the panel useful even when no article was found.
+        function showDetailFallback(info) {
+            $('resWiki').textContent = 'A detailed article wasn’t found automatically for this name. Use the link below to search Wikipedia for more context.';
+            $('resWikiLink').href = (info && info.articleUrl) || 'https://en.wikipedia.org/';
+            setFact('factRange', ''); setFact('factToxic', ''); setFact('factGrow', '');
+            $('resAttribution').textContent = 'Source: Wikipedia';
+        }
+
+        // Paint the panel from an info object (fresh or cached).
+        function applySpecies(info) {
+            $('resWiki').textContent = info.summary || 'No summary available.';
+
+            const bin = $('resBinomial');
+            if (info.binomial) { bin.textContent = info.binomial; bin.classList.remove('hidden'); }
+            else if (info.description) { bin.textContent = info.description; bin.classList.remove('hidden'); }
+            else bin.classList.add('hidden');
+
+            if (info.image) $('resImg').src = info.image;
+
+            const link = $('resWikiLink');
+            link.href = info.articleUrl;
+
+            setFact('factRange', info.range);
+            setFact('factToxic', info.toxic);
+            setFact('factGrow', info.grow);
+
+            $('resAttribution').textContent = info.attribution || 'Source: Wikipedia';
         }
 
         // ---- Feedback (stored locally; future human-in-the-loop signal) ----
