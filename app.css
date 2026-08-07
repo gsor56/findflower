@@ -1,0 +1,117 @@
+/* ============================================================================
+   FindFlower — global stylesheet (app.css)
+   ----------------------------------------------------------------------------
+   The site has no build step: every page is hand-authored HTML with Tailwind's
+   Play CDN + a per-page inline <style>. That left one thing un-unified — the
+   BODY font. Tailwind's preflight sets the document font to a generic system
+   stack, and only pages that happen to put `font-sans` on <body> ever switch to
+   Inter. Pages without it (e.g. try.html) rendered in the OS font, so moving
+   between pages visibly shifted the typeface and metrics ("font jumping").
+
+   This file is linked, render-blocking, into every page so the body font is
+   locked to Inter EVERYWHERE before first paint — the footer's own font, made
+   global. It also carries the base styles for the shared mobile bottom tab bar
+   injected by nav.js. Component look-and-feel still lives in Tailwind utilities;
+   this file only owns what must be global and flash-free.
+   ========================================================================== */
+
+/* --- Global typography: the one rule that stops the font jumping. --------- */
+html,
+body {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system,
+        'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Fraunces stays the display face; pages opt into it with Tailwind's
+   `font-serif`, so we never override an element that asked for the serif. */
+
+/* ============================================================================
+   Mobile bottom tab bar (injected by nav.js)
+   ----------------------------------------------------------------------------
+   A fixed, native-feeling tab bar shown only on phones. Desktop uses the sticky
+   header instead, so the bar is hidden from the `md` breakpoint up.
+   ========================================================================== */
+.ff-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: flex;
+    background-color: rgba(252, 252, 252, 0.92);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-top: 1px solid #E5E5E5;
+    /* Clear the iOS home indicator without eating the whole bar height. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.ff-tabbar__item {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 56px;
+    padding: 8px 4px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: #A3A3A3;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.ff-tabbar__item svg {
+    width: 22px;
+    height: 22px;
+}
+
+.ff-tabbar__item[aria-current="page"] {
+    color: #5F7A63; /* sage-500 — the favicon green, the site accent */
+}
+
+.ff-tabbar__item:active {
+    color: #4C6650; /* sage-600 */
+}
+
+/* Only phones get the bar; from md up the sticky header carries navigation. */
+@media (min-width: 768px) {
+    .ff-tabbar { display: none; }
+}
+
+/* Reserve room so page content and footers are never hidden behind the bar.
+   Height = 56px control + safe-area inset. Desktop needs none. */
+@media (max-width: 767px) {
+    body.has-tabbar {
+        padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+/* ============================================================================
+   Shared plant-card animations (directory.js embeds)
+   ----------------------------------------------------------------------------
+   directory.html defines these inline for its own grid; the reusable engine in
+   directory.js renders the same `.skeleton` / `.fade-in` classes on the
+   dashboard and scanner pages, so the definitions live here to travel with it.
+   ========================================================================== */
+@keyframes ff-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+.skeleton {
+    background: linear-gradient(90deg, #F5F5F5 0px, #EDEDED 40px, #F5F5F5 80px);
+    background-size: 600px 100%;
+    animation: ff-shimmer 1.4s linear infinite;
+}
+@keyframes ff-fade {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+}
+.fade-in { animation: ff-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton { animation: none; }
+    .fade-in { animation: none; }
+}
