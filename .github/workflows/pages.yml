@@ -1,0 +1,53 @@
+name: Deploy site to GitHub Pages
+
+# The legacy Jekyll builder chokes on this repo (it tries to process the Python
+# and JSON files alongside the site). This workflow uploads the static files
+# as-is instead — no Jekyll, real build logs when something breaks.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two deploys at once; don't cancel one that's mid-flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble site directory
+        run: |
+          mkdir _site
+          # Frontend only — the backend, training scripts and tooling are in the
+          # repo for version control but must not be published to the web root.
+          cp *.html *.js *.svg _site/
+          cp trefle-data.json _site/
+          cp CNAME .nojekyll _site/
+          echo "--- published files ---"
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
