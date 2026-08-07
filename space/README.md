@@ -37,9 +37,20 @@ bearing — re-enabling the arena pushes the peak back over the limit.
 | `Dockerfile` | Container build |
 | `requirements.txt` | onnxruntime, fastapi, pillow, huggingface_hub |
 
-The 329MB `findflower_vit_fp32.onnx` is **not** in git (over GitHub's file
-limit). It lives in the private `gsor56/findflower-VIT` HF model repo and is
-downloaded on first boot via `HF_TOKEN`.
+The weights are **not** in git (over GitHub's 100MB file limit). They live in the
+private `gsor56/findflower-VIT` HF model repo as an external-data pair and are
+downloaded on first boot via `HF_TOKEN`:
+
+| File | Size | What it is |
+| --- | --- | --- |
+| `findflower_vit_fp32_ext.onnx` | 1.4MB | Graph protobuf |
+| `findflower_vit_fp32.onnxdata` | 327MB | Weights blob |
+
+Both are required, and the `.onnxdata` must sit next to the `.onnx` —
+onnxruntime resolves the sibling by relative path. A single-file 329MB `.onnx`
+loads at roughly **2x its size** (~670MB peak) because the whole protobuf is
+parsed before tensors are allocated; that OOMed at startup. External data drops
+the load peak to ~395MB.
 
 ## Environment variables
 
@@ -70,7 +81,11 @@ open public API.
 
 ## Regenerating the ONNX model
 
-Run `convert_to_onnx.py` (repo root) in an environment with torch — Kaggle is
-easiest, since `HF_TOKEN` is already a Secret there. It exports to FP32 ONNX,
-verifies top-1 and top-5 against the PyTorch reference, then uploads
-`findflower_vit_fp32.onnx` to the HF model repo.
+Run `training/convert_to_onnx.py` in an environment with torch — Kaggle is
+easiest, since `HF_TOKEN` is already a Secret there. It exports FP32 ONNX,
+verifies top-1 and top-5 against the PyTorch reference, converts to the
+external-data layout, then uploads the `_ext.onnx` + `.onnxdata` pair.
+
+Set `SKIP_UPLOAD=1` to leave the files on disk instead. Don't upload the
+monolithic `findflower_vit_fp32.onnx` as the serving file — the server expects
+the external-data pair, and the single file will OOM at load on 512MB.
