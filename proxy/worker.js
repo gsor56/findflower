@@ -90,15 +90,44 @@ export default {
       return json({ error: "Server misconfigured (SPACE_URL/PROXY_SECRET)." }, 500, request, env);
     }
 
-    const image = await request.arrayBuffer();
-    if (!image || image.byteLength === 0) {
-      return json({ error: "Empty image body." }, 400, request, env);
+    // Accept BOTH body shapes:
+    //   - multipart/form-data with a `file` field  <- what try.html sends (FormData)
+    //   - a raw image body                         <- curl --data-binary, API users
+    //
+    // This used to read the body as raw bytes unconditionally, which silently
+    // broke the actual website: a multipart upload got re-wrapped envelope and
+    // all, so the server received MIME boundary text instead of a JPEG and
+    // answered "Invalid image: cannot identify image file" -> 502 for every
+    // upload from findflower.me.
+    const reqType = (request.headers.get("Content-Type") || "").toLowerCase();
+    let imageBlob;
+
+    if (reqType.includes("multipart/form-data")) {
+      let inbound;
+      try {
+        inbound = await request.formData();
+      } catch {
+        return json({ error: "Malformed multipart body." }, 400, request, env);
+      }
+      const filePart = inbound.get("file");
+      if (!filePart || typeof filePart === "string") {
+        return json({ error: "Multipart body is missing a `file` field." }, 400, request, env);
+      }
+      if (filePart.size === 0) {
+        return json({ error: "Empty image body." }, 400, request, env);
+      }
+      imageBlob = filePart;
+    } else {
+      const image = await request.arrayBuffer();
+      if (!image || image.byteLength === 0) {
+        return json({ error: "Empty image body." }, 400, request, env);
+      }
+      imageBlob = new Blob([image], { type: reqType || "image/jpeg" });
     }
 
-    // The Space expects multipart/form-data with a `file` field.
-    const contentType = request.headers.get("Content-Type") || "image/jpeg";
+    // The backend expects multipart/form-data with a `file` field.
     const form = new FormData();
-    form.append("file", new Blob([image], { type: contentType }), "upload.jpg");
+    form.append("file", imageBlob, "upload.jpg");
 
     const target = env.SPACE_URL.replace(/\/+$/, "") + "/predict";
     const headers = { "X-Proxy-Secret": env.PROXY_SECRET };
