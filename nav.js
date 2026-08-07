@@ -36,49 +36,36 @@
 
     // Brand mark (the favicon flower) reused in the header.
     var LOGO =
-        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">' +
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-sage-600">' +
         '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" ' +
         'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-    // The desktop text nav is auth-aware:
-    //   • Signed OUT — How it works · Directory · Dashboard · API, plus the
-    //     styled "Try Now" button on the right (that button IS the scanner
-    //     entry point, so "Scanner" is not also listed as text — that would be
-    //     two links to try.html side by side).
-    //   • Signed IN  — Scanner · Directory · Dashboard · API · How it works,
-    //     and the "Try Now" button is removed (a signed-in user is past the
-    //     call-to-action; they want the scanner itself).
-    // The mobile bottom tab bar always keeps its own "Scan" entry (see TABS).
-    var BASE_LINKS = [
-        { label: 'Directory', href: 'directory.html' },
-        { label: 'Dashboard', href: 'dashboard.html' },
-        { label: 'API',       href: 'api.html' }
+    // Fixed desktop nav — the primary marketing/product links. Dashboard and
+    // Directory intentionally do NOT live in the top bar; they sit in the
+    // slide-out sidebar (see buildSidebar) opened by the hamburger button.
+    var LINKS = [
+        { label: 'How it works', href: 'how.html' },
+        { label: 'Pricing',      href: 'pricing.html' },
+        { label: 'API',          href: 'api.html' },
+        { label: 'About',        href: 'index.html#about' }
     ];
-    var HOW  = { label: 'How it works', href: 'how.html' };
-    var SCAN = { label: 'Scanner',      href: 'try.html' };
 
-    function linksFor(signedIn) {
-        return signedIn
-            ? [SCAN].concat(BASE_LINKS, [HOW])   // Scanner · … · How it works
-            : [HOW].concat(BASE_LINKS);          // How it works · …
-    }
+    // Every icon is a 24x24 SVG with EXPLICIT width/height so it can never
+    // render unconstrained (e.g. if a stylesheet is slow to apply).
+    var SVG_OPEN = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">';
+    var ICON_MENU  = SVG_OPEN + '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>';
+    var ICON_CLOSE = SVG_OPEN + '<path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>';
+    var ICON_DASH  = SVG_OPEN +
+        '<rect x="3" y="3" width="7" height="7" rx="1.5"/>' +
+        '<rect x="14" y="3" width="7" height="7" rx="1.5"/>' +
+        '<rect x="3" y="14" width="7" height="7" rx="1.5"/>' +
+        '<rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
+    var ICON_DIR   = SVG_OPEN +
+        '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/></svg>';
 
-    // Best-effort, synchronous read of auth state so the header is built right
-    // the first time (no flash). auth0-spa-js caches its session in
-    // localStorage under an "@@auth0spajs@@" key prefix; its presence means a
-    // session is cached. On auth-enabled pages mount() re-verifies this against
-    // the real getUserSession() and corrects the header if needed.
-    function isSignedInGuess() {
-        try {
-            for (var i = 0; i < localStorage.length; i++) {
-                if (localStorage.key(i).indexOf('@@auth0spajs@@') === 0) return true;
-            }
-        } catch (e) { /* storage blocked -> treat as signed out */ }
-        return false;
-    }
-
-    function navLinksHTML(signedIn) {
-        return linksFor(signedIn).map(function (l) {
+    function navLinksHTML() {
+        return LINKS.map(function (l) {
             var active = (l.href === PAGE);
             var cls = active
                 ? 'text-neutral-900'
@@ -88,38 +75,87 @@
         }).join('');
     }
 
-    function buildHeader(signedIn) {
+    function buildHeader() {
         var header = document.createElement('header');
         header.className =
             'fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md ' +
             'border-b border-neutral-200/60';
         header.innerHTML =
             '<div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">' +
-                '<a href="index.html" class="flex items-center gap-2 font-serif text-lg text-neutral-900">' +
-                    LOGO + 'FindFlower' +
-                '</a>' +
-                '<nav id="ffNavLinks" class="hidden md:flex items-center gap-8 text-sm font-medium">' +
-                    navLinksHTML(signedIn) +
+                // LEFT — logo + wordmark + Beta pill
+                '<div class="flex items-center gap-2">' +
+                    '<a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">' +
+                        LOGO + 'FindFlower' +
+                    '</a>' +
+                    '<span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>' +
+                '</div>' +
+                // CENTER — primary links
+                '<nav class="hidden md:flex items-center gap-8 text-sm font-medium">' +
+                    navLinksHTML() +
                 '</nav>' +
+                // RIGHT — Sign In, Try Now, and the sidebar hamburger
                 '<div class="flex items-center gap-3">' +
                     '<a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
-                    '<a id="ffTryNow" href="try.html" class="' + (signedIn ? 'hidden ' : '') +
-                        'text-sm font-medium bg-neutral-900 text-white px-5 ' +
-                        'rounded-full hover:bg-neutral-800 transition-colors flex items-center" ' +
-                        'style="min-height:40px">Try Now</a>' +
+                    '<a id="ffTryNow" href="try.html" class="text-sm font-medium bg-neutral-900 text-white ' +
+                        'px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5" ' +
+                        'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
+                    '<button id="ffMenuBtn" type="button" aria-label="Open menu" aria-controls="ffSidebar" ' +
+                        'aria-expanded="false" class="flex items-center justify-center text-neutral-700 ' +
+                        'hover:text-neutral-900 transition-colors" style="min-width:40px;min-height:40px">' +
+                        ICON_MENU + '</button>' +
                 '</div>' +
             '</div>';
         return header;
     }
 
-    // Re-point the desktop nav + Try Now button at a known auth state. Safe to
-    // call repeatedly (used to correct the initial guess once auth resolves).
-    function applyAuthState(signedIn) {
-        var navEl = document.getElementById('ffNavLinks');
-        if (navEl) navEl.innerHTML = navLinksHTML(signedIn);
-        var cta = document.getElementById('ffTryNow');
-        if (cta) cta.classList.toggle('hidden', !!signedIn);
+    // Slide-out sidebar for the links kept out of the top bar (Dashboard,
+    // Directory). Opened by the hamburger; closed by backdrop, X, or Escape.
+    function sidebarLink(label, href, icon) {
+        var active = (href === PAGE);
+        var cls = 'flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ' +
+            (active ? 'bg-sage-50 text-sage-700' : 'text-neutral-700 hover:bg-neutral-100');
+        return '<a href="' + href + '" class="' + cls + '"' +
+            (active ? ' aria-current="page"' : '') + '>' + icon + '<span>' + label + '</span></a>';
+    }
+
+    function buildSidebar() {
+        var wrap = document.createElement('div');
+        wrap.innerHTML =
+            '<div id="ffSidebarBackdrop" class="ff-sidebar-backdrop"></div>' +
+            '<aside id="ffSidebar" class="ff-sidebar" aria-label="More navigation" aria-hidden="true">' +
+                '<div class="flex items-center justify-between mb-6">' +
+                    '<span class="text-base font-medium tracking-tight text-neutral-900">Menu</span>' +
+                    '<button id="ffSidebarClose" type="button" aria-label="Close menu" ' +
+                        'class="flex items-center justify-center text-neutral-500 hover:text-neutral-900 ' +
+                        'transition-colors" style="min-width:40px;min-height:40px">' + ICON_CLOSE + '</button>' +
+                '</div>' +
+                '<nav class="flex flex-col gap-1">' +
+                    sidebarLink('Dashboard', 'dashboard.html', ICON_DASH) +
+                    sidebarLink('Directory', 'directory.html', ICON_DIR) +
+                '</nav>' +
+            '</aside>';
+        return wrap;
+    }
+
+    function wireSidebar() {
+        var sb = document.getElementById('ffSidebar');
+        var bd = document.getElementById('ffSidebarBackdrop');
+        var btn = document.getElementById('ffMenuBtn');
+        if (!sb || !bd) return;
+        function setOpen(on) {
+            sb.classList.toggle('open', on);
+            bd.classList.toggle('open', on);
+            sb.setAttribute('aria-hidden', on ? 'false' : 'true');
+            if (btn) btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+        }
+        if (btn) btn.addEventListener('click', function () { setOpen(true); });
+        var cl = document.getElementById('ffSidebarClose');
+        if (cl) cl.addEventListener('click', function () { setOpen(false); });
+        bd.addEventListener('click', function () { setOpen(false); });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' || e.keyCode === 27) setOpen(false);
+        });
     }
 
     // Bottom tab bar — Home · Scan · Dashboard. Icons are inline so the bar has
@@ -147,7 +183,7 @@
             var active = t.match.indexOf(PAGE) !== -1;
             return '<a class="ff-tabbar__item" href="' + t.href + '"' +
                 (active ? ' aria-current="page"' : '') + '>' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
+                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
                 'stroke-linecap="round" stroke-linejoin="round">' + t.icon + '</svg>' +
                 '<span>' + t.label + '</span></a>';
         }).join('');
@@ -155,31 +191,27 @@
     }
 
     function mount() {
-        var signedIn = isSignedInGuess();
-
         // Swap the page's shipped header for the canonical one (or add it if the
         // page had none). Only the first <header> is treated as site chrome.
         var existing = document.querySelector('header');
-        var header = buildHeader(signedIn);
+        var header = buildHeader();
         if (existing && existing.parentNode) {
             existing.parentNode.replaceChild(header, existing);
         } else {
             document.body.insertBefore(header, document.body.firstChild);
         }
 
+        // Slide-out sidebar (Dashboard / Directory) + its open/close wiring.
+        document.body.appendChild(buildSidebar());
+        wireSidebar();
+
         // Bottom tab bar + the body padding that keeps content clear of it.
         document.body.appendChild(buildTabBar());
         document.body.classList.add('has-tabbar');
 
-        // If auth.js is on the page, let it drive the (rebuilt) sign-in link and
-        // give us the authoritative session, correcting the localStorage guess.
+        // If auth.js is on the page, let it drive the (rebuilt) sign-in link.
         if (typeof window.ffRenderHeader === 'function') {
             try { window.ffRenderHeader(); } catch (e) { /* non-fatal */ }
-        }
-        if (typeof window.getUserSession === 'function') {
-            window.getUserSession()
-                .then(function (s) { applyAuthState(!!(s && s.authenticated)); })
-                .catch(function () { /* keep the guess */ });
         }
     }
 
