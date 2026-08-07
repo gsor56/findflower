@@ -3,28 +3,33 @@ kaggle.json
 *.env
 .env
 *secret*.txt
-proxy/.wrangler/
 
-# --- Local tooling / editor state ---
-.claude/
-.vscode/
-.idea/
+# --- Model weights: far over GitHub's 100MB file cap; live in the HF model repo ---
+# Both halves of the external-data format matter: the .onnx protobuf is small,
+# but its .onnxdata weights sibling is ~327MB.
+*.onnx
+*.onnxdata
+
+# --- Build output ---
+# _site/ is assembled by .github/workflows/pages.yml at deploy time.
+_site/
+node_modules/
+.wrangler/
 
 # --- Python caches ---
 __pycache__/
 *.pyc
 *.pyo
 
-# --- Dead build copy: never deployed, holds stale copy + old CNN weights ---
-dist/
+# --- Local tooling / editor state ---
+.claude/
+.vscode/
+.idea/
 
-# --- Project scratch / logs ---
+# --- Scratch: leading underscore marks throwaway probes and logs ---
 _klog/
-_fix_model.py
 _onnx_probe/
-
-# --- Model weights: far over GitHub's 100MB file cap; live in the HF model repo ---
-*.onnx
+_scratch/
 
 # --- OS junk ---
 Thumbs.db

@@ -4,8 +4,18 @@ Convert the FindFlower ViT model to ONNX for the inference server.
 Run this ONCE in an environment with torch installed (Kaggle recommended — it's
 where the model was trained and HF_TOKEN is already a Kaggle Secret).
 
-Output: findflower_vit_fp32.onnx (~330 MB), uploaded to the HF model repo, which
-is what space/app.py downloads at boot.
+Output: an external-data pair uploaded to the HF model repo, which is what
+space/app.py downloads at boot:
+
+    findflower_vit_fp32_ext.onnx    1.4 MB   graph protobuf
+    findflower_vit_fp32.onnxdata    327 MB   weights blob
+
+Why external data, not one 329 MB .onnx
+---------------------------------------
+onnxruntime parses the ENTIRE protobuf into memory and THEN allocates the weight
+tensors, so a monolithic file peaks near 2x its size (~670 MB) at load. That
+OOMed Render's 512 MB tier before the server answered a single request. Splitting
+the weights out keeps the protobuf tiny and streams the blob: ~395 MB load peak.
 
 Why FP32 and not FP16
 ---------------------
@@ -35,7 +45,9 @@ from transformers import AutoModelForImageClassification
 
 # === Config ===
 HF_REPO_ID = "gsor56/findflower-VIT"   # NOTE: uppercase VIT (the real repo id)
-ONNX_PATH = "findflower_vit_fp32.onnx"
+ONNX_PATH = "findflower_vit_fp32.onnx"           # intermediate, not uploaded
+ONNX_EXT_PATH = "findflower_vit_fp32_ext.onnx"   # graph protobuf  -> uploaded
+ONNX_DATA_NAME = "findflower_vit_fp32.onnxdata"  # weights blob    -> uploaded
 HF_TOKEN = os.environ.get("HF_TOKEN")
 
 if not HF_TOKEN:
@@ -54,19 +66,19 @@ class LogitsOnly(torch.nn.Module):
         return self.model(pixel_values=pixel_values).logits
 
 
-print(f"[1/5] Loading {HF_REPO_ID} (fp32)...")
+print(f"[1/6] Loading {HF_REPO_ID} (fp32)...")
 model = AutoModelForImageClassification.from_pretrained(HF_REPO_ID, token=HF_TOKEN)
 model.eval()
 wrapped = LogitsOnly(model).eval()
 
 # Sanity: capture a reference output BEFORE export so we can verify accuracy.
-print("[2/5] Capturing reference logits (fp32 torch)...")
+print("[2/6] Capturing reference logits (fp32 torch)...")
 torch.manual_seed(0)
 ref_input = torch.randn(1, 3, 224, 224, dtype=torch.float32)
 with torch.no_grad():
     ref_logits = wrapped(ref_input).numpy()
 
-print(f"[3/5] Exporting FP32 ONNX -> {ONNX_PATH}")
+print(f"[3/6] Exporting FP32 ONNX -> {ONNX_PATH}")
 torch.onnx.export(
     wrapped,
     ref_input,
@@ -82,7 +94,7 @@ print(f"     {ONNX_PATH}: {os.path.getsize(ONNX_PATH) / (1024 * 1024):.1f} MB")
 # === Verify the exported graph against the torch reference ===
 # A silent accuracy regression here would ship as confident wrong species names,
 # so this is a hard gate: the script refuses to upload if top-1 moves.
-print("[4/5] Verifying ONNX matches fp32 torch...")
+print("[4/6] Verifying ONNX matches fp32 torch...")
 import onnxruntime as ort  # noqa: E402  (imported late so export failures surface first)
 
 # Same session options the server uses, so the numbers are comparable.
@@ -110,19 +122,52 @@ if ref_top != onnx_top:
 
 print("\n=== Accuracy verified. ===")
 
+# === Split the weights into external data ===
+# This is what makes the model loadable on 512MB at all (see the module docstring).
+# Purely a storage relayout: the graph and every weight value are untouched, so the
+# accuracy verified above still holds.
+print(f"[5/6] Converting to external data -> {ONNX_EXT_PATH} + {ONNX_DATA_NAME}")
+import onnx  # noqa: E402
+
+_model = onnx.load(ONNX_PATH)  # loads the intermediate, weights inline
+onnx.save_model(
+    _model,
+    ONNX_EXT_PATH,
+    save_as_external_data=True,
+    all_tensors_to_one_file=True,
+    location=ONNX_DATA_NAME,  # relative name: onnxruntime resolves it as a sibling
+    convert_attribute=False,
+)
+del _model
+
+for _f in (ONNX_EXT_PATH, ONNX_DATA_NAME):
+    print(f"     {_f}: {os.path.getsize(_f) / (1024 * 1024):.1f} MB")
+
+# Load the split model back and re-check top-1. Cheap, and it catches a broken
+# external-data reference here rather than as an OOM or a 502 in production.
+_sess_ext = ort.InferenceSession(ONNX_EXT_PATH, sess_options=_so, providers=["CPUExecutionProvider"])
+_ext_logits = _sess_ext.run(None, {"pixel_values": ref_input.numpy()})[0]
+if int(np.argmax(_ext_logits)) != ref_top:
+    raise SystemExit("EXTERNAL-DATA CHECK FAILED: top class moved after the split. Do NOT deploy.")
+print(f"     external-data reload argmax: {int(np.argmax(_ext_logits))}  match: True")
+
 # === Upload to the HF model repo so the server can fetch it at boot ===
+# Both halves are required, and the .onnxdata must keep this exact filename so the
+# reference inside the protobuf still resolves once downloaded.
 if os.environ.get("SKIP_UPLOAD"):
-    print(f"SKIP_UPLOAD set — leaving {ONNX_PATH} on disk. Upload it manually.")
+    print(f"SKIP_UPLOAD set — leaving {ONNX_EXT_PATH} + {ONNX_DATA_NAME} on disk.")
 else:
-    print(f"[5/5] Uploading {ONNX_PATH} to {HF_REPO_ID}...")
+    print(f"[6/6] Uploading {ONNX_EXT_PATH} + {ONNX_DATA_NAME} to {HF_REPO_ID}...")
     from huggingface_hub import upload_file
 
-    upload_file(
-        path_or_fileobj=ONNX_PATH,
-        path_in_repo=ONNX_PATH,
-        repo_id=HF_REPO_ID,
-        token=HF_TOKEN,
-    )
-    print("Uploaded. The server will download it on first boot.")
+    for _f in (ONNX_EXT_PATH, ONNX_DATA_NAME):
+        print(f"     uploading {_f}...")
+        upload_file(
+            path_or_fileobj=_f,
+            path_in_repo=_f,
+            repo_id=HF_REPO_ID,
+            token=HF_TOKEN,
+        )
+    print("Uploaded. The server will download both on first boot.")
 
 print("\n=== DONE ===")
