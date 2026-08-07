@@ -3,13 +3,28 @@ FindFlower ViT inference server — ONNX + onnxruntime edition.
 
 Runs the ViT through onnxruntime instead of PyTorch. torch alone is ~800MB of
 RAM before a single image is loaded, which is what blew the 512MB Render free
-tier; onnxruntime + an FP16-weight graph lands around 250-300MB.
+tier. onnxruntime with an FP32 graph peaks at ~410MB, measured — comfortably
+inside the limit.
 
-The weights are FP16 with FP32 inputs/outputs, so top-1/top-5 are identical to
-the original fp32 model (see the accuracy check at the end of
-convert_to_onnx_fp16.py) — no accuracy is traded for the memory saving.
+Why FP32 and not the smaller FP16 file: onnxruntime's CPU execution provider has
+no native FP16 MatMul kernel, so it Casts every weight up to FP32 at inference
+time and holds that copy alongside the FP16 original. Measured on this exact
+model (_onnx_probe/measure_peak.py):
 
-The .onnx file is NOT in git (165MB > GitHub's limit). It lives in the private HF
+    findflower_vit_fp16.onnx  165MB file → 228MB resident, 511MB PEAK
+    findflower_vit_fp32.onnx  329MB file → 389MB resident, 409MB PEAK
+
+The FP16 file is half the size on disk but 100MB *worse* at peak, and 511MB is
+over the ceiling once container overhead is added — that was the exit-137 OOM
+that killed /predict while /health stayed up.
+
+Accuracy is unaffected. The FP32 graph is a lossless fp16→fp32 rebuild of the
+verified FP16 file (every FP16 value is exactly representable in FP32), and
+top-1/top-5 were confirmed identical between the two
+(_onnx_probe/verify_equivalence.py). The FP16 file in turn had its top-1 checked
+against the fp32 PyTorch reference in convert_to_onnx_fp16.py.
+
+The .onnx file is NOT in git (329MB > GitHub's limit). It lives in the private HF
 model repo and is downloaded on first boot using HF_TOKEN.
 """
 import os
@@ -21,8 +36,8 @@ import numpy as np
 import onnxruntime as ort
 
 # === Config ===
-HF_REPO_ID = "gsor56/findflower-VIT"  # FIXED: uppercase VIT
-ONNX_FILENAME = "findflower_vit_fp16.onnx"
+HF_REPO_ID = "gsor56/findflower-VIT"  # NOTE: uppercase VIT (the real repo id)
+ONNX_FILENAME = "findflower_vit_fp32.onnx"
 ONNX_PATH = os.environ.get("ONNX_PATH", ONNX_FILENAME)
 PROXY_SECRET = os.environ.get("PROXY_SECRET")
 HF_TOKEN = os.environ.get("HF_TOKEN")
@@ -42,7 +57,7 @@ if not os.path.exists("class_names.json"):
     raise SystemExit("class_names.json not found. It should be committed alongside app.py.")
 
 # === Fetch the ONNX model (downloaded once from the private HF repo) ===
-# The 165MB weights live in the HF model repo, not git (GitHub's 100MB cap).
+# The 329MB weights live in the HF model repo, not git (GitHub's 100MB cap).
 # huggingface_hub is a light, requests-based client — no torch pulled in.
 if not os.path.exists(ONNX_PATH):
     if not HF_TOKEN:
@@ -65,10 +80,31 @@ print(f"[serve] Loaded {NUM_CLASSES} class names from class_names.json")
 
 # === Load ONNX model ===
 print(f"[serve] Loading ONNX model from {ONNX_PATH}...")
+
+
+def _rss_mb() -> str:
+    """Current RSS in MB, read straight from procfs so we need no psutil.
+
+    Logged around model load and on the first inference: the free tier gives no
+    warning before the OOM killer fires, so having the number in the deploy log
+    is the difference between a diagnosis and a guess.
+    """
+    try:
+        with open("/proc/self/status", "r") as fh:
+            for line in fh:
+                if line.startswith("VmRSS:"):
+                    return f"{int(line.split()[1]) / 1024:.0f}MB"
+    except OSError:
+        pass
+    return "unknown"
+
+
 # Memory-minimizing session options — Render free tier is 512MB, so we trade a
 # little speed for a lower peak. Disabling the CPU mem arena is the big lever:
 # by default onnxruntime pre-allocates and holds a large arena; off, it frees
 # aggressively. mem_pattern off avoids up-front activation pre-allocation.
+# Measured with these exact settings: 389MB resident, 409MB peak. Re-enabling the
+# arena pushes the peak past 512MB, so don't "optimize" these away.
 _so = ort.SessionOptions()
 _so.enable_cpu_mem_arena = False
 _so.enable_mem_pattern = False
@@ -76,7 +112,7 @@ _so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_BASIC
 _so.intra_op_num_threads = 1  # free tier is ~1 vCPU anyway; avoids thread overhead
 
 session = ort.InferenceSession(ONNX_PATH, sess_options=_so, providers=["CPUExecutionProvider"])
-print(f"[serve] Model loaded. Provider: {session.get_providers()}")
+print(f"[serve] Model loaded. Provider: {session.get_providers()}  RSS: {_rss_mb()}")
 # Discover the actual input name from the model (robust to export naming).
 _input_name = session.get_inputs()[0].name
 
@@ -89,7 +125,11 @@ if isinstance(_out_shape[-1], int) and _out_shape[-1] != NUM_CLASSES:
         f"class_names.json has {NUM_CLASSES} entries."
     )
 
-app = FastAPI(title="FindFlower ViT ONNX", version="0.9.4")
+app = FastAPI(title="FindFlower ViT ONNX", version="0.9.5")
+
+# Log RSS on the very first inference only. The first run is where the OOM hit
+# before, and one log line is cheap; logging every request would be noise.
+_first_run_logged = False
 
 
 def preprocess_image(image: Image.Image) -> np.ndarray:
@@ -165,6 +205,11 @@ async def predict(
         logits = outputs[0][0]  # shape: [num_classes]
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference failed: {e}")
+
+    global _first_run_logged
+    if not _first_run_logged:
+        _first_run_logged = True
+        print(f"[serve] First inference OK. RSS: {_rss_mb()} (limit 512MB)")
 
     # Softmax
     exp_logits = np.exp(logits - np.max(logits))
