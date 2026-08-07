@@ -1,10 +1,21 @@
 <!DOCTYPE html>
+<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>FindFlower | Premium Botanical Identification by iBhx</title>
+    <title>FindFlower | Instant Botanical Scanner — Identify Any Flower</title>
+    <meta name="description" content="Identify wild flowers instantly using your device camera. Fast, private plant identification across 116 species, with confidence scores and no sign-up required.">
+    <link rel="canonical" href="https://findflower.me/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="FindFlower">
+    <meta property="og:url" content="https://findflower.me/">
+    <meta property="og:title" content="FindFlower | Instant Botanical Scanner — Identify Any Flower">
+    <meta property="og:description" content="Identify wild flowers instantly using your device camera. Fast, private plant identification across 116 species, with confidence scores and no sign-up required.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="FindFlower | Instant Botanical Scanner — Identify Any Flower">
+    <meta name="twitter:description" content="Identify wild flowers instantly using your device camera. Fast, private plant identification across 116 species, with confidence scores and no sign-up required.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="species.js"></script>
@@ -204,6 +215,17 @@
             .draw-path { stroke-dashoffset: 0; }
             .ambient-glow { opacity: 0.4; }
         }
+    
+        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
+           on a phone. Every control clears the 44px minimum. min-height is
+           ignored on inline non-replaced boxes, so links inside body copy are
+           untouched -- only laid-out controls grow. */
+        @media (pointer: coarse) {
+            a, button, select, summary, label[for],
+            input[type="submit"], input[type="button"] { min-height: 44px; }
+            button, select, summary,
+            input[type="submit"], input[type="button"] { min-width: 44px; }
+        }
     </style>
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
@@ -223,6 +245,7 @@
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
                 <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="dashboard.html" class="hover:text-neutral-900 transition-colors">Dashboard</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
                 <a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a>
                 <a href="#about" class="hover:text-neutral-900 transition-colors">About</a>
@@ -293,7 +316,7 @@
 
             <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
                 <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
-                Botanical identification, engineered by iBhx
+                116 species &middot; on-device camera &middot; no sign-up
             </div>
 
             <h1 class="reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 max-w-4xl leading-[1.05] mb-6">
@@ -434,10 +457,10 @@
                         FindFlower was engineered to bridge the gap between human curiosity and botanical science. By simply providing a photograph, users receive immediate, structurally accurate classifications of flora from their surroundings.
                     </p>
                     <p>
-                        We believe software should enhance our connection to the physical world, not abstract it. That’s why our identification engine is designed to be unobtrusive, highly responsive, and strictly focused on delivering precise information when you need it.
+                        Software should enhance our connection to the physical world, not abstract it. The identification engine is designed to be unobtrusive, highly responsive, and strictly focused on delivering precise information when you need it.
                     </p>
                     <p>
-                        Every detail is considered by the team at iBhx, from the moment you upload an image to the clarity of the result you read. FindFlower is built slowly and deliberately, so that what reaches you always feels calm, considered, and genuinely useful.
+                        This is a solo project &mdash; every detail, from the moment you upload an image to the clarity of the result you read, is considered by one person. FindFlower is built slowly and deliberately, so that what reaches you always feels calm, considered, and genuinely useful.
                     </p>
                 </div>
             </div>
@@ -506,7 +529,7 @@
                 <p class="text-2xl md:text-4xl font-serif font-normal text-neutral-800 leading-snug tracking-tight">
                     “The more clearly we can name the living world, the more closely we tend to care for it.”
                 </p>
-                <p class="mt-8 text-sm font-medium text-neutral-500">The team at iBhx</p>
+                <p class="mt-8 text-sm font-medium text-neutral-500">Bhrigu Choudhury &middot; gsor56</p>
             </div>
         </section>
 
@@ -543,7 +566,7 @@
                         FindFlower
                     </span>
                     <p class="text-sm text-neutral-500 font-light max-w-xs">
-                        A premium botanical identification product by iBhx. Built for clarity and precision.
+                        Flower identification from a single photo, running a Vision Transformer trained on 116 species.
                     </p>
                 </div>
 
@@ -560,9 +583,9 @@
                 </div>
 
                 <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Project</h5>
                     <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="#about" class="hover:text-neutral-900 transition-colors">About</a></li>
                         <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
                         <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
                         <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
@@ -571,7 +594,7 @@
             </div>
 
             <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
-                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <p>&copy; 2026 FindFlower · Engineered by gsor56</p>
                 <div class="flex gap-4 mt-4 md:mt-0">
                     <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
                     <span>Model Version: Beta 0.9.4</span>

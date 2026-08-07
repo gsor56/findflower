@@ -111,6 +111,42 @@ async function ffRenderHeader() {
     }
 }
 
+/* Global session helper.
+
+   Every page that personalises anything needs the same three answers: is
+   someone signed in, what do we call them, and what picture do we show. This
+   resolves all three in one await and NEVER rejects -- Auth0 being unreachable
+   (blocked script, offline in the field) must not stop the scanner or the
+   dashboard from working, so the failure mode is a guest session.
+
+   Shape: { authenticated, name, email, picture, sub, isGuest, user } */
+async function getUserSession() {
+    const guest = {
+        authenticated: false,
+        name: "Guest Botanist",
+        email: null,
+        picture: null,
+        sub: null,
+        isGuest: true,
+        user: null,
+    };
+    try {
+        const user = await ffUser();
+        if (!user) return guest;
+        return {
+            authenticated: true,
+            name: user.given_name || user.nickname || user.name || user.email || "Botanist",
+            email: user.email || null,
+            picture: user.picture || null,
+            sub: user.sub || null,
+            isGuest: false,
+            user,
+        };
+    } catch {
+        return guest;
+    }
+}
+
 /* Derive a stable, shareable preview key from the user's Auth0 id.
    NOTE: real secret keys will be issued by the hosted API backend at launch;
    this deterministic key identifies a developer during the preview program. */

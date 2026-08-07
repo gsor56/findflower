@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Per-device local scan history behind a sign-in. Nothing there belongs in an
+# index, and the page carries <meta name="robots" content="noindex"> as well.
+Disallow: /dashboard.html
+
+Sitemap: https://findflower.me/sitemap.xml
