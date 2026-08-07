@@ -41,10 +41,12 @@
         'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // The canonical desktop nav. Same links, same order, same labels, on every
-    // page. (Marketing destinations — How it works, Pricing, About — remain
-    // reachable from the footer, which every page also shares.)
+    // page. The scanner is intentionally NOT listed here — it already has the
+    // styled "Try Now" call-to-action on the right, and listing it as a text
+    // link too produced two links to try.html side by side. The mobile tab bar
+    // keeps its own "Scan" entry (see TABS below). (Marketing destinations —
+    // How it works, Pricing, About — remain reachable from the shared footer.)
     var LINKS = [
-        { label: 'Scanner',   href: 'try.html' },
         { label: 'Directory', href: 'directory.html' },
         { label: 'Dashboard', href: 'dashboard.html' },
         { label: 'API',       href: 'api.html' }
