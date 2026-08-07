@@ -21,6 +21,10 @@ dist/
 # --- Project scratch / logs ---
 _klog/
 _fix_model.py
+_onnx_probe/
+
+# --- Model weights: far over GitHub's 100MB file cap; live in the HF model repo ---
+*.onnx
 
 # --- OS junk ---
 Thumbs.db
