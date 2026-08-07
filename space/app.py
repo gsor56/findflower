@@ -3,29 +3,38 @@ FindFlower ViT inference server — ONNX + onnxruntime edition.
 
 Runs the ViT through onnxruntime instead of PyTorch. torch alone is ~800MB of
 RAM before a single image is loaded, which is what blew the 512MB Render free
-tier. onnxruntime with an FP32 graph peaks at ~410MB, measured — comfortably
+tier. onnxruntime with the FP32 graph peaks at ~410MB, measured — comfortably
 inside the limit.
 
-Why FP32 and not the smaller FP16 file: onnxruntime's CPU execution provider has
-no native FP16 MatMul kernel, so it Casts every weight up to FP32 at inference
-time and holds that copy alongside the FP16 original. Measured on this exact
-model (_onnx_probe/measure_peak.py):
+Two load-bearing choices, both measured (_onnx_probe/measure_peak.py):
 
-    findflower_vit_fp16.onnx  165MB file → 228MB resident, 511MB PEAK
-    findflower_vit_fp32.onnx  329MB file → 389MB resident, 409MB PEAK
+1. FP32 weights, not FP16. onnxruntime's CPU execution provider has no native
+   FP16 MatMul kernel, so it Casts every weight up to FP32 at inference time and
+   holds that copy alongside the FP16 original:
 
-The FP16 file is half the size on disk but 100MB *worse* at peak, and 511MB is
-over the ceiling once container overhead is added — that was the exit-137 OOM
-that killed /predict while /health stayed up.
+       findflower_vit_fp16.onnx  165MB file → 228MB resident, 511MB PEAK
+       findflower_vit_fp32.onnx  329MB file → 389MB resident, 409MB PEAK
 
-Accuracy is unaffected. The FP32 graph is a lossless fp16→fp32 rebuild of the
-verified FP16 file (every FP16 value is exactly representable in FP32), and
-top-1/top-5 were confirmed identical between the two
+   The FP16 file is half the size on disk but 100MB *worse* at peak, and 511MB
+   is over the ceiling once container overhead is added — that was the exit-137
+   OOM that killed /predict while /health stayed up.
+
+2. External data layout. The 329MB fp32 file is split into a 1.4MB protobuf
+   (`findflower_vit_fp32_ext.onnx`) plus a 327MB weights blob
+   (`findflower_vit_fp32.onnxdata`). With the single-file form, onnxruntime
+   parses the entire 329MB protobuf AND allocates the weight tensors at load,
+   peaking near 2x the file size (~670MB) — the model-load OOM that killed the
+   first fp32 deploy before it ever served a request. External data drops the
+   load peak to ~395MB.
+
+Accuracy is unaffected by both choices. The FP32 graph is a lossless fp16→fp32
+rebuild of the verified FP16 file (every FP16 value is exactly representable in
+FP32), and top-1/top-5 were confirmed identical between the two
 (_onnx_probe/verify_equivalence.py). The FP16 file in turn had its top-1 checked
-against the fp32 PyTorch reference in convert_to_onnx_fp16.py.
+against the fp32 PyTorch reference in convert_to_onnx.py.
 
-The .onnx file is NOT in git (329MB > GitHub's limit). It lives in the private HF
-model repo and is downloaded on first boot using HF_TOKEN.
+The .onnx files are NOT in git (over GitHub's limit). They live in the private
+HF model repo and are downloaded on first boot using HF_TOKEN.
 """
 import os
 import json
@@ -37,8 +46,10 @@ import onnxruntime as ort
 
 # === Config ===
 HF_REPO_ID = "gsor56/findflower-VIT"  # NOTE: uppercase VIT (the real repo id)
-ONNX_FILENAME = "findflower_vit_fp32.onnx"
+ONNX_FILENAME = "findflower_vit_fp32_ext.onnx"
+ONNX_DATA_FILENAME = "findflower_vit_fp32.onnxdata"
 ONNX_PATH = os.environ.get("ONNX_PATH", ONNX_FILENAME)
+ONNX_DATA_DIR = os.environ.get("ONNX_DATA_DIR", ".")  # where the .onnxdata sibling lives
 PROXY_SECRET = os.environ.get("PROXY_SECRET")
 HF_TOKEN = os.environ.get("HF_TOKEN")
 TOP_K = 5
@@ -57,19 +68,22 @@ if not os.path.exists("class_names.json"):
     raise SystemExit("class_names.json not found. It should be committed alongside app.py.")
 
 # === Fetch the ONNX model (downloaded once from the private HF repo) ===
-# The 329MB weights live in the HF model repo, not git (GitHub's 100MB cap).
-# huggingface_hub is a light, requests-based client — no torch pulled in.
+# The 1.4MB graph protobuf plus its 327MB .onnxdata weights sibling live in the
+# HF model repo, not git (GitHub's 100MB cap). huggingface_hub is a light,
+# requests-based client — no torch pulled in.
 if not os.path.exists(ONNX_PATH):
     if not HF_TOKEN:
         raise SystemExit("HF_TOKEN not set — needed to download the ONNX weights from the private repo.")
-    print(f"[serve] Downloading {ONNX_FILENAME} from {HF_REPO_ID}...")
+    print(f"[serve] Downloading {ONNX_FILENAME} (+ {ONNX_DATA_FILENAME}) from {HF_REPO_ID}...")
     from huggingface_hub import hf_hub_download
-    ONNX_PATH = hf_hub_download(
-        repo_id=HF_REPO_ID,
-        filename=ONNX_FILENAME,
-        token=HF_TOKEN,
-    )
-    print(f"[serve] Downloaded to {ONNX_PATH}")
+
+    # local_dir puts both files in the working directory so the .onnxdata
+    # sibling sits next to the .onnx exactly like it does in the HF repo.
+    for fname in (ONNX_FILENAME, ONNX_DATA_FILENAME):
+        hf_hub_download(repo_id=HF_REPO_ID, filename=fname, token=HF_TOKEN, local_dir=".")
+    ONNX_PATH = ONNX_FILENAME
+    ONNX_DATA_DIR = "."
+    print(f"[serve] Downloaded to {ONNX_PATH} (+ {ONNX_DATA_FILENAME})")
 
 # === Load class names ===
 with open("class_names.json", "r", encoding="utf-8") as f:
