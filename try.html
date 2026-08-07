@@ -18,6 +18,9 @@
     <meta name="twitter:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="app.css">
+    <script src="nav.js" defer></script>
+    <script src="directory.js" defer></script>
     <script src="species.js"></script>
     <script src="storage.js"></script>
     <script src="main.js"></script>
@@ -449,7 +452,56 @@
             </p>
         </section>
 
+        <!-- MINI DIRECTORY — a living grid beneath the scanner so the page is
+             never empty below the fold. Same live Wikidata source as the full
+             Directory, capped at ~40 cards (no infinite scroll here). -->
+        <section class="max-w-7xl mx-auto px-6 mt-24">
+            <div class="reveal-up flex items-end justify-between gap-4 mb-8">
+                <div>
+                    <span class="text-sm font-medium text-sage-600 mb-2 block">While you’re here</span>
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900">Explore the flora</h2>
+                    <p class="text-neutral-500 font-light mt-2 max-w-xl">A living sample from the botanical directory — real species, real photographs. Tap any card to read more.</p>
+                </div>
+                <a href="directory.html" class="group hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-sage-700 hover:text-sage-600 transition-colors flex-shrink-0">
+                    Full directory
+                    <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+            <div id="miniGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"></div>
+            <div id="miniError" class="hidden border border-dashed border-neutral-300 rounded-2xl p-8 text-center mt-4">
+                <p class="text-neutral-500 text-sm">Couldn’t reach the live directory just now.</p>
+                <button id="miniRetry" class="text-sm font-medium text-sage-700 hover:text-sage-600 transition-colors mt-3">Try again</button>
+            </div>
+            <div id="miniSpinner" class="hidden flex justify-center py-8">
+                <svg class="animate-spin w-6 h-6 text-sage-500" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-20"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+            </div>
+            <div class="text-center mt-10 sm:hidden">
+                <a href="directory.html" class="inline-flex items-center gap-1.5 text-sm font-medium text-sage-700 hover:text-sage-600 transition-colors">
+                    Browse the full directory
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </section>
+
     </main>
+
+    <script>
+        // Mini directory: fixed ~40-card grid from the shared Wikidata engine.
+        document.addEventListener('DOMContentLoaded', function () {
+            var grid = document.getElementById('miniGrid');
+            if (!grid || !window.ffDirectory) return;
+            window.ffDirectory.mount({
+                grid:     grid,
+                spinner:  document.getElementById('miniSpinner'),
+                errorBox: document.getElementById('miniError'),
+                retryBtn: document.getElementById('miniRetry'),
+                infinite: false,
+                max:      40,
+                cull:     false,
+                link:     'species'
+            }).start();
+        });
+    </script>
 
     <!-- FOOTER (shared) -->
     <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
