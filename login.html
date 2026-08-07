@@ -1,10 +1,21 @@
 <!DOCTYPE html>
+<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Sign in | FindFlower</title>
+    <title>Sign In | Save Your Flower Identification History — FindFlower</title>
+    <meta name="description" content="Sign in to sync your botanist streak, scan history, and field badges. The scanner itself stays free and works without an account.">
+    <link rel="canonical" href="https://findflower.me/login.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="FindFlower">
+    <meta property="og:url" content="https://findflower.me/login.html">
+    <meta property="og:title" content="Sign In | Save Your Flower Identification History — FindFlower">
+    <meta property="og:description" content="Sign in to sync your botanist streak, scan history, and field badges. The scanner itself stays free and works without an account.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Sign In | Save Your Flower Identification History — FindFlower">
+    <meta name="twitter:description" content="Sign in to sync your botanist streak, scan history, and field badges. The scanner itself stays free and works without an account.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
@@ -59,6 +70,17 @@
         .group:hover .cta-arrow { transform: translateX(4px); }
         .spin { animation: spin .9s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+    
+        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
+           on a phone. Every control clears the 44px minimum. min-height is
+           ignored on inline non-replaced boxes, so links inside body copy are
+           untouched -- only laid-out controls grow. */
+        @media (pointer: coarse) {
+            a, button, select, summary, label[for],
+            input[type="submit"], input[type="button"] { min-height: 44px; }
+            button, select, summary,
+            input[type="submit"], input[type="button"] { min-width: 44px; }
+        }
     </style>
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700 min-h-screen flex flex-col">
@@ -78,6 +100,7 @@
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
                 <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="dashboard.html" class="hover:text-neutral-900 transition-colors">Dashboard</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
                 <a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a>
                 <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
@@ -174,7 +197,7 @@
     <!-- FOOTER (shared, compact) -->
     <footer class="border-t border-neutral-200 bg-[#FCFCFC] py-8">
         <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between text-xs text-neutral-400 font-light gap-3">
-            <p>&copy; 2026 iBhx. All rights reserved.</p>
+            <p>&copy; 2026 FindFlower · Engineered by gsor56</p>
             <div class="flex gap-6">
                 <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>

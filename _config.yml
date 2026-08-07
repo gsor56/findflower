@@ -1,0 +1,43 @@
+# GitHub Pages (legacy Jekyll builder) configuration.
+#
+# Purpose: keep non-frontend files out of the published site. Without this, the
+# builder copies the entire repo to the web root, so training scripts and
+# backend sources were fetchable over HTTPS (findflower.me/train_vit_flowers.py
+# returned 200).
+#
+# None of the frontend files use Liquid syntax ({{ }} / {% %}) or YAML front
+# matter, so Jekyll copies every published file through byte-for-byte. Removing
+# .nojekyll is what lets these excludes take effect at all.
+#
+# The .github/workflows/pages.yml workflow does this more explicitly with an
+# allowlist. This config is the equivalent for the legacy builder; if the
+# workflow is enabled later, this file becomes inert but harmless.
+
+exclude:
+  # Backend + inference server
+  - space/
+  - proxy/
+  # Model training and ONNX conversion
+  - training/
+  # Build tooling
+  - tools/
+  # Repo meta — not part of the site
+  - README.md
+  - LICENSE
+  - .gitignore
+  - .github/
+  # Anything that slips through by extension
+  - "*.py"
+  - "*.pyc"
+  - "*.onnx"
+  - "*.onnxdata"
+  - Dockerfile
+
+# robots.txt and sitemap.xml must reach the web root, so no blanket "*.txt" /
+# "*.xml" exclude here. The only other .txt and .toml in the repo live under
+# space/ and proxy/, which are already excluded wholesale above.
+include:
+  - robots.txt
+
+# Don't let Jekyll invent pagination/permalinks for stray files.
+plugins: []

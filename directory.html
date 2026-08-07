@@ -1,47 +1,43 @@
 <!DOCTYPE html>
+<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Directory | FindFlower — Browse botanical species</title>
-    <meta name="description" content="Browse a living directory of common flowering plants. Each entry is enriched live from Wikipedia with a photo, scientific name, and botanical context.">
+    <title>Flower Directory | Browse Flowering Plant Species — FindFlower</title>
+    <meta name="description" content="Browse an open encyclopedia of flowering plant species with photographs and botanical names, sourced live from Wikidata and Wikipedia.">
+    <link rel="canonical" href="https://findflower.me/directory.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="FindFlower">
+    <meta property="og:url" content="https://findflower.me/directory.html">
+    <meta property="og:title" content="Flower Directory | Browse Flowering Plant Species — FindFlower">
+    <meta property="og:description" content="Browse an open encyclopedia of flowering plant species with photographs and botanical names, sourced live from Wikidata and Wikipedia.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Flower Directory | Browse Flowering Plant Species — FindFlower">
+    <meta name="twitter:description" content="Browse an open encyclopedia of flowering plant species with photographs and botanical names, sourced live from Wikidata and Wikipedia.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="species.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://query.wikidata.org">
+    <link rel="preconnect" href="https://commons.wikimedia.org">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        serif: ['Fraunces', 'serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Fraunces', 'serif'] },
                     colors: {
                         neutral: {
-                            50: '#FAFAFA',
-                            100: '#F5F5F5',
-                            200: '#E5E5E5',
-                            300: '#D4D4D4',
-                            400: '#A3A3A3',
-                            500: '#737373',
-                            600: '#525252',
-                            700: '#404040',
-                            800: '#262626',
-                            900: '#171717',
+                            50: '#FAFAFA', 100: '#F5F5F5', 200: '#E5E5E5', 300: '#D4D4D4',
+                            400: '#A3A3A3', 500: '#737373', 600: '#525252', 700: '#404040',
+                            800: '#262626', 900: '#171717',
                         },
                         sage: {
-                            50: '#F2F5F2',
-                            100: '#E4EBE5',
-                            200: '#C9D6CB',
-                            400: '#7C9781',
-                            500: '#5F7A63',
-                            600: '#4C6650',
-                            700: '#3D5341',
+                            50: '#F2F5F2', 100: '#E4EBE5', 200: '#C9D6CB',
+                            400: '#7C9781', 500: '#5F7A63', 600: '#4C6650', 700: '#3D5341',
                         }
                     },
                     boxShadow: {
@@ -55,277 +51,106 @@
     </script>
 
     <style>
-        /* Base styles and typography refinement */
         body {
             background-color: #FCFCFC;
             color: #171717;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
-
-        /* Subtle motion classes triggered by Intersection Observer */
-        .reveal-up {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .reveal-up.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .delay-100 { transition-delay: 100ms; }
-        .delay-200 { transition-delay: 200ms; }
-        .delay-300 { transition-delay: 300ms; }
-        .delay-400 { transition-delay: 400ms; }
-
-        /* Gentle floating for decorative botanical art */
-        @keyframes float-slow {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-14px) rotate(1.5deg); }
-        }
-        .float-slow { animation: float-slow 9s infinite ease-in-out; }
-        .float-slower { animation: float-slow 13s infinite ease-in-out; }
-
-        /* Faint dotted grid background */
-        .grid-dots {
-            background-image: radial-gradient(rgba(23, 23, 23, 0.05) 1px, transparent 1px);
-            background-size: 28px 28px;
-            -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 0%, transparent 75%);
-            mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 0%, transparent 75%);
-        }
-
-        /* Card hover lift */
-        .hover-lift {
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease;
-        }
-        .hover-lift:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 50px -20px rgba(23, 23, 23, 0.14);
-            border-color: rgba(95, 122, 99, 0.4);
-        }
-
-        /* Arrow nudge on button hover */
-        .cta-arrow { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-        .group:hover .cta-arrow { transform: translateX(4px); }
-
-        /* Skeleton shimmer while a card hydrates from Wikipedia */
-        @keyframes shimmer {
-            0% { background-position: -400px 0; }
-            100% { background-position: 400px 0; }
-        }
+        .tap { min-height: 44px; min-width: 44px; }
+        .card-shell { content-visibility: auto; }
+        @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
         .skeleton {
-            background: linear-gradient(90deg, #F1F1F1 25%, #E8E8E8 37%, #F1F1F1 63%);
-            background-size: 800px 100%;
-            animation: shimmer 1.4s infinite linear;
+            background: linear-gradient(90deg, #F5F5F5 0px, #EDEDED 40px, #F5F5F5 80px);
+            background-size: 600px 100%;
+            animation: shimmer 1.4s linear infinite;
         }
-
-        /* Per-card fade + slight rise when its data resolves */
-        .card-in {
-            opacity: 0;
-            transform: translateY(12px);
-            transition: opacity .6s cubic-bezier(0.16, 1, 0.3, 1), transform .6s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .card-in.ready { opacity: 1; transform: translateY(0); }
-
-        /* Ambient sage glow — slow, low-opacity radial blob behind the hero. */
-        @keyframes glow-drift {
-            0%, 100% { opacity: 0.35; transform: translate(-50%, 0) scale(1); }
-            50%      { opacity: 0.6;  transform: translate(-50%, -2%) scale(1.08); }
-        }
-        .ambient-glow {
-            position: absolute;
-            top: -10%;
-            left: 50%;
-            width: min(760px, 90vw);
-            height: min(760px, 90vw);
-            transform: translate(-50%, 0);
-            background: radial-gradient(circle at center,
-                rgba(124, 151, 129, 0.28) 0%,
-                rgba(124, 151, 129, 0.14) 38%,
-                rgba(124, 151, 129, 0) 70%);
-            filter: blur(28px);
-            border-radius: 9999px;
-            pointer-events: none;
-            z-index: -1;
-            animation: glow-drift 11s infinite ease-in-out;
-        }
-
-        /* Soft "breathing" pulse for status badges (Beta tag, live dots). */
-        @keyframes breathe {
-            0%, 100% { opacity: 1; }
-            50%      { opacity: 0.55; }
-        }
-        .breathe { animation: breathe 3.2s infinite ease-in-out; }
-
-        /* Gentle lift for buttons — subtle scale + shadow, quick and smooth. */
-        .lift-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .lift-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
-
+        .fade-in { animation: fade .5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+        @keyframes fade { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation: none !important; transition: none !important; }
-            .reveal-up { opacity: 1; transform: none; }
-            .card-in { opacity: 1; transform: none; }
-            .ambient-glow { opacity: 0.4; }
+            .skeleton { animation: none; }
+            .fade-in { animation: none; }
+        }
+    
+        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
+           on a phone. Every control clears the 44px minimum. min-height is
+           ignored on inline non-replaced boxes, so links inside body copy are
+           untouched -- only laid-out controls grow. */
+        @media (pointer: coarse) {
+            a, button, select, summary, label[for],
+            input[type="submit"], input[type="button"] { min-height: 44px; }
+            button, select, summary,
+            input[type="submit"], input[type="button"] { min-width: 44px; }
         }
     </style>
 </head>
-<body class="selection:bg-sage-100 selection:text-sage-700">
+<body class="font-sans antialiased">
 
-    <!-- HEADER (shared) -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
-        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
-                        <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    FindFlower
-                </a>
-                <span class="breathe text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
-            </div>
-
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-200/60">
+        <div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+            <a href="index.html" class="flex items-center gap-2 font-serif text-lg text-neutral-900">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
+                    <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                FindFlower
+            </a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
-                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
-                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="try.html" class="hover:text-neutral-900 transition-colors">Scanner</a>
+                <a href="directory.html" class="text-neutral-900">Directory</a>
+                <a href="dashboard.html" class="hover:text-neutral-900 transition-colors">Dashboard</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
-                <a href="directory.html" class="text-neutral-900 transition-colors">Directory</a>
-                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
             </nav>
-
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
                 <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="try.html" class="lift-btn group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
-                    Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                </a>
+                <a href="try.html" class="tap text-sm font-medium bg-neutral-900 text-white px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center">Scan</a>
             </div>
         </div>
     </header>
 
-    <main class="relative pt-32 pb-24 overflow-hidden">
+    <main class="pt-28 sm:pt-32 pb-24">
+        <div class="max-w-7xl mx-auto px-5 sm:px-8">
 
-        <!-- Page-level decorative botanical line art — faint, non-interactive. -->
-        <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-            <!-- Slow-breathing sage glow behind the intro -->
-            <div class="ambient-glow"></div>
-            <!-- Fern sprig, left gutter -->
-            <svg class="hidden lg:block absolute left-[-2.5rem] top-[24%] text-sage-200 opacity-70 float-slow" width="120" height="250" viewBox="0 0 120 260" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M60 255C60 205 58 150 60 40"/>
-                <path d="M60 212C48 207 34 198 26 184M60 212C72 207 86 198 94 184"/>
-                <path d="M60 172C46 168 32 158 24 142M60 172C74 168 88 158 96 142"/>
-                <path d="M60 132C48 129 36 120 30 106M60 132C72 129 84 120 90 106"/>
-                <path d="M60 94C50 91 40 84 34 72M60 94C70 91 80 84 86 72"/>
-                <path d="M60 44C60 44 54 30 44 22M60 44C60 44 66 30 76 22"/>
-            </svg>
-
-            <!-- Single leaf with veins, right gutter -->
-            <svg class="hidden lg:block absolute right-[-2rem] top-[44%] text-sage-200 opacity-60 float-slower" width="96" height="160" viewBox="0 0 100 160" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M50 8C18 40 18 110 50 152C82 110 82 40 50 8Z"/>
-                <path d="M50 22L50 140"/>
-                <path d="M50 56C40 63 32 69 26 79M50 56C60 63 68 69 74 79"/>
-                <path d="M50 92C40 99 32 105 26 115M50 92C60 99 68 105 74 115"/>
-            </svg>
-
-            <!-- Flowering stem, left gutter (lower) -->
-            <svg class="hidden xl:block absolute left-[-1.5rem] top-[70%] text-sage-200 opacity-60 float-slow" width="110" height="210" viewBox="0 0 120 220" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M62 215C60 160 58 110 62 62"/>
-                <path d="M62 62c0-14 11-24 27-24-1 14-13 24-27 24Zm0 0c0-14-11-24-27-24 1 14 13 24 27 24Z"/>
-                <path d="M62 150c-14-2-26-12-30-26 16 0 28 10 30 26Z"/>
-                <path d="M62 118c12-2 24-10 28-24-14 0-26 8-28 24Z"/>
-            </svg>
-
-            <!-- Berry branch, right gutter (lower) -->
-            <svg class="hidden lg:block absolute right-[-2.5rem] top-[86%] text-sage-200 opacity-60 float-slower" width="120" height="190" viewBox="0 0 120 200" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 20C52 42 82 92 100 186"/>
-                <path d="M40 52c-12-6-20-18-20-32 14 2 24 12 24 26M58 92c-12-6-20-18-20-32 14 2 24 12 24 26M78 140c-12-6-20-18-20-32 14 2 24 12 24 26"/>
-                <circle cx="52" cy="60" r="3.5"/><circle cx="70" cy="100" r="3.5"/><circle cx="90" cy="150" r="3.5"/>
-            </svg>
-        </div>
-
-        <!-- INTRO -->
-        <section class="max-w-7xl mx-auto px-6 mb-12 md:mb-16">
-            <div class="reveal-up max-w-2xl">
-                <span class="text-sm font-medium text-sage-600 mb-4 block">The directory</span>
-                <h1 class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-5">
-                    Browse the <span class="font-serif italic font-normal text-sage-600">botanical</span> library.
+            <section class="max-w-2xl mb-10">
+                <span class="text-sm font-medium text-sage-600 mb-3 block">Encyclopedia</span>
+                <h1 class="text-3xl sm:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-4">
+                    The flowering plant <span class="font-serif italic font-normal text-sage-600">directory</span>.
                 </h1>
-                <p class="text-lg text-neutral-500 font-light leading-relaxed">
-                    A curated set of common flowering species. Each entry is enriched live from Wikipedia — no local database — with a photograph, its scientific name, and a link to the full profile.
+                <p class="text-base sm:text-lg text-neutral-500 font-light leading-relaxed">
+                    Thousands of species across twenty major families, pulled live from Wikidata. Scroll to keep loading.
                 </p>
+            </section>
+
+            <div class="flex items-center justify-between mb-5 text-sm">
+                <p id="dirCount" class="text-neutral-500">Loading species…</p>
+                <a href="try.html" class="font-medium text-sage-700 hover:text-sage-600 transition-colors">Identify a flower &rarr;</a>
             </div>
 
-            <!-- Search / filter -->
-            <div class="reveal-up delay-100 mt-8 flex items-center gap-3 max-w-md">
-                <div class="relative flex-1">
-                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                    <input id="dirSearch" type="text" placeholder="Filter this directory…" class="w-full text-sm bg-white border border-neutral-200 rounded-full pl-11 pr-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+            <div id="dirGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"></div>
+
+            <div id="dirSentinel" class="h-24 flex items-center justify-center">
+                <div id="dirSpinner" class="hidden flex items-center gap-2.5 text-sm text-neutral-400">
+                    <svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
+                    Loading more species…
                 </div>
-                <span id="dirCount" class="text-xs font-medium text-neutral-400 whitespace-nowrap"></span>
-            </div>
-        </section>
-
-        <!-- GRID -->
-        <section class="max-w-7xl mx-auto px-6">
-            <div id="dirGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-
-            <!-- Empty-filter state -->
-            <div id="dirEmpty" class="hidden text-center py-20">
-                <div class="w-14 h-14 mx-auto rounded-2xl bg-sage-50 flex items-center justify-center mb-5">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-500"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                </div>
-                <p class="text-neutral-500 font-light">No species match that filter.</p>
             </div>
 
-            <!-- Note -->
-            <p class="reveal-up text-center text-xs text-neutral-400 font-light mt-12 max-w-xl mx-auto leading-relaxed">
-                Photos and summaries are loaded on demand from Wikipedia &amp; Wikimedia Commons (CC BY-SA). Cards below the fold load as you scroll, and everything is cached for your session.
-            </p>
-        </section>
+            <div id="dirError" class="hidden border border-neutral-200 rounded-2xl p-8 text-center">
+                <p class="text-neutral-600 text-sm mb-4">Wikidata isn't responding right now.</p>
+                <button id="dirRetry" class="tap px-5 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors">Try again</button>
+            </div>
 
+            <p id="dirEnd" class="hidden text-center text-sm text-neutral-400 py-8">That's every species in this set.</p>
+        </div>
     </main>
 
-    <!-- FOOTER (shared) -->
-    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-                <div class="col-span-2">
-                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        FindFlower
-                    </span>
-                    <p class="text-sm text-neutral-500 font-light max-w-xs">
-                        A premium botanical identification product by iBhx. Built for clarity and precision.
-                    </p>
-                </div>
-                <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
-                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
-                        <li><a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a></li>
-                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
-                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
-                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
-                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
-                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
-                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
-                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
-                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
-                    </ul>
-                </div>
+    <footer class="border-t border-neutral-200 py-8">
+        <div class="max-w-7xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-neutral-500">
+            <div class="flex items-center gap-5">
+                <a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy</a>
+                <a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms</a>
+                <a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a>
             </div>
-            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
-                <p>&copy; 2026 iBhx. All rights reserved.</p>
-                <div class="flex gap-4 mt-4 md:mt-0">
-                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
-                    <span>Model Version: Beta 0.9.4</span>
-                </div>
-            </div>
+            <p class="text-xs text-neutral-400">Species data from Wikidata &amp; Wikipedia, CC0 / CC BY-SA · Engineered by gsor56</p>
         </div>
     </footer>
 
@@ -333,179 +158,276 @@
     (function () {
         'use strict';
 
-        // ---- Seed list: ~40 common flowering species, aligned to Wikipedia
-        //      article titles. `q` is the article/query title; `common` is the
-        //      friendly label shown before data resolves. De-duplicated from the
-        //      model's class list (no rose/roses or sunflower/sunflowers pairs).
-        const SEED = [
-            { common: 'Rose',              q: 'Rose' },
-            { common: 'Tulip',             q: 'Tulip' },
-            { common: 'Sunflower',         q: 'Common sunflower' },
-            { common: 'Common Daisy',      q: 'Bellis perennis' },
-            { common: 'Dandelion',         q: 'Taraxacum' },
-            { common: 'Marigold',          q: 'Tagetes' },
-            { common: 'Petunia',           q: 'Petunia' },
-            { common: 'Snapdragon',        q: 'Antirrhinum' },
-            { common: 'Foxglove',          q: 'Digitalis' },
-            { common: 'Hibiscus',          q: 'Hibiscus' },
-            { common: 'Sacred Lotus',      q: 'Nelumbo nucifera' },
-            { common: 'Water Lily',        q: 'Nymphaea' },
-            { common: 'Corn Poppy',        q: 'Papaver rhoeas' },
-            { common: 'Carnation',         q: 'Dianthus caryophyllus' },
-            { common: 'Sweet Pea',         q: 'Lathyrus odoratus' },
-            { common: 'Bird of Paradise',  q: 'Strelitzia' },
-            { common: 'Tiger Lily',        q: 'Lilium lancifolium' },
-            { common: 'Daffodil',          q: 'Narcissus (plant)' },
-            { common: 'Buttercup',         q: 'Ranunculus' },
-            { common: 'Columbine',         q: 'Aquilegia' },
-            { common: 'Clematis',          q: 'Clematis' },
-            { common: 'Magnolia',          q: 'Magnolia' },
-            { common: 'Camellia',          q: 'Camellia' },
-            { common: 'Azalea',            q: 'Azalea' },
-            { common: 'Cyclamen',          q: 'Cyclamen' },
-            { common: 'Poinsettia',        q: 'Poinsettia' },
-            { common: 'Frangipani',        q: 'Plumeria' },
-            { common: 'Bougainvillea',     q: 'Bougainvillea' },
-            { common: 'Passion Flower',    q: 'Passiflora' },
-            { common: 'Morning Glory',     q: 'Morning glory' },
-            { common: 'Geranium',          q: 'Geranium' },
-            { common: 'Pelargonium',       q: 'Pelargonium' },
-            { common: 'Anthurium',         q: 'Anthurium' },
-            { common: 'Bee Balm',          q: 'Monarda' },
-            { common: 'Blanket Flower',    q: 'Gaillardia' },
-            { common: 'Gazania',           q: 'Gazania' },
-            { common: 'Osteospermum',      q: 'Osteospermum' },
-            { common: 'Black-eyed Susan',  q: 'Rudbeckia hirta' },
-            { common: 'Purple Coneflower', q: 'Echinacea purpurea' },
-            { common: 'Canna Lily',        q: 'Canna (plant)' },
-        ];
+        const ENDPOINT = 'https://query.wikidata.org/sparql';
+        const BATCH = 12;   // cards rendered per scroll trigger
+        const CHUNK = 96;   // rows fetched per network call (8 batches)
 
-        const grid = document.getElementById('dirGrid');
-        const emptyState = document.getElementById('dirEmpty');
-        const search = document.getElementById('dirSearch');
-        const countEl = document.getElementById('dirCount');
+        // Twenty major flowering-plant families.
+        //
+        // Why a family list and not `?item wdt:P31 wd:Q506`: Wikidata models a
+        // species as an instance of "taxon" (Q16521) carrying a rank, so only 35
+        // entities are direct instances of "flowering plant" -- three pages, then
+        // nothing. The obvious fix, a transitive `wdt:P171*` walk up to
+        // Magnoliophyta, does return 83k species but takes 45-57s per page, which
+        // is not a scroll experience. Constraining to a fixed family set keeps the
+        // join small: ~5,000 species at 7-9s per 96-row chunk.
+        const FAMILIES = [
+            'wd:Q25400',  // Asteraceae
+            'wd:Q46299',  // Rosaceae
+            'wd:Q25308',  // Orchidaceae
+            'wd:Q44448',  // Fabaceae
+            'wd:Q53476',  // Lamiaceae
+            'wd:Q145869', // Ranunculaceae
+            'wd:Q53480',  // Liliaceae
+            'wd:Q155941', // Iridaceae
+            'wd:Q156551', // Malvaceae
+            'wd:Q156888', // Brassicaceae
+            'wd:Q173756', // Apocynaceae
+            'wd:Q975872', // Ericaceae
+            'wd:Q155848', // Amaryllidaceae
+            'wd:Q25995',  // Caryophyllaceae
+            'wd:Q134172', // Solanaceae
+            'wd:Q157115', // Primulaceae
+            'wd:Q144723', // Papaveraceae
+            'wd:Q156060', // Violaceae
+            'wd:Q155802', // Campanulaceae
+            'wd:Q156179', // Onagraceae
+        ].join(' ');
 
-        countEl.textContent = SEED.length + ' species';
-
-        // ---- Build a card in skeleton state; return its element + a hydrate() ----
-        function buildCard(seed) {
-            const href = 'species.html?name=' + encodeURIComponent(seed.q);
-            const a = document.createElement('a');
-            a.href = href;
-            a.className = 'card-in group flex flex-col bg-white border border-neutral-200/70 rounded-2xl overflow-hidden hover-lift';
-            a.dataset.name = (seed.common + ' ' + seed.q).toLowerCase();
-            a.innerHTML =
-                '<div class="relative aspect-[4/3] bg-neutral-100 overflow-hidden">' +
-                    '<div class="ph skeleton absolute inset-0"></div>' +
-                    '<img class="thumb w-full h-full object-cover opacity-0 transition-opacity duration-700" alt="' + seed.common + '" loading="lazy" />' +
-                '</div>' +
-                '<div class="p-4 flex-1 flex flex-col">' +
-                    '<h4 class="cname text-base font-medium text-neutral-900 leading-tight">' + seed.common + '</h4>' +
-                    '<p class="sname text-sm font-light text-sage-600 italic mt-1 min-h-[1.25rem]">' +
-                        '<span class="inline-block w-24 h-3 rounded skeleton align-middle"></span>' +
-                    '</p>' +
-                    '<span class="mt-3 inline-flex items-center gap-1 text-xs font-medium text-neutral-400 group-hover:text-sage-600 transition-colors">' +
-                        'View profile' +
-                        '<svg class="cta-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
-                    '</span>' +
-                '</div>';
-            return a;
+        // ORDER BY is not cosmetic: without a total order, LIMIT/OFFSET pages
+        // overlap (measured 37 duplicates across two 96-row pages), so infinite
+        // scroll would repeat cards and silently skip others.
+        function buildQuery(limit, offset) {
+            return 'SELECT ?item ?itemLabel ?img ?article ?famLabel WHERE {\n' +
+                '  VALUES ?fam { ' + FAMILIES + ' }\n' +
+                '  ?genus wdt:P171 ?fam .\n' +
+                '  ?item wdt:P171 ?genus ;\n' +
+                '        wdt:P105 wd:Q7432 ;\n' +
+                '        wdt:P18 ?img .\n' +
+                '  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }\n' +
+                '  SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }\n' +
+                '}\n' +
+                'ORDER BY ?item\n' +
+                'LIMIT ' + limit + ' OFFSET ' + offset;
         }
 
-        // ---- Hydrate a card from the shared module (one summary request) ----
-        async function hydrate(card, seed) {
-            const ph = card.querySelector('.ph');
-            const img = card.querySelector('.thumb');
-            const sname = card.querySelector('.sname');
-            const cname = card.querySelector('.cname');
-            try {
-                const info = await ffFetchSpecies(seed.q);
-                // Scientific name (binomial) or Wikipedia short description; fallback tidy.
-                if (info && info.binomial) {
-                    sname.textContent = info.binomial;
-                } else if (info && info.description) {
-                    sname.innerHTML = '';
-                    sname.textContent = info.description;
-                    sname.classList.remove('italic');
-                } else {
-                    sname.innerHTML = '';
-                    sname.textContent = '—';
-                    sname.classList.remove('italic');
-                    sname.classList.add('text-neutral-400');
-                }
-                // Prefer the canonical Wikipedia title if it's cleaner than our seed label.
-                if (info && info.title && info.found) cname.textContent = info.title;
+        // === state ==========================================================
+        const grid = document.getElementById('dirGrid');
+        const sentinel = document.getElementById('dirSentinel');
+        const spinner = document.getElementById('dirSpinner');
+        const errorBox = document.getElementById('dirError');
+        const endNote = document.getElementById('dirEnd');
+        const countEl = document.getElementById('dirCount');
 
-                if (info && info.image) {
-                    // Only reveal the image once it actually decodes — text stays first.
-                    img.onload = () => { img.classList.remove('opacity-0'); if (ph) ph.remove(); };
-                    img.onerror = () => { if (ph) { ph.classList.remove('skeleton'); ph.classList.add('bg-sage-50'); } };
-                    img.src = info.image;
-                } else if (ph) {
-                    // No image available — retire the shimmer to a calm sage placeholder.
-                    ph.classList.remove('skeleton');
-                    ph.classList.add('bg-sage-50');
-                    ph.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="text-sage-300"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
+        let buffer = [];        // fetched-but-unrendered rows
+        let fetchOffset = 0;    // SPARQL OFFSET reached so far
+        let rendered = 0;
+        let exhausted = false;  // server returned a short chunk
+        let loading = false;
+        let prefetch = null;    // in-flight next chunk
+        const seen = new Set(); // QIDs already rendered
+
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        /** Ask Commons for a scaled thumbnail. The originals are routinely
+         *  5-20MB each, which would make this page unusable on mobile data. */
+        function thumb(url, width) {
+            try {
+                const m = decodeURIComponent(url).match(/Special:FilePath\/(.+)$/);
+                if (!m) return url;
+                return 'https://commons.wikimedia.org/wiki/Special:FilePath/' +
+                    encodeURIComponent(m[1]) + '?width=' + (width || 400);
+            } catch { return url; }
+        }
+
+        function normalize(rows) {
+            const out = [];
+            for (const r of rows) {
+                if (!r.item || !r.img) continue;
+                const qid = r.item.value.split('/').pop();
+                if (seen.has(qid)) continue;
+                const label = r.itemLabel ? r.itemLabel.value : '';
+                // An unresolved label falls back to the QID, which is not a species
+                // name -- drop the row rather than render "Q12345".
+                if (!label || /^Q\d+$/.test(label)) continue;
+                seen.add(qid);
+                out.push({
+                    qid: qid,
+                    name: label,
+                    family: r.famLabel ? r.famLabel.value : '',
+                    img: thumb(r.img.value, 400),
+                    link: r.article ? r.article.value : ('https://www.wikidata.org/wiki/' + qid),
+                });
+            }
+            return out;
+        }
+
+        async function fetchChunk(offset) {
+            const url = ENDPOINT + '?format=json&query=' + encodeURIComponent(buildQuery(CHUNK, offset));
+            const res = await fetch(url, { headers: { Accept: 'application/sparql-results+json' } });
+            if (!res.ok) throw new Error('WDQS ' + res.status);
+            const data = await res.json();
+            return data.results.bindings;
+        }
+
+        /** Warm the next chunk while the user is still scrolling the current one,
+         *  so an 8s query hides behind seven instant renders. */
+        function startPrefetch() {
+            if (prefetch || exhausted) return;
+            const at = fetchOffset;
+            prefetch = fetchChunk(at)
+                .then((rows) => {
+                    fetchOffset = at + CHUNK;
+                    if (rows.length < CHUNK) exhausted = true;
+                    buffer.push.apply(buffer, normalize(rows));
+                    prefetch = null;
+                })
+                .catch(() => { prefetch = null; });
+        }
+
+        async function ensureBuffer() {
+            if (buffer.length >= BATCH || exhausted) return;
+            if (prefetch) { await prefetch; return; }
+            const at = fetchOffset;
+            const rows = await fetchChunk(at);
+            fetchOffset = at + CHUNK;
+            if (rows.length < CHUNK) exhausted = true;
+            buffer.push.apply(buffer, normalize(rows));
+        }
+
+        function cardHTML(s) {
+            return '' +
+            '<article class="card-shell fade-in bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-subtle" data-qid="' + esc(s.qid) + '">' +
+                '<a href="' + esc(s.link) + '" target="_blank" rel="noopener noreferrer" class="block">' +
+                    '<div class="aspect-[4/5] bg-neutral-100 overflow-hidden">' +
+                        '<img src="' + esc(s.img) + '" alt="' + esc(s.name) + '" loading="lazy" decoding="async" ' +
+                             'class="w-full h-full object-cover" ' +
+                             'onerror="var a=this.closest(\'article\'); if(a) a.remove();">' +
+                    '</div>' +
+                    '<div class="p-3 sm:p-4">' +
+                        '<h2 class="font-medium text-sm text-neutral-900 leading-snug italic">' + esc(s.name) + '</h2>' +
+                        (s.family ? '<p class="text-xs text-neutral-400 mt-1">' + esc(s.family) + '</p>' : '') +
+                    '</div>' +
+                '</a>' +
+            '</article>';
+        }
+
+        function renderBatch() {
+            const slice = buffer.splice(0, BATCH);
+            if (!slice.length) return 0;
+            grid.insertAdjacentHTML('beforeend', slice.map(cardHTML).join(''));
+            rendered += slice.length;
+            countEl.textContent = rendered + ' species loaded';
+            return slice.length;
+        }
+
+        function showSkeletons(n) {
+            let cells = '';
+            for (let i = 0; i < n; i++) {
+                cells += '<div class="skel bg-white border border-neutral-200 rounded-2xl overflow-hidden">' +
+                    '<div class="aspect-[4/5] skeleton"></div>' +
+                    '<div class="p-4 space-y-2"><div class="h-3 skeleton rounded"></div>' +
+                    '<div class="h-3 w-2/3 skeleton rounded"></div></div></div>';
+            }
+            grid.insertAdjacentHTML('beforeend', cells);
+        }
+        function clearSkeletons() {
+            const nodes = grid.querySelectorAll('.skel');
+            for (let i = 0; i < nodes.length; i++) nodes[i].remove();
+        }
+
+        // DOM node culling.
+        //
+        // What actually degrades a long scroll is decoded bitmaps, not markup: a
+        // few thousand live <img> nodes hold far more memory than their elements
+        // do. Far-offscreen cards drop their image source (freeing the decode)
+        // while keeping the element's box, so scroll height and position stay
+        // stable and nothing jumps. The src is restored as a card comes back.
+        const CULL_MARGIN = 2500;
+        function cullOffscreen() {
+            const cards = grid.querySelectorAll('article[data-qid]');
+            const top = window.scrollY - CULL_MARGIN;
+            const bottom = window.scrollY + window.innerHeight + CULL_MARGIN;
+            for (let i = 0; i < cards.length; i++) {
+                const card = cards[i];
+                const img = card.querySelector('img');
+                if (!img) continue;
+                const y = card.offsetTop;
+                const far = (y + card.offsetHeight < top) || (y > bottom);
+                if (far && img.getAttribute('src')) {
+                    img.dataset.src = img.getAttribute('src');
+                    img.removeAttribute('src');
+                } else if (!far && !img.getAttribute('src') && img.dataset.src) {
+                    img.setAttribute('src', img.dataset.src);
                 }
-            } catch (e) {
-                // Graceful per-card failure — never a broken-looking card.
-                sname.innerHTML = '';
-                sname.textContent = '—';
-                sname.classList.remove('italic');
-                if (ph) { ph.classList.remove('skeleton'); ph.classList.add('bg-neutral-100'); }
+            }
+        }
+        let cullTimer = null;
+        window.addEventListener('scroll', () => {
+            if (cullTimer) return;
+            cullTimer = setTimeout(() => { cullTimer = null; cullOffscreen(); }, 250);
+        }, { passive: true });
+
+        async function loadMore() {
+            if (loading) return;
+            if (exhausted && !buffer.length) return;
+            loading = true;
+            errorBox.classList.add('hidden');
+
+            const needsNetwork = buffer.length < BATCH && !exhausted;
+            if (needsNetwork) { spinner.classList.remove('hidden'); showSkeletons(BATCH); }
+
+            try {
+                await ensureBuffer();
+                clearSkeletons();
+                renderBatch();
+
+                // Keep a chunk in reserve so most scrolls never wait on WDQS.
+                if (buffer.length < BATCH * 3) startPrefetch();
+
+                if (!buffer.length && exhausted) {
+                    endNote.classList.remove('hidden');
+                    if (io) io.disconnect();
+                }
+            } catch (err) {
+                console.error(err);
+                clearSkeletons();
+                if (!rendered) errorBox.classList.remove('hidden');
+                else countEl.textContent = rendered + ' species loaded · scroll to retry';
             } finally {
-                requestAnimationFrame(() => card.classList.add('ready'));
+                spinner.classList.add('hidden');
+                loading = false;
             }
         }
 
-        // ---- Lazy-load: only hydrate a card when it nears the viewport, so 40
-        //      cards don't fire 40 requests at once. ----
-        const io = ('IntersectionObserver' in window)
-            ? new IntersectionObserver((entries, obs) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const card = entry.target;
-                        obs.unobserve(card);
-                        hydrate(card, SEED[+card.dataset.idx]);
-                    }
-                });
-            }, { rootMargin: '200px 0px' })
-            : null;
+        let io = null;
+        function initObserver() {
+            if (!('IntersectionObserver' in window)) {
+                // No observer support: fall back to a button so the page still works.
+                const btn = document.createElement('button');
+                btn.className = 'tap mx-auto px-6 bg-neutral-900 text-white text-sm font-medium rounded-full';
+                btn.textContent = 'Load more';
+                btn.onclick = loadMore;
+                sentinel.appendChild(btn);
+                return;
+            }
+            io = new IntersectionObserver((entries) => {
+                for (let i = 0; i < entries.length; i++) {
+                    if (entries[i].isIntersecting) { loadMore(); return; }
+                }
+            }, { rootMargin: '600px 0px' });
+            io.observe(sentinel);
+        }
 
-        // ---- Render all cards (skeletons appear instantly) ----
-        const cards = SEED.map((seed, i) => {
-            const card = buildCard(seed);
-            card.dataset.idx = i;
-            grid.appendChild(card);
-            if (io) io.observe(card);
-            else hydrate(card, seed); // fallback: hydrate immediately
-            return card;
+        document.getElementById('dirRetry').addEventListener('click', () => {
+            errorBox.classList.add('hidden');
+            loadMore();
         });
 
-        // ---- Client-side filter over the already-loaded seed labels ----
-        search.addEventListener('input', () => {
-            const term = search.value.trim().toLowerCase();
-            let visible = 0;
-            cards.forEach(card => {
-                const match = !term || card.dataset.name.indexOf(term) !== -1;
-                card.classList.toggle('hidden', !match);
-                if (match) visible++;
-            });
-            countEl.textContent = visible + (visible === 1 ? ' species' : ' species');
-            emptyState.classList.toggle('hidden', visible !== 0);
-        });
+        initObserver();
+        loadMore();
     })();
-    </script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) entry.target.classList.add('active');
-                });
-            }, { root: null, rootMargin: '0px 0px -10% 0px', threshold: 0.15 });
-            document.querySelectorAll('.reveal-up').forEach(el => observer.observe(el));
-        });
     </script>
 </body>
 </html>

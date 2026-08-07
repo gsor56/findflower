@@ -1,10 +1,21 @@
 <!DOCTYPE html>
+<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Feedback | FindFlower</title>
+    <title>Feedback | Help Improve Flower Identification Accuracy — FindFlower</title>
+    <meta name="description" content="Tell us when the scanner gets a flower wrong. Your corrections feed directly into retraining the identification model.">
+    <link rel="canonical" href="https://findflower.me/feedback.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="FindFlower">
+    <meta property="og:url" content="https://findflower.me/feedback.html">
+    <meta property="og:title" content="Feedback | Help Improve Flower Identification Accuracy — FindFlower">
+    <meta property="og:description" content="Tell us when the scanner gets a flower wrong. Your corrections feed directly into retraining the identification model.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Feedback | Help Improve Flower Identification Accuracy — FindFlower">
+    <meta name="twitter:description" content="Tell us when the scanner gets a flower wrong. Your corrections feed directly into retraining the identification model.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,6 +46,17 @@
         .grid-dots { background-image:radial-gradient(rgba(23,23,23,0.05) 1px,transparent 1px); background-size:28px 28px; -webkit-mask-image:radial-gradient(ellipse 60% 50% at 50% 30%,black 0%,transparent 75%); mask-image:radial-gradient(ellipse 60% 50% at 50% 30%,black 0%,transparent 75%); }
         .choice[aria-pressed="true"] { border-color:#5F7A63; background:#F2F5F2; color:#3D5341; }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
+    
+        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
+           on a phone. Every control clears the 44px minimum. min-height is
+           ignored on inline non-replaced boxes, so links inside body copy are
+           untouched -- only laid-out controls grow. */
+        @media (pointer: coarse) {
+            a, button, select, summary, label[for],
+            input[type="submit"], input[type="button"] { min-height: 44px; }
+            button, select, summary,
+            input[type="submit"], input[type="button"] { min-width: 44px; }
+        }
     </style>
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
@@ -52,6 +74,7 @@
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
                 <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="dashboard.html" class="hover:text-neutral-900 transition-colors">Dashboard</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
                 <a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a>
                 <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
@@ -182,7 +205,7 @@
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         FindFlower
                     </span>
-                    <p class="text-sm text-neutral-500 font-light max-w-xs">A premium botanical identification product by iBhx. Built for clarity and precision.</p>
+                    <p class="text-sm text-neutral-500 font-light max-w-xs">Flower identification from a single photo, running a Vision Transformer trained on 116 species.</p>
                 </div>
                 <div>
                     <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
@@ -196,9 +219,9 @@
                     </ul>
                 </div>
                 <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Project</h5>
                     <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a></li>
                         <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
                         <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
                         <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
@@ -206,7 +229,7 @@
                 </div>
             </div>
             <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
-                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <p>&copy; 2026 FindFlower · Engineered by gsor56</p>
                 <div class="flex gap-4 mt-4 md:mt-0">
                     <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
                     <span>Model Version: Beta 0.9.4</span>

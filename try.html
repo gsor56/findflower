@@ -1,13 +1,26 @@
 <!DOCTYPE html>
+<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Try FindFlower | Identify a flower</title>
+    <title>Flower Scanner | Identify Any Flower With Your Camera — FindFlower</title>
+    <meta name="description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
+    <link rel="canonical" href="https://findflower.me/try.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="FindFlower">
+    <meta property="og:url" content="https://findflower.me/try.html">
+    <meta property="og:title" content="Flower Scanner | Identify Any Flower With Your Camera — FindFlower">
+    <meta property="og:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Flower Scanner | Identify Any Flower With Your Camera — FindFlower">
+    <meta name="twitter:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="species.js"></script>
+    <script src="storage.js"></script>
+    <script src="main.js"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -91,6 +104,17 @@
             *, *::before, *::after { animation: none !important; transition: none !important; }
             .reveal-up { opacity: 1; transform: none; }
         }
+    
+        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
+           on a phone. Every control clears the 44px minimum. min-height is
+           ignored on inline non-replaced boxes, so links inside body copy are
+           untouched -- only laid-out controls grow. */
+        @media (pointer: coarse) {
+            a, button, select, summary, label[for],
+            input[type="submit"], input[type="button"] { min-height: 44px; }
+            button, select, summary,
+            input[type="submit"], input[type="button"] { min-width: 44px; }
+        }
     </style>
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
@@ -111,6 +135,7 @@
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
                 <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="dashboard.html" class="hover:text-neutral-900 transition-colors">Dashboard</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
                 <a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a>
                 <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
@@ -182,10 +207,30 @@
                                     <svg class="mx-auto mb-4 text-neutral-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                                     <p class="text-sm text-neutral-400 font-light">Camera is off</p>
                                 </div>
+
+                                <!-- Targeting reticle. Purely a framing aid: the full frame is
+                                     still sent for inference, but a flower that fills this box
+                                     is large enough that the model isn't classifying background. -->
+                                <div id="camReticle" class="hidden absolute inset-0 pointer-events-none">
+                                    <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[62%] aspect-square">
+                                        <span class="absolute -top-px -left-px w-7 h-7 border-t-2 border-l-2 border-white/90 rounded-tl-lg"></span>
+                                        <span class="absolute -top-px -right-px w-7 h-7 border-t-2 border-r-2 border-white/90 rounded-tr-lg"></span>
+                                        <span class="absolute -bottom-px -left-px w-7 h-7 border-b-2 border-l-2 border-white/90 rounded-bl-lg"></span>
+                                        <span class="absolute -bottom-px -right-px w-7 h-7 border-b-2 border-r-2 border-white/90 rounded-br-lg"></span>
+                                    </div>
+                                    <p class="absolute bottom-3 left-0 right-0 text-center text-xs font-medium text-white/90 drop-shadow px-4">
+                                        Fill the box with the flower
+                                    </p>
+                                </div>
+
+                                <!-- Focus warning from the pre-inference blur check. -->
+                                <div id="camBlurWarn" class="hidden absolute inset-x-3 top-3 bg-amber-500/95 text-white text-xs font-medium rounded-xl px-3 py-2 text-center">
+                                    Image is out of focus. Please tap to focus.
+                                </div>
                             </div>
                             <div class="flex gap-3 mt-4">
-                                <button id="camStart" class="flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:bg-neutral-50 transition-colors">Enable camera</button>
-                                <button id="camCapture" class="flex-1 text-sm font-medium bg-neutral-900 text-white px-4 py-2.5 rounded-full hover:bg-neutral-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>Capture</button>
+                                <button id="camStart" class="flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:bg-neutral-50 transition-colors">Start camera</button>
+                                <button id="camCapture" class="flex-1 min-h-[44px] text-sm font-medium bg-neutral-900 text-white px-4 py-2.5 rounded-full hover:bg-neutral-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>Capture</button>
                             </div>
                         </div>
 
@@ -250,6 +295,38 @@
                         <svg class="spin text-sage-500 mb-5" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
                         <p id="resLoadingMain" class="text-neutral-500 font-light">Analyzing image…</p>
                         <p id="resLoadingSub" class="text-neutral-400 font-light text-sm mt-2"></p>
+                    </div>
+
+                    <!-- Tier 2 (40-79%): the model has candidates but no winner. Naming one
+                         species here would be a confident wrong answer, so the human picks. -->
+                    <div id="resUncertain" class="hidden flex-1 flex-col">
+                        <div class="flex items-start gap-3 mb-5">
+                            <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-amber-600"><circle cx="12" cy="12" r="10"/><path d="M12 16v.01M12 8v5" stroke-linecap="round"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium tracking-tight text-neutral-900 leading-snug">Uncertain match — does it look like one of these?</h3>
+                                <p class="text-sm text-neutral-500 font-light mt-1">Pick the closest match to save it, or retake the photo from a different angle.</p>
+                            </div>
+                        </div>
+                        <div id="resUncertainList" class="space-y-2.5"></div>
+                        <p class="text-xs text-neutral-400 font-light mt-5 leading-relaxed">
+                            Confidence was below 80%, usually caused by partial framing, mixed foliage, or unusual lighting.
+                        </p>
+                    </div>
+
+                    <!-- Tier 3 (<40% or not a flower): refuse to name anything at all. -->
+                    <div id="resLowConf" class="hidden flex-1 flex-col items-center justify-center text-center px-6">
+                        <div class="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-5">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-neutral-400"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/></svg>
+                        </div>
+                        <h3 class="text-lg font-medium tracking-tight text-neutral-900 mb-2">No clear match</h3>
+                        <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Unable to clearly identify a flower. Please move closer and ensure good lighting.</p>
+                        <ul class="text-xs text-neutral-400 font-light mt-5 space-y-1.5 text-left">
+                            <li>· Fill more of the frame with a single bloom</li>
+                            <li>· Avoid strong backlight and deep shade</li>
+                            <li>· Hold steady until the image is sharp</li>
+                        </ul>
                     </div>
 
                     <!-- Result content -->
@@ -384,7 +461,7 @@
                         FindFlower
                     </span>
                     <p class="text-sm text-neutral-500 font-light max-w-xs">
-                        A premium botanical identification product by iBhx. Built for clarity and precision.
+                        Flower identification from a single photo, running a Vision Transformer trained on 116 species.
                     </p>
                 </div>
                 <div>
@@ -399,9 +476,9 @@
                     </ul>
                 </div>
                 <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">iBhx</h5>
+                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Project</h5>
                     <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About Us</a></li>
+                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a></li>
                         <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
                         <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
                         <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
@@ -409,7 +486,7 @@
                 </div>
             </div>
             <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
-                <p>&copy; 2026 iBhx. All rights reserved.</p>
+                <p>&copy; 2026 FindFlower · Engineered by gsor56</p>
                 <div class="flex gap-4 mt-4 md:mt-0">
                     <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
                     <span>Model Version: Beta 0.9.4</span>
@@ -458,11 +535,15 @@
         segButtons.forEach((b, i) => b.addEventListener('click', () => selectMode(b.dataset.mode, i)));
 
         // ---- Model status ----
-        // Nothing to download in-browser anymore; identification happens on the
-        // server. Show "ready" so the existing status dot stays meaningful.
+        // Live probe of the proxy, not a hardcoded green dot. See main.js for why
+        // the probe targets the Worker rather than the model server's /health.
         function initStatus() {
-            modelDot.className = 'w-1.5 h-1.5 rounded-full bg-sage-500';
-            modelStatusText.textContent = 'Ready to identify';
+            ffStatus.bind({
+                dot: modelDot,
+                label: modelStatusText,
+                onChange: () => refreshIdentifyState(),
+            });
+            ffStatus.probe(API_URL);
             refreshIdentifyState();
         }
         initStatus();
@@ -493,37 +574,68 @@
         }
 
         // ---- Camera ----
-        let stream = null;
         const camVideo = $('camVideo'), camPlaceholder = $('camPlaceholder');
         const camStart = $('camStart'), camCapture = $('camCapture');
+        const camReticle = $('camReticle'), camBlurWarn = $('camBlurWarn');
+
+        // Explicit Start/Stop. Leaving the stream open holds the capture LED on and
+        // keeps the sensor powered, which costs real battery in the field, so Stop
+        // releases every track rather than just hiding the <video>.
         camStart.addEventListener('click', async () => {
+            if (ffCamera.active) { stopCamera(); return; }
+            camStart.disabled = true;
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                camVideo.srcObject = stream;
-                await camVideo.play();
+                await ffCamera.start(camVideo);
                 camVideo.classList.remove('hidden');
                 camPlaceholder.classList.add('hidden');
+                camReticle.classList.remove('hidden');
                 camCapture.disabled = false;
-                camStart.textContent = 'Camera on';
+                camStart.textContent = 'Stop camera';
             } catch (err) {
                 console.error(err);
                 camPlaceholder.querySelector('p').textContent = 'Camera unavailable or permission denied';
+            } finally {
+                camStart.disabled = false;
             }
         });
         function stopCamera() {
-            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+            ffCamera.stop(camVideo);
             camVideo.classList.add('hidden');
             camPlaceholder.classList.remove('hidden');
+            camReticle.classList.add('hidden');
+            camBlurWarn.classList.add('hidden');
             camCapture.disabled = true;
-            camStart.textContent = 'Enable camera';
+            camStart.textContent = 'Start camera';
         }
-        camCapture.addEventListener('click', () => {
-            if (!stream) return;
-            const canvas = document.createElement('canvas');
-            canvas.width = camVideo.videoWidth;
-            canvas.height = camVideo.videoHeight;
-            canvas.getContext('2d').drawImage(camVideo, 0, 0);
-            setImage(canvas, canvas.toDataURL('image/jpeg', 0.92));
+        // Release the camera if the user leaves or backgrounds the tab.
+        window.addEventListener('pagehide', () => ffCamera.stop(camVideo));
+
+        camCapture.addEventListener('click', async () => {
+            if (!ffCamera.active) return;
+
+            // Blur shield, checked on the live frame before anything is uploaded.
+            // A soft frame produces a confident wrong species just as readily as a
+            // sharp one, so it is cheaper to stop here than to spend the inference.
+            if (ffBlur.isBlurry(camVideo)) {
+                camBlurWarn.textContent = ffBlur.MESSAGE;
+                camBlurWarn.classList.remove('hidden');
+                setTimeout(() => camBlurWarn.classList.add('hidden'), 3200);
+                return;
+            }
+            camBlurWarn.classList.add('hidden');
+
+            try {
+                const blob = await ffCamera.capture(camVideo);
+                currentBlob = blob;
+                const url = URL.createObjectURL(blob);
+                previewImg.src = url;
+                previewImg.classList.remove('hidden');
+                previewEmpty.classList.add('hidden');
+                previewHint.textContent = 'Sharp enough. Ready to identify.';
+                refreshIdentifyState();
+            } catch (err) {
+                console.error(err);
+            }
         });
 
         // ---- Upload ----
@@ -563,6 +675,7 @@
 
         // ---- Result states ----
         const resEmpty = $('resEmpty'), resLoading = $('resLoading'), resContent = $('resContent'), resError = $('resError');
+        const resUncertain = $('resUncertain'), resLowConf = $('resLowConf');
         function showState(state) {
             resEmpty.classList.toggle('hidden', state !== 'empty');
             resLoading.classList.toggle('hidden', state !== 'loading');
@@ -570,6 +683,10 @@
             resError.classList.toggle('flex', state === 'error');
             resContent.classList.toggle('hidden', state !== 'content');
             resContent.classList.toggle('flex', state === 'content');
+            resUncertain.classList.toggle('hidden', state !== 'uncertain');
+            resUncertain.classList.toggle('flex', state === 'uncertain');
+            resLowConf.classList.toggle('hidden', state !== 'lowconf');
+            resLowConf.classList.toggle('flex', state === 'lowconf');
         }
         function showError(msg) { $('resErrorText').textContent = msg; showState('error'); }
 
@@ -601,6 +718,18 @@
 
         identifyBtn.addEventListener('click', async () => {
             if (!currentBlob) return;
+
+            // Blur shield for the upload/link paths as well. Camera captures were
+            // already checked on the live frame; this catches a soft photo from the
+            // gallery before it costs an inference and a wrong answer.
+            if (previewImg.src && !previewImg.classList.contains('hidden') && previewImg.complete) {
+                if (ffBlur.isBlurry(previewImg)) {
+                    previewHint.textContent = ffBlur.MESSAGE;
+                    showError(ffBlur.MESSAGE + ' Try a sharper photo, or capture again holding the phone steady.');
+                    return;
+                }
+            }
+
             showState('loading');
             startLoadingMessages();
             previewScan.classList.remove('hidden');
@@ -625,12 +754,17 @@
                 // Normalize to the shape renderResult already expects: {name, p}.
                 const ranked = data.top_k.map(x => ({ name: x.name, p: x.confidence }));
                 lastPrediction = ranked[0];
-                renderResult(ranked);
+                ffStatus.markReady();
+                await handlePrediction(ranked);
             } catch (err) {
                 console.error(err);
                 if (err.name === 'AbortError') {
+                    ffStatus.markColdStart();
                     showError('The identifier is taking too long to respond (it may be starting up). Please try again in a moment.');
                 } else {
+                    // A failed POST is the only hard evidence we get that the path
+                    // to the model is unhealthy, so let it drive the indicator.
+                    ffStatus.markColdStart();
                     showError('This image could not be analyzed right now. Please try again, or use a different photo.');
                 }
             } finally {
@@ -645,6 +779,83 @@
 
         // ---- Clean a class label into a Wikipedia-friendly query ----
         function cleanName(name) { return name.replace(/\?+$/, '').trim(); }
+
+        // ---- 3-tier confidence safeguard ----
+        //
+        // The model always returns its best guess, even for a photo of a chair.
+        // Rendering that guess verbatim is how a plant-ID app tells someone a
+        // toxic species is edible, so the top score decides how much we are
+        // willing to claim:
+        //
+        //   >= 80%  state the species, save it, count the streak
+        //   >= 40%  show candidates, claim nothing, save only on user choice
+        //   <  40%  name nothing at all
+        async function handlePrediction(ranked) {
+            const tier = ffConfidence.tier(ranked[0].p);
+
+            if (tier === 'low') {
+                showState('lowconf');
+                return;
+            }
+            if (tier === 'uncertain') {
+                renderUncertain(ranked);
+                return;
+            }
+
+            renderResult(ranked);
+            await saveScan(ranked[0]);
+        }
+
+        /** Persist a confirmed identification and roll the streak forward. */
+        async function saveScan(pick) {
+            if (!window.ffStore) return;
+            try {
+                const geolocation = await ffGeolocate(4000);
+                const { newBadges } = await ffStore.addScan({
+                    species: cleanName(pick.name),
+                    confidence: pick.p,
+                    image: currentBlob,
+                    geolocation,
+                });
+                if (newBadges && newBadges.length) announceBadges(newBadges);
+            } catch (err) {
+                // Storage being unavailable (private mode, quota) must never break
+                // the identification the user actually came for.
+                console.warn('Could not save scan locally:', err);
+            }
+        }
+
+        function announceBadges(ids) {
+            const names = ffStore.BADGES.filter(b => ids.includes(b.id)).map(b => b.name);
+            if (!names.length) return;
+            const el = document.createElement('div');
+            el.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-neutral-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lift';
+            el.textContent = '🏅 Badge unlocked: ' + names.join(', ');
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 4500);
+        }
+
+        /** Tier 2: let the human disambiguate between plausible candidates. */
+        function renderUncertain(ranked) {
+            const list = $('resUncertainList');
+            list.innerHTML = '';
+            ranked.slice(0, 4).forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full min-h-[44px] flex items-center justify-between gap-3 text-left border border-neutral-200 rounded-2xl px-4 py-3 hover:border-sage-400 hover:bg-sage-50 transition-colors';
+                btn.innerHTML =
+                    `<span class="text-sm font-medium text-neutral-800 capitalize">${cleanName(c.name)}</span>` +
+                    `<span class="text-xs font-medium text-neutral-400 shrink-0">${(c.p * 100).toFixed(1)}%</span>`;
+                btn.addEventListener('click', async () => {
+                    // The user's pick is the identification, so render and save it
+                    // at the model's own score -- not inflated to look certain.
+                    lastPrediction = c;
+                    renderResult([c, ...ranked.filter(x => x !== c)]);
+                    await saveScan(c);
+                });
+                list.appendChild(btn);
+            });
+            showState('uncertain');
+        }
 
         function renderResult(ranked) {
             const top = ranked[0];
