@@ -40,20 +40,45 @@
         '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" ' +
         'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-    // The canonical desktop nav. Same links, same order, same labels, on every
-    // page. The scanner is intentionally NOT listed here — it already has the
-    // styled "Try Now" call-to-action on the right, and listing it as a text
-    // link too produced two links to try.html side by side. The mobile tab bar
-    // keeps its own "Scan" entry (see TABS below). (Marketing destinations —
-    // How it works, Pricing, About — remain reachable from the shared footer.)
-    var LINKS = [
+    // The desktop text nav is auth-aware:
+    //   • Signed OUT — How it works · Directory · Dashboard · API, plus the
+    //     styled "Try Now" button on the right (that button IS the scanner
+    //     entry point, so "Scanner" is not also listed as text — that would be
+    //     two links to try.html side by side).
+    //   • Signed IN  — Scanner · Directory · Dashboard · API · How it works,
+    //     and the "Try Now" button is removed (a signed-in user is past the
+    //     call-to-action; they want the scanner itself).
+    // The mobile bottom tab bar always keeps its own "Scan" entry (see TABS).
+    var BASE_LINKS = [
         { label: 'Directory', href: 'directory.html' },
         { label: 'Dashboard', href: 'dashboard.html' },
         { label: 'API',       href: 'api.html' }
     ];
+    var HOW  = { label: 'How it works', href: 'how.html' };
+    var SCAN = { label: 'Scanner',      href: 'try.html' };
 
-    function navLinksHTML() {
-        return LINKS.map(function (l) {
+    function linksFor(signedIn) {
+        return signedIn
+            ? [SCAN].concat(BASE_LINKS, [HOW])   // Scanner · … · How it works
+            : [HOW].concat(BASE_LINKS);          // How it works · …
+    }
+
+    // Best-effort, synchronous read of auth state so the header is built right
+    // the first time (no flash). auth0-spa-js caches its session in
+    // localStorage under an "@@auth0spajs@@" key prefix; its presence means a
+    // session is cached. On auth-enabled pages mount() re-verifies this against
+    // the real getUserSession() and corrects the header if needed.
+    function isSignedInGuess() {
+        try {
+            for (var i = 0; i < localStorage.length; i++) {
+                if (localStorage.key(i).indexOf('@@auth0spajs@@') === 0) return true;
+            }
+        } catch (e) { /* storage blocked -> treat as signed out */ }
+        return false;
+    }
+
+    function navLinksHTML(signedIn) {
+        return linksFor(signedIn).map(function (l) {
             var active = (l.href === PAGE);
             var cls = active
                 ? 'text-neutral-900'
@@ -63,7 +88,7 @@
         }).join('');
     }
 
-    function buildHeader() {
+    function buildHeader(signedIn) {
         var header = document.createElement('header');
         header.className =
             'fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md ' +
@@ -73,18 +98,28 @@
                 '<a href="index.html" class="flex items-center gap-2 font-serif text-lg text-neutral-900">' +
                     LOGO + 'FindFlower' +
                 '</a>' +
-                '<nav class="hidden md:flex items-center gap-8 text-sm font-medium">' +
-                    navLinksHTML() +
+                '<nav id="ffNavLinks" class="hidden md:flex items-center gap-8 text-sm font-medium">' +
+                    navLinksHTML(signedIn) +
                 '</nav>' +
                 '<div class="flex items-center gap-3">' +
                     '<a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
-                    '<a href="try.html" class="text-sm font-medium bg-neutral-900 text-white px-5 ' +
+                    '<a id="ffTryNow" href="try.html" class="' + (signedIn ? 'hidden ' : '') +
+                        'text-sm font-medium bg-neutral-900 text-white px-5 ' +
                         'rounded-full hover:bg-neutral-800 transition-colors flex items-center" ' +
                         'style="min-height:40px">Try Now</a>' +
                 '</div>' +
             '</div>';
         return header;
+    }
+
+    // Re-point the desktop nav + Try Now button at a known auth state. Safe to
+    // call repeatedly (used to correct the initial guess once auth resolves).
+    function applyAuthState(signedIn) {
+        var navEl = document.getElementById('ffNavLinks');
+        if (navEl) navEl.innerHTML = navLinksHTML(signedIn);
+        var cta = document.getElementById('ffTryNow');
+        if (cta) cta.classList.toggle('hidden', !!signedIn);
     }
 
     // Bottom tab bar — Home · Scan · Dashboard. Icons are inline so the bar has
@@ -120,10 +155,12 @@
     }
 
     function mount() {
+        var signedIn = isSignedInGuess();
+
         // Swap the page's shipped header for the canonical one (or add it if the
         // page had none). Only the first <header> is treated as site chrome.
         var existing = document.querySelector('header');
-        var header = buildHeader();
+        var header = buildHeader(signedIn);
         if (existing && existing.parentNode) {
             existing.parentNode.replaceChild(header, existing);
         } else {
@@ -134,9 +171,15 @@
         document.body.appendChild(buildTabBar());
         document.body.classList.add('has-tabbar');
 
-        // If auth.js is on the page, let it drive the (rebuilt) sign-in link.
+        // If auth.js is on the page, let it drive the (rebuilt) sign-in link and
+        // give us the authoritative session, correcting the localStorage guess.
         if (typeof window.ffRenderHeader === 'function') {
             try { window.ffRenderHeader(); } catch (e) { /* non-fatal */ }
+        }
+        if (typeof window.getUserSession === 'function') {
+            window.getUserSession()
+                .then(function (s) { applyAuthState(!!(s && s.authenticated)); })
+                .catch(function () { /* keep the guess */ });
         }
     }
 
