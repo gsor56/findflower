@@ -111,8 +111,16 @@ async function ffRenderHeader() {
     const user = await ffUser();
     if (user) {
         link.textContent = user.given_name || user.nickname || user.name || "Account";
-        link.href = "#";
-        link.onclick = (e) => { e.preventDefault(); ffLogout(); };
+        // Signed in, the name is a route to your own stuff -- not a logout trap.
+        // This used to be href="#" with a logout handler, so clicking your own
+        // name signed you out; and the plain markup fallback still points at
+        // login.html, which bounces an already-authenticated user straight back.
+        // Sign out lives where it belongs: the dashboard's own Sign out button
+        // and login.html's logout control.
+        link.href = "dashboard.html";
+        // Must clear: ffRenderHeader can run again after nav.js rebuilds the
+        // header, and a surviving handler would swallow the navigation.
+        link.onclick = null;
     } else {
         link.textContent = "Sign In";
         link.href = "login.html";
