@@ -37,14 +37,23 @@ let _auth0Client = null;
 async function ffGetClient() {
     if (!AUTH0_READY) return null;
     if (_auth0Client) return _auth0Client;
-    // auth0-spa-js is loaded from the CDN before this script.
-    _auth0Client = await auth0.createAuth0Client({
-        domain: AUTH0_CONFIG.domain,
-        clientId: AUTH0_CONFIG.clientId,
-        authorizationParams: { redirect_uri: AUTH0_CALLBACK },
-        cacheLocation: "localstorage",   // keep the session across page loads
-        useRefreshTokens: true,
-    });
+    // auth0-spa-js is loaded from the CDN before this script. If that CDN is
+    // blocked (corporate proxy, ad blocker, offline in the field) the `auth0`
+    // global is simply absent -- so treat it as "no session available" rather
+    // than letting a ReferenceError escape into a caller's request path.
+    if (typeof auth0 === "undefined" || !auth0 || !auth0.createAuth0Client) return null;
+    try {
+        _auth0Client = await auth0.createAuth0Client({
+            domain: AUTH0_CONFIG.domain,
+            clientId: AUTH0_CONFIG.clientId,
+            authorizationParams: { redirect_uri: AUTH0_CALLBACK },
+            cacheLocation: "localstorage",   // keep the session across page loads
+            useRefreshTokens: true,
+        });
+    } catch (e) {
+        console.warn("Auth0 unavailable; continuing as guest.", e);
+        return null;
+    }
     return _auth0Client;
 }
 
@@ -145,6 +154,37 @@ async function getUserSession() {
     } catch {
         return guest;
     }
+}
+
+/* Access token for authenticated API calls.
+
+   Returns the raw JWT string, or null when nobody is signed in / Auth0 is
+   unreachable. Never rejects, so callers decide what an absent token means
+   rather than having a network hiccup throw inside their request path.
+
+   Pass an `audience` (your API identifier from the Auth0 dashboard) to get a
+   token the backend can actually validate — without one Auth0 issues an opaque
+   token that only its own /userinfo endpoint understands, which a resource
+   server cannot verify. */
+async function ffGetToken(audience) {
+    const client = await ffGetClient();
+    if (!client) return null;
+    try {
+        if (!(await client.isAuthenticated())) return null;
+        const opts = audience ? { authorizationParams: { audience } } : undefined;
+        return await client.getTokenSilently(opts);
+    } catch {
+        // Expired refresh token, blocked third-party cookies, offline in the
+        // field: all mean "no usable token right now".
+        return null;
+    }
+}
+
+/* Authorization header for an authenticated fetch, or {} when signed out.
+   Spread into a fetch's headers: { ...(await ffAuthHeader()), ... } */
+async function ffAuthHeader(audience) {
+    const token = await ffGetToken(audience);
+    return token ? { Authorization: "Bearer " + token } : {};
 }
 
 /* Derive a stable, shareable preview key from the user's Auth0 id.

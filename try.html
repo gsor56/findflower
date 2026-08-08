@@ -18,12 +18,17 @@
     <meta name="twitter:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=3">
+    <link rel="stylesheet" href="app.css?v=4">
     <script src="nav.js" defer></script>
     <script src="directory.js" defer></script>
-    <script src="species.js"></script>
+    <script src="species.js?v=2"></script>
     <script src="storage.js"></script>
-    <script src="main.js"></script>
+    <script src="blur.js?v=1"></script>
+    <!-- Auth0 for the inference identity gate. Both scripts degrade to a guest
+         session if the CDN is blocked, so the scanner still runs offline. -->
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+    <script src="auth.js?v=2"></script>
+    <script src="main.js?v=2"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -308,12 +313,30 @@
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-amber-600"><circle cx="12" cy="12" r="10"/><path d="M12 16v.01M12 8v5" stroke-linecap="round"/></svg>
                             </div>
                             <div>
+                                <div class="flex items-center gap-2 mb-1.5">
+                                    <span class="ff-badge ff-badge--uncertain">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v.01M12 8v5" stroke-linecap="round"/></svg>
+                                        Uncertain Match
+                                    </span>
+                                </div>
                                 <h3 class="text-lg font-medium tracking-tight text-neutral-900 leading-snug">Uncertain match — does it look like one of these?</h3>
                                 <p class="text-sm text-neutral-500 font-light mt-1">Pick the closest match to save it, or retake the photo from a different angle.</p>
                             </div>
                         </div>
-                        <div id="resUncertainList" class="space-y-2.5"></div>
-                        <p class="text-xs text-neutral-400 font-light mt-5 leading-relaxed">
+
+                        <!-- Top match, stated but not claimed. -->
+                        <div id="resUncertainTop" class="mb-5"></div>
+
+                        <!-- Secondary top_k candidates, side by side for visual
+                             cross-reference. Horizontal so comparing is a swipe,
+                             not a scroll down a list. -->
+                        <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-2.5">Other possibilities</p>
+                        <div id="resUncertainList" class="ff-candidates"></div>
+
+                        <button id="resUncertainRetake" type="button" class="mt-5 min-h-[46px] w-full sm:w-auto sm:self-start px-6 rounded-full border border-neutral-200 text-sm font-medium text-neutral-700 hover:border-neutral-400 hover:text-neutral-900 transition-colors">
+                            Retake photo
+                        </button>
+                        <p class="text-xs text-neutral-400 font-light mt-4 leading-relaxed">
                             Confidence was below 80%, usually caused by partial framing, mixed foliage, or unusual lighting.
                         </p>
                     </div>
@@ -323,8 +346,12 @@
                         <div class="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-5">
                             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-neutral-400"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/></svg>
                         </div>
-                        <h3 class="text-lg font-medium tracking-tight text-neutral-900 mb-2">No clear match</h3>
-                        <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Unable to clearly identify a flower. Please move closer and ensure good lighting.</p>
+                        <h3 class="text-lg font-medium tracking-tight text-neutral-900 mb-2">Could not detect a clear flower</h3>
+                        <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Please move closer and ensure good lighting.</p>
+                        <button id="resLowRetake" type="button" class="mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            Retake Photo
+                        </button>
                         <ul class="text-xs text-neutral-400 font-light mt-5 space-y-1.5 text-left">
                             <li>· Fill more of the frame with a single bloom</li>
                             <li>· Avoid strong backlight and deep shade</li>
@@ -334,6 +361,15 @@
 
                     <!-- Result content -->
                     <div id="resContent" class="hidden flex-1 flex-col">
+                        <!-- Safety first: a toxicity warning outranks the name of
+                             the plant, so it renders above the match card. -->
+                        <div id="resToxic" class="ff-toxic-banner hidden">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;margin-top:1px" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
+                            <div>
+                                <p class="ff-toxic-banner__title">Toxic / Handle with Care</p>
+                                <p id="resToxicBody" class="ff-toxic-banner__body"></p>
+                            </div>
+                        </div>
                         <div class="flex items-start gap-5 mb-6">
                             <div class="w-24 h-24 rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0">
                                 <img id="resImg" class="w-full h-full object-cover" alt="Identified flower" />
@@ -364,6 +400,15 @@
                         <div id="resAlts" class="mb-6 hidden">
                             <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-3">Other possibilities</p>
                             <div id="resAltsList" class="space-y-2"></div>
+                        </div>
+
+                        <!-- Lookalike comparison. Only rendered when the matched
+                             species has a known confusable; the slider itself is
+                             built by buildCompare() in the script below. -->
+                        <div id="resCompare" class="mb-6 hidden">
+                            <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-1.5">Compare with lookalike</p>
+                            <p id="resCompareHint" class="text-xs text-neutral-500 font-light mb-3 leading-relaxed"></p>
+                            <div id="resCompareMount"></div>
                         </div>
 
                         <!-- Species detail (live from Wikipedia + Wikidata) -->
@@ -441,6 +486,12 @@
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="text-neutral-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         </div>
                         <p id="resErrorText" class="text-neutral-500 font-light max-w-xs leading-relaxed"></p>
+                        <!-- Shown only for the signed-out case, so the fix is one
+                             tap away instead of a dead end. -->
+                        <a id="resErrorAction" href="login.html" class="hidden mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2">
+                            Sign in to continue
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                        </a>
                     </div>
                 </div>
 
@@ -556,6 +607,56 @@
         // model server. Swap in your deployed Worker URL.
         const API_URL = 'https://findflower-proxy.fofi.workers.dev';
 
+        // ---- Zero-trust inference auth ----
+        //
+        // AUDIT RESULT: there is no API key in this frontend to strip. The
+        // Worker holds PROXY_SECRET and SPACE_TOKEN as server-side bindings and
+        // the browser posts the image with no credentials at all, so the model
+        // was never fronted by a public key. What is missing is per-user
+        // identity on the request, which is what these two switches add.
+        //
+        // Both are OFF because turning either on unilaterally breaks scanning:
+        //
+        //   SEND_AUTH_TOKEN — an Authorization header makes this POST a
+        //     non-simple CORS request, so the browser preflights it. The Worker
+        //     answers preflight with `Access-Control-Allow-Headers: Content-Type`
+        //     (proxy/worker.js:49), which does NOT list authorization, so the
+        //     browser would discard the POST before it left the device. Flip
+        //     this on only after that header includes `Authorization` and the
+        //     Worker is redeployed — otherwise signed-in users lose the scanner
+        //     while guests keep it.
+        //
+        //   REQUIRE_SIGN_IN — gates the primary funnel. Every scan on the
+        //     landing path would demand an account first.
+        //
+        // AUTH0_AUDIENCE must be your API identifier from the Auth0 dashboard.
+        // Without it Auth0 issues an opaque token that only its own /userinfo
+        // route can read, which a resource server cannot validate — so an
+        // audience-less Bearer token is decoration, not security.
+        const SEND_AUTH_TOKEN = false;
+        const REQUIRE_SIGN_IN = false;
+        const AUTH0_AUDIENCE = '';
+
+        /** Bearer header for the inference POST, or {} when we send none.
+         *  Resolves rather than throwing: a token we cannot mint is a UI
+         *  decision (below), not an exception inside the request path. */
+        async function inferenceAuthHeaders() {
+            if (!SEND_AUTH_TOKEN || typeof window.ffAuthHeader !== 'function') return {};
+            return ffAuthHeader(AUTH0_AUDIENCE || undefined);
+        }
+
+        /** True when the scan may proceed. Paints the sign-in prompt if not. */
+        async function inferenceAuthorized() {
+            if (!REQUIRE_SIGN_IN) return true;
+            const signedIn = typeof window.ffIsAuthenticated === 'function'
+                ? await ffIsAuthenticated().catch(() => false)
+                : false;
+            if (signedIn) return true;
+            showError('Please sign in to identify a flower. Your scans and streak are tied to your account.');
+            $('resErrorAction').classList.remove('hidden');
+            return false;
+        }
+
         // ---- State ----
         let currentBlob = null;    // the image bytes we'll send for inference
         let lastPrediction = null;
@@ -585,6 +686,18 @@
             if (mode !== 'camera') stopCamera();
         }
         segButtons.forEach((b, i) => b.addEventListener('click', () => selectMode(b.dataset.mode, i)));
+
+        /** Send the user back to a capture surface after a rejected result.
+         *  Prefers the camera tab (the fastest path to a better photo) and falls
+         *  back to whatever the first mode is if this build reorders them. */
+        function focusCaptureEntry() {
+            let idx = -1;
+            segButtons.forEach((b, i) => { if (b.dataset.mode === 'camera') idx = i; });
+            if (idx === -1) { idx = 0; }
+            const btn = segButtons[idx];
+            if (btn) selectMode(btn.dataset.mode, idx);
+            try { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { /* older engines */ }
+        }
 
         // ---- Model status ----
         // Live probe of the proxy, not a hardcoded green dot. See main.js for why
@@ -665,14 +778,18 @@
         camCapture.addEventListener('click', async () => {
             if (!ffCamera.active) return;
 
-            // Blur shield, checked on the live frame before anything is uploaded.
-            // A soft frame produces a confident wrong species just as readily as a
-            // sharp one, so it is cheaper to stop here than to spend the inference.
-            if (ffBlur.isBlurry(camVideo)) {
-                camBlurWarn.textContent = ffBlur.MESSAGE;
-                camBlurWarn.classList.remove('hidden');
-                setTimeout(() => camBlurWarn.classList.add('hidden'), 3200);
-                return;
+            // Focus shield on the LIVE frame, before we even spend a capture.
+            // Same modal as the upload path so the override reads identically
+            // wherever the photo came from; 'Retake' simply leaves the camera
+            // running so the next attempt is one tap away.
+            if (window.ffBlur) {
+                const choice = await ffBlur.confirm(camVideo);
+                if (choice !== 'scan') {
+                    camBlurWarn.textContent = ffBlur.MESSAGE;
+                    camBlurWarn.classList.remove('hidden');
+                    setTimeout(() => camBlurWarn.classList.add('hidden'), 3200);
+                    return;
+                }
             }
             camBlurWarn.classList.add('hidden');
 
@@ -683,7 +800,7 @@
                 previewImg.src = url;
                 previewImg.classList.remove('hidden');
                 previewEmpty.classList.add('hidden');
-                previewHint.textContent = 'Sharp enough. Ready to identify.';
+                previewHint.textContent = 'Captured. Ready to identify.';
                 refreshIdentifyState();
             } catch (err) {
                 console.error(err);
@@ -740,7 +857,13 @@
             resLowConf.classList.toggle('hidden', state !== 'lowconf');
             resLowConf.classList.toggle('flex', state === 'lowconf');
         }
-        function showError(msg) { $('resErrorText').textContent = msg; showState('error'); }
+        function showError(msg) {
+            $('resErrorText').textContent = msg;
+            // Hidden by default; only the signed-out path re-reveals it, so a
+            // network error never tells the user to go and log in.
+            $('resErrorAction').classList.add('hidden');
+            showState('error');
+        }
 
         // ---- Inference (server-side via the Worker) ----
         // The free inference host can cold-start (~30-90s) if it has gone idle.
@@ -771,13 +894,20 @@
         identifyBtn.addEventListener('click', async () => {
             if (!currentBlob) return;
 
-            // Blur shield for the upload/link paths as well. Camera captures were
-            // already checked on the live frame; this catches a soft photo from the
-            // gallery before it costs an inference and a wrong answer.
-            if (previewImg.src && !previewImg.classList.contains('hidden') && previewImg.complete) {
-                if (ffBlur.isBlurry(previewImg)) {
+            // Identity gate first: if a scan is going to be refused for being
+            // anonymous, refuse it before spending the user's bandwidth.
+            if (!(await inferenceAuthorized())) return;
+
+            // Pre-inference focus shield. Runs on whatever the user is about to
+            // send, before a single byte leaves the device: a soft frame costs a
+            // network round trip, a server inference, and — worse — produces a
+            // confident-looking answer derived from mush. The modal offers the
+            // override because our threshold is a heuristic, not a verdict.
+            if (window.ffBlur && previewImg.src && !previewImg.classList.contains('hidden') && previewImg.complete) {
+                const choice = await ffBlur.confirm(previewImg);
+                if (choice !== 'scan') {
                     previewHint.textContent = ffBlur.MESSAGE;
-                    showError(ffBlur.MESSAGE + ' Try a sharper photo, or capture again holding the phone steady.');
+                    focusCaptureEntry();
                     return;
                 }
             }
@@ -795,9 +925,24 @@
             try {
                 const form = new FormData();
                 form.append('file', currentBlob, 'flower.jpg');
-                const res = await fetch(API_URL, { method: 'POST', body: form, signal: controller.signal });
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    // Bearer token when the session can mint one. Content-Type is
+                    // deliberately unset: the browser must generate the multipart
+                    // boundary itself.
+                    headers: await inferenceAuthHeaders(),
+                    body: form,
+                    signal: controller.signal,
+                });
                 if (!res.ok) {
                     const detail = await res.text().catch(() => '');
+                    // 401/403 from the Worker means the token was rejected, not
+                    // that the photo was bad -- say so, and offer the fix.
+                    if (res.status === 401 || res.status === 403) {
+                        showError('Your session has expired. Please sign in again to keep identifying flowers.');
+                        $('resErrorAction').classList.remove('hidden');
+                        return;
+                    }
                     throw new Error(`Server returned ${res.status}. ${detail}`);
                 }
                 const data = await res.json();
@@ -887,26 +1032,80 @@
             setTimeout(() => el.remove(), 4500);
         }
 
-        /** Tier 2: let the human disambiguate between plausible candidates. */
+        /** Tier 2: show the top match, but let the human disambiguate.
+         *
+         *  The lead card states what the model thinks it saw; the horizontal
+         *  strip underneath carries the rest of top_k so the user can compare
+         *  possibilities side by side instead of reading a ranked list and
+         *  anchoring on the first row. Nothing is saved until they choose. */
         function renderUncertain(ranked) {
+            const pickCandidate = async (c) => {
+                // The user's pick is the identification, so render and save it
+                // at the model's own score -- not inflated to look certain.
+                lastPrediction = c;
+                renderResult([c, ...ranked.filter(x => x !== c)]);
+                await saveScan(c);
+            };
+
+            // --- Lead: the top match, clearly hedged. ---
+            const top = ranked[0];
+            const lead = $('resUncertainTop');
+            lead.innerHTML = '';
+            const leadBtn = document.createElement('button');
+            leadBtn.type = 'button';
+            leadBtn.className = 'w-full min-h-[56px] flex items-center gap-3 text-left border border-amber-200 bg-amber-50/60 rounded-2xl px-4 py-3 hover:border-amber-300 transition-colors';
+            leadBtn.innerHTML =
+                `<img src="${previewImg.src}" alt="" class="w-11 h-11 rounded-xl object-cover flex-shrink-0 bg-neutral-100" />` +
+                '<span class="flex-1 min-w-0">' +
+                    `<span class="block text-sm font-medium text-neutral-900 capitalize truncate">${cleanName(top.name)}</span>` +
+                    '<span class="block text-xs text-neutral-500 font-light">Most likely — tap to accept</span>' +
+                '</span>' +
+                `<span class="text-xs font-medium text-neutral-500 shrink-0">${(top.p * 100).toFixed(1)}%</span>`;
+            leadBtn.addEventListener('click', () => pickCandidate(top));
+            lead.appendChild(leadBtn);
+
+            // --- Secondary candidates, horizontally scrollable. ---
             const list = $('resUncertainList');
             list.innerHTML = '';
-            ranked.slice(0, 4).forEach(c => {
+            const others = ranked.slice(1, 5);
+            others.forEach(c => {
                 const btn = document.createElement('button');
-                btn.className = 'w-full min-h-[44px] flex items-center justify-between gap-3 text-left border border-neutral-200 rounded-2xl px-4 py-3 hover:border-sage-400 hover:bg-sage-50 transition-colors';
+                btn.type = 'button';
+                btn.className = 'ff-candidate';
                 btn.innerHTML =
-                    `<span class="text-sm font-medium text-neutral-800 capitalize">${cleanName(c.name)}</span>` +
-                    `<span class="text-xs font-medium text-neutral-400 shrink-0">${(c.p * 100).toFixed(1)}%</span>`;
-                btn.addEventListener('click', async () => {
-                    // The user's pick is the identification, so render and save it
-                    // at the model's own score -- not inflated to look certain.
-                    lastPrediction = c;
-                    renderResult([c, ...ranked.filter(x => x !== c)]);
-                    await saveScan(c);
-                });
+                    '<span class="ff-candidate__thumb"></span>' +
+                    `<span class="ff-candidate__name">${cleanName(c.name)}</span>` +
+                    `<span class="ff-candidate__score">${(c.p * 100).toFixed(1)}%</span>`;
+                btn.addEventListener('click', () => pickCandidate(c));
                 list.appendChild(btn);
+
+                // Reference photo is a nice-to-have: load it after the card is
+                // already interactive, and leave the neutral tile if it fails.
+                loadCandidateThumb(btn.querySelector('.ff-candidate__thumb'), c.name);
             });
+
+            // No secondaries (the model returned a single class) -> drop the
+            // "Other possibilities" heading rather than leave it above an empty row.
+            const heading = list.previousElementSibling;
+            if (heading) heading.classList.toggle('hidden', others.length === 0);
+
             showState('uncertain');
+        }
+
+        /** Swap a candidate's placeholder tile for a real Wikipedia thumbnail. */
+        async function loadCandidateThumb(tile, name) {
+            if (!tile || typeof window.ffFetchSpecies !== 'function') return;
+            try {
+                const info = await ffFetchSpecies(name);
+                if (!info || !info.image) return;
+                const img = document.createElement('img');
+                img.className = 'ff-candidate__thumb';
+                img.alt = '';
+                img.loading = 'lazy';
+                img.src = info.image;
+                img.onerror = () => { /* keep the placeholder */ };
+                if (tile.parentNode) tile.parentNode.replaceChild(img, tile);
+            } catch (e) { /* thumbnails are decoration; never break the picker */ }
         }
 
         function renderResult(ranked) {
@@ -941,6 +1140,12 @@
             $('fbPrompt').classList.remove('hidden');
             $('fbCorrection').classList.add('hidden');
             $('fbThanks').classList.add('hidden');
+
+            // Clear the previous scan's safety UI. loadSpeciesPanel() repaints
+            // both a moment later; without this the old plant's toxicity banner
+            // would sit above the new plant's name until that request lands.
+            $('resToxic').classList.add('hidden');
+            $('resCompare').classList.add('hidden');
 
             // Result image defaults to user's own preview; Wikipedia may override
             $('resImg').src = previewImg.src;
@@ -996,6 +1201,10 @@
             $('resWiki').textContent = 'A detailed article wasn’t found automatically for this name. Use the link below to search Wikipedia for more context.';
             $('resWikiLink').href = (info && info.articleUrl) || 'https://en.wikipedia.org/';
             setFact('factRange', ''); setFact('factToxic', ''); setFact('factGrow', '');
+            // No article means no verified safety data — clear both, never leave a
+            // stale warning (or a stale absence of one) from the previous scan.
+            renderToxicity(null);
+            renderCompare(null);
             $('resAttribution').textContent = 'Source: Wikipedia';
         }
 
@@ -1017,8 +1226,128 @@
             setFact('factToxic', info.toxic);
             setFact('factGrow', info.grow);
 
+            renderToxicity(info);
+            renderCompare(info);
+
             $('resAttribution').textContent = info.attribution || 'Source: Wikipedia';
         }
+
+        /** Red banner above the match when the species carries a toxicity claim.
+         *
+         *  Deliberately one-directional: we shout when there IS evidence of harm
+         *  and stay silent otherwise. We never render a "safe" badge, because
+         *  absence of a poison claim in Wikidata is not a clearance to eat it. */
+        function renderToxicity(info) {
+            const banner = $('resToxic');
+            if (!info || !info.isToxic) { banner.classList.add('hidden'); return; }
+            $('resToxicBody').textContent =
+                (info.toxic && info.toxic.trim())
+                    ? info.toxic.trim()
+                    : 'This species is recorded as toxic. Avoid ingestion and wash hands after contact.';
+            banner.classList.remove('hidden');
+        }
+
+        /** Build the drag-to-compare slider when a known lookalike exists. */
+        function renderCompare(info) {
+            const wrap = $('resCompare'), mount = $('resCompareMount');
+            mount.innerHTML = '';
+            if (!info || !info.lookalikeUrl || !previewImg.src) {
+                wrap.classList.add('hidden');
+                return;
+            }
+            $('resCompareHint').textContent =
+                'Your photo against ' + (info.lookalikeName || 'a commonly confused species') +
+                '. Drag the divider to compare — check the details that differ before you trust the match.';
+            mount.appendChild(buildCompare({
+                leftSrc: previewImg.src,
+                leftLabel: 'Your photo',
+                rightSrc: info.lookalikeUrl,
+                rightLabel: info.lookalikeName || 'Lookalike'
+            }));
+            wrap.classList.remove('hidden');
+        }
+
+        /** Vertical-divider image comparison.
+         *
+         *  Position lives in a --ff-pos custom property that drives both the
+         *  clip-path and the handle offset, so a drag mutates one value and the
+         *  browser never re-lays-out. Pointer Events cover mouse, touch and pen
+         *  in one path; setPointerCapture keeps the drag alive when the finger
+         *  leaves the element. */
+        function buildCompare({ leftSrc, leftLabel, rightSrc, rightLabel }) {
+            const el = document.createElement('div');
+            el.className = 'ff-compare';
+            el.innerHTML =
+                `<img class="ff-compare__img" src="${rightSrc}" alt="${rightLabel}" crossorigin="anonymous" />` +
+                `<img class="ff-compare__img ff-compare__img--top" src="${leftSrc}" alt="${leftLabel}" />` +
+                '<div class="ff-compare__divider"></div>' +
+                `<span class="ff-compare__label ff-compare__label--left">${leftLabel}</span>` +
+                `<span class="ff-compare__label ff-compare__label--right">${rightLabel}</span>` +
+                '<div class="ff-compare__handle" role="slider" tabindex="0" aria-label="Compare photos" ' +
+                    'aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">' +
+                    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+                        'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">' +
+                        '<path d="m9 7-5 5 5 5M15 7l5 5-5 5"/></svg>' +
+                '</div>';
+
+            const handle = el.querySelector('.ff-compare__handle');
+            let pos = 50;
+
+            const setPos = (pct) => {
+                pos = Math.max(0, Math.min(100, pct));
+                el.style.setProperty('--ff-pos', pos + '%');
+                handle.setAttribute('aria-valuenow', Math.round(pos));
+            };
+            setPos(50);
+
+            const fromEvent = (e) => {
+                const r = el.getBoundingClientRect();
+                if (!r.width) return;
+                setPos(((e.clientX - r.left) / r.width) * 100);
+            };
+
+            let dragging = false;
+            el.addEventListener('pointerdown', (e) => {
+                dragging = true;
+                el.setPointerCapture(e.pointerId);
+                fromEvent(e);
+            });
+            el.addEventListener('pointermove', (e) => {
+                if (!dragging) return;
+                e.preventDefault();   // stop the browser turning it into a scroll
+                fromEvent(e);
+            });
+            const end = (e) => {
+                if (!dragging) return;
+                dragging = false;
+                try { el.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+            };
+            el.addEventListener('pointerup', end);
+            el.addEventListener('pointercancel', end);
+
+            // Keyboard parity: the slider is focusable, so it must be operable.
+            handle.addEventListener('keydown', (e) => {
+                const step = e.shiftKey ? 10 : 2;
+                if (e.key === 'ArrowLeft') { setPos(pos - step); e.preventDefault(); }
+                else if (e.key === 'ArrowRight') { setPos(pos + step); e.preventDefault(); }
+                else if (e.key === 'Home') { setPos(0); e.preventDefault(); }
+                else if (e.key === 'End') { setPos(100); e.preventDefault(); }
+            });
+
+            return el;
+        }
+
+        // ---- Retake shortcuts on the two rejection states ----
+        // A rejected result is a dead end unless the next attempt is one tap
+        // away, so both tiers route straight back to the camera.
+        $('resLowRetake').addEventListener('click', () => {
+            showState('empty');
+            focusCaptureEntry();
+        });
+        $('resUncertainRetake').addEventListener('click', () => {
+            showState('empty');
+            focusCaptureEntry();
+        });
 
         // ---- Feedback (stored locally; future human-in-the-loop signal) ----
         function saveFeedback(correct, correction) {
