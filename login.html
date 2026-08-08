@@ -18,8 +18,8 @@
     <meta name="twitter:description" content="Sign in to sync your botanist streak, scan history, and field badges. The scanner itself stays free and works without an account.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=4">
-    <script src="nav.js" defer></script>
+    <link rel="stylesheet" href="app.css?v=5">
+    <script src="nav.js?v=2" defer></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -162,10 +162,14 @@
                             <p class="text-xs text-neutral-500 font-light truncate" id="userEmail">—</p>
                         </div>
                     </div>
-                    <a href="api.html" class="group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 mb-3">
-                        Continue to the API
+                    <!-- Signed in, your own dashboard is the destination. Sending an
+                         authenticated user to the API page instead stranded them on
+                         developer docs they never asked for. -->
+                    <a href="dashboard.html" class="group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 mb-3">
+                        Go to Dashboard
                         <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
+                    <a href="api.html" class="block w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-full hover:text-neutral-900 transition-colors">API keys &amp; docs</a>
                     <button id="logoutBtn" class="w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-full hover:text-neutral-900 transition-colors">Sign out</button>
                 </div>
 
@@ -234,7 +238,10 @@
                 show(signedOut);
             }
 
-            document.getElementById('loginBtn')?.addEventListener('click', () => ffLogin('api.html'));
+            // Default landing after a fresh sign-in is the dashboard. A page that
+            // sent the user here first (via ffLogin('<page>')) still wins through
+            // ff_return_to above, so "sign in to continue" flows are unaffected.
+            document.getElementById('loginBtn')?.addEventListener('click', () => ffLogin('dashboard.html'));
             document.getElementById('logoutBtn')?.addEventListener('click', () => ffLogout());
         })();
     </script>
