@@ -19,6 +19,10 @@
  *   ->  { flower, confidence, top_k: [{ name, confidence }, ...] }
  *   ->  401 when the token is absent, malformed, or fails verification
  *
+ *   GET  <worker-url>   ->  200 { status: "ok" }   liveness only, no token
+ *                       needed and no upstream call made. The frontend polls
+ *                       this to paint its model-status dot.
+ *
  * Secrets / vars (set via `wrangler secret put`, NOT in code):
  *   SPACE_URL       - base URL of the private Space, e.g.
  *                     https://gsor56-findflower-vit.hf.space
@@ -230,6 +234,18 @@ export default {
     // CORS preflight
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+    }
+    // Health check. The frontend pings this to paint its model-status dot, so
+    // it sits AHEAD of the auth gate on purpose: a liveness ping carries no
+    // token and must not be answered with a 401. It also never touches the
+    // Space, so polling it is free, and it reports liveness and nothing else --
+    // no upstream URL, no version, no config worth harvesting.
+    if (request.method === "GET" || request.method === "HEAD") {
+      const res = json({ status: "ok" }, 200, request, env, { "Cache-Control": "no-store" });
+      // A HEAD response must not carry a body; keep the headers, drop the JSON.
+      return request.method === "HEAD"
+        ? new Response(null, { status: 200, headers: res.headers })
+        : res;
     }
     if (request.method !== "POST") {
       return json({ error: "Use POST with a raw image body." }, 405, request, env);
