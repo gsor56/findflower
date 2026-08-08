@@ -102,8 +102,10 @@
                         'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
                     // Hamburger is phone-only: from md up the top bar carries all
                     // navigation, so the slide-out menu has no job on desktop.
-                    '<button id="ffMenuBtn" type="button" aria-label="Open menu" aria-controls="ffSidebar" ' +
-                        'aria-expanded="false" class="md:hidden flex items-center justify-center text-neutral-700 ' +
+                    // Carries both hooks the delegated handler listens for.
+                    '<button id="ffMenuBtn" type="button" data-toggle-sidebar aria-label="Open menu" ' +
+                        'aria-controls="ffSidebar" aria-expanded="false" ' +
+                        'class="ff-hamburger md:hidden flex items-center justify-center text-neutral-700 ' +
                         'hover:text-neutral-900 transition-colors" style="min-width:40px;min-height:40px">' +
                         ICON_MENU + '</button>' +
                 '</div>' +
@@ -141,22 +143,50 @@
         return wrap;
     }
 
-    function wireSidebar() {
+    // Open/close the panel. `.active` is the single source of truth for
+    // visibility; app.css keeps it translated off-screen without it.
+    function setSidebar(on) {
         var sb = document.getElementById('ffSidebar');
-        var btn = document.getElementById('ffMenuBtn');
         if (!sb) return;
-        function setOpen(on) {
-            // `.active` is the single source of truth for visibility; app.css
-            // keeps the panel translated off-screen without it.
-            sb.classList.toggle('active', on);
-            sb.setAttribute('aria-hidden', on ? 'false' : 'true');
-            if (btn) btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+        sb.classList.toggle('active', on);
+        sb.setAttribute('aria-hidden', on ? 'false' : 'true');
+
+        var btns = document.querySelectorAll('[data-toggle-sidebar], .ff-hamburger');
+        for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-expanded', on ? 'true' : 'false');
         }
-        if (btn) btn.addEventListener('click', function () { setOpen(true); });
-        var cl = document.getElementById('ffSidebarClose');
-        if (cl) cl.addEventListener('click', function () { setOpen(false); });
+
+        // Freeze the page behind the panel so a scroll gesture over the overlay
+        // doesn't drag the document underneath it.
+        document.body.style.overflow = on ? 'hidden' : '';
+    }
+
+    function wireSidebar() {
+        // Delegated from the document, so the toggle works for ANY hamburger —
+        // desktop or mobile, present at load or injected later, and unaffected
+        // by the header being rebuilt. No per-button binding to keep in sync.
+        document.addEventListener('click', function (e) {
+            var t = e.target;
+            if (!t || typeof t.closest !== 'function') return;
+
+            if (t.closest('[data-toggle-sidebar], .ff-hamburger')) {
+                e.preventDefault();
+                var sb = document.getElementById('ffSidebar');
+                setSidebar(!(sb && sb.classList.contains('active')));
+                return;
+            }
+            if (t.closest('#ffSidebarClose')) {
+                e.preventDefault();
+                setSidebar(false);
+                return;
+            }
+            // Following a link inside the panel navigates away — close first so
+            // a back-button return never lands on an open menu with a locked body.
+            if (t.closest('#ffSidebar a')) setSidebar(false);
+        });
+
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' || e.keyCode === 27) setOpen(false);
+            if (e.key === 'Escape' || e.keyCode === 27) setSidebar(false);
         });
     }
 

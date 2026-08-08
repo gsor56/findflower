@@ -128,6 +128,54 @@ body {
 }
 
 /* ============================================================================
+   Small / budget phones (≤375px — e.g. Vivo Y21, iPhone SE)
+   ----------------------------------------------------------------------------
+   At 360px the default card gaps and padding eat most of the row, leaving text
+   in a column too narrow to break cleanly. These trim the spacing and step the
+   body copy down one notch. !important is required: the Tailwind Play CDN
+   injects its utility styles AFTER this file, so `gap-6`/`p-6` would otherwise
+   win. Only spacing and type scale here — no layout or colour changes.
+   ========================================================================== */
+@media (max-width: 375px) {
+    /* Tighten grid gutters (Tailwind gap-4/5/6 → ~gap-3). */
+    .grid.gap-4,
+    .grid.gap-5,
+    .grid.gap-6 {
+        gap: 0.75rem !important;
+    }
+
+    /* Card interiors: p-4/p-5/p-6 → p-3. */
+    .p-4, .p-5, .p-6 {
+        padding: 0.75rem !important;
+    }
+
+    /* Step card body copy to 13px so species names stop breaking mid-word. */
+    .grid p,
+    .grid li,
+    .grid .text-sm,
+    .grid .text-base {
+        font-size: 0.8125rem !important;
+        line-height: 1.45 !important;
+    }
+
+    /* Tab bar: keep the full-height (56px) touch target but let labels shrink
+       and icons sit a little tighter so three tabs never clip at 360px. */
+    .ff-tabbar__item {
+        padding-left: 2px;
+        padding-right: 2px;
+        font-size: 10px;
+        gap: 2px;
+        min-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    .ff-tabbar__item svg {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+/* ============================================================================
    Shared plant-card animations (directory.js embeds)
    ----------------------------------------------------------------------------
    directory.html defines these inline for its own grid; the reusable engine in
