@@ -246,27 +246,59 @@ export default {
     // ---- AUTH GATE: refuse before doing any work ----
     // Deliberately ahead of body parsing and the upstream call, so an
     // unauthenticated request costs us a header read and nothing else.
+    //
+    // ENFORCE_AUTH is the rollout switch, and it fails CLOSED: only the exact
+    // string "false" (any case) disarms the gate. An unset, empty, misspelled
+    // or nonsense value enforces. A security switch that opens on a typo --
+    // "no", "0", "flase" -- is the wrong way round, so the safe state is the
+    // default and disabling it has to be deliberate.
+    //
+    // While disarmed the gate evaluates every request exactly as it would when
+    // armed, reports the verdict in X-FF-Auth, and then serves it anyway. That
+    // exists so the Worker and the frontend can be deployed in either order
+    // without a window where scanning is broken: deploy with ENFORCE_AUTH set
+    // to "false" (preflight starts accepting Authorization, anonymous scans
+    // keep working), publish the frontend, confirm X-FF-Auth reads `ok`, then
+    // remove the var to arm it.
+    const enforcing = String(env.ENFORCE_AUTH ?? "").toLowerCase() !== "false";
+    const audit = { outcome: "ok", reason: "" };
+
     const authHeader = request.headers.get("Authorization") || "";
     const match = /^Bearer\s+(\S+)$/i.exec(authHeader.trim());
     if (!match) {
-      return unauthorized(
-        authHeader ? "Authorization header is malformed" : "Authorization header is required",
-        request, env,
-      );
-    }
-    const token = match[1];
-    if (token.length < MIN_TOKEN_LENGTH) {
-      return unauthorized("Authorization header is malformed", request, env);
+      audit.outcome = "reject";
+      audit.reason = authHeader
+        ? "Authorization header is malformed"
+        : "Authorization header is required";
+    } else if (match[1].length < MIN_TOKEN_LENGTH) {
+      audit.outcome = "reject";
+      audit.reason = "Authorization header is malformed";
+    } else if (env.AUTH0_DOMAIN && env.AUTH0_AUDIENCE) {
+      // Cryptographic verification when the tenant is configured. Without both
+      // vars the Worker has no way to tell a real token from a fabricated one,
+      // so it falls through on structure alone.
+      const verdict = await verifyAuth0Token(match[1], env);
+      if (!verdict.ok) {
+        audit.outcome = "reject";
+        audit.reason = verdict.reason;
+      }
+    } else {
+      audit.outcome = "unverified";
+      audit.reason = "AUTH0_DOMAIN/AUTH0_AUDIENCE not set";
     }
 
-    // Cryptographic verification when the tenant is configured. Without both
-    // vars the Worker has no way to tell a real token from a fabricated one,
-    // so it falls through on structure alone and labels the response.
-    const canVerify = !!(env.AUTH0_DOMAIN && env.AUTH0_AUDIENCE);
-    if (canVerify) {
-      const verdict = await verifyAuth0Token(token, env);
-      if (!verdict.ok) return unauthorized(verdict.reason, request, env);
+    if (audit.outcome === "reject" && enforcing) {
+      return unauthorized(audit.reason, request, env);
     }
+    // Not enforcing (or nothing to enforce): carry the verdict on the response
+    // so a dry run is observable in the browser's network tab and in logs.
+    const authAudit = {
+      "X-FF-Auth": enforcing
+        ? audit.outcome
+        : audit.outcome === "reject"
+          ? "would-reject: " + audit.reason
+          : audit.outcome,
+    };
 
     if (!env.SPACE_URL || !env.PROXY_SECRET) {
       return json({ error: "Server misconfigured (SPACE_URL/PROXY_SECRET)." }, 500, request, env);
@@ -342,6 +374,6 @@ export default {
     }
     payload.top_k = payload.top_k.slice(0, TOP_K);
 
-    return json(payload, 200, request, env);
+    return json(payload, 200, request, env, authAudit);
   },
 };
