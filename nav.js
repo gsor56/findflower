@@ -100,12 +100,13 @@
                     '<a id="ffTryNow" href="try.html" class="text-sm font-medium bg-neutral-900 text-white ' +
                         'px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5" ' +
                         'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
-                    // Hamburger is phone-only: from md up the top bar carries all
-                    // navigation, so the slide-out menu has no job on desktop.
+                    // Hamburger is shown at every width. The top bar carries the
+                    // primary links on desktop; the slide-out holds the rest
+                    // (Dashboard, Directory) and stays reachable on any screen.
                     // Carries both hooks the delegated handler listens for.
                     '<button id="ffMenuBtn" type="button" data-toggle-sidebar aria-label="Open menu" ' +
                         'aria-controls="ffSidebar" aria-expanded="false" ' +
-                        'class="ff-hamburger md:hidden flex items-center justify-center text-neutral-700 ' +
+                        'class="ff-hamburger flex items-center justify-center text-neutral-700 ' +
                         'hover:text-neutral-900 transition-colors" style="min-width:40px;min-height:40px">' +
                         ICON_MENU + '</button>' +
                 '</div>' +

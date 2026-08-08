@@ -30,11 +30,16 @@ jobs:
           mkdir _site
           # Frontend only — the backend, training scripts and tooling are in the
           # repo for version control but must not be published to the web root.
-          cp *.html *.js *.svg _site/
+          # *.css is NOT optional: it was missing from this glob, so app.css
+          # 404'd in production and every page rendered unstyled — the mobile
+          # tab bar and sidebar dumped as raw blocks at the foot of the page.
+          cp *.html *.css *.js *.svg _site/
           cp trefle-data.json _site/
           cp CNAME .nojekyll _site/
           echo "--- published files ---"
           ls -la _site
+          # Fail loudly rather than deploying a stylesheet-less site again.
+          test -f _site/app.css || { echo "FATAL: app.css missing from _site"; exit 1; }
 
       - uses: actions/configure-pages@v5
 
