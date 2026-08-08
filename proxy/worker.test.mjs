@@ -123,6 +123,25 @@ for (const [label, origin] of [['findflower.me', 'https://findflower.me'], ['loc
         '  ACAH=' + r.headers.get('Access-Control-Allow-Headers'));
 }
 
+console.log('\n--- health check (GET/HEAD, gate armed) ---');
+{
+    // The frontend's status dot polls this with no Authorization header. If it
+    // ever 401s, every visitor sees the model reported as down.
+    const g = (m, env = ENV) => worker.fetch(new Request('https://w.example', {
+        method: m, headers: new Headers({ Origin: 'https://findflower.me' }),
+    }), env);
+    await check('GET -> 200 without a token', async () => (await g('GET')).status, { status: 200, space: false });
+    await check('HEAD -> 200 without a token', async () => (await g('HEAD')).status, { status: 200, space: false });
+    await check('PUT -> 405 (still not a free door)', async () => (await g('PUT')).status, { status: 405, space: false });
+    const r = await g('GET');
+    console.log('      body          :', await r.text());
+    console.log('      ACAO          :', r.headers.get('Access-Control-Allow-Origin'));
+    console.log('      Cache-Control :', r.headers.get('Cache-Control'));
+    const hb = await (await g('HEAD')).text();
+    console.log((hb === '' ? 'PASS' : 'FAIL') + '  HEAD carries no body');
+    hb === '' ? pass++ : fail++;
+}
+
 console.log('\n--- ALLOWED_ORIGINS misconfigured to "*" ---');
 {
     const bad = { ...ENV, ALLOWED_ORIGINS: '*' };

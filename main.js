@@ -126,7 +126,13 @@
         const elapsed = ((performance && performance.now) ? performance.now() : Date.now()) - started;
 
         // Any readable status means the Worker answered and CORS let us see it.
-        // 405 is the expected one (it only accepts POST).
+        // 200 is the health endpoint's answer; an older deploy replies 405
+        // because it only accepted POST. Both prove the Worker is up, so this
+        // stays status-tolerant instead of asserting one number.
+        //
+        // A 401 here is NOT an auth failure worth reporting: the probe sends no
+        // token by design, and it must never paint a "session expired" style
+        // message. Only the scan's own POST gets to judge the user's session.
         if (res.status >= 500) this._set("cold");
         else this._set(elapsed > SLOW_MS ? "cold" : "ready");
       } catch {
