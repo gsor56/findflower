@@ -24,10 +24,27 @@
     <script src="species.js?v=2"></script>
     <script src="storage.js"></script>
     <script src="blur.js?v=1"></script>
-    <!-- Auth0 for the inference identity gate. Both scripts degrade to a guest
-         session if the CDN is blocked, so the scanner still runs offline. -->
-    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
-    <script src="auth.js?v=3"></script>
+    <!-- Auth0 is NOT loaded on this page (temporary, 2026-08-08, pre-production).
+         The scanner posts straight to the proxy with no credentials of its own,
+         so nothing here touches Auth0: no SDK fetch, no client, no cached
+         session read, no silent token call on load. Removing the two tags
+         rather than only flipping the flag below is what makes that literally
+         true.
+
+         TO RESTORE, add these two back immediately above main.js and set
+         SEND_AUTH_TOKEN = true in the same change (tags written without their
+         angle brackets so nothing mistakes this comment for live markup):
+
+           script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"
+           script src="auth.js?v=3"
+
+         The flag alone is not enough: without these, ffAuthHeader does not
+         exist and every scan would go out unauthenticated. inferenceAuthHeaders
+         logs a loud console error if it ever finds itself in that state.
+
+         Side effect while they are gone: nav.js cannot call ffRenderHeader, so
+         this page's header shows "Sign In" even to a signed-in visitor. Every
+         other page still personalises normally. -->
     <script src="main.js?v=2"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -632,20 +649,27 @@
         // decoration, not security.
         //
         // ---------------------------------------------------------------------
-        // TEMPORARILY OPEN — 2026-08-08, pre-production. REQUIRE_SIGN_IN is off
-        // so anonymous visitors can scan again, paired with ENFORCE_AUTH =
-        // "false" in proxy/wrangler.toml. Both must flip back together before
-        // launch; either one alone is a broken state:
+        // FULLY OPEN — 2026-08-08, pre-production. This page is plain: it makes
+        // a direct POST to the proxy and does not touch Auth0 at all. The SDK
+        // and auth.js are not even loaded (see <head>), so there is no client,
+        // no cached session read, and no silent token call on page load.
         //
-        //   sign-in on, Worker open   -> users gated for no reason
-        //   sign-in off, Worker armed -> every guest scan 401s after the upload
+        // Paired with ENFORCE_AUTH = "false" in proxy/wrangler.toml. All three
+        // must come back together before launch:
         //
-        // SEND_AUTH_TOKEN deliberately stays TRUE. A signed-in visitor keeps
-        // attaching their token, the disarmed Worker keeps grading it, and
-        // X-FF-Auth keeps reporting `ok` — so the evidence needed to re-arm
-        // safely is still being collected while the gate is down. Turning it
-        // off would leave us blind and make re-arming a guess.
-        const SEND_AUTH_TOKEN = true;
+        //   1. restore the two <script> tags in <head>
+        //   2. SEND_AUTH_TOKEN = true, REQUIRE_SIGN_IN = true
+        //   3. delete ENFORCE_AUTH from wrangler.toml and wrangler deploy
+        //
+        // Any partial combination is a broken state. Worth knowing which one
+        // hurts most: the Worker armed while this page sends no token 401s
+        // every scan AFTER the upload completes.
+        //
+        // Cost of being open: X-FF-Auth no longer reports `ok` for anyone,
+        // because no token is being sent for it to grade. Re-arming therefore
+        // has no live evidence behind it — do step 3 last, and check a real
+        // signed-in scan in the browser's network tab before deleting the var.
+        const SEND_AUTH_TOKEN = false;
         const REQUIRE_SIGN_IN = false;
         const AUTH0_AUDIENCE = 'https://api.findflower.me';
 
@@ -654,7 +678,18 @@
          *  decision (see inferencePreflight), not an exception in the
          *  request path. */
         async function inferenceAuthHeaders() {
-            if (!SEND_AUTH_TOKEN || typeof window.ffAuthHeader !== 'function') return {};
+            if (!SEND_AUTH_TOKEN) return {};
+            if (typeof window.ffAuthHeader !== 'function') {
+                // Someone set the flag without restoring the <script> tags in
+                // <head>. Silently sending no token would look like working
+                // code until the proxy is armed and every scan 401s, so say it
+                // out loud instead.
+                console.error(
+                    'FindFlower: SEND_AUTH_TOKEN is true but auth.js is not loaded — ' +
+                    'scans will be sent with no Authorization header. Restore the ' +
+                    'auth0-spa-js and auth.js <script> tags in try.html.');
+                return {};
+            }
             return ffAuthHeader(AUTH0_AUDIENCE || undefined);
         }
 
