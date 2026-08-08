@@ -620,18 +620,33 @@
         //     `Access-Control-Allow-Headers: Content-Type, Authorization`
         //     (proxy/worker.js) and 401s any request without a valid token.
         //
-        //   REQUIRE_SIGN_IN — gates the scan client-side. It must track
-        //     SEND_AUTH_TOKEN: the Worker refuses anonymous requests outright,
-        //     so leaving this off would let a guest shoot a photo, wait through
-        //     the upload, and only then be told to sign in.
+        //   REQUIRE_SIGN_IN — gates the scan client-side. It must track the
+        //     Worker's ENFORCE_AUTH, not SEND_AUTH_TOKEN: while the Worker
+        //     enforces, leaving this off would let a guest shoot a photo, wait
+        //     through the upload, and only then be told to sign in.
         //
         // AUTH0_AUDIENCE must be your API identifier from the Auth0 dashboard,
         // and must match the Worker's AUTH0_AUDIENCE. Without it Auth0 issues an
         // opaque token that no resource server can verify — the Worker will see
         // a non-JWT and reject it — so an audience-less Bearer token is
         // decoration, not security.
+        //
+        // ---------------------------------------------------------------------
+        // TEMPORARILY OPEN — 2026-08-08, pre-production. REQUIRE_SIGN_IN is off
+        // so anonymous visitors can scan again, paired with ENFORCE_AUTH =
+        // "false" in proxy/wrangler.toml. Both must flip back together before
+        // launch; either one alone is a broken state:
+        //
+        //   sign-in on, Worker open   -> users gated for no reason
+        //   sign-in off, Worker armed -> every guest scan 401s after the upload
+        //
+        // SEND_AUTH_TOKEN deliberately stays TRUE. A signed-in visitor keeps
+        // attaching their token, the disarmed Worker keeps grading it, and
+        // X-FF-Auth keeps reporting `ok` — so the evidence needed to re-arm
+        // safely is still being collected while the gate is down. Turning it
+        // off would leave us blind and make re-arming a guess.
         const SEND_AUTH_TOKEN = true;
-        const REQUIRE_SIGN_IN = true;
+        const REQUIRE_SIGN_IN = false;
         const AUTH0_AUDIENCE = 'https://api.findflower.me';
 
         /** Bearer header for the inference POST, or {} when we send none.
