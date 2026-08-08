@@ -35,12 +35,17 @@ body {
    header instead, so the bar is hidden from the `md` breakpoint up.
    ========================================================================== */
 .ff-tabbar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 50;
-    display: flex;
+    /* !important on the layout-critical properties: this bar is injected into
+       the end of <body>, so if any page style wins the cascade it drops into
+       normal document flow and renders as a plain link list under the footer.
+       The desktop `display: none !important` below is later in the file, so it
+       still overrides `display: flex !important` at the md breakpoint. */
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 50 !important;
+    display: flex !important;
     background-color: rgba(252, 252, 252, 0.92);
     -webkit-backdrop-filter: saturate(180%) blur(12px);
     backdrop-filter: saturate(180%) blur(12px);
@@ -83,7 +88,7 @@ body {
 
 /* Only phones get the bar; from md up the sticky header carries navigation. */
 @media (min-width: 768px) {
-    .ff-tabbar { display: none; }
+    .ff-tabbar { display: none !important; }
 }
 
 /* Reserve room so page content and footers are never hidden behind the bar.
@@ -98,46 +103,27 @@ body {
    Slide-out sidebar (injected by nav.js)
    ----------------------------------------------------------------------------
    Holds the links kept out of the top bar (Dashboard, Directory). Opened by the
-   header hamburger; closed by backdrop, X, or Escape. Kept here — not in
-   Tailwind utilities — because the open/close transform + backdrop transition
-   must be reliable before the CDN finishes JIT-ing, and .open is toggled by JS.
+   header hamburger; closed by the X or Escape. Like the tab bar this is injected
+   at the end of <body>, so every layout-critical property is !important — if the
+   cascade is lost the panel drops into document flow and renders as a stray list
+   under the footer. Off-screen is the DEFAULT state; only `.active` reveals it.
    ========================================================================== */
-.ff-sidebar-backdrop {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    background: rgba(23, 23, 23, 0.4);
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
-}
-.ff-sidebar-backdrop.open {
-    opacity: 1;
-    visibility: visible;
-}
-
 .ff-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    z-index: 61;
-    width: 280px;
-    max-width: 82vw;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100 !important;
     padding: 20px;
     background-color: #FCFCFC;
-    border-right: 1px solid #E5E5E5;
-    box-shadow: 4px 0 24px rgba(23, 23, 23, 0.08);
-    transform: translateX(-100%);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
     overflow-y: auto;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
 }
-.ff-sidebar.open {
+
+.ff-sidebar.active {
     transform: translateX(0);
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ff-sidebar-backdrop,
     .ff-sidebar { transition: none; }
 }
 

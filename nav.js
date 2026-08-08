@@ -100,8 +100,10 @@
                     '<a id="ffTryNow" href="try.html" class="text-sm font-medium bg-neutral-900 text-white ' +
                         'px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5" ' +
                         'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
+                    // Hamburger is phone-only: from md up the top bar carries all
+                    // navigation, so the slide-out menu has no job on desktop.
                     '<button id="ffMenuBtn" type="button" aria-label="Open menu" aria-controls="ffSidebar" ' +
-                        'aria-expanded="false" class="flex items-center justify-center text-neutral-700 ' +
+                        'aria-expanded="false" class="md:hidden flex items-center justify-center text-neutral-700 ' +
                         'hover:text-neutral-900 transition-colors" style="min-width:40px;min-height:40px">' +
                         ICON_MENU + '</button>' +
                 '</div>' +
@@ -110,7 +112,9 @@
     }
 
     // Slide-out sidebar for the links kept out of the top bar (Dashboard,
-    // Directory). Opened by the hamburger; closed by backdrop, X, or Escape.
+    // Directory). Opened by the hamburger; closed by the X or Escape. It covers
+    // the full viewport (see .ff-sidebar in app.css), so there is no backdrop to
+    // click through — the X and Escape are the ways out.
     function sidebarLink(label, href, icon) {
         var active = (href === PAGE);
         var cls = 'flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ' +
@@ -122,7 +126,6 @@
     function buildSidebar() {
         var wrap = document.createElement('div');
         wrap.innerHTML =
-            '<div id="ffSidebarBackdrop" class="ff-sidebar-backdrop"></div>' +
             '<aside id="ffSidebar" class="ff-sidebar" aria-label="More navigation" aria-hidden="true">' +
                 '<div class="flex items-center justify-between mb-6">' +
                     '<span class="text-base font-medium tracking-tight text-neutral-900">Menu</span>' +
@@ -140,19 +143,18 @@
 
     function wireSidebar() {
         var sb = document.getElementById('ffSidebar');
-        var bd = document.getElementById('ffSidebarBackdrop');
         var btn = document.getElementById('ffMenuBtn');
-        if (!sb || !bd) return;
+        if (!sb) return;
         function setOpen(on) {
-            sb.classList.toggle('open', on);
-            bd.classList.toggle('open', on);
+            // `.active` is the single source of truth for visibility; app.css
+            // keeps the panel translated off-screen without it.
+            sb.classList.toggle('active', on);
             sb.setAttribute('aria-hidden', on ? 'false' : 'true');
             if (btn) btn.setAttribute('aria-expanded', on ? 'true' : 'false');
         }
         if (btn) btn.addEventListener('click', function () { setOpen(true); });
         var cl = document.getElementById('ffSidebarClose');
         if (cl) cl.addEventListener('click', function () { setOpen(false); });
-        bd.addEventListener('click', function () { setOpen(false); });
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' || e.keyCode === 27) setOpen(false);
         });
