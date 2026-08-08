@@ -23,19 +23,21 @@ ALLOWED_ORIGINS = "http://localhost:8000,https://findflower.me"
 AUTH0_DOMAIN   = "findflower.au.auth0.com"
 AUTH0_AUDIENCE = "https://api.findflower.me"
 
-# ENFORCE_AUTH arms the gate, and it FAILS CLOSED: only the literal "false"
-# disarms it. Unset, empty, or misspelled all enforce — a switch that opens the
-# proxy on a typo would be the wrong way round.
+# The auth gate is ARMED. There is deliberately no ENFORCE_AUTH line here:
+# the Worker fails CLOSED, so an absent var enforces. Only the literal string
+# "false" disarms it, which means a typo can never leave the proxy open.
 #
-# While disarmed the Worker evaluates every request and reports the verdict in
-# the X-FF-Auth response header, but serves it either way — so this Worker can
-# be deployed BEFORE the frontend starts sending tokens without breaking
-# scanning. Rollout:
+# To disarm — and this is an emergency lever, not a routine one — add
 #
-#   1. wrangler deploy                 (this file, ENFORCE_AUTH = "false")
-#   2. publish the frontend            (try.html sends the Bearer token)
-#   3. confirm X-FF-Auth reads `ok` on a real scan, then DELETE the line
-#      below and wrangler deploy again
+#   ENFORCE_AUTH = "false"
 #
-# Step 3 is the one that starts returning 401. Until then the proxy is open.
-ENFORCE_AUTH = "false"
+# and redeploy. The Worker then evaluates every request exactly as it does now
+# and reports the verdict in the X-FF-Auth response header, but serves it
+# regardless. That is what made the original rollout seamless: the Worker
+# accepted the Authorization header for a while before it started requiring
+# one, so the Worker and the frontend could ship in either order without a
+# window where scanning was broken.
+#
+# Rolled out 2026-08-08: deploy disarmed -> publish frontend -> confirm
+# X-FF-Auth read `ok` on a real signed-in scan -> remove the var and redeploy.
+# Reuse that sequence for any future change that tightens the gate.
