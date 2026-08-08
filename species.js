@@ -76,7 +76,21 @@
             growthHabit: '',
             sunlight: '',
             edibleNote: '',
-            trefle: false
+            trefle: false,
+            // --- Safety / comparison model -------------------------------
+            // `toxic` above is prose from Wikidata/Trefle/Wikipedia and stays
+            // the authoritative explanation. `isToxic` is the boolean the UI
+            // switches the red badge on, derived from that prose by
+            // deriveSafetyFlags() so there is only ever one source of truth.
+            //
+            // NOTE: false means "no toxicity claim was found", NOT "safe".
+            // Absence of evidence is not evidence of edibility, and the badge
+            // copy must never imply otherwise.
+            isToxic: false,
+            // Reference photo of the most-confused lookalike, for the
+            // side-by-side comparison slider. Empty string = no comparison.
+            lookalikeUrl: '',
+            lookalikeName: ''
         };
     }
 
@@ -369,13 +383,70 @@
             info._enriched = true;
         }
 
+        // 5b · Safety flags + lookalike reference for the result UI.
+        deriveSafetyFlags(info);
+
         // 6 · Cache for the session and return.
         cacheSet(clean, info);
+        return info;
+    }
+
+    // ---- Safety flags & lookalikes -----------------------------------------
+    //
+    // Species most often mistaken for one another, where getting it wrong has a
+    // real cost. Keyed by the cleaned lowercase label the model emits.
+    //
+    // `toxic: true` here is a hard override for plants whose danger is well
+    // established, so the badge does not depend on whether Wikipedia happened
+    // to use the word "poisonous" in its opening paragraph. Entries without a
+    // `toxic` key leave the derived value alone.
+    const LOOKALIKES = {
+        'daffodil':        { name: 'Wild onion / ramps', toxic: true,
+            url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Allium_ursinum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-016.jpg/640px-Allium_ursinum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-016.jpg' },
+        'foxglove':        { name: 'Comfrey', toxic: true,
+            url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Symphytum_officinale_-_harilik_varemerohi.jpg/640px-Symphytum_officinale_-_harilik_varemerohi.jpg' },
+        'lily of the valley': { name: 'Wild garlic', toxic: true,
+            url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Allium_ursinum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-016.jpg/640px-Allium_ursinum_-_K%C3%B6hler%E2%80%93s_Medizinal-Pflanzen-016.jpg' },
+        'monkshood':       { name: 'Wild parsnip', toxic: true,
+            url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Pastinaca_sativa_-_harilik_naeris.jpg/640px-Pastinaca_sativa_-_harilik_naeris.jpg' },
+        'oleander':        { name: 'Bay laurel', toxic: true,
+            url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Laurus_nobilis_kz01.jpg/640px-Laurus_nobilis_kz01.jpg' },
+        'buttercup':       { name: 'Marsh marigold', toxic: true,
+            url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Caltha_palustris_LC0059.jpg/640px-Caltha_palustris_LC0059.jpg' },
+        'hydrangea':       { name: 'Viburnum', toxic: true,
+            url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Viburnum_opulus_-_harilik_lodjapuu.jpg/640px-Viburnum_opulus_-_harilik_lodjapuu.jpg' }
+    };
+
+    // Wording that constitutes a real toxicity claim. Deliberately excludes the
+    // reassuring sentences deriveFromText() can produce ("suggests edible or
+    // non-toxic use"), which would otherwise trip the badge on the word "toxic".
+    const TOXIC_CLAIM = /\b(poison|poisonous|toxic|toxicity|harmful|irritant|do not ingest)\b/i;
+    const TOXIC_NEGATED = /\b(non[- ]?toxic|nontoxic|not (?:known to be )?(?:toxic|poisonous)|edible)\b/i;
+
+    /* Set info.isToxic and attach any known lookalike. Pure derivation over
+       data already on `info` plus the table above — no network. */
+    function deriveSafetyFlags(info) {
+        const prose = info.toxic || '';
+        // A sentence can contain both ("sources differ"): a live claim wins,
+        // because under-warning is the costlier error for a plant ID app.
+        const claimed = TOXIC_CLAIM.test(prose);
+        const negatedOnly = TOXIC_NEGATED.test(prose) && !/\b(poison|irritant)\b/i.test(prose);
+        info.isToxic = claimed && !negatedOnly;
+
+        const key = (info.queryName || '').toLowerCase();
+        const match = LOOKALIKES[key];
+        if (match) {
+            info.lookalikeUrl = match.url || '';
+            info.lookalikeName = match.name || '';
+            if (match.toxic === true) info.isToxic = true;
+        }
         return info;
     }
 
     // ---- Export as globals (auth.js style; no bundler) ----
     window.ffCleanName = ffCleanName;
     window.ffFetchSpecies = ffFetchSpecies;
+    window.ffDeriveSafetyFlags = deriveSafetyFlags;
+    window.FF_LOOKALIKES = LOOKALIKES;
     window.FF_SPECIES_UNKNOWN = UNKNOWN;
 })();

@@ -1,12 +1,12 @@
 /**
  * FindFlower scanner runtime.
  *
- * Shared, page-agnostic logic for the camera scanner: backend liveness, the
- * pre-inference focus check, confidence tiering, and camera lifecycle. try.html
- * wires its own DOM to these; nothing here touches the DOM except the status
- * indicator it is handed.
+ * Shared, page-agnostic logic for the camera scanner: backend liveness,
+ * confidence tiering, and camera lifecycle. try.html wires its own DOM to
+ * these; nothing here touches the DOM except the status indicator it is
+ * handed. The pre-inference focus check lives in its own file, blur.js.
  *
- * Exposes window.ffStatus, window.ffBlur, window.ffConfidence, window.ffCamera.
+ * Exposes window.ffStatus, window.ffConfidence, window.ffCamera.
  */
 (function () {
   "use strict";
@@ -37,73 +37,12 @@
 
   // === Blur shield =========================================================
   //
-  // Variance of the Laplacian: a focused image has hard edges, so the
-  // second derivative swings widely and variance is high. A blurred image is
-  // locally flat, so variance collapses. Standard, cheap, no model needed.
+  // MOVED. The Laplacian-variance focus check now lives in blur.js, which
+  // try.html loads before this file, so there is exactly one implementation
+  // and one threshold to calibrate. window.ffBlur is defined there.
   //
-  // Runs on a downscaled greyscale copy -- 320px is plenty to tell focus from
-  // mush, and keeps this at a few milliseconds so it never feels like a stall.
-  const BLUR_MAX_EDGE = 320;
-  const BLUR_THRESHOLD = 55; // tuned on real phone captures; see calibrate()
-
-  const ffBlur = {
-    THRESHOLD: BLUR_THRESHOLD,
-
-    /** Variance of the Laplacian over luminance. Higher = sharper. */
-    variance(source) {
-      const sw = source.videoWidth || source.naturalWidth || source.width;
-      const sh = source.videoHeight || source.naturalHeight || source.height;
-      if (!sw || !sh) return null;
-
-      const scale = Math.min(1, BLUR_MAX_EDGE / Math.max(sw, sh));
-      const w = Math.max(3, Math.round(sw * scale));
-      const h = Math.max(3, Math.round(sh * scale));
-
-      let data;
-      try {
-        const c = document.createElement("canvas");
-        c.width = w;
-        c.height = h;
-        const ctx = c.getContext("2d", { willReadFrequently: true });
-        ctx.drawImage(source, 0, 0, w, h);
-        data = ctx.getImageData(0, 0, w, h).data;
-      } catch {
-        // Cross-origin image taints the canvas. Can't measure; don't block.
-        return null;
-      }
-
-      // Rec. 601 luma, integer weights to stay in one pass.
-      const lum = new Float32Array(w * h);
-      for (let i = 0, p = 0; p < lum.length; i += 4, p++) {
-        lum[p] = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      }
-
-      // 3x3 Laplacian [0 1 0; 1 -4 1; 0 1 0], interior pixels only.
-      let sum = 0, sumSq = 0, n = 0;
-      for (let y = 1; y < h - 1; y++) {
-        for (let x = 1; x < w - 1; x++) {
-          const o = y * w + x;
-          const v =
-            lum[o - w] + lum[o + w] + lum[o - 1] + lum[o + 1] - 4 * lum[o];
-          sum += v;
-          sumSq += v * v;
-          n++;
-        }
-      }
-      if (!n) return null;
-      const mean = sum / n;
-      return sumSq / n - mean * mean;
-    },
-
-    /** True when the frame is too soft to be worth an inference call. */
-    isBlurry(source, threshold) {
-      const v = this.variance(source);
-      if (v === null) return false; // unmeasurable -> never block the user
-      return v < (typeof threshold === "number" ? threshold : BLUR_THRESHOLD);
-    },
-
-    MESSAGE: "Image is out of focus. Please tap to focus.",
-  };
+  // Nothing is re-exported here: a stub would silently shadow the real module
+  // if the script order ever changed, which is worse than a clear failure.
 
   // === Backend status ======================================================
   //
@@ -288,7 +227,6 @@
   }
 
   window.ffConfidence = ffConfidence;
-  window.ffBlur = ffBlur;
   window.ffStatus = ffStatus;
   window.ffCamera = ffCamera;
   window.ffGeolocate = ffGeolocate;
