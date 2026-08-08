@@ -636,22 +636,54 @@
 
         /** Bearer header for the inference POST, or {} when we send none.
          *  Resolves rather than throwing: a token we cannot mint is a UI
-         *  decision (below), not an exception inside the request path. */
+         *  decision (see inferencePreflight), not an exception in the
+         *  request path. */
         async function inferenceAuthHeaders() {
             if (!SEND_AUTH_TOKEN || typeof window.ffAuthHeader !== 'function') return {};
             return ffAuthHeader(AUTH0_AUDIENCE || undefined);
         }
 
-        /** True when the scan may proceed. Paints the sign-in prompt if not. */
-        async function inferenceAuthorized() {
-            if (!REQUIRE_SIGN_IN) return true;
+        /** Paint an auth problem with the sign-in button attached. */
+        function showAuthError(message) {
+            showError(message);
+            $('resErrorAction').classList.remove('hidden');
+        }
+
+        /**
+         * Resolve the headers for the scan, or null if the scan must not run.
+         *
+         * This runs BEFORE the upload on purpose. Being signed in and being
+         * able to mint an access token are two different things:
+         * ffIsAuthenticated() only reads the cached session, while the proxy
+         * needs a real token for AUTH0_AUDIENCE. A session that predates the
+         * audience — or one whose refresh token has lapsed — passes the first
+         * check and fails the second.
+         *
+         * Finding that out here costs nothing. Finding it out from the POST's
+         * 401 costs the user a full photo upload, on mobile data, in a field,
+         * to be told to sign in. Returns null having already said why.
+         */
+        async function inferencePreflight() {
+            if (!REQUIRE_SIGN_IN) return await inferenceAuthHeaders();
+
             const signedIn = typeof window.ffIsAuthenticated === 'function'
                 ? await ffIsAuthenticated().catch(() => false)
                 : false;
-            if (signedIn) return true;
-            showError('Please sign in to identify a flower. Your scans and streak are tied to your account.');
-            $('resErrorAction').classList.remove('hidden');
-            return false;
+            if (!signedIn) {
+                showAuthError('Please sign in to identify a flower. Your scans and streak are tied to your account.');
+                return null;
+            }
+
+            const headers = await inferenceAuthHeaders();
+            if (SEND_AUTH_TOKEN && !headers.Authorization) {
+                // Signed in, yet no usable token. This is the genuine expired
+                // session, and it is the only place we can name it honestly —
+                // by the time the proxy answers 401 we can no longer tell this
+                // apart from a token the server simply refused.
+                showAuthError('Your sign-in needs refreshing before you can identify a flower. Please sign in again.');
+                return null;
+            }
+            return headers;
         }
 
         // ---- State ----
@@ -891,9 +923,11 @@
         identifyBtn.addEventListener('click', async () => {
             if (!currentBlob) return;
 
-            // Identity gate first: if a scan is going to be refused for being
-            // anonymous, refuse it before spending the user's bandwidth.
-            if (!(await inferenceAuthorized())) return;
+            // Identity gate first, and it resolves the actual token: if this
+            // scan is going to be refused, refuse it before a byte of the
+            // user's photo leaves the device.
+            const authHeaders = await inferencePreflight();
+            if (!authHeaders) return;
 
             // Pre-inference focus shield. Runs on whatever the user is about to
             // send, before a single byte leaves the device: a soft frame costs a
@@ -924,20 +958,29 @@
                 form.append('file', currentBlob, 'flower.jpg');
                 const res = await fetch(API_URL, {
                     method: 'POST',
-                    // Bearer token when the session can mint one. Content-Type is
-                    // deliberately unset: the browser must generate the multipart
-                    // boundary itself.
-                    headers: await inferenceAuthHeaders(),
+                    // Bearer token when the session can mint one, resolved by
+                    // inferencePreflight() before the upload started.
+                    // Content-Type is deliberately unset: the browser must
+                    // generate the multipart boundary itself.
+                    headers: authHeaders,
                     body: form,
                     signal: controller.signal,
                 });
                 if (!res.ok) {
                     const detail = await res.text().catch(() => '');
-                    // 401/403 from the Worker means the token was rejected, not
-                    // that the photo was bad -- say so, and offer the fix.
-                    if (res.status === 401 || res.status === 403) {
-                        showError('Your session has expired. Please sign in again to keep identifying flowers.');
-                        $('resErrorAction').classList.remove('hidden');
+                    // 401 and 403 are different failures and must not share a
+                    // message. 401 is this user's token, and signing in again
+                    // genuinely fixes it. 403 is the proxy's origin allowlist
+                    // refusing the whole site — nothing the user did and
+                    // nothing they can repair, so sending them to sign in
+                    // again would loop them through a screen that cannot help.
+                    if (res.status === 401) {
+                        showAuthError('Your session has expired. Please sign in again to keep identifying flowers.');
+                        return;
+                    }
+                    if (res.status === 403) {
+                        console.error('Proxy refused the origin (403):', detail);
+                        showError('The identifier is not accepting requests from this site right now. That is a configuration problem on our end, not something you did — please try again later.');
                         return;
                     }
                     throw new Error(`Server returned ${res.status}. ${detail}`);
