@@ -13,8 +13,12 @@ compatibility_date = "2025-01-01"
 ALLOWED_ORIGINS = "http://localhost:8000,https://findflower.me"
 
 # AUTH0_DOMAIN and AUTH0_AUDIENCE turn on full JWT verification in the Worker's
-# auth gate. Until both exist the Worker only checks that *a* Bearer token was
-# sent, which stops casual scraping but not someone who read this repo — real
-# security is these two lines (must also match AUTH0_AUDIENCE in try.html):
-# AUTH0_DOMAIN   = "findflower.au.auth0.com"
-# AUTH0_AUDIENCE = "https://api.findflower.me"
+# auth gate: RS256 signature against the tenant's JWKS, plus issuer, audience
+# and expiry. Both are required — the gate checks for the pair, so setting only
+# one leaves the Worker in structure-only mode (any Bearer string passes).
+#
+# AUTH0_AUDIENCE must match AUTH0_AUDIENCE in try.html exactly, and an API with
+# this identifier must exist in the Auth0 dashboard (Applications -> APIs), or
+# Auth0 refuses to issue a token for it and signed-in users get no token at all.
+AUTH0_DOMAIN   = "findflower.au.auth0.com"
+AUTH0_AUDIENCE = "https://api.findflower.me"
