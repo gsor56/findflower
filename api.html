@@ -221,7 +221,7 @@
                 <section id="credentials" class="scroll-mt-24">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Authentication</h2>
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-8 max-w-2xl">
-                        The hosted API authenticates with a bearer key sent in the <span class="font-mono text-sm text-neutral-700">Authorization</span> header. Keys are tied to your developer account — sign in to generate yours. The direct endpoint needs no key during Beta.
+                        The hosted API authenticates with a bearer key sent in the <span class="font-mono text-sm text-neutral-700">Authorization</span> header. Keys are tied to your developer account — sign in to generate yours. The direct endpoint also requires a bearer token: sign in and pass your Auth0 access token.
                     </p>
 
                     <div class="bg-white border border-neutral-200/70 rounded-2xl overflow-hidden">
@@ -468,20 +468,23 @@ curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Direct endpoint</h2>
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        The quickest way to integrate today. POST an image to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download and no key to manage during Beta — just send the photo.
+                        The quickest way to integrate today. POST an image to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download — sign in and send the photo with your access token in the <span class="font-mono text-sm text-neutral-700">Authorization</span> header.
                     </p>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Identify an image</h4>
                     <div class="code p-5 mb-6">
 <span class="tok-com">// send the image as multipart/form-data under the "file" field</span>
-<span class="tok-key">async function</span> identify(fileOrBlob) {
+<span class="tok-com">// the endpoint requires a signed-in session: pass the Auth0 access token</span>
+<span class="tok-key">async function</span> identify(fileOrBlob, accessToken) {
   <span class="tok-key">const</span> form = <span class="tok-key">new</span> FormData();
   form.append(<span class="tok-str">"file"</span>, fileOrBlob, <span class="tok-str">"flower.jpg"</span>);
 
   <span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(<span class="tok-str">"https://findflower-proxy.fofi.workers.dev"</span>, {
     <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
+    <span class="tok-key">headers</span>: { <span class="tok-str">"Authorization"</span>: <span class="tok-str">`Bearer ${accessToken}`</span> },
     <span class="tok-key">body</span>: form
   });
+  <span class="tok-key">if</span> (res.status === <span class="tok-num">401</span>) <span class="tok-key">throw new</span> Error(<span class="tok-str">"Sign in required"</span>);
   <span class="tok-key">if</span> (!res.ok) <span class="tok-key">throw new</span> Error(<span class="tok-str">`Identify failed: ${res.status}`</span>);
   <span class="tok-key">return</span> res.json();
 }</div>

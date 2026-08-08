@@ -611,30 +611,27 @@
         //
         // AUDIT RESULT: there is no API key in this frontend to strip. The
         // Worker holds PROXY_SECRET and SPACE_TOKEN as server-side bindings and
-        // the browser posts the image with no credentials at all, so the model
-        // was never fronted by a public key. What is missing is per-user
-        // identity on the request, which is what these two switches add.
+        // the browser posts the image with no credentials of its own. What was
+        // missing is per-user identity on the request, which these switches add.
         //
-        // Both are OFF because turning either on unilaterally breaks scanning:
+        //   SEND_AUTH_TOKEN — attaches the Auth0 access token as a Bearer
+        //     header. This makes the POST a non-simple CORS request, so the
+        //     browser preflights it; the Worker now answers preflight with
+        //     `Access-Control-Allow-Headers: Content-Type, Authorization`
+        //     (proxy/worker.js) and 401s any request without a valid token.
         //
-        //   SEND_AUTH_TOKEN — an Authorization header makes this POST a
-        //     non-simple CORS request, so the browser preflights it. The Worker
-        //     answers preflight with `Access-Control-Allow-Headers: Content-Type`
-        //     (proxy/worker.js:49), which does NOT list authorization, so the
-        //     browser would discard the POST before it left the device. Flip
-        //     this on only after that header includes `Authorization` and the
-        //     Worker is redeployed — otherwise signed-in users lose the scanner
-        //     while guests keep it.
+        //   REQUIRE_SIGN_IN — gates the scan client-side. It must track
+        //     SEND_AUTH_TOKEN: the Worker refuses anonymous requests outright,
+        //     so leaving this off would let a guest shoot a photo, wait through
+        //     the upload, and only then be told to sign in.
         //
-        //   REQUIRE_SIGN_IN — gates the primary funnel. Every scan on the
-        //     landing path would demand an account first.
-        //
-        // AUTH0_AUDIENCE must be your API identifier from the Auth0 dashboard.
-        // Without it Auth0 issues an opaque token that only its own /userinfo
-        // route can read, which a resource server cannot validate — so an
-        // audience-less Bearer token is decoration, not security.
-        const SEND_AUTH_TOKEN = false;
-        const REQUIRE_SIGN_IN = false;
+        // AUTH0_AUDIENCE must be your API identifier from the Auth0 dashboard,
+        // and must match the Worker's AUTH0_AUDIENCE. Without it Auth0 issues an
+        // opaque token that no resource server can verify — the Worker will see
+        // a non-JWT and reject it — so an audience-less Bearer token is
+        // decoration, not security.
+        const SEND_AUTH_TOKEN = true;
+        const REQUIRE_SIGN_IN = true;
         const AUTH0_AUDIENCE = '';
 
         /** Bearer header for the inference POST, or {} when we send none.
