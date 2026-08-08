@@ -56,7 +56,12 @@ const ENV = {
     SPACE_URL: 'https://space.example', PROXY_SECRET: 's3cret',
     ALLOWED_ORIGINS: 'http://localhost:8000,https://findflower.me',
     AUTH0_DOMAIN: DOMAIN, AUTH0_AUDIENCE: AUD,
+    ENFORCE_AUTH: 'true',
 };
+// The rollout state: same everything, but the gate evaluates and serves
+// instead of evaluating and refusing. Every rejecting case below must PASS as
+// a 200 in dry-run, with the verdict visible in X-FF-Auth.
+const DRY = { ...ENV, ENFORCE_AUTH: 'false' };
 
 function post(token, { origin = 'https://findflower.me', env = ENV, raw } = {}) {
     const h = new Headers({ 'Content-Type': 'image/jpeg' });
@@ -128,11 +133,58 @@ console.log('\n--- ALLOWED_ORIGINS misconfigured to "*" ---');
     console.log('POST from evil origin       :', r2.status, '(403 = origin gate held)');
 }
 
-console.log('\n--- structure-only mode (AUTH0 vars unset) ---');
+console.log('\n--- structure-only mode (AUTH0 vars unset, enforcing) ---');
 {
-    const bare = { SPACE_URL: ENV.SPACE_URL, PROXY_SECRET: ENV.PROXY_SECRET, ALLOWED_ORIGINS: ENV.ALLOWED_ORIGINS };
+    const bare = {
+        SPACE_URL: ENV.SPACE_URL, PROXY_SECRET: ENV.PROXY_SECRET,
+        ALLOWED_ORIGINS: ENV.ALLOWED_ORIGINS, ENFORCE_AUTH: 'true',
+    };
     await check('no header -> 401', async () => (await post(null, { env: bare })).status, { status: 401, space: false });
     await check('fabricated token -> 200', async () => (await post('aaaaaaaaaaaaaaaaaaaa', { env: bare })).status, { status: 200, space: true });
+    const r = await post('aaaaaaaaaaaaaaaaaaaa', { env: bare });
+    console.log('      X-FF-Auth on unverified pass:', r.headers.get('X-FF-Auth'));
+}
+
+console.log('\n--- ROLLOUT STEP 1: ENFORCE_AUTH=false (dry run) ---');
+console.log('    every case must serve 200; the verdict rides on X-FF-Auth');
+await check('no header -> served', async () => (await post(null, { env: DRY })).status, { status: 200, space: true });
+await check('malformed scheme -> served', async () => (await post(null, { raw: 'Basic abcdefghijklmnop', env: DRY })).status, { status: 200, space: true });
+await check('expired token -> served', async () => (await post(await mint({ exp: Math.floor(Date.now() / 1000) - 7200 }), { env: DRY })).status, { status: 200, space: true });
+await check('forged token -> served', async () => (await post('aaaaaaaaaaaaaaaaaaaaaaaa', { env: DRY })).status, { status: 200, space: true });
+await check('valid token -> served', async () => (await post(await mint(), { env: DRY })).status, { status: 200, space: true });
+{
+    // The header is the whole point of the dry run: it is how you confirm the
+    // frontend is sending a token that WILL survive step 3 before you arm it.
+    const cases = [
+        ['no header', await post(null, { env: DRY })],
+        ['expired token', await post(await mint({ exp: Math.floor(Date.now() / 1000) - 7200 }), { env: DRY })],
+        ['valid token', await post(await mint(), { env: DRY })],
+    ];
+    for (const [label, r] of cases) {
+        console.log('      ' + label.padEnd(16) + 'X-FF-Auth: ' + r.headers.get('X-FF-Auth'));
+    }
+    const ok = cases[2][1].headers.get('X-FF-Auth') === 'ok';
+    console.log((ok ? 'PASS' : 'FAIL') + '  valid token reports exactly "ok" in dry run');
+    ok ? pass++ : fail++;
+}
+
+console.log('\n--- ROLLOUT STEP 3: same requests, ENFORCE_AUTH=true ---');
+await check('no header -> 401', async () => (await post(null)).status, { status: 401, space: false });
+await check('forged token -> 401', async () => (await post('aaaaaaaaaaaaaaaaaaaaaaaa')).status, { status: 401, space: false });
+await check('valid token -> 200', async () => (await post(await mint())).status, { status: 200, space: true });
+{
+    // A missing or garbled var must FAIL CLOSED -- only "false" may disarm.
+    const checks = [];
+    for (const v of [undefined, '', 'false', 'FALSE', 'False', 'true', 'yes', '1', 'no', 'flase']) {
+        const env = { ...ENV }; if (v === undefined) delete env.ENFORCE_AUTH; else env.ENFORCE_AUTH = v;
+        checks.push([JSON.stringify(v), (await post(null, { env })).status]);
+    }
+    console.log('      ENFORCE_AUTH value -> status for a tokenless request:');
+    for (const [v, s] of checks) console.log('        ' + String(v).padEnd(11) + ' -> ' + s);
+    const open = checks.filter(([, s]) => s === 200).map(([v]) => v).join(',');
+    const ok = open === '"false","FALSE","False"';
+    console.log((ok ? 'PASS' : 'FAIL') + '  only "false" disarms; everything else enforces (open: ' + (open || 'none') + ')');
+    ok ? pass++ : fail++;
 }
 
 console.log('\n--- JWKS caching ---');
