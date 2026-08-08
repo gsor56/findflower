@@ -23,21 +23,29 @@ ALLOWED_ORIGINS = "http://localhost:8000,https://findflower.me"
 AUTH0_DOMAIN   = "findflower.au.auth0.com"
 AUTH0_AUDIENCE = "https://api.findflower.me"
 
-# The auth gate is ARMED. There is deliberately no ENFORCE_AUTH line here:
-# the Worker fails CLOSED, so an absent var enforces. Only the literal string
-# "false" disarms it, which means a typo can never leave the proxy open.
+# The auth gate is DISARMED — deliberately, 2026-08-08, pre-production.
 #
-# To disarm — and this is an emergency lever, not a routine one — add
+# ENFORCE_AUTH fails CLOSED: only the literal string "false" disarms it, so an
+# absent, empty or misspelled value enforces and a typo can never open the
+# proxy by accident. Opening it has to look exactly like the line below.
 #
-#   ENFORCE_AUTH = "false"
+# Disarmed does NOT mean unchecked. The Worker still verifies every token it is
+# given — RS256 signature against the tenant's JWKS, issuer, audience, expiry —
+# and reports the verdict in the X-FF-Auth response header. It just serves the
+# request either way. That is the point: `ok` in that header on a real
+# signed-in scan is the evidence that re-arming is safe, and it keeps
+# accumulating while the gate is down.
 #
-# and redeploy. The Worker then evaluates every request exactly as it does now
-# and reports the verdict in the X-FF-Auth response header, but serves it
-# regardless. That is what made the original rollout seamless: the Worker
-# accepted the Authorization header for a while before it started requiring
-# one, so the Worker and the frontend could ship in either order without a
-# window where scanning was broken.
+# Still standing while this is open, so the model is not a free public API:
+#   - the ALLOWED_ORIGINS gate above (other websites' browsers are refused)
+#   - X-Proxy-Secret, which the Space checks for itself
+# Neither survives a determined curl, so treat this as a window, not a state.
 #
-# Rolled out 2026-08-08: deploy disarmed -> publish frontend -> confirm
-# X-FF-Auth read `ok` on a real signed-in scan -> remove the var and redeploy.
-# Reuse that sequence for any future change that tightens the gate.
+# TO RE-ARM: delete the ENFORCE_AUTH line, `wrangler deploy`, and flip
+# REQUIRE_SIGN_IN back to true in try.html. Both together — sign-in off with
+# the Worker armed means every guest scan 401s after the upload.
+#
+# Rolled out 2026-08-08 with no downtime by using this same lever: deploy
+# disarmed -> publish frontend -> confirm X-FF-Auth read `ok` -> remove the var
+# and redeploy. Reuse that sequence for any change that tightens the gate.
+ENFORCE_AUTH = "false"
