@@ -2,9 +2,19 @@ name = "findflower-proxy"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 
-# Public config only. Secrets (HF_TOKEN) are NOT stored here — set them with:
-#   wrangler secret put HF_TOKEN
+# Public config only. Secrets are NOT stored here — set them with:
+#   wrangler secret put SPACE_TOKEN
+#   wrangler secret put PROXY_SECRET
 #
-# CORS allowlist: dev + current public testing domain.
+# CORS allowlist: dev + the production domain. A literal `*` is ignored by the
+# Worker and falls back to https://findflower.me — this proxy never serves a
+# wildcard.
 [vars]
 ALLOWED_ORIGINS = "http://localhost:8000,https://findflower.me"
+
+# AUTH0_DOMAIN and AUTH0_AUDIENCE turn on full JWT verification in the Worker's
+# auth gate. Until both exist the Worker only checks that *a* Bearer token was
+# sent, which stops casual scraping but not someone who read this repo — real
+# security is these two lines (must also match AUTH0_AUDIENCE in try.html):
+# AUTH0_DOMAIN   = "findflower.au.auth0.com"
+# AUTH0_AUDIENCE = "https://api.findflower.me"
