@@ -77,8 +77,12 @@
             '<a href="' + esc(l.href) + '"' + l.attrs + ' class="block">' +
                 '<div class="aspect-[4/5] bg-neutral-100 overflow-hidden">' + media + '</div>' +
                 '<div class="p-3.5 sm:p-4">' +
-                    '<h3 class="font-medium text-sm sm:text-base text-neutral-900 leading-snug italic">' + esc(plant.name) + '</h3>' +
-                    (plant.family ? '<p class="text-xs text-neutral-400 mt-1">' + esc(plant.family) + '</p>' : '') +
+                    // Species names get long (and Trefle common names are
+                    // user-contributed), so the title is capped at one line
+                    // with an ellipsis; the full name stays available on the
+                    // tooltip instead of stretching the card.
+                    '<h3 class="font-medium text-sm sm:text-base text-neutral-900 leading-snug italic truncate" title="' + esc(plant.name) + '">' + esc(plant.name) + '</h3>' +
+                    (plant.family ? '<p class="text-xs text-neutral-400 mt-1 truncate">' + esc(plant.family) + '</p>' : '') +
                 '</div>' +
             '</a>' +
         '</article>';
