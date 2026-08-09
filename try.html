@@ -231,7 +231,11 @@
                     <div class="flex-1">
                         <!-- Camera -->
                         <div data-panel="camera" class="panel">
-                            <div class="relative aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 flex items-center justify-center">
+                            <!-- Portrait 3:4 on phones matches the phone camera's
+                                 native frame (object-cover stops cropping the
+                                 sides away); 4:3 landscape from sm up. Display
+                                 only — capture reads the video's real pixels. -->
+                            <div class="relative aspect-[3/4] sm:aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 flex items-center justify-center">
                                 <video id="camVideo" class="w-full h-full object-cover hidden" playsinline muted></video>
                                 <div id="camPlaceholder" class="text-center px-6">
                                     <svg class="mx-auto mb-4 text-neutral-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -266,7 +270,7 @@
 
                         <!-- Upload -->
                         <div data-panel="upload" class="panel hidden">
-                            <label id="dropzone" for="fileInput" class="dropzone cursor-pointer flex flex-col items-center justify-center text-center aspect-[4/3] rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 px-6">
+                            <label id="dropzone" for="fileInput" class="dropzone cursor-pointer flex flex-col items-center justify-center text-center aspect-[3/4] sm:aspect-[4/3] rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 px-6">
                                 <svg class="mb-4 text-sage-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                                 <p class="text-sm font-medium text-neutral-700 mb-1">Drop an image here</p>
                                 <p class="text-xs text-neutral-400 font-light">or click to browse · JPG, PNG, WEBP</p>
@@ -276,7 +280,7 @@
 
                         <!-- URL -->
                         <div data-panel="url" class="panel hidden">
-                            <div class="aspect-[4/3] rounded-2xl border border-neutral-200 bg-neutral-50 flex flex-col justify-center px-6 md:px-8">
+                            <div class="aspect-[3/4] sm:aspect-[4/3] rounded-2xl border border-neutral-200 bg-neutral-50 flex flex-col justify-center px-6 md:px-8">
                                 <label class="text-sm font-medium text-neutral-700 mb-2 block">Image or YouTube link</label>
                                 <div class="flex gap-2">
                                     <input id="urlInput" type="url" placeholder="https://…" class="flex-1 text-sm bg-white border border-neutral-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
@@ -1382,144 +1386,4 @@
          *  absence of a poison claim in Wikidata is not a clearance to eat it. */
         function renderToxicity(info) {
             const banner = $('resToxic');
-            if (!info || !info.isToxic) { banner.classList.add('hidden'); return; }
-            $('resToxicBody').textContent =
-                (info.toxic && info.toxic.trim())
-                    ? info.toxic.trim()
-                    : 'This species is recorded as toxic. Avoid ingestion and wash hands after contact.';
-            banner.classList.remove('hidden');
-        }
-
-        /** Build the drag-to-compare slider when a known lookalike exists. */
-        function renderCompare(info) {
-            const wrap = $('resCompare'), mount = $('resCompareMount');
-            mount.innerHTML = '';
-            if (!info || !info.lookalikeUrl || !previewImg.src) {
-                wrap.classList.add('hidden');
-                return;
-            }
-            $('resCompareHint').textContent =
-                'Your photo against ' + (info.lookalikeName || 'a commonly confused species') +
-                '. Drag the divider to compare — check the details that differ before you trust the match.';
-            mount.appendChild(buildCompare({
-                leftSrc: previewImg.src,
-                leftLabel: 'Your photo',
-                rightSrc: info.lookalikeUrl,
-                rightLabel: info.lookalikeName || 'Lookalike'
-            }));
-            wrap.classList.remove('hidden');
-        }
-
-        /** Vertical-divider image comparison.
-         *
-         *  Position lives in a --ff-pos custom property that drives both the
-         *  clip-path and the handle offset, so a drag mutates one value and the
-         *  browser never re-lays-out. Pointer Events cover mouse, touch and pen
-         *  in one path; setPointerCapture keeps the drag alive when the finger
-         *  leaves the element. */
-        function buildCompare({ leftSrc, leftLabel, rightSrc, rightLabel }) {
-            const el = document.createElement('div');
-            el.className = 'ff-compare';
-            el.innerHTML =
-                `<img class="ff-compare__img" src="${rightSrc}" alt="${rightLabel}" crossorigin="anonymous" />` +
-                `<img class="ff-compare__img ff-compare__img--top" src="${leftSrc}" alt="${leftLabel}" />` +
-                '<div class="ff-compare__divider"></div>' +
-                `<span class="ff-compare__label ff-compare__label--left">${leftLabel}</span>` +
-                `<span class="ff-compare__label ff-compare__label--right">${rightLabel}</span>` +
-                '<div class="ff-compare__handle" role="slider" tabindex="0" aria-label="Compare photos" ' +
-                    'aria-valuemin="0" aria-valuemax="100" aria-valuenow="50">' +
-                    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-                        'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px">' +
-                        '<path d="m9 7-5 5 5 5M15 7l5 5-5 5"/></svg>' +
-                '</div>';
-
-            const handle = el.querySelector('.ff-compare__handle');
-            let pos = 50;
-
-            const setPos = (pct) => {
-                pos = Math.max(0, Math.min(100, pct));
-                el.style.setProperty('--ff-pos', pos + '%');
-                handle.setAttribute('aria-valuenow', Math.round(pos));
-            };
-            setPos(50);
-
-            const fromEvent = (e) => {
-                const r = el.getBoundingClientRect();
-                if (!r.width) return;
-                setPos(((e.clientX - r.left) / r.width) * 100);
-            };
-
-            let dragging = false;
-            el.addEventListener('pointerdown', (e) => {
-                dragging = true;
-                el.setPointerCapture(e.pointerId);
-                fromEvent(e);
-            });
-            el.addEventListener('pointermove', (e) => {
-                if (!dragging) return;
-                e.preventDefault();   // stop the browser turning it into a scroll
-                fromEvent(e);
-            });
-            const end = (e) => {
-                if (!dragging) return;
-                dragging = false;
-                try { el.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
-            };
-            el.addEventListener('pointerup', end);
-            el.addEventListener('pointercancel', end);
-
-            // Keyboard parity: the slider is focusable, so it must be operable.
-            handle.addEventListener('keydown', (e) => {
-                const step = e.shiftKey ? 10 : 2;
-                if (e.key === 'ArrowLeft') { setPos(pos - step); e.preventDefault(); }
-                else if (e.key === 'ArrowRight') { setPos(pos + step); e.preventDefault(); }
-                else if (e.key === 'Home') { setPos(0); e.preventDefault(); }
-                else if (e.key === 'End') { setPos(100); e.preventDefault(); }
-            });
-
-            return el;
-        }
-
-        // ---- Retake shortcuts on the two rejection states ----
-        // A rejected result is a dead end unless the next attempt is one tap
-        // away, so both tiers route straight back to the camera.
-        $('resLowRetake').addEventListener('click', () => {
-            showState('empty');
-            focusCaptureEntry();
-        });
-        $('resUncertainRetake').addEventListener('click', () => {
-            showState('empty');
-            focusCaptureEntry();
-        });
-
-        // ---- Feedback (stored locally; future human-in-the-loop signal) ----
-        function saveFeedback(correct, correction) {
-            try {
-                const log = JSON.parse(localStorage.getItem('ff_feedback') || '[]');
-                log.push({
-                    predicted: lastPrediction ? cleanName(lastPrediction.name) : null,
-                    confidence: lastPrediction ? lastPrediction.p : null,
-                    correct: correct,
-                    correction: correction || null
-                });
-                localStorage.setItem('ff_feedback', JSON.stringify(log));
-            } catch (e) { /* storage unavailable — ignore */ }
-        }
-        $('fbYes').addEventListener('click', () => {
-            saveFeedback(true, null);
-            $('fbPrompt').classList.add('hidden');
-            $('fbThanks').classList.remove('hidden');
-        });
-        $('fbNo').addEventListener('click', () => {
-            $('fbPrompt').classList.add('hidden');
-            $('fbCorrection').classList.remove('hidden');
-        });
-        $('fbSubmit').addEventListener('click', () => {
-            saveFeedback(false, $('fbInput').value.trim());
-            $('fbCorrection').classList.add('hidden');
-            $('fbThanks').classList.remove('hidden');
-        });
-    })();
-    </script>
-</body>
-</html>
+            if

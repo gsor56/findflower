@@ -29,6 +29,30 @@ body {
    `font-serif`, so we never override an element that asked for the serif. */
 
 /* ============================================================================
+   Mobile viewport chrome — dynamic viewport height + notch safe areas
+   ----------------------------------------------------------------------------
+   `100vh` on mobile browsers measures the viewport as if the URL chrome were
+   already hidden, so a `min-h-screen` layout (login.html's body) renders a few
+   pixels too tall and forces a scroll on first paint. Where the engine
+   supports it, upgrade to `dvh`, which tracks the visible height as the chrome
+   collapses. The Play CDN injects its utilities after this file, so the
+   override needs !important. Browsers without dvh support simply keep vh.
+   ========================================================================== */
+@supports (min-height: 100dvh) {
+    .min-h-screen { min-height: 100dvh !important; }
+}
+
+/* The fixed site header — shipped per page and then replaced by nav.js's
+   canonical one, both of which match this selector — extends its blurred
+   background up into the status-bar area on notched phones instead of letting
+   scrolling content show through above it. env() resolves to 0 unless the
+   viewport opts into viewport-fit=cover, so this is a no-op where it isn't
+   needed. */
+header.fixed.top-0 {
+    padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* ============================================================================
    Mobile bottom tab bar (injected by nav.js)
    ----------------------------------------------------------------------------
    A fixed, native-feeling tab bar shown only on phones. Desktop uses the sticky
@@ -113,6 +137,10 @@ body {
     inset: 0 !important;
     z-index: 100 !important;
     padding: 20px;
+    /* Keep the close control and links clear of the notch and home indicator
+       on notched phones. max() keeps the 20px floor everywhere else. */
+    padding-top: max(20px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
     background-color: #FCFCFC;
     overflow-y: auto;
     transform: translateX(-100%);
@@ -495,6 +523,26 @@ body {
     .ff-candidate__thumb { height: 74px; }
     .ff-blur-card { padding: 22px 18px 18px; border-radius: 20px; }
     .ff-blur-title { font-size: 1rem; }
+}
+
+/* ============================================================================
+   One-column plant grids under 380px
+   ----------------------------------------------------------------------------
+   Below 380px a two-column plant card is ~165px wide: the photo is cramped and
+   a long species name has nowhere to go. Collapse every plant-card grid to a
+   single column — the directory encyclopedia (#dirGrid) and its three embeds
+   (#previewGrid on the homepage, #miniGrid on the scanner, #discoverGrid on the
+   dashboard), which all render the same card through scripts/ui.js. ID
+   selectors outrank the Play CDN's later-injected .grid-cols-* utilities;
+   !important is belt and braces, matching this file's existing pattern.
+   ========================================================================== */
+@media (max-width: 379.98px) {
+    #dirGrid,
+    #miniGrid,
+    #discoverGrid,
+    #previewGrid {
+        grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+    }
 }
 
 /* ============================================================================
