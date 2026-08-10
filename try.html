@@ -51,6 +51,12 @@
          this page's header shows "Sign In" even to a signed-in visitor. Every
          other page still personalises normally. -->
     <script src="main.js?v=2"></script>
+    <!-- SPA: try.html is deliberately NOT router-swapped (see RELOAD in
+         scripts/router.js) -- re-executing the inline ViT block is how inference
+         breaks quietly. views/scanner.js only adds camera teardown, so the
+         capture LED and sensor are released the moment the page is hidden. -->
+    <script src="scripts/views/scanner.js" defer></script>
+    <script src="scripts/router.js" defer></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

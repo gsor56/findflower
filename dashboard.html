@@ -29,6 +29,14 @@
     <script src="scripts/api.js?v=1"></script>
     <script src="scripts/ui.js?v=1"></script>
     <script src="directory.js" defer></script>
+    <!-- SPA: router swaps <main> between pages without a reload; the view
+         modules give each route a mount/unmount so observers and the Discover
+         feed are torn down on the way out. router.js loads last — it mounts the
+         current route on DOMContentLoaded and needs ffViews populated. -->
+    <script src="scripts/views/home.js" defer></script>
+    <script src="scripts/views/dashboard.js" defer></script>
+    <script src="scripts/views/directory.js" defer></script>
+    <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
@@ -127,7 +135,10 @@
     </header>
 
     <!-- === Auth wall (guests only; unhidden by JS when not signed in) === -->
-    <div id="authWall" class="hidden fixed inset-0 z-[60] flex items-center justify-center px-5 bg-[#FCFCFC]/85 backdrop-blur-md">
+    <!-- data-ff-page: lives outside <main>, so the router carries it across a
+         swap explicitly (see EXTRA in scripts/router.js). Without that the
+         page's inline init() would call $('authWall') on a null node. -->
+    <div id="authWall" data-ff-page class="hidden fixed inset-0 z-[60] flex items-center justify-center px-5 bg-[#FCFCFC]/85 backdrop-blur-md">
         <div class="reveal-up active w-full max-w-md bg-white border border-neutral-200 rounded-3xl shadow-lift p-8 sm:p-10 text-center">
             <div class="w-14 h-14 mx-auto rounded-2xl bg-sage-100 border border-sage-200 flex items-center justify-center mb-6">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-700"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -426,7 +437,10 @@
             if (discoverMounted || !window.ffDirectory) return;
             discoverMounted = true;
             $('discoverSection').classList.remove('hidden');
-            window.ffDirectory.mount({
+            // Handle is published so views/dashboard.js can stop the feed when
+            // the router navigates away -- otherwise its IntersectionObserver
+            // keeps pulling Trefle pages into a detached grid.
+            window.ffDiscoverHandle = window.ffDirectory.mount({
                 grid:     $('discoverGrid'),
                 sentinel: $('discoverSentinel'),
                 spinner:  $('discoverSpinner'),
@@ -435,7 +449,8 @@
                 retryBtn: $('discoverRetry'),
                 infinite: true,
                 link:     'species'
-            }).start();
+            });
+            window.ffDiscoverHandle.start();
         }
 
         function initReveal() {

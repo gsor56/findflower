@@ -18,6 +18,12 @@
    just swaps it for the canonical one once the DOM is parsed. When auth.js is
    present (dashboard/login) we hand the rebuilt sign-in link back to
    ffRenderHeader() so the live session state still drives it.
+
+   SPA note. scripts/router.js swaps <main> without reloading, so the active-tab
+   highlight can no longer be a one-time read of location.pathname at load. PAGE
+   is therefore mutable and the router calls window.ffNavSetActive(key) after
+   each swap to repaint it. The chrome itself (header, sidebar, tab bar) lives
+   outside <main> and is never replaced, so it is built exactly once.
    ========================================================================== */
 (function () {
     'use strict';
@@ -32,6 +38,7 @@
         return file;
     }
 
+    // Mutable: the router repaints this on every client-side navigation.
     var PAGE = currentPage();
 
     // Brand mark (the favicon flower) reused in the header.
@@ -247,6 +254,44 @@
             try { window.ffRenderHeader(); } catch (e) { /* non-fatal */ }
         }
     }
+
+    /**
+     * Repaint the active-route highlight after a client-side navigation.
+     *
+     * Called by scripts/router.js with the new page key. Only the three
+     * aria-current markers move; the chrome is not rebuilt, because rebuilding
+     * it would drop the delegated sidebar state and re-run ffRenderHeader for
+     * no reason.
+     */
+    function setActive(key) {
+        PAGE = key || currentPage();
+
+        // Desktop links + sidebar links: both key off an exact href match.
+        var links = document.querySelectorAll('header nav a[href], #ffSidebar a[href]');
+        for (var i = 0; i < links.length; i++) {
+            var a = links[i];
+            var href = (a.getAttribute('href') || '').toLowerCase();
+            var on = (href === PAGE);
+            if (on) a.setAttribute('aria-current', 'page');
+            else a.removeAttribute('aria-current');
+        }
+
+        // Bottom tab bar: match through the TABS table, so "/" still lights Home.
+        var tabs = document.querySelectorAll('.ff-tabbar__item');
+        for (var j = 0; j < tabs.length && j < TABS.length; j++) {
+            if (TABS[j].match.indexOf(PAGE) !== -1) tabs[j].setAttribute('aria-current', 'page');
+            else tabs[j].removeAttribute('aria-current');
+        }
+
+        // Sign-in state can differ per route (dashboard is private), so let
+        // auth.js have another pass if it is present.
+        if (typeof window.ffRenderHeader === 'function') {
+            try { window.ffRenderHeader(); } catch (e) { /* non-fatal */ }
+        }
+    }
+
+    window.ffNavSetActive = setActive;
+    window.ffNavCurrent = function () { return PAGE; };
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', mount);

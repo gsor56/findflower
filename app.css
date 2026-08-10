@@ -110,6 +110,25 @@ header.fixed.top-0 {
     color: #4C6650; /* sage-600 */
 }
 
+/* --- SPA routing state (scripts/router.js) -------------------------------
+   Set on <html> while a client-side navigation is fetching the next page.
+   A fetch on a slow connection is the one moment an SPA feels broken: the
+   tap registers, nothing moves. The cursor and a dimmed main are enough
+   feedback without a spinner that flashes on fast navigations.
+   Pointer events stay ON: cancelling by tapping another link must work. */
+html.ff-routing {
+    cursor: progress;
+}
+
+html.ff-routing main {
+    opacity: 0.6;
+    transition: opacity 120ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.ff-routing main { transition: none; }
+}
+
 /* Only phones get the bar; from md up the sticky header carries navigation. */
 @media (min-width: 768px) {
     .ff-tabbar { display: none !important; }

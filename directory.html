@@ -25,6 +25,13 @@
          window.ffApi / window.ffUi. -->
     <script src="scripts/api.js?v=1"></script>
     <script src="scripts/ui.js?v=1"></script>
+    <!-- SPA: this page's grid engine is inline below and runs on a real load.
+         directory.js + views/directory.js give the router a startable/stoppable
+         copy for client-side revisits, where the inline block has already run. -->
+    <script src="directory.js" defer></script>
+    <script src="scripts/views/home.js" defer></script>
+    <script src="scripts/views/directory.js" defer></script>
+    <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://findflower-proxy.fofi.workers.dev">
@@ -200,7 +207,12 @@
         </div>
     </footer>
 
-    <script>
+    <!-- data-ff-once: this is the page's original inline grid engine and it runs
+         on a real page load only. On a router visit scripts/views/directory.js
+         drives the shared engine (directory.js) instead; re-running this block
+         too would put two engines on one #dirGrid, double-fetching and
+         duplicating cards. See runScripts() in scripts/router.js. -->
+    <script data-ff-once>
     (function () {
         'use strict';
 

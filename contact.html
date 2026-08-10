@@ -20,6 +20,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=5">
     <script src="nav.js?v=2" defer></script>
+    <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
+         scroll-reveal observer on arrival. The page stays a full document. -->
+    <script src="scripts/views/home.js" defer></script>
+    <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
