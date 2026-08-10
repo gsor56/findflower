@@ -48,12 +48,6 @@
             'LIMIT ' + limit + ' OFFSET ' + offset;
     }
 
-    var esc = function (s) {
-        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-        });
-    };
-
     // Ask Commons for a scaled thumbnail — the originals are far too large.
     function thumb(url, width) {
         try {
@@ -79,6 +73,13 @@
         opts = opts || {};
         var grid = opts.grid;
         if (!grid) return { start: function () {}, stop: function () {} };
+        // Hard dependency: the card markup lives in scripts/ui.js. Fail here,
+        // audibly, rather than render an empty grid with no explanation.
+        if (!window.ffUi || typeof ffUi.plantCardHTML !== 'function') {
+            console.error('ffDirectory.mount: scripts/ui.js is not loaded.');
+            if (opts.errorBox) opts.errorBox.classList.remove('hidden');
+            return { start: function () {}, stop: function () {} };
+        }
 
         var sentinel = opts.sentinel || null;
         var spinner  = opts.spinner || null;
@@ -94,12 +95,19 @@
 
         var buffer = [];        // fetched-but-unrendered rows
         var fetchOffset = 0;
+        var treflePage = 0;     // last Trefle page fetched
         var rendered = 0;
         var exhausted = false;  // server returned a short chunk
         var loading = false;
         var prefetch = null;
         var seen = new Set();
         var io = null;
+
+        // Trefle first (~164k species in the same twenty families, one fast
+        // REST call), Wikidata as the fallback when the proxy is unreachable
+        // or TREFLE_TOKEN is unset. opts.source: 'wikidata' pins the old path.
+        var engine = (opts.source !== 'wikidata' && window.ffApi &&
+            typeof ffApi.fetchTrefleBatch === 'function') ? 'trefle' : 'wikidata';
 
         function cardLink(s) {
             if (linkMode === 'wiki') {
@@ -108,16 +116,29 @@
             return { href: 'species.html?name=' + encodeURIComponent(s.name), attrs: '' };
         }
 
+        /** Drop anything already rendered. Keyed on QID where there is one,
+         *  else the name -- Trefle records carry no Wikidata id. */
+        function dedupe(items) {
+            var out = [];
+            for (var i = 0; i < items.length; i++) {
+                var it = items[i];
+                if (!it || !it.name) continue;
+                var key = it.qid || ('n:' + String(it.name).trim().toLowerCase());
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push(it);
+            }
+            return out;
+        }
+
         function normalize(rows) {
             var out = [];
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
                 if (!r.item || !r.img) continue;
                 var qid = r.item.value.split('/').pop();
-                if (seen.has(qid)) continue;
                 var label = r.itemLabel ? r.itemLabel.value : '';
                 if (!label || /^Q\d+$/.test(label)) continue;
-                seen.add(qid);
                 out.push({
                     qid: qid,
                     name: label,
@@ -126,7 +147,7 @@
                     link: r.article ? r.article.value : ('https://www.wikidata.org/wiki/' + qid)
                 });
             }
-            return out;
+            return dedupe(out);
         }
 
         async function fetchChunk(offset) {
@@ -137,13 +158,38 @@
             return data.results.bindings;
         }
 
+        /** One page from the live catalogue, deduped, cursor advanced. */
+        async function fetchNext() {
+            if (engine === 'trefle') {
+                try {
+                    var res = await ffApi.fetchTrefleBatch(treflePage + 1);
+                    treflePage += 1;
+                    if (!res.hasMore) exhausted = true;
+                    // linkMode 'wiki' wants an external article; Trefle has no
+                    // article URL, so those embeds keep the species page link
+                    // api.js already set.
+                    return dedupe(res.items);
+                } catch (err) {
+                    // Only switch before anything is on screen: restarting the
+                    // catalogue from another source mid-scroll would repeat
+                    // cards the user has already passed.
+                    var known = window.ffApi && err instanceof ffApi.TrefleUnavailableError;
+                    if (rendered || !known) throw err;
+                    engine = 'wikidata';
+                    seen.clear();
+                }
+            }
+            var at = fetchOffset;
+            var rows = await fetchChunk(at);
+            fetchOffset = at + CHUNK;
+            if (rows.length < CHUNK) exhausted = true;
+            return normalize(rows);
+        }
+
         function startPrefetch() {
             if (prefetch || exhausted) return;
-            var at = fetchOffset;
-            prefetch = fetchChunk(at).then(function (rows) {
-                fetchOffset = at + CHUNK;
-                if (rows.length < CHUNK) exhausted = true;
-                buffer.push.apply(buffer, normalize(rows));
+            prefetch = fetchNext().then(function (items) {
+                buffer.push.apply(buffer, items);
                 prefetch = null;
             }).catch(function () { prefetch = null; });
         }
@@ -151,29 +197,25 @@
         async function ensureBuffer() {
             if (buffer.length >= BATCH || exhausted) return;
             if (prefetch) { await prefetch; return; }
-            var at = fetchOffset;
-            var rows = await fetchChunk(at);
-            fetchOffset = at + CHUNK;
-            if (rows.length < CHUNK) exhausted = true;
-            buffer.push.apply(buffer, normalize(rows));
+            // A Trefle page is 20 rows against Wikidata's 96, and a page can be
+            // deduped away entirely, so one fetch may not fill a batch.
+            for (var i = 0; i < 5 && buffer.length < BATCH && !exhausted; i++) {
+                var items = await fetchNext();
+                buffer.push.apply(buffer, items);
+            }
         }
 
+        // Card markup lives in scripts/ui.js -- one design for every grid on
+        // the site. cardLink() resolves linkMode here; ui.js then decides
+        // target/rel from the href (external gets _blank + noopener).
         function cardHTML(s) {
-            var l = cardLink(s);
-            return '' +
-            '<article class="ff-card group fade-in bg-white border border-neutral-200 rounded-3xl overflow-hidden shadow-subtle hover:shadow-float transition-shadow duration-300" data-qid="' + esc(s.qid) + '">' +
-                '<a href="' + esc(l.href) + '"' + l.attrs + ' class="block">' +
-                    '<div class="aspect-[4/5] bg-neutral-100 overflow-hidden">' +
-                        '<img src="' + esc(s.img) + '" alt="' + esc(s.name) + '" loading="lazy" decoding="async" ' +
-                             'class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out" ' +
-                             'onerror="var a=this.closest(\'article\'); if(a) a.remove();">' +
-                    '</div>' +
-                    '<div class="p-3.5 sm:p-4">' +
-                        '<h3 class="font-medium text-sm sm:text-base text-neutral-900 leading-snug italic">' + esc(s.name) + '</h3>' +
-                        (s.family ? '<p class="text-xs text-neutral-400 mt-1">' + esc(s.family) + '</p>' : '') +
-                    '</div>' +
-                '</a>' +
-            '</article>';
+            return ffUi.plantCardHTML({
+                qid: s.qid,
+                name: s.name,
+                family: s.family,
+                img: s.img,
+                link: cardLink(s).href,
+            });
         }
 
         function renderBatch() {
@@ -207,7 +249,9 @@
         // the element box so scroll position stays stable. Infinite mode only.
         var CULL_MARGIN = 2500;
         function cullOffscreen() {
-            var cards = grid.querySelectorAll('article[data-qid]');
+            // Trefle records have no QID, so match every card <article> --
+            // skeletons are .ff-skel <div>s and are not selected.
+            var cards = grid.querySelectorAll('article');
             var top = window.scrollY - CULL_MARGIN;
             var bottom = window.scrollY + window.innerHeight + CULL_MARGIN;
             for (var i = 0; i < cards.length; i++) {
@@ -229,8 +273,12 @@
             return (exhausted && !buffer.length) || rendered >= max;
         }
 
+        /** One step: top the buffer up if needed, then render a batch.
+         *  Returns the number of cards rendered, 0 on failure or when there is
+         *  nothing left. fill() reads that to know when to stop -- this function
+         *  handles its own errors, so a caller cannot tell from a throw. */
         async function loadMore() {
-            if (loading || done()) return;
+            if (loading || done()) return 0;
             loading = true;
             if (errorBox) errorBox.classList.add('hidden');
 
@@ -240,10 +288,11 @@
                 showSkeletons(Math.min(BATCH, max - rendered));
             }
 
+            var painted = 0;
             try {
                 await ensureBuffer();
                 clearSkeletons();
-                renderBatch();
+                painted = renderBatch();
                 if (buffer.length < BATCH * 3) startPrefetch();
 
                 if (done()) {
@@ -257,6 +306,7 @@
                 if (spinner) spinner.classList.add('hidden');
                 loading = false;
             }
+            return painted;
         }
 
         function initObserver() {
@@ -275,21 +325,32 @@
             cullTimer = setTimeout(function () { cullTimer = null; cullOffscreen(); }, 250);
         }
 
+        // Fixed grids (infinite:false) have no scroll trigger, so they fill in a
+        // loop. loadMore() reports 0 both when the source is spent and when a
+        // request failed -- it never throws -- so stopping on 0 is what keeps a
+        // dead network from spinning this loop at full speed. done() alone would
+        // not: a failed fetch leaves exhausted false and the buffer empty.
+        async function fill() {
+            while (!done()) {
+                var n = await loadMore();
+                if (!n) return;
+            }
+        }
+
         async function start() {
             if (opts.retryBtn) {
                 opts.retryBtn.addEventListener('click', function () {
                     if (errorBox) errorBox.classList.add('hidden');
-                    loadMore();
+                    if (infinite) loadMore();
+                    else fill();
                 });
             }
             if (infinite && cull) window.addEventListener('scroll', onScroll, { passive: true });
             initObserver();
             // Fill to the cap (fixed grid) or lay down the first batch (infinite,
             // after which the observer keeps it going).
-            await loadMore();
-            if (!infinite) {
-                while (!done()) { await loadMore(); }
-            }
+            if (infinite) await loadMore();
+            else await fill();
         }
 
         function stop() {

@@ -3,6 +3,8 @@ kaggle.json
 *.env
 .env
 *secret*.txt
+# Holds a live provider api_key inline; the repo is public.
+proxy/litellm-config.yaml
 
 # --- Model weights: far over GitHub's 100MB file cap; live in the HF model repo ---
 # Both halves of the external-data format matter: the .onnx protobuf is small,
@@ -34,3 +36,4 @@ _scratch/
 # --- OS junk ---
 Thumbs.db
 .DS_Store
+.aider*

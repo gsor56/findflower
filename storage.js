@@ -6,9 +6,31 @@
  * persistence story. The scanner writes here; dashboard.html reads here.
  *
  * Two object stores:
- *   scans  keyPath "id"   { id, species, confidence, imageBase64, timestamp, geolocation }
- *   stats  keyPath "key"  one row, key "global": { totalScans, currentStreak,
- *                                                  lastScanDate, unlockedBadges }
+ *   scans  keyPath "id"   { id, userId, species, confidence, imageBase64,
+ *                           timestamp, geolocation }
+ *   stats  keyPath "key"  ONE ROW PER USER, key === userId: { totalScans,
+ *                           currentStreak, lastScanDate, unlockedBadges }
+ *
+ * === Why every row carries a userId (schema v2) ===========================
+ *
+ * v1 kept a single stats row under the literal key "global" and read scans
+ * with an unfiltered cursor. On a shared browser that meant the second person
+ * to sign in inherited the first person's streak, badge shelf and discovery
+ * history -- the "login amnesia" bug. Data was never lost, it was pooled.
+ *
+ * v2 scopes every read and write to one user id (the Auth0 `sub`). The active
+ * user is resolved lazily from window.ffUser() when auth.js is present, so
+ * dashboard.html needed no change to get correct per-account numbers.
+ *
+ * === The UNCLAIMED sentinel ==============================================
+ *
+ * try.html deliberately loads no Auth0 (it is the open scanning path), yet it
+ * is the page that WRITES scans. Stamping those rows with a real id is
+ * therefore impossible at write time. Rather than drop them on the floor or
+ * force auth back onto the scanner, they are written to UNCLAIMED and adopted
+ * by the first signed-in page that opens the DB -- the same adoption path that
+ * migrates pre-v2 rows. Attribution catches up by itself; if auth.js is ever
+ * restored to try.html it simply becomes immediate instead of deferred.
  *
  * Everything is exposed on window.ffStore. Callers await; the DB opens lazily
  * on first use so importing this file costs nothing.
@@ -17,10 +39,23 @@
   "use strict";
 
   const DB_NAME = "findflower";
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE_SCANS = "scans";
   const STORE_STATS = "stats";
-  const STATS_KEY = "global";
+  const STATS_KEY = "global"; // v1's single shared row; migrated away on upgrade
+
+  // Owner of rows written before we knew who was signed in. Deliberately not a
+  // plausible Auth0 `sub` (those look like "auth0|abc123" or "google-oauth2|…")
+  // so it can never collide with a real account.
+  const UNCLAIMED = "__unclaimed__";
+
+  // Upper bound for the timestamp half of a [userId, timestamp] range. Built
+  // from a char code rather than typed inline so the sentinel survives any
+  // editor or transport that would mangle a raw U+FFFF byte.
+  const MAX_KEY_CHAR = String.fromCharCode(0xffff);
+
+  const IDX_USER = "userId";
+  const IDX_USER_TIME = "user_time"; // [userId, timestamp] -- per-user, newest-first
 
   // Thumbnails are stored as base64 inside IndexedDB. Browsers cap origin
   // storage, so keep each frame small rather than banking a full camera frame.
@@ -70,8 +105,8 @@
     },
   ];
 
+  // No `key` here on purpose: the key IS the user id, supplied at write time.
   const DEFAULT_STATS = {
-    key: STATS_KEY,
     totalScans: 0,
     currentStreak: 0,
     lastScanDate: null,
@@ -79,6 +114,44 @@
   };
 
   let _dbPromise = null;
+
+  /**
+   * v1 -> v2. Stamp every pre-existing row with the UNCLAIMED sentinel and
+   * retire the single "global" stats row into it.
+   *
+   * Nothing is deleted and no history is reset: v1 rows genuinely belonged to
+   * whoever used this browser, we simply never recorded who. Marking them
+   * unclaimed rather than guessing an owner keeps that honest, and the first
+   * sign-in adopts the lot -- so a solo user (the overwhelming case) keeps
+   * their streak and badges intact across the upgrade.
+   *
+   * Runs inside the versionchange transaction; every request here is awaited
+   * by the browser before the upgrade is allowed to commit.
+   */
+  function migrateToV2(t) {
+    const scans = t.objectStore(STORE_SCANS);
+    const stats = t.objectStore(STORE_STATS);
+
+    const cur = scans.openCursor();
+    cur.onsuccess = (e) => {
+      const c = e.target.result;
+      if (!c) return;
+      const row = c.value;
+      if (!row.userId) {
+        row.userId = UNCLAIMED;
+        c.update(row);
+      }
+      c.continue();
+    };
+
+    const legacy = stats.get(STATS_KEY);
+    legacy.onsuccess = () => {
+      const row = legacy.result;
+      if (!row) return;
+      stats.delete(STATS_KEY);
+      stats.put(Object.assign({}, row, { key: UNCLAIMED }));
+    };
+  }
 
   function openDB() {
     if (_dbPromise) return _dbPromise;
@@ -98,6 +171,18 @@
         }
         if (!db.objectStoreNames.contains(STORE_STATS)) {
           db.createObjectStore(STORE_STATS, { keyPath: "key" });
+        }
+        // v2: every scan belongs to a user. Index by userId alone (so stats
+        // can iterate a user's whole history) and by [userId, timestamp] (so
+        // per-user reads are a keyed cursor, newest first -- no scan-and-filter
+        // over the whole store).
+        if (e.oldVersion < 2) {
+          const s = req.transaction.objectStore(STORE_SCANS);
+          if (!s.indexNames.contains(IDX_USER)) s.createIndex(IDX_USER, IDX_USER);
+          if (!s.indexNames.contains(IDX_USER_TIME)) {
+            s.createIndex(IDX_USER_TIME, [IDX_USER, "timestamp"]);
+          }
+          migrateToV2(req.transaction);
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -126,6 +211,116 @@
           t.onabort = () => reject(t.error || new Error("transaction aborted"));
         })
     );
+  }
+
+  /** All three stores in one transaction, for cross-store writes like adoption. */
+  function tx2(mode, fn) {
+    return openDB().then(
+      (db) =>
+        new Promise((resolve, reject) => {
+          const t = db.transaction([STORE_SCANS, STORE_STATS], mode);
+          const stores = { scans: t.objectStore(STORE_SCANS), stats: t.objectStore(STORE_STATS) };
+          let out;
+          try {
+            out = fn(stores, t);
+          } catch (err) {
+            reject(err);
+            return;
+          }
+          t.oncomplete = () => resolve(out);
+          t.onerror = () => reject(t.error);
+          t.onabort = () => reject(t.error || new Error("transaction aborted"));
+        })
+    );
+  }
+
+  // === active user =========================================================
+
+  /** Resolve the active user id. Returns null when nobody is signed in.
+   *  auth.js exposes ffUser() -> Promise<{ sub } | null>; when it is absent
+   *  (try.html) the sentinel owns the write so a later sign-in can adopt it. */
+  async function activeUser() {
+    if (typeof window.ffUser === "function") {
+      try {
+        const u = await window.ffUser();
+        return u && u.sub ? String(u.sub) : null;
+      } catch {
+        return null; // a broken auth read must never stall a scan
+      }
+    }
+    return null;
+  }
+
+  /** Merge two stats rows. Never reduces progress: an upgrade or an adoption
+   *  must not cost the user a streak or a badge they already earned. */
+  function mergeStats(mine, orphan, key) {
+    const a = mine || {};
+    const b = orphan || {};
+    const badges = new Set([].concat(a.unlockedBadges || [], b.unlockedBadges || []));
+    let later = a.lastScanDate || b.lastScanDate || null;
+    if (a.lastScanDate && b.lastScanDate) {
+      later = dayDiff(a.lastScanDate, b.lastScanDate) > 0 ? b.lastScanDate : a.lastScanDate;
+    }
+    return {
+      key: key,
+      totalScans: (a.totalScans || 0) + (b.totalScans || 0),
+      currentStreak: Math.max(a.currentStreak || 0, b.currentStreak || 0),
+      lastScanDate: later,
+      unlockedBadges: Array.from(badges),
+    };
+  }
+
+  /** Hand every UNCLAIMED row to `userId`. Resolves to the number adopted. */
+  function adopt(userId) {
+    const uid = String(userId || "");
+    if (!uid || uid === UNCLAIMED) return Promise.resolve(0);
+    return tx2("readwrite", ({ scans, stats }) => {
+      const out = { n: 0 };
+      const c = scans.index(IDX_USER).openCursor(IDBKeyRange.only(UNCLAIMED));
+      c.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        const row = cur.value;
+        row.userId = uid;
+        cur.update(row);
+        out.n++;
+        cur.continue();
+      };
+      const orphanReq = stats.get(UNCLAIMED);
+      orphanReq.onsuccess = () => {
+        const orphan = orphanReq.result;
+        if (!orphan) return;
+        const mineReq = stats.get(uid);
+        mineReq.onsuccess = () => {
+          stats.put(mergeStats(mineReq.result, orphan, uid));
+          stats.delete(UNCLAIMED);
+        };
+      };
+      return out;
+    }).then((o) => o.n);
+  }
+
+  // Resolved once per page: signing in with the Auth0 SPA flow reloads the
+  // page, so a cached owner cannot go stale mid-session. refreshUser() exists
+  // for callers that change identity without a navigation.
+  let _ownerPromise = null;
+
+  /** The user id every read and write in this file is scoped to. */
+  function owner() {
+    if (_ownerPromise) return _ownerPromise;
+    _ownerPromise = (async () => {
+      const uid = await activeUser();
+      if (!uid) return UNCLAIMED;
+      // Catch up on anything the signed-out scanner wrote, then own it.
+      try { await adopt(uid); } catch { /* adoption is best-effort */ }
+      return uid;
+    })();
+    return _ownerPromise;
+  }
+
+  function refreshUser() {
+    _ownerPromise = null;
+    return owner();
   }
 
   const wrap = (req) => ({ __req: req });
@@ -160,13 +355,17 @@
 
   // === stats ================================================================
 
-  async function getStats() {
-    const row = await tx(STORE_STATS, "readonly", (s) => wrap(s.get(STATS_KEY)));
-    return Object.assign({}, DEFAULT_STATS, row || {});
+  async function getStats(userId) {
+    const uid = userId ? String(userId) : await owner();
+    const row = await tx(STORE_STATS, "readonly", (s) => wrap(s.get(uid)));
+    return Object.assign({}, DEFAULT_STATS, row || {}, { key: uid });
   }
 
-  function putStats(stats) {
-    return tx(STORE_STATS, "readwrite", (s) => wrap(s.put(Object.assign({}, DEFAULT_STATS, stats, { key: STATS_KEY }))));
+  async function putStats(stats, userId) {
+    const uid = userId ? String(userId) : await owner();
+    return tx(STORE_STATS, "readwrite", (s) =>
+      wrap(s.put(Object.assign({}, DEFAULT_STATS, stats, { key: uid })))
+    );
   }
 
   /**
@@ -274,12 +473,16 @@
    * Persist one identification and roll the stats forward.
    * Returns { scan, stats, newBadges }.
    */
-  async function addScan({ species, confidence, image, geolocation, timestamp }) {
+  async function addScan({ species, confidence, image, geolocation, timestamp, userId }) {
     const when = timestamp ? new Date(timestamp) : new Date();
     const imageBase64 = image ? await toThumbnail(image) : null;
+    // Resolved before the write, never after: a row with no owner cannot be
+    // told apart later from one that legitimately belongs to the sentinel.
+    const uid = userId ? String(userId) : await owner();
 
     const scan = {
       id: newId(),
+      userId: uid,
       species: species || "Unknown",
       confidence: typeof confidence === "number" ? confidence : null,
       imageBase64,
@@ -289,25 +492,41 @@
 
     await tx(STORE_SCANS, "readwrite", (s) => wrap(s.put(scan)));
 
-    const stats = await getStats();
+    const stats = await getStats(uid);
     const { streak, today } = advanceStreak(stats, when);
     stats.currentStreak = streak;
     stats.lastScanDate = today;
     stats.totalScans = (stats.totalScans || 0) + 1;
 
-    const scans = await getScans();
+    const scans = await getScans(null, uid);
     const newBadges = evaluateBadges(stats, scans);
-    await putStats(stats);
+    await putStats(stats, uid);
 
     return { scan, stats, newBadges };
   }
 
-  /** All scans, newest first. `limit` caps the result. */
-  function getScans(limit) {
+  /** Step-1 API name for addScan. */
+  function saveDiscovery(discovery) {
+    return addScan(discovery || {});
+  }
+
+  /**
+   * One user's scans, newest first. `limit` caps the result.
+   *
+   * Scoped through the [userId, timestamp] index rather than reading the whole
+   * store and filtering, so another account's rows are never even loaded into
+   * memory -- the fix for the pooled-history bug is structural, not a filter
+   * a future caller can forget to apply.
+   */
+  async function getScans(limit, userId) {
+    const uid = userId ? String(userId) : await owner();
     return tx(STORE_SCANS, "readonly", (store) => {
       const out = [];
-      const idx = store.index("timestamp");
-      const req = idx.openCursor(null, "prev"); // descending == newest first
+      const idx = store.index(IDX_USER_TIME);
+      // MAX_KEY_CHAR sorts after any real ISO timestamp, so this bounds the
+      // range to exactly one user; "prev" then walks it newest-first.
+      const range = IDBKeyRange.bound([uid, ""], [uid, MAX_KEY_CHAR]);
+      const req = idx.openCursor(range, "prev");
       req.onsuccess = (e) => {
         const cur = e.target.result;
         if (!cur) return;
@@ -319,9 +538,15 @@
     });
   }
 
-  /** Everything dashboard.html needs, in one round trip. */
+  /** Step-1 API name: the discoveries belonging to one user. */
+  function getDiscoveries(userId) {
+    return getScans(null, userId);
+  }
+
+  /** Everything dashboard.html needs, in one round trip. Per-user. */
   async function getSummary() {
-    const [scans, rawStats] = await Promise.all([getScans(), getStats()]);
+    const uid = await owner();
+    const [scans, rawStats] = await Promise.all([getScans(null, uid), getStats(uid)]);
     // Trust the rows over the counter: a cleared store or a failed write
     // shouldn't leave a phantom total on screen.
     const stats = Object.assign({}, rawStats, { totalScans: Math.max(rawStats.totalScans || 0, scans.length) });
@@ -346,14 +571,30 @@
     await tx(STORE_STATS, "readwrite", (s) => wrap(s.clear()));
   }
 
+  /** Does this user have anything stored in this browser? (dashboard hint) */
+  async function hasHistory(userId) {
+    const uid = userId ? String(userId) : await owner();
+    const [n, s] = await Promise.all([
+      tx(STORE_SCANS, "readonly", (store) => wrap(store.index(IDX_USER).count(uid))),
+      getStats(uid),
+    ]);
+    return n > 0 || (s.totalScans || 0) > 0;
+  }
+
   window.ffStore = {
     addScan,
+    saveDiscovery,
     getScans,
+    getDiscoveries,
     getStats,
     getSummary,
+    hasHistory,
     clearAll,
+    adopt,
+    refreshUser,
     // exported for the dashboard + tests
     BADGES,
+    UNCLAIMED,
     dayKey,
     dayDiff,
     advanceStreak,

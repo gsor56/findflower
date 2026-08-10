@@ -20,8 +20,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=5">
     <script src="nav.js?v=2" defer></script>
+    <!-- Fetch/render split (see scripts/api.js). Loaded without defer: the
+         inline engine at the bottom of this page runs immediately and reads
+         window.ffApi / window.ffUi. -->
+    <script src="scripts/api.js?v=1"></script>
+    <script src="scripts/ui.js?v=1"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://findflower-proxy.fofi.workers.dev">
     <link rel="preconnect" href="https://query.wikidata.org">
     <link rel="preconnect" href="https://commons.wikimedia.org">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
@@ -60,7 +66,9 @@
             -moz-osx-font-smoothing: grayscale;
         }
         .tap { min-height: 44px; min-width: 44px; }
-        .card-shell { content-visibility: auto; }
+        /* Cards render through ffUi (scripts/ui.js), which emits .ff-card.
+           .card-shell is kept for any markup that predates the shared engine. */
+        .card-shell, .ff-card { content-visibility: auto; }
         @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
         .skeleton {
             background: linear-gradient(90deg, #F5F5F5 0px, #EDEDED 40px, #F5F5F5 80px);
@@ -118,7 +126,8 @@
                     The flowering plant <span class="font-serif italic font-normal text-sage-600">directory</span>.
                 </h1>
                 <p class="text-base sm:text-lg text-neutral-500 font-light leading-relaxed">
-                    Thousands of species across twenty major families, pulled live from Wikidata. Scroll to keep loading.
+                    Thousands of species across twenty major families, pulled live from open botanical
+                    databases. Scroll to keep loading.
                 </p>
             </section>
 
@@ -137,7 +146,7 @@
             </div>
 
             <div id="dirError" class="hidden border border-neutral-200 rounded-2xl p-8 text-center">
-                <p class="text-neutral-600 text-sm mb-4">Wikidata isn't responding right now.</p>
+                <p class="text-neutral-600 text-sm mb-4">The species catalogue isn't responding right now.</p>
                 <button id="dirRetry" class="tap px-5 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors">Try again</button>
             </div>
 
@@ -258,14 +267,22 @@
 
         let buffer = [];        // fetched-but-unrendered rows
         let fetchOffset = 0;    // SPARQL OFFSET reached so far
+        let treflePage = 0;     // last Trefle page fetched
         let rendered = 0;
         let exhausted = false;  // server returned a short chunk
         let loading = false;
         let prefetch = null;    // in-flight next chunk
-        const seen = new Set(); // QIDs already rendered
+        const seen = new Set(); // keys already rendered
 
-        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
-            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        // Which catalogue is feeding the grid.
+        //
+        // Trefle first: filtered to the same twenty families, it holds ~164,000
+        // species against roughly 5,000 reachable through Wikidata's taxon
+        // graph, and answers a REST call in a fraction of a 7-9s SPARQL query.
+        // Wikidata stays as the fallback so an unreachable or unconfigured
+        // proxy degrades the page instead of emptying it.
+        let engine = (window.ffApi && typeof ffApi.fetchTrefleBatch === 'function')
+            ? 'trefle' : 'wikidata';
 
         /** Ask Commons for a scaled thumbnail. The originals are routinely
          *  5-20MB each, which would make this page unusable on mobile data. */
@@ -278,17 +295,31 @@
             } catch { return url; }
         }
 
+        /** Drop anything already on screen. Keyed on the QID where there is one
+         *  (Wikidata) and on the name otherwise (Trefle carries no Wikidata id).
+         *  Without this, overlapping LIMIT/OFFSET pages repeat cards -- 37
+         *  duplicates measured across two 96-row Wikidata pages. */
+        function dedupe(items) {
+            const out = [];
+            for (const it of items) {
+                if (!it || !it.name) continue;
+                const key = it.qid || ('n:' + it.name.trim().toLowerCase());
+                if (seen.has(key)) continue;
+                seen.add(key);
+                out.push(it);
+            }
+            return out;
+        }
+
         function normalize(rows) {
             const out = [];
             for (const r of rows) {
                 if (!r.item || !r.img) continue;
                 const qid = r.item.value.split('/').pop();
-                if (seen.has(qid)) continue;
                 const label = r.itemLabel ? r.itemLabel.value : '';
                 // An unresolved label falls back to the QID, which is not a species
                 // name -- drop the row rather than render "Q12345".
                 if (!label || /^Q\d+$/.test(label)) continue;
-                seen.add(qid);
                 out.push({
                     qid: qid,
                     name: label,
@@ -297,7 +328,7 @@
                     link: r.article ? r.article.value : ('https://www.wikidata.org/wiki/' + qid),
                 });
             }
-            return out;
+            return dedupe(out);
         }
 
         async function fetchChunk(offset) {
@@ -308,55 +339,70 @@
             return data.results.bindings;
         }
 
-        /** Warm the next chunk while the user is still scrolling the current one,
-         *  so an 8s query hides behind seven instant renders. */
+        /** One page from whichever catalogue is live, already deduped.
+         *  Advances that source's cursor and sets `exhausted` at the end.
+         *  fetchOffset/treflePage advance only on success, so a failed page is
+         *  retried rather than skipped -- safe because ensureBuffer() and
+         *  startPrefetch() never run a fetch concurrently. */
+        async function fetchNext() {
+            if (engine === 'trefle') {
+                try {
+                    const res = await ffApi.fetchTrefleBatch(treflePage + 1);
+                    treflePage += 1;
+                    if (!res.hasMore) exhausted = true;
+                    return dedupe(res.items);
+                } catch (err) {
+                    // Proxy down, or TREFLE_TOKEN not set (503 + fallback).
+                    // With nothing on screen yet we can switch cleanly and fall
+                    // through to Wikidata below. Once cards are rendered we do
+                    // NOT switch: restarting the catalogue from another source
+                    // would repeat everything the user already scrolled past.
+                    const known = window.ffApi && err instanceof ffApi.TrefleUnavailableError;
+                    if (rendered || !known) throw err;
+                    console.warn('Trefle unavailable, using Wikidata:', err.message);
+                    engine = 'wikidata';
+                    seen.clear();
+                }
+            }
+            const at = fetchOffset;
+            const rows = await fetchChunk(at);
+            fetchOffset = at + CHUNK;
+            if (rows.length < CHUNK) exhausted = true;
+            return normalize(rows);
+        }
+
+        /** Warm the next page while the user is still scrolling the current one,
+         *  so a slow query hides behind several instant renders. */
         function startPrefetch() {
             if (prefetch || exhausted) return;
-            const at = fetchOffset;
-            prefetch = fetchChunk(at)
-                .then((rows) => {
-                    fetchOffset = at + CHUNK;
-                    if (rows.length < CHUNK) exhausted = true;
-                    buffer.push.apply(buffer, normalize(rows));
-                    prefetch = null;
-                })
+            prefetch = fetchNext()
+                .then((items) => { buffer.push.apply(buffer, items); prefetch = null; })
                 .catch(() => { prefetch = null; });
         }
 
         async function ensureBuffer() {
             if (buffer.length >= BATCH || exhausted) return;
             if (prefetch) { await prefetch; return; }
-            const at = fetchOffset;
-            const rows = await fetchChunk(at);
-            fetchOffset = at + CHUNK;
-            if (rows.length < CHUNK) exhausted = true;
-            buffer.push.apply(buffer, normalize(rows));
-        }
-
-        function cardHTML(s) {
-            return '' +
-            '<article class="card-shell fade-in bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-subtle" data-qid="' + esc(s.qid) + '">' +
-                '<a href="' + esc(s.link) + '" target="_blank" rel="noopener noreferrer" class="block">' +
-                    '<div class="aspect-[4/5] bg-neutral-100 overflow-hidden">' +
-                        '<img src="' + esc(s.img) + '" alt="' + esc(s.name) + '" loading="lazy" decoding="async" ' +
-                             'class="w-full h-full object-cover" ' +
-                             'onerror="var a=this.closest(\'article\'); if(a) a.remove();">' +
-                    '</div>' +
-                    '<div class="p-3 sm:p-4">' +
-                        '<h2 class="font-medium text-sm text-neutral-900 leading-snug italic">' + esc(s.name) + '</h2>' +
-                        (s.family ? '<p class="text-xs text-neutral-400 mt-1">' + esc(s.family) + '</p>' : '') +
-                    '</div>' +
-                '</a>' +
-            '</article>';
+            // Loop rather than fetch once: a page can be deduped away entirely,
+            // and a Trefle page (20) is smaller than a Wikidata chunk (96), so
+            // one fetch does not always fill a batch. Bounded so a run of empty
+            // pages cannot spin.
+            for (let i = 0; i < 5 && buffer.length < BATCH && !exhausted; i++) {
+                const items = await fetchNext();
+                buffer.push.apply(buffer, items);
+            }
         }
 
         function renderBatch() {
             const slice = buffer.splice(0, BATCH);
             if (!slice.length) return 0;
-            grid.insertAdjacentHTML('beforeend', slice.map(cardHTML).join(''));
-            rendered += slice.length;
+            // Cards come from the shared render engine (scripts/ui.js), so a
+            // Trefle card and a Wikidata card are identical, and the card design
+            // lives in exactly one place for every grid on the site.
+            const n = ffUi.appendPlantCards(grid, slice);
+            rendered += n;
             countEl.textContent = rendered + ' species loaded';
-            return slice.length;
+            return n;
         }
 
         function showSkeletons(n) {
@@ -383,7 +429,9 @@
         // stable and nothing jumps. The src is restored as a card comes back.
         const CULL_MARGIN = 2500;
         function cullOffscreen() {
-            const cards = grid.querySelectorAll('article[data-qid]');
+            // Every card is an <article>; skeletons are <div class="skel">, so
+            // this selector needs no data-qid (Trefle records have no QID).
+            const cards = grid.querySelectorAll('article');
             const top = window.scrollY - CULL_MARGIN;
             const bottom = window.scrollY + window.innerHeight + CULL_MARGIN;
             for (let i = 0; i < cards.length; i++) {
@@ -461,6 +509,15 @@
             errorBox.classList.add('hidden');
             loadMore();
         });
+
+        // The card markup now lives in scripts/ui.js. If that file did not
+        // load there is no fallback renderer to fall back to, so say so
+        // instead of leaving a silently empty grid.
+        if (!window.ffUi || typeof ffUi.appendPlantCards !== 'function') {
+            countEl.textContent = '';
+            errorBox.classList.remove('hidden');
+            return;
+        }
 
         initObserver();
         loadMore();
