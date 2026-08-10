@@ -338,6 +338,79 @@ const jsonRes = (body, status = 200) => ({
 }
 
 {
+    // ---- PRODUCTION REGRESSION, 2026-08-10 -------------------------------
+    // findflower.me served an empty encyclopedia while localhost was fine.
+    // The deployed Worker predated the /trefle/ route, so its catch-all health
+    // check answered every Trefle path with HTTP 200 {"status":"ok"}. A 200 was
+    // trusted on status alone, so body.data||[] gave no items and hasMore came
+    // out false -- which the engine reads as "catalogue exhausted". Nothing
+    // threw, so the Wikidata fallback that exists for exactly this case was
+    // never reached and the grid stayed empty with no error to show.
+    const win = apiWin(() => jsonRes({ status: 'ok' }));
+    let caught = null;
+    try { await win.ffApi.fetchTrefleBatch(1); } catch (e) { caught = e; }
+    ok(caught instanceof win.ffApi.TrefleUnavailableError,
+        'a stale Worker answering 200 {"status":"ok"} throws instead of faking an empty catalogue');
+    ok(/data field/.test(caught ? caught.message : ''),
+        '...and says what was wrong with the body');
+    ok(/trefle\/ route/.test(caught ? caught.message : ''),
+        '...naming the stale deploy, so the next person is not diagnosing from scratch');
+}
+
+{
+    // The check is on SHAPE, not on the literal {"status":"ok"} body: the next
+    // stale deploy or captive portal will answer something else.
+    const bodies = [
+        { ok: true },
+        { message: 'Not Found' },
+        { error: 'nope' },
+        {},
+        [],
+    ];
+    let allThrew = true;
+    for (const b of bodies) {
+        const win = apiWin(() => jsonRes(b));
+        try { await win.ffApi.fetchTrefleBatch(1); allThrew = false; }
+        catch (e) { if (!(e instanceof win.ffApi.TrefleUnavailableError)) allThrew = false; }
+    }
+    ok(allThrew, 'any 200 without a data field is treated as an unavailable source');
+}
+
+{
+    // A 200 that is not JSON at all (an HTML error page, a captive portal).
+    // This used to propagate a raw SyntaxError, which no engine has a branch
+    // for -- so the page broke rather than degrading.
+    const win = apiWin(() => ({
+        ok: true, status: 200,
+        json: async () => { throw new SyntaxError('Unexpected token < in JSON at position 0'); },
+        text: async () => '<html>edge error</html>',
+    }));
+    let caught = null;
+    try { await win.ffApi.fetchTrefleBatch(1); } catch (e) { caught = e; }
+    ok(caught instanceof win.ffApi.TrefleUnavailableError,
+        'a 200 with non-JSON degrades to the fallback instead of throwing SyntaxError');
+}
+
+{
+    // The guard must not reject VALID payloads. An empty-but-well-formed page
+    // is a real Trefle answer and must still resolve.
+    const win = apiWin(() => jsonRes({ data: [], links: {}, meta: { total: 0 } }));
+    const res = await win.ffApi.fetchTrefleBatch(1);
+    ok(res.items.length === 0 && res.hasMore === false,
+        'a well-formed empty page still resolves — the guard checks shape, not emptiness');
+}
+
+{
+    // fetchTrefleDetails goes through the same apiFetch, so it degrades too
+    // rather than reading .data off a health-check body.
+    const win = apiWin(() => jsonRes({ status: 'ok' }));
+    let caught = null;
+    try { await win.ffApi.fetchTrefleDetails('Rose'); } catch (e) { caught = e; }
+    ok(caught instanceof win.ffApi.TrefleUnavailableError,
+        'fetchTrefleDetails also rejects a shapeless 200');
+}
+
+{
     const win = apiWin(() => jsonRes({ data: [], links: {}, meta: {} }));
     await win.ffApi.fetchTrefleBatch(0);
     ok(win._lastUrl.includes('page=1'), 'page 0 is clamped to 1');

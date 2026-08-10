@@ -84,6 +84,36 @@
         return 'Full shade';
     }
 
+    /** Does this body look like a Trefle payload at all?
+     *
+     *  PRODUCTION INCIDENT, 2026-08-10. findflower.me served an empty
+     *  encyclopedia while localhost was fine, and the difference was not the
+     *  frontend: the DEPLOYED Worker predates the /trefle/ route, so its
+     *  catch-all health check answered every Trefle path with
+     *  `HTTP 200 {"status":"ok"}`. Measured on both origins:
+     *
+     *    localhost  -> fetch THREW  -> TrefleUnavailableError -> Wikidata -> 12 cards
+     *    live       -> HTTP 200 ok  -> resolved {items:[],hasMore:false} -> 0 cards
+     *
+     *  A 200 was trusted on status alone, so `body.data || []` produced no
+     *  items and `hasMore` came out false, which the engine reads as "the
+     *  catalogue is exhausted" — a terminal, successful, empty result. Nothing
+     *  threw, so the Wikidata fallback that exists for exactly this case was
+     *  never reached, and the page had no error to show either.
+     *
+     *  So status is not enough: a wrong-shaped 200 is an unavailable source,
+     *  not an empty one. Any stale deploy, cached edge response, captive
+     *  portal or misrouted path that answers 200 with something else now
+     *  degrades to Wikidata instead of silently emptying the grid.
+     *
+     *  Deliberately a SHAPE check, not an equality check against
+     *  `{"status":"ok"}`: the next stale deploy will answer something else. A
+     *  Trefle list carries `data` (array) and a record carries `data`
+     *  (object); either is enough to prove we are talking to Trefle. */
+    function looksLikeTrefle(body) {
+        return !!body && typeof body === 'object' && 'data' in body;
+    }
+
     /** Internal fetch: proxy path → response object, or throw.
      *  opts.pastEnd: when set, a 404 whose body says the page is out of range
      *  resolves to null instead of throwing — that is the end of the
@@ -110,9 +140,27 @@
             // (stale Worker without the route) — all mean "use Wikidata".
             throw new TrefleUnavailableError('Trefle proxy answered ' + res.status + '.');
         }
-        // A 200 that is not JSON is a Worker contract break — SyntaxError
-        // propagates as-is, distinct from TrefleUnavailableError on purpose.
-        return res.json();
+
+        // A 200 that is not JSON at all: the proxy is answering with something
+        // else entirely (an HTML error page, a captive portal). Same verdict as
+        // a 503 — skip the source rather than crash the page with a SyntaxError
+        // the engine has no branch for.
+        var body;
+        try {
+            body = await res.json();
+        } catch (e) {
+            throw new TrefleUnavailableError('Trefle proxy answered 200 with non-JSON.');
+        }
+
+        // A 200 with the wrong shape — see looksLikeTrefle. This is the check
+        // that would have caught the live outage on the first page load.
+        if (!looksLikeTrefle(body)) {
+            var seen = Object.keys(body || {}).slice(0, 4).join(',') || typeof body;
+            throw new TrefleUnavailableError(
+                'Trefle proxy answered 200 without a data field (got: ' + seen + ') — ' +
+                'the deployed Worker is probably missing the /trefle/ route.');
+        }
+        return body;
     }
 
     /** Encyclopedia list page. Returns { items, hasMore }.
