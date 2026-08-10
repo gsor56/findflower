@@ -20,6 +20,10 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=5">
     <script src="nav.js?v=2" defer></script>
+    <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
+         scroll-reveal observer on arrival. The page stays a full document. -->
+    <script src="scripts/views/home.js" defer></script>
+    <script src="scripts/router.js" defer></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
