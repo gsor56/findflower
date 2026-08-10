@@ -36,6 +36,32 @@
    below and navigates for real. Lift that entry only after the scanner is
    extracted into scripts/views/scanner.js and verified.
 
+   GitHub Pages notes (measured against the live findflower.me, 2026-08-10).
+
+     • Paths need no rewriting. Pages serves this repo at the domain ROOT, not
+       under /<repo>/, and every internal href is already relative. The router
+       fetches url.href from internalUrl(), which resolves against
+       location.href and rejects anything cross-origin, so there is no
+       absolute-vs-relative case to fix. Verified: /directory.html,
+       /try.html and every scripts/* asset answer 200, a live swap lands on
+       /directory.html with exactly one <main>, and zero network failures or
+       console errors were captured across the run. There is no <base> tag on
+       any page.
+     • Pretty URLs already resolve. Pages serves /try and /directory without
+       the extension (200), and pageKey() reads the last path segment, so
+       /try, /try/ and /try.HTML all key to try.html. /try/ and /directory/
+       with a trailing slash are 404s at the CDN, not router cases.
+     • A 404 is a document, not a redirect. Pages answers an unknown path with
+       its own 404 page at HTTP 404, so the swap fetch throws and navigate()'s
+       catch hands the URL to the browser. Confirmed with a sentinel global
+       that disappears.
+     • Swap fetches are cache: 'no-store'. Pages serves HTML with
+       Cache-Control: max-age=600, and a pushState URL must not paint markup
+       cached under a different app version than the scripts now in memory.
+
+   RELOAD is matched two ways for defence in depth -- by page key, and by
+   RELOAD_PATH against any `try`/`login` path segment. See mustReload().
+
    Views register a lifecycle so a route can set up and tear down:
 
        window.ffViews['dashboard.html'] = { mount: fn, unmount: fn };
@@ -50,6 +76,26 @@
     // Pages that must not be swapped in. try.html carries the ViT path; login
     // completes an Auth0 redirect and needs a real document to land on.
     var RELOAD = { 'try.html': 1, 'login.html': 1 };
+
+    // Belt to RELOAD's braces. pageKey() only ever looks at the LAST path
+    // segment, so /try, /try/ and /try.HTML all resolve to try.html correctly
+    // (verified against the live site) -- but /try/index.html resolves to
+    // index.html and would have been swapped. No link on the site produces that
+    // shape and GitHub Pages 404s it today, so this closes a hole rather than a
+    // bug. Matching any `try` or `login` SEGMENT means a future pretty-URL or
+    // directory-index layout cannot quietly route the scanner.
+    var RELOAD_PATH = /(^|\/)(try|login)(\.html?)?(\/|$)/i;
+
+    /** Must this path get a real document load rather than a swap? */
+    function mustReload(pathname) {
+        return !!RELOAD[pageKey(pathname)] || RELOAD_PATH.test(String(pathname || ''));
+    }
+
+    /** Leave the SPA for good: a full document load, no swap, no history games.
+     *  Used for try.html/login.html and for every failure fallback. */
+    function hardLoad(href) {
+        window.location.assign(href);
+    }
 
     var MAIN = 'main';
     // Body-level, page-owned elements outside <main> that must travel with a
@@ -270,12 +316,21 @@
         var seq = ++navSeq;
 
         var host = document.querySelector(MAIN);
-        if (!host) { location.assign(url.href); return; }
+        if (!host) { hardLoad(url.href); return; }
 
         inFlight = true;
         document.documentElement.classList.add('ff-routing');
         try {
-            var res = await fetch(url.href, { credentials: 'same-origin' });
+            // credentials same-origin, and no-store on the SWAP fetch only: a
+            // pushState URL must never render markup the browser cached under a
+            // different app version. GitHub Pages serves html with
+            // `Cache-Control: max-age=600`, so without this a swap could paint a
+            // ten-minute-old <main> against freshly loaded scripts.
+            var res = await fetch(url.href, {
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: { 'Accept': 'text/html' },
+            });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             var html = await res.text();
             if (seq !== navSeq) return;   // superseded by a later click
@@ -321,9 +376,12 @@
             await mountFor(key);
         } catch (e) {
             // Any failure falls back to a real navigation. The user gets the
-            // page; they just pay a reload for it.
+            // page; they just pay a reload for it. This is also the 404 path on
+            // GitHub Pages, which serves its own 404 document rather than a
+            // redirect -- the fetch returns HTTP 404, we throw, and the browser
+            // takes over and shows it.
             console.error('router: falling back to full load —', e.message);
-            location.assign(url.href);
+            hardLoad(url.href);
         } finally {
             if (seq === navSeq) {
                 inFlight = false;
@@ -335,7 +393,7 @@
     /** Programmatic navigation, for views that need to move the user. */
     function go(href) {
         var u = internalUrl(href);
-        if (!u || RELOAD[pageKey(u.pathname)]) { location.assign(href); return; }
+        if (!u || mustReload(u.pathname)) { hardLoad(href); return; }
         navigate(u, true);
     }
 
@@ -361,7 +419,7 @@
         if (u.pathname === location.pathname && u.hash && u.search === location.search) return;
 
         var key = pageKey(u.pathname);
-        if (RELOAD[key]) return;              // try.html / login.html: real load
+        if (mustReload(u.pathname)) return;    // try.html / login.html: real load
         if (!window.ffViews && !document.querySelector(MAIN)) return;
 
         e.preventDefault();
@@ -374,7 +432,7 @@
         // swap, without pushing a new entry.
         var u = internalUrl(location.href);
         if (!u) return;
-        if (RELOAD[pageKey(u.pathname)]) { location.reload(); return; }
+        if (mustReload(u.pathname)) { location.reload(); return; }
         navigate(u, false);
     }
 
@@ -395,6 +453,7 @@
         go: go,
         navigate: function (href) { go(href); },
         pageKey: pageKey,
+        mustReload: mustReload,
         register: function (key, view) { window.ffViews[key] = view; },
         get busy() { return inFlight; },
     };
