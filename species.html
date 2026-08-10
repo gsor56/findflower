@@ -20,6 +20,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=5">
     <script src="nav.js?v=2" defer></script>
+    <!-- api.js first: species.js's mergeTrefle() asks window.ffApi for care
+         data when the prebuilt map has no record — which is most of the
+         catalogue, since every encyclopedia card links here. -->
+    <script src="scripts/api.js?v=1"></script>
+    <script src="scripts/ui.js?v=1"></script>
     <script src="species.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -332,6 +337,14 @@
                         </div>
                         <p id="factSun" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                     </div>
+                    <!-- Watering (Trefle moisture index, phrased as a relative measure) -->
+                    <div class="rounded-2xl border border-neutral-200/70 bg-white p-5 shadow-subtle">
+                        <div class="flex items-center gap-1.5 mb-1.5">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 2.7s6 6.1 6 10.3a6 6 0 0 1-12 0c0-4.2 6-10.3 6-10.3z"/></svg>
+                            <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Watering</span>
+                        </div>
+                        <p id="factWater" class="text-sm text-neutral-700 font-light leading-snug">—</p>
+                    </div>
                 </div>
 
                 <!-- Edibility note (only shown when affirmatively documented) -->
@@ -514,6 +527,10 @@
             setFact('factGrow', info && info.grow);
             setFact('factHabit', info && info.growthHabit);
             setFact('factSun', info && info.sunlight);
+            // Trefle's moisture_use is a 0-10 index, not a schedule; ffUi
+            // phrases it. Falls back to UNKNOWN when ui.js is absent.
+            setFact('factWater', (info && window.ffUi)
+                ? ffUi.moistureText(info.moistureUse) : '');
 
             // Edibility note — only when Trefle affirmatively documents it.
             const edWrap = $('spEdibleWrap');

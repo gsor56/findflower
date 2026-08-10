@@ -23,12 +23,19 @@
  *                       needed and no upstream call made. The frontend polls
  *                       this to paint its model-status dot.
  *
+ *   GET  <worker-url>/trefle/plants?page=N        \  botanical reference data,
+ *   GET  <worker-url>/trefle/plants/search?q=...   >  read-only, no user token.
+ *   GET  <worker-url>/trefle/plants/<id>          /  See TREFLE READ-THROUGH.
+ *
  * Secrets / vars (set via `wrangler secret put`, NOT in code):
  *   SPACE_URL       - base URL of the private Space, e.g.
  *                     https://gsor56-findflower-vit.hf.space
  *   SPACE_TOKEN     - HF read token, sent as Bearer so the Worker can reach
  *                     the *private* Space's endpoint
  *   PROXY_SECRET    - shared secret the Space checks (X-Proxy-Secret)
+ *   TREFLE_TOKEN    - trefle.io API token. Optional: without it the /trefle/
+ *                     routes answer 503 and the frontend falls back to
+ *                     Wikidata, so the encyclopedia still renders.
  *   ALLOWED_ORIGINS - comma-separated CORS allowlist. `*` is IGNORED; the
  *                     fallback is CANONICAL_ORIGIN below.
  *   AUTH0_DOMAIN    - e.g. findflower.au.auth0.com   \  both required for real
@@ -66,7 +73,7 @@ function corsHeaders(request, env) {
   return {
     "Access-Control-Allow-Origin": allow,
     "Vary": "Origin",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     // Authorization must be listed or the browser discards the POST after
     // preflight -- the token header is what makes this a non-simple request.
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -97,6 +104,110 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function originAllowed(origin, env) {
   return allowedOrigins(env).includes(origin);
+}
+
+/* ===========================================================================
+   TREFLE READ-THROUGH  (GET /trefle/...)
+   ---------------------------------------------------------------------------
+   Trefle cannot be called from a browser at all: it serves no CORS header, and
+   a static site has nowhere to hide an API token. Both problems are the same
+   problem -- there is no trusted middle -- so the Worker becomes it.
+
+   Three rules make this a route and not an open proxy:
+
+   1. ALLOWLIST, not passthrough. Only the four shapes in TREFLE_ROUTES reach
+      trefle.io. Forwarding `/trefle/<anything>` would hand the internet an
+      SSRF primitive wearing our IP and our token.
+   2. The token is ours, never the caller's. It is attached here and scrubbed
+      out of the response body on the way back, so no echoed URL or error page
+      can leak it. The client's own Authorization header is dropped, never
+      relayed -- an Auth0 token means nothing to Trefle.
+   3. Cached hard. Trefle's free tier is rate limited and botanical records are
+      effectively static, so responses are cached at the edge and in the
+      browser. Without this, one popular day of infinite scroll exhausts the
+      quota and the encyclopedia goes dark.
+
+   Missing TREFLE_TOKEN answers 503, which is a deliberate contract: api.js
+   reads it as "fall back to Wikidata" rather than as a broken page.
+   ========================================================================= */
+
+const TREFLE_BASE = "https://trefle.io/api/v1";
+const TREFLE_CACHE_S = 86400;   // botany does not change hourly
+
+// Each entry: the exact client path, and the query params allowed through.
+const TREFLE_ROUTES = [
+  { match: /^\/trefle\/plants$/,               to: "/plants",        params: ["page", "filter[common_name]", "filter[family_name]"] },
+  { match: /^\/trefle\/plants\/search$/,       to: "/plants/search", params: ["q", "page"] },
+  { match: /^\/trefle\/plants\/([a-z0-9-]+)$/, to: "/plants/$1",     params: [] },
+  { match: /^\/trefle\/species\/([a-z0-9-]+)$/, to: "/species/$1",   params: [] },
+];
+
+function trefleTarget(pathname, search) {
+  for (const route of TREFLE_ROUTES) {
+    const m = route.match.exec(pathname);
+    if (!m) continue;
+    const path = route.to.replace(/\$(\d+)/g, (_, i) => encodeURIComponent(m[Number(i)]));
+    const out = new URLSearchParams();
+    for (const key of route.params) {
+      const v = search.get(key);
+      if (v) out.set(key, v);
+    }
+    return { path, query: out };
+  }
+  return null;
+}
+
+async function handleTrefle(request, env, url) {
+  if (!env.TREFLE_TOKEN) {
+    // Not an error the user caused, and not one they can fix. 503 tells the
+    // client to use its fallback source instead of showing a failure.
+    return json(
+      { error: "Trefle is not configured on this proxy.", fallback: true },
+      503, request, env, { "Cache-Control": "no-store" }
+    );
+  }
+
+  const target = trefleTarget(url.pathname, url.searchParams);
+  if (!target) {
+    return json({ error: "Unsupported Trefle route." }, 404, request, env);
+  }
+
+  target.query.set("token", env.TREFLE_TOKEN);
+  const upstream = TREFLE_BASE + target.path + "?" + target.query.toString();
+
+  let res;
+  try {
+    res = await fetch(upstream, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      // Edge cache: many visitors, one upstream call per day per page.
+      cf: { cacheTtl: TREFLE_CACHE_S, cacheEverything: true },
+    });
+  } catch (err) {
+    return json({ error: "Trefle unreachable.", fallback: true }, 502, request, env);
+  }
+
+  const body = await res.text();
+  // Belt and braces: strip the token even though it is only ever in the URL,
+  // because a Trefle error page may quote the request it received.
+  const safe = body.split(env.TREFLE_TOKEN).join("***");
+
+  if (!res.ok) {
+    return json(
+      { error: "Trefle returned " + res.status, detail: safe.slice(0, 300), fallback: true },
+      res.status === 404 ? 404 : 502, request, env
+    );
+  }
+
+  return new Response(safe, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json",
+      ...corsHeaders(request, env),
+      "Cache-Control": "public, max-age=" + TREFLE_CACHE_S,
+      "X-FF-Source": "trefle",
+    },
+  });
 }
 
 /* ===========================================================================
@@ -231,10 +342,31 @@ async function verifyAuth0Token(token, env) {
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+
     // CORS preflight
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
+
+    // Trefle read-through. Ahead of the health check because that answers every
+    // GET, and ahead of the auth gate because the encyclopedia is public
+    // botanical reference data -- gating it would only break the open pages.
+    // Still behind the origin allowlist, which is checked next.
+    if (url.pathname.startsWith("/trefle/")) {
+      const origin = request.headers.get("Origin");
+      if (origin && !originAllowed(origin, env)) {
+        return json({ error: "Origin not allowed." }, 403, request, env);
+      }
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        return json({ error: "Trefle routes are read-only." }, 405, request, env);
+      }
+      const res = await handleTrefle(request, env, url);
+      return request.method === "HEAD"
+        ? new Response(null, { status: res.status, headers: res.headers })
+        : res;
+    }
+
     // Health check. The frontend pings this to paint its model-status dot, so
     // it sits AHEAD of the auth gate on purpose: a liveness ping carries no
     // token and must not be answered with a 401. It also never touches the

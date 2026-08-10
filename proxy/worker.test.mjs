@@ -206,6 +206,170 @@ await check('valid token -> 200', async () => (await post(await mint())).status,
     ok ? pass++ : fail++;
 }
 
+console.log('\n--- TREFLE read-through (GET /trefle/...) ---');
+{
+    const TREFLE_ENV = { ...ENV, TREFLE_TOKEN: 'tk_SECRET_TOKEN_VALUE' };
+    let lastUpstream = null;
+    const realFetch = globalThis.fetch;
+
+    // Stand in for trefle.io and record exactly what the Worker asked for.
+    globalThis.fetch = async (url, init) => {
+        const u = String(url);
+        if (u.includes('trefle.io')) {
+            lastUpstream = u;
+            if (u.includes('/plants/search')) {
+                return new Response(JSON.stringify({ data: [{ id: 1, common_name: 'Rose' }] }),
+                    { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
+            if (u.includes('/plants/999999')) {
+                // Trefle quoting the request back at us, token and all.
+                return new Response(JSON.stringify({ error: true, messages: 'Not found: ' + u }),
+                    { status: 404, headers: { 'Content-Type': 'application/json' } });
+            }
+            return new Response(JSON.stringify({ data: [{ id: 2, common_name: 'Tulip' }] }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return realFetch(url, init);
+    };
+
+    const get = (path, env = TREFLE_ENV, method = 'GET') => worker.fetch(new Request('https://w.example' + path, {
+        method, headers: new Headers({ Origin: 'https://findflower.me' }),
+    }), env);
+
+    await check('GET /trefle/plants -> 200, no token needed',
+        async () => (await get('/trefle/plants?page=2')).status, { status: 200, space: false });
+    await check('GET /trefle/plants/search -> 200',
+        async () => (await get('/trefle/plants/search?q=rosa')).status, { status: 200, space: false });
+    await check('GET /trefle/plants/123 -> 200',
+        async () => (await get('/trefle/plants/123')).status, { status: 200, space: false });
+
+    // --- the allowlist is the SSRF wall ---
+    // What matters is not the status but whether trefle.io was reached at all.
+    // A plain `../` never even enters the Trefle branch: new URL() normalises
+    // it to /admin, so it lands on the health check. The percent-encoded form
+    // DOES survive normalisation and reaches the matcher, where the
+    // [a-z0-9-]+ character class is what actually stops it.
+    for (const [label, path] of [
+        ['dot-segment traversal', '/trefle/plants/../../admin'],
+        ['encoded traversal', '/trefle/plants/%2e%2e%2f%2e%2e%2fadmin'],
+        ['encoded slash', '/trefle/plants/1%2Fadmin'],
+        ['query smuggled into the id', '/trefle/plants/1?x=%26token%3Devil'],
+        ['upstream host swap', '/trefle/plants/evil.example%2Fsteal'],
+    ]) {
+        lastUpstream = null;
+        await get(path);
+        const reached = lastUpstream !== null;
+        const escaped = reached && !/^https:\/\/trefle\.io\/api\/v1\//.test(lastUpstream);
+        const ok = !escaped;
+        console.log((ok ? 'PASS' : 'FAIL') + '  ' + (label + ' cannot leave trefle.io').padEnd(44) +
+            (reached ? 'upstream=' + lastUpstream.replace(/token=[^&]*/, 'token=***') : 'upstream=(not called)'));
+        ok ? pass++ : fail++;
+    }
+    await check('unknown Trefle route is refused',
+        async () => (await get('/trefle/kingdoms')).status, { status: 404, space: false });
+    await check('absolute URL smuggling is refused',
+        async () => (await get('/trefle/https://evil.example/steal')).status, { status: 404, space: false });
+    await check('POST to a Trefle route -> 405 (read-only)',
+        async () => (await get('/trefle/plants', TREFLE_ENV, 'POST')).status, { status: 405, space: false });
+    await check('evil origin is refused before Trefle is called',
+        async () => (await worker.fetch(new Request('https://w.example/trefle/plants', {
+            method: 'GET', headers: new Headers({ Origin: 'https://evil.example' }),
+        }), TREFLE_ENV)).status, { status: 403, space: false });
+
+    // --- the token must never be observable by the client ---
+    {
+        await get('/trefle/plants?page=2');
+        const sentToken = lastUpstream && lastUpstream.includes('tk_SECRET_TOKEN_VALUE');
+        console.log((sentToken ? 'PASS' : 'FAIL') + '  token IS attached upstream');
+        sentToken ? pass++ : fail++;
+
+        const onlyAllowedParams = lastUpstream && lastUpstream.includes('page=2');
+        console.log((onlyAllowedParams ? 'PASS' : 'FAIL') + '  allowlisted query param survives');
+        onlyAllowedParams ? pass++ : fail++;
+
+        // The family filter IS the encyclopedia's curation: without it,
+        // /plants browses all 437k Trefle records (oaks, grasses, conifers)
+        // instead of the twenty flowering families the site is about. Drop it
+        // from the allowlist and the grid silently stops being a flower
+        // encyclopedia -- a content regression with no error to notice.
+        {
+            await get('/trefle/plants?page=1&filter%5Bfamily_name%5D=Rosaceae%2CAsteraceae');
+            const kept = lastUpstream && /filter(%5B|\[)family_name(%5D|\])=/.test(lastUpstream);
+            console.log((kept ? 'PASS' : 'FAIL') + '  filter[family_name] survives (encyclopedia curation)');
+            kept ? pass++ : fail++;
+            const bothFamilies = lastUpstream &&
+                /Rosaceae/.test(decodeURIComponent(lastUpstream)) &&
+                /Asteraceae/.test(decodeURIComponent(lastUpstream));
+            console.log((bothFamilies ? 'PASS' : 'FAIL') + '  ...with every family in the list intact');
+            bothFamilies ? pass++ : fail++;
+        }
+        {
+            // filter[family] is a different, unallowlisted param -- and one
+            // Trefle ignores anyway. It must not reach upstream.
+            await get('/trefle/plants?page=1&filter%5Bfamily%5D=Rosaceae');
+            const d = decodeURIComponent(lastUpstream || '');
+            const dropped = !/filter\[family\]/.test(d);
+            console.log((dropped ? 'PASS' : 'FAIL') + '  non-allowlisted filter[family] is dropped');
+            dropped ? pass++ : fail++;
+        }
+
+        const r = await get('/trefle/plants?page=2&filter=evil&token=attacker');
+        const bodyText = await r.text();
+        const leaked = bodyText.includes('tk_SECRET_TOKEN_VALUE');
+        console.log((!leaked ? 'PASS' : 'FAIL') + '  token never appears in a 200 body');
+        !leaked ? pass++ : fail++;
+
+        const overridden = lastUpstream.match(/token=([^&]*)/);
+        const notHijacked = overridden && overridden[1] === 'tk_SECRET_TOKEN_VALUE';
+        console.log((notHijacked ? 'PASS' : 'FAIL') + "  client's ?token= cannot override ours");
+        notHijacked ? pass++ : fail++;
+    }
+    {
+        // The nastiest leak: upstream echoes our full URL inside an error body.
+        const r = await get('/trefle/plants/999999');
+        const body = await r.text();
+        const leaked = body.includes('tk_SECRET_TOKEN_VALUE');
+        console.log((!leaked ? 'PASS' : 'FAIL') + '  token is scrubbed from an upstream error body');
+        !leaked ? pass++ : fail++;
+        const redacted = body.includes('***');
+        console.log((redacted ? 'PASS' : 'FAIL') + '  ...and replaced with ***');
+        redacted ? pass++ : fail++;
+    }
+
+    // --- no token configured: 503 + fallback flag, never a hard failure ---
+    {
+        const r = await get('/trefle/plants', ENV); // ENV has no TREFLE_TOKEN
+        const body = await r.json();
+        const ok = r.status === 503 && body.fallback === true;
+        console.log((ok ? 'PASS' : 'FAIL') + '  missing TREFLE_TOKEN -> 503 with fallback:true (status=' + r.status + ')');
+        ok ? pass++ : fail++;
+    }
+
+    // --- the Trefle route must not disturb the paths that already worked ---
+    await check('POST inference still reaches the Space',
+        async () => (await post(await mint(), { env: TREFLE_ENV })).status, { status: 200, space: true });
+    await check('GET / is still the health check',
+        async () => (await get('/', TREFLE_ENV)).status, { status: 200, space: false });
+    {
+        const r = await get('/', TREFLE_ENV);
+        const b = await r.json();
+        const ok = b.status === 'ok';
+        console.log((ok ? 'PASS' : 'FAIL') + '  health body is still { status: "ok" }');
+        ok ? pass++ : fail++;
+    }
+    {
+        const r = await worker.fetch(new Request('https://w.example/trefle/plants', {
+            method: 'OPTIONS', headers: new Headers({ Origin: 'https://findflower.me' }),
+        }), TREFLE_ENV);
+        const m = r.headers.get('Access-Control-Allow-Methods') || '';
+        const ok = m.includes('GET');
+        console.log((ok ? 'PASS' : 'FAIL') + '  preflight advertises GET (' + m + ')');
+        ok ? pass++ : fail++;
+    }
+
+    globalThis.fetch = realFetch;
+}
+
 console.log('\n--- JWKS caching ---');
 {
     const j0 = jwksHits;

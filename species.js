@@ -122,20 +122,51 @@
         return _trefleMapPromise;
     }
 
-    // Merge prefetched Trefle fields into an info object. Never blocks the page:
-    // any missing field simply stays empty so the UI shows the honest fallback.
+    // Merge Trefle fields into an info object. Never blocks the page: any
+    // missing field simply stays empty so the UI shows the honest fallback.
+    //
+    // Two sources, in order:
+    //   1. trefle-data.json — prefetched at build time, ~40 seed species, free
+    //      and instant. Covers the common scans.
+    //   2. the live API via the Cloudflare proxy (scripts/api.js) — reached
+    //      only when the static map misses, so the long tail of species gets
+    //      care data too. Costs one request, so the result is cached with the
+    //      rest of the species entry.
+    //
+    // The live call is strictly additive: if api.js is not on the page, or the
+    // proxy has no TREFLE_TOKEN, or Trefle is down, the merge simply does
+    // nothing and the panel renders from Wikidata alone.
     async function mergeTrefle(name, info) {
         let rec = null;
         try {
             const map = await loadTrefleMap();
             rec = map && map[ffCleanName(name).toLowerCase()];
         } catch (e) { rec = null; }
+
+        // Static map missed — ask the live API, if it is available here.
+        if (!rec && window.ffApi && typeof ffApi.fetchTrefleDetails === 'function') {
+            try {
+                // Prefer the binomial: Trefle indexes scientific names, so
+                // "Rosa canina" resolves where "dog rose" may not.
+                rec = await ffApi.fetchTrefleDetails(info.binomial || ffCleanName(name));
+            } catch (e) {
+                rec = null; // unreachable/unconfigured — Wikidata still stands
+            }
+        }
         if (!rec) return;
 
+        // From here the code is source-agnostic: fetchTrefleDetails returns the
+        // same record shape trefle-data.json holds, deliberately, so the
+        // toxicity-conflict and edibility rules below have ONE implementation.
+        // Those rules are safety logic — a second copy that drifts is how a
+        // "sources differ" warning quietly stops appearing.
         info.trefle = true;
         // Growth habit + sunlight are the reliably-populated Trefle extras.
         if (rec.growthHabit) info.growthHabit = rec.growthHabit;
         if (rec.sunlight) info.sunlight = rec.sunlight;
+        // moisture_use is a 0–10 index, not a schedule; the renderer phrases it
+        // (ffUi.moistureText). 0 is a meaningful value, so test for a number.
+        if (typeof rec.moistureUse === 'number') info.moistureUse = rec.moistureUse;
         // Family: Wikidata wins; Trefle fills the gap only if we have nothing.
         if (!info.family && rec.family) info.family = rec.family;
         // Edibility: Trefle's `edible:false` is an unreliable false-negative
