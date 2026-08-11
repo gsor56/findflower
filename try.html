@@ -110,7 +110,10 @@
         .delay-200 { transition-delay: 200ms; }
 
         /* Segmented control */
-        .seg-btn { transition: color .3s ease; }
+        /* transform is in the list because these carry .soft-click, and this
+           rule (a page <style>, after the app.css <link>) is the one that wins.
+           The colour fade keeps its own slower .3s; the press gets 160ms. */
+        .seg-btn { transition: color .3s ease, transform 160ms cubic-bezier(0.16, 1, 0.3, 1); }
         .seg-btn[aria-selected="true"] { color: #171717; }
         .seg-btn[aria-selected="false"] { color: #737373; }
         .seg-indicator { transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1), width .4s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -125,6 +128,37 @@
 
         /* Confidence bar fill */
         .conf-fill { transition: width 1s cubic-bezier(0.16, 1, 0.3, 1); }
+
+        /* ====================================================================
+           Capture confirmation — the soft pop on the preview thumbnail
+           --------------------------------------------------------------------
+           A photograph was just taken and the only evidence of it is an 80px
+           thumbnail appearing in a corner of a busy panel. The pop is what
+           connects the tap to that thumbnail; without it the capture reads as
+           "nothing happened" and people tap again.
+
+           It settles FROM 1.05 rather than pulsing up and back: one motion
+           coming to rest, which is the calm version of the same feedback. Two
+           keyframes, transform only — no width, no height, no margin — so it
+           composites on the GPU and cannot reflow the preview row it sits in.
+
+           No prefers-reduced-motion block of its own: the blanket rule at the
+           end of this stylesheet already disables every animation here, and the
+           JS declines to add the class at all in that case, so the thumbnail
+           simply appears.
+           ==================================================================== */
+        @keyframes ff-pop {
+            from { transform: scale(1.05); }
+            to   { transform: scale(1); }
+        }
+        .ff-pop { animation: ff-pop 200ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+        /* The capture switch toggles `hidden` on two buttons that also carry a
+           `flex` utility for their icon rows. Which of `.hidden` and `.flex`
+           wins is decided by utility source order inside the Tailwind Play CDN
+           bundle, which this page has no business depending on — an id selector
+           (1,1,0) settles it outright and keeps the state switch deterministic. */
+        #camCapture.hidden, #camRetake.hidden { display: none; }
 
         /* Dropzone hover */
         .dropzone { transition: border-color .3s ease, background-color .3s ease; }
@@ -220,15 +254,15 @@
                     <!-- Segmented control -->
                     <div class="relative bg-neutral-100 rounded-full p-1 flex mb-6 text-sm font-medium">
                         <div id="segIndicator" class="seg-indicator absolute top-1 bottom-1 left-1 rounded-full bg-white shadow-sm" style="width: calc((100% - 0.5rem) / 3);"></div>
-                        <button class="seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="camera" aria-selected="true">
+                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="camera" aria-selected="true">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                             Camera
                         </button>
-                        <button class="seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="upload" aria-selected="false">
+                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="upload" aria-selected="false">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                             Upload
                         </button>
-                        <button class="seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="url" aria-selected="false">
+                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="url" aria-selected="false">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             Link
                         </button>
@@ -242,7 +276,7 @@
                                  native frame (object-cover stops cropping the
                                  sides away); 4:3 landscape from sm up. Display
                                  only — capture reads the video's real pixels. -->
-                            <div class="relative aspect-[3/4] sm:aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 flex items-center justify-center">
+                            <div id="camFrame" class="relative aspect-[3/4] sm:aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 flex items-center justify-center">
                                 <video id="camVideo" class="w-full h-full object-cover hidden" playsinline muted></video>
                                 <div id="camPlaceholder" class="text-center px-6">
                                     <svg class="mx-auto mb-4 text-neutral-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -269,9 +303,29 @@
                                     Image is out of focus. Please tap to focus.
                                 </div>
                             </div>
+                            <!-- The two-state capture switch.
+                                 STATE 1 (pre-capture): [Start camera] [Capture].
+                                 STATE 2 (post-capture): [Stop camera] [Retake photo],
+                                 with Capture hidden — there is already a frame in
+                                 hand, and the next commitment is Identify, which is
+                                 the full-width button below the preview.
+
+                                 Retake deliberately does NOT take the primary
+                                 (filled) treatment. In state 2 exactly one action
+                                 should look like the way forward, and it is Identify;
+                                 two filled buttons in one panel is how people end up
+                                 discarding a photo they meant to submit.
+
+                                 Both live in the same flex row and swap via `hidden`,
+                                 so the row's height never changes between states and
+                                 nothing below it moves. -->
                             <div class="flex gap-3 mt-4">
-                                <button id="camStart" class="flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:bg-neutral-50 transition-colors">Start camera</button>
-                                <button id="camCapture" class="flex-1 min-h-[44px] text-sm font-medium bg-neutral-900 text-white px-4 py-2.5 rounded-full hover:bg-neutral-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed" disabled>Capture</button>
+                                <button id="camStart" class="soft-click flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:bg-neutral-50 transition">Start camera</button>
+                                <button id="camCapture" data-haptic class="soft-click flex-1 min-h-[44px] text-sm font-medium bg-neutral-900 text-white px-4 py-2.5 rounded-full hover:bg-neutral-800 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>Capture</button>
+                                <button id="camRetake" type="button" data-haptic class="soft-click hidden flex flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-neutral-400 hover:text-neutral-900 transition items-center justify-center gap-2">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                                    Retake photo
+                                </button>
                             </div>
                         </div>
 
@@ -291,7 +345,7 @@
                                 <label class="text-sm font-medium text-neutral-700 mb-2 block">Image or YouTube link</label>
                                 <div class="flex gap-2">
                                     <input id="urlInput" type="url" placeholder="https://…" class="flex-1 text-sm bg-white border border-neutral-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
-                                    <button id="urlLoad" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-full hover:bg-neutral-800 transition-colors">Load</button>
+                                    <button id="urlLoad" class="soft-click text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-full hover:bg-neutral-800 transition">Load</button>
                                 </div>
                                 <p class="text-xs text-neutral-400 font-light mt-3 leading-relaxed">
                                     Direct image links and YouTube URLs (thumbnail) are supported. Some sources block in-browser reading; if a link can’t be read, download and upload it instead.
@@ -300,10 +354,14 @@
                         </div>
                     </div>
 
-                    <!-- Preview + Identify -->
-                    <div class="mt-6 pt-6 border-t border-neutral-100">
+                    <!-- Preview + Identify.
+                         This block is the scroll target after a capture: the brief
+                         asks for the preview and Identify "dead centre", and they
+                         are only dead centre together if the thing being centred is
+                         the pair rather than either one. -->
+                    <div id="previewBlock" class="mt-6 pt-6 border-t border-neutral-100">
                         <div class="flex items-center gap-4">
-                            <div class="relative w-20 h-20 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 flex items-center justify-center">
+                            <div id="previewBox" class="relative w-20 h-20 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 flex items-center justify-center">
                                 <img id="previewImg" class="w-full h-full object-cover hidden" alt="Selected preview" crossorigin="anonymous" />
                                 <span id="previewEmpty" class="text-[11px] text-neutral-400 font-light text-center px-1">No image</span>
                                 <div id="previewScan" class="scan-line absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-transparent via-sage-400/40 to-transparent hidden"></div>
@@ -312,7 +370,7 @@
                                 <p class="text-sm text-neutral-500 font-light leading-snug" id="previewHint">Select an image to begin. Your photo is sent securely for identification and not stored.</p>
                             </div>
                         </div>
-                        <button id="identifyBtn" class="group w-full mt-5 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
+                        <button id="identifyBtn" data-haptic class="soft-click group w-full mt-5 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
                             <span id="identifyLabel">Identify flower</span>
                             <svg id="identifyArrow" class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                         </button>
@@ -320,7 +378,7 @@
                 </div>
 
                 <!-- RIGHT: RESULT -->
-                <div class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-8 flex flex-col min-h-[520px]">
+                <div id="resultPanel" class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-8 flex flex-col min-h-[520px]">
                     <h2 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-6">Result</h2>
 
                     <!-- Empty state -->
@@ -366,7 +424,7 @@
                         <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-2.5">Other possibilities</p>
                         <div id="resUncertainList" class="ff-candidates"></div>
 
-                        <button id="resUncertainRetake" type="button" class="mt-5 min-h-[46px] w-full sm:w-auto sm:self-start px-6 rounded-full border border-neutral-200 text-sm font-medium text-neutral-700 hover:border-neutral-400 hover:text-neutral-900 transition-colors">
+                        <button id="resUncertainRetake" type="button" data-haptic class="soft-click mt-5 min-h-[46px] w-full sm:w-auto sm:self-start px-6 rounded-full border border-neutral-200 text-sm font-medium text-neutral-700 hover:border-neutral-400 hover:text-neutral-900 transition">
                             Retake photo
                         </button>
                         <p class="text-xs text-neutral-400 font-light mt-4 leading-relaxed">
@@ -381,7 +439,7 @@
                         </div>
                         <h3 class="text-lg font-medium tracking-tight text-neutral-900 mb-2">Could not detect a clear flower</h3>
                         <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Please move closer and ensure good lighting.</p>
-                        <button id="resLowRetake" type="button" class="mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2">
+                        <button id="resLowRetake" type="button" data-haptic class="soft-click mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition flex items-center justify-center gap-2">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                             Retake Photo
                         </button>
@@ -527,15 +585,15 @@
                             <div id="fbPrompt">
                                 <p class="text-sm font-medium text-neutral-700 mb-3">Was this identification correct?</p>
                                 <div class="flex gap-3">
-                                    <button id="fbYes" class="flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-sage-400 hover:text-sage-700 transition-colors">Yes, correct</button>
-                                    <button id="fbNo" class="flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-neutral-400 transition-colors">No, incorrect</button>
+                                    <button id="fbYes" data-haptic class="soft-click flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-sage-400 hover:text-sage-700 transition">Yes, correct</button>
+                                    <button id="fbNo" class="soft-click flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-neutral-400 transition">No, incorrect</button>
                                 </div>
                             </div>
                             <div id="fbCorrection" class="hidden">
                                 <p class="text-sm font-medium text-neutral-700 mb-2">Thank you. What is it, if you know?</p>
                                 <div class="flex gap-2">
                                     <input id="fbInput" type="text" placeholder="Correct flower name (optional)" class="flex-1 text-sm bg-white border border-neutral-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
-                                    <button id="fbSubmit" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-full hover:bg-neutral-800 transition-colors">Send</button>
+                                    <button id="fbSubmit" data-haptic class="soft-click text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-full hover:bg-neutral-800 transition">Send</button>
                                 </div>
                             </div>
                             <div id="fbThanks" class="hidden flex items-center gap-2 text-sm text-sage-700">
@@ -586,7 +644,7 @@
             <div id="miniGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"></div>
             <div id="miniError" class="hidden border border-dashed border-neutral-300 rounded-2xl p-8 text-center mt-4">
                 <p class="text-neutral-500 text-sm">Couldn’t reach the live directory just now.</p>
-                <button id="miniRetry" class="text-sm font-medium text-sage-700 hover:text-sage-600 transition-colors mt-3">Try again</button>
+                <button id="miniRetry" class="soft-click text-sm font-medium text-sage-700 hover:text-sage-600 transition mt-3">Try again</button>
             </div>
             <div id="miniSpinner" class="hidden flex justify-center py-8">
                 <svg class="animate-spin w-6 h-6 text-sage-500" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-20"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
@@ -794,6 +852,103 @@
         const modelDot = $('modelDot'), modelStatusText = $('modelStatusText');
         const identifyBtn = $('identifyBtn'), identifyLabel = $('identifyLabel'), identifyArrow = $('identifyArrow');
         const previewImg = $('previewImg'), previewEmpty = $('previewEmpty'), previewHint = $('previewHint'), previewScan = $('previewScan');
+        const previewBlock = $('previewBlock'), previewBox = $('previewBox'), resultPanel = $('resultPanel');
+
+        // The hint the preview carries before any image is chosen. Read out of the
+        // markup rather than repeated here, so Retake restores exactly what the
+        // page shipped with and the two cannot drift apart.
+        const PREVIEW_HINT_IDLE = previewHint ? previewHint.textContent : '';
+
+        /* ====================================================================
+           Presentation helpers
+           --------------------------------------------------------------------
+           Classes, scroll position and button visibility. Nothing below reads or
+           writes currentBlob, touches the inference request, or knows that
+           IndexedDB exists — the capture/identify handlers stay in charge of all
+           of that and simply call these to narrate what they are doing.
+           ==================================================================== */
+
+        function reduceMotion() {
+            return !!(window.ffUX && ffUX.prefersReducedMotion());
+        }
+
+        /**
+         * Bring `el` to the middle of the viewport — but only if it is not
+         * already essentially there.
+         *
+         * The guard is the whole point. On a phone the result panel is a full
+         * screen below the shutter and the scroll is the only thing that tells
+         * you where the answer went; on a desktop the same panel sits beside the
+         * camera and is already in view, where an identical scrollIntoView is a
+         * jolt carrying no information. Same call, opposite effect, so it is
+         * measured rather than assumed.
+         *
+         * Two ways to be "already there": most of the element is on screen, or
+         * the element is taller than the viewport and is already filling it —
+         * the second case can never satisfy the first.
+         */
+        function softScrollTo(el) {
+            if (!el || typeof el.getBoundingClientRect !== 'function') return;
+            try {
+                const r = el.getBoundingClientRect();
+                const vh = window.innerHeight || document.documentElement.clientHeight;
+                const visible = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+                if (r.height > 0 && (visible / r.height >= 0.65 || visible >= vh * 0.6)) return;
+                el.scrollIntoView({
+                    // Honour the OS setting explicitly. Not every engine maps
+                    // `smooth` to an instant jump under reduced-motion, and the
+                    // ones that do not would animate against the user's wishes.
+                    behavior: reduceMotion() ? 'auto' : 'smooth',
+                    block: 'center',
+                });
+            } catch (e) {
+                // Older engines reject the options object outright; an unsmoothed
+                // scroll still gets the user to the right place.
+                try { el.scrollIntoView(); } catch (e2) { /* give up quietly */ }
+            }
+        }
+
+        /** The capture confirmation pop. Re-armed on every shot: the class has to
+         *  come off and a reflow has to land before it goes back on, or a second
+         *  capture in the same session animates nothing. */
+        function popPreview() {
+            if (!previewBox || reduceMotion()) return;
+            previewBox.classList.remove('ff-pop');
+            void previewBox.offsetWidth;
+            previewBox.classList.add('ff-pop');
+        }
+
+        /**
+         * The camera panel's two-state switch.
+         *
+         * State 1 offers Capture; state 2 replaces it with Retake, because once
+         * there is a frame in hand the next commitment is Identify. Only two
+         * classes move — the buttons keep their boxes, so the row's height is
+         * identical in both states and nothing below the switch shifts.
+         */
+        function setCaptureState(captured) {
+            if (!camCapture || !camRetake) return;
+            camCapture.classList.toggle('hidden', !!captured);
+            camRetake.classList.toggle('hidden', !captured);
+        }
+
+        /**
+         * Forget the chosen image and return the panel to state 1.
+         *
+         * The blob URL behind previewImg is deliberately NOT revoked. A finished
+         * result card copies this exact string into #resImg, the uncertain-tier
+         * lead button, and the lookalike comparison, so revoking it here would
+         * blank the images in a result the user is very likely still reading.
+         * Dropping our own reference is all this needs to do.
+         */
+        function clearPreview() {
+            currentBlob = null;
+            previewImg.classList.add('hidden');
+            previewImg.removeAttribute('src');
+            previewEmpty.classList.remove('hidden');
+            previewHint.textContent = PREVIEW_HINT_IDLE;
+            refreshIdentifyState();
+        }
 
         // ---- Reveal animations ----
         document.addEventListener('DOMContentLoaded', () => {
@@ -817,14 +972,31 @@
 
         /** Send the user back to a capture surface after a rejected result.
          *  Prefers the camera tab (the fastest path to a better photo) and falls
-         *  back to whatever the first mode is if this build reorders them. */
+         *  back to whatever the first mode is if this build reorders them.
+         *
+         *  Resets the capture switch but leaves the preview alone: this also runs
+         *  when the focus shield turns down an image the user already has, and
+         *  silently discarding their photo is not what "look again" should mean.
+         *  Only an explicit Retake tap throws the frame away. */
         function focusCaptureEntry() {
             let idx = -1;
             segButtons.forEach((b, i) => { if (b.dataset.mode === 'camera') idx = i; });
             if (idx === -1) { idx = 0; }
             const btn = segButtons[idx];
             if (btn) selectMode(btn.dataset.mode, idx);
-            try { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { /* older engines */ }
+            setCaptureState(false);
+            // Aim at the viewfinder rather than the tab strip: the frame is what
+            // the next photo gets composed in, and centring the tabs leaves it
+            // half off the bottom of a phone screen.
+            softScrollTo(camFrame || btn);
+        }
+
+        /** Discard the current frame and go back to composing a new one. Shared by
+         *  the camera panel's own Retake and by both rejection tiers in the result
+         *  panel, so "Retake photo" means the same thing wherever it is tapped. */
+        function retakePhoto() {
+            clearPreview();
+            focusCaptureEntry();
         }
 
         // ---- Model status ----
@@ -861,6 +1033,13 @@
             previewEmpty.classList.add('hidden');
             previewHint.textContent = 'Ready to identify.';
             refreshIdentifyState();
+
+            // Upload and Link arrive here, and they earn the same confirmation the
+            // shutter gets: an image appeared in the preview and Identify just
+            // became the next step. No capture switch, though — neither panel has
+            // a Capture button to swap out.
+            popPreview();
+            softScrollTo(previewBlock);
         }
         function refreshIdentifyState() {
             identifyBtn.disabled = !currentBlob;
@@ -868,8 +1047,8 @@
 
         // ---- Camera ----
         const camVideo = $('camVideo'), camPlaceholder = $('camPlaceholder');
-        const camStart = $('camStart'), camCapture = $('camCapture');
-        const camReticle = $('camReticle'), camBlurWarn = $('camBlurWarn');
+        const camStart = $('camStart'), camCapture = $('camCapture'), camRetake = $('camRetake');
+        const camReticle = $('camReticle'), camBlurWarn = $('camBlurWarn'), camFrame = $('camFrame');
 
         // Explicit Start/Stop. Leaving the stream open holds the capture LED on and
         // keeps the sensor powered, which costs real battery in the field, so Stop
@@ -899,9 +1078,17 @@
             camBlurWarn.classList.add('hidden');
             camCapture.disabled = true;
             camStart.textContent = 'Start camera';
+            // Back to state 1: with the stream released there is nothing to
+            // retake, and Retake would be offering an action the panel can no
+            // longer perform. The captured frame itself is kept on purpose —
+            // stopping the camera is not the same as rejecting the photo, and
+            // Identify stays live for whatever is already in the preview.
+            setCaptureState(false);
         }
         // Release the camera if the user leaves or backgrounds the tab.
         window.addEventListener('pagehide', () => ffCamera.stop(camVideo));
+
+        camRetake.addEventListener('click', () => retakePhoto());
 
         camCapture.addEventListener('click', async () => {
             if (!ffCamera.active) return;
@@ -930,6 +1117,14 @@
                 previewEmpty.classList.add('hidden');
                 previewHint.textContent = 'Captured. Ready to identify.';
                 refreshIdentifyState();
+
+                // The shot landed: confirm it, then move to state 2 and put the
+                // preview and Identify in front of the user. Order matters — the
+                // switch happens before the scroll so the row has already settled
+                // at its final height when the scroll measures where to stop.
+                setCaptureState(true);
+                popPreview();
+                softScrollTo(previewBlock);
             } catch (err) {
                 console.error(err);
             }
@@ -991,6 +1186,11 @@
             // network error never tells the user to go and log in.
             $('resErrorAction').classList.add('hidden');
             showState('error');
+            // The identity gate can refuse a scan before the request is even
+            // built, which is upstream of the try/finally that scrolls on every
+            // other outcome. Without this, the one failure the user could
+            // actually fix is the one that never scrolls itself into view.
+            softScrollTo(resultPanel);
         }
 
         // ---- Inference (server-side via the Worker) ----
@@ -1047,6 +1247,11 @@
             previewScan.classList.remove('hidden');
             identifyBtn.disabled = true;
             identifyLabel.textContent = 'Analyzing…';
+            // Pulse the label, not the button. animate-pulse drives opacity only,
+            // so it composites; on the button it would also fade the shadow and
+            // the disabled state underneath it, and a whole control breathing at
+            // full width is the kind of restlessness this pass is removing.
+            identifyLabel.classList.add('animate-pulse');
             identifyArrow.classList.add('hidden');
 
             const controller = new AbortController();
@@ -1108,8 +1313,16 @@
                 stopLoadingMessages();
                 previewScan.classList.add('hidden');
                 identifyLabel.textContent = 'Identify flower';
+                identifyLabel.classList.remove('animate-pulse');
                 identifyArrow.classList.remove('hidden');
                 identifyBtn.disabled = false;
+
+                // Whatever came back — a species, an uncertain shortlist, a
+                // refusal, or an error — the answer is in the result panel and the
+                // user is still looking at the camera. Scrolling here rather than
+                // in each branch means no outcome can be the one that silently
+                // leaves them staring at the wrong half of the page.
+                softScrollTo(resultPanel);
             }
         });
 
@@ -1192,7 +1405,12 @@
             lead.innerHTML = '';
             const leadBtn = document.createElement('button');
             leadBtn.type = 'button';
-            leadBtn.className = 'w-full min-h-[56px] flex items-center gap-3 text-left border border-amber-200 bg-amber-50/60 rounded-2xl px-4 py-3 hover:border-amber-300 transition-colors';
+            // Accepting a candidate writes a scan to history, so it is a commit and
+            // gets the same tick and press as Identify. data-haptic is delegated
+            // from the document in scripts/ux.js, which is why setting the
+            // attribute is all the wiring a button built at runtime needs.
+            leadBtn.setAttribute('data-haptic', '');
+            leadBtn.className = 'soft-click w-full min-h-[56px] flex items-center gap-3 text-left border border-amber-200 bg-amber-50/60 rounded-2xl px-4 py-3 hover:border-amber-300 transition-colors';
             leadBtn.innerHTML =
                 `<img src="${previewImg.src}" alt="" class="w-11 h-11 rounded-xl object-cover flex-shrink-0 bg-neutral-100" />` +
                 '<span class="flex-1 min-w-0">' +
@@ -1210,7 +1428,8 @@
             others.forEach(c => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'ff-candidate';
+                btn.setAttribute('data-haptic', '');
+                btn.className = 'ff-candidate soft-click';
                 btn.innerHTML =
                     '<span class="ff-candidate__thumb"></span>' +
                     `<span class="ff-candidate__name">${cleanName(c.name)}</span>` +
@@ -1493,14 +1712,17 @@
 
         // ---- Retake shortcuts on the two rejection states ----
         // A rejected result is a dead end unless the next attempt is one tap
-        // away, so both tiers route straight back to the camera.
+        // away, so both tiers route straight back to the camera. retakePhoto()
+        // clears the frame that was just turned down, resets the capture switch
+        // to state 1 and scrolls to the viewfinder — the same three things the
+        // camera panel's own Retake does, because it is the same button.
         $('resLowRetake').addEventListener('click', () => {
             showState('empty');
-            focusCaptureEntry();
+            retakePhoto();
         });
         $('resUncertainRetake').addEventListener('click', () => {
             showState('empty');
-            focusCaptureEntry();
+            retakePhoto();
         });
 
         // ---- Feedback (stored locally; future human-in-the-loop signal) ----
