@@ -20,14 +20,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=5">
     <script src="nav.js?v=2" defer></script>
-    <!-- Fetch/render split (see scripts/api.js). Loaded without defer: the
-         inline engine at the bottom of this page runs immediately and reads
-         window.ffApi / window.ffUi. -->
-    <script src="scripts/api.js?v=1"></script>
-    <script src="scripts/ui.js?v=1"></script>
-    <!-- SPA: this page's grid engine is inline below and runs on a real load.
-         directory.js + views/directory.js give the router a startable/stoppable
-         copy for client-side revisits, where the inline block has already run. -->
+    <!-- The three halves of a grid, split so every surface shares them:
+         api.js fetches (Trefle, Wikidata fallback), ui.js draws the card, and
+         directory.js is the engine that pages and renders. The block at the
+         bottom of this page is now just a mount() call. All deferred, so they
+         run in order and are ready by DOMContentLoaded, which is what that
+         block waits for. -->
+    <script src="scripts/api.js?v=1" defer></script>
+    <script src="scripts/ui.js?v=1" defer></script>
+    <!-- SPA: views/directory.js starts the same engine on a client-side
+         revisit, when the inline block below has already run once. -->
     <script src="directory.js" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/views/directory.js" defer></script>
@@ -207,332 +209,71 @@
         </div>
     </footer>
 
-    <!-- data-ff-once: this is the page's original inline grid engine and it runs
-         on a real page load only. On a router visit scripts/views/directory.js
-         drives the shared engine (directory.js) instead; re-running this block
-         too would put two engines on one #dirGrid, double-fetching and
-         duplicating cards. See runScripts() in scripts/router.js. -->
+    <!-- The encyclopedia grid.
+
+         This used to be a ~320-line inline copy of the whole engine: the SPARQL
+         query, paging, dedupe, buffering, skeletons, culling. directory.js held
+         a second copy for the dashboard and scanner embeds, and the two were
+         free to drift -- the query's ORDER BY, which is what stops LIMIT/OFFSET
+         pages from repeating cards, existed twice.
+
+         Now there is one engine (directory.js) over one fetcher (scripts/api.js)
+         and one card renderer (scripts/ui.js), and this block just starts it.
+
+         data-ff-once still matters. On a router visit scripts/views/directory.js
+         starts that same engine, and re-running this block too would put two
+         engines on one #dirGrid, double-fetching and duplicating cards. See
+         runScripts() in scripts/router.js. -->
     <script data-ff-once>
     (function () {
         'use strict';
 
-        const ENDPOINT = 'https://query.wikidata.org/sparql';
-        const BATCH = 12;   // cards rendered per scroll trigger
-        const CHUNK = 96;   // rows fetched per network call (8 batches)
-
-        // Twenty major flowering-plant families.
-        //
-        // Why a family list and not `?item wdt:P31 wd:Q506`: Wikidata models a
-        // species as an instance of "taxon" (Q16521) carrying a rank, so only 35
-        // entities are direct instances of "flowering plant" -- three pages, then
-        // nothing. The obvious fix, a transitive `wdt:P171*` walk up to
-        // Magnoliophyta, does return 83k species but takes 45-57s per page, which
-        // is not a scroll experience. Constraining to a fixed family set keeps the
-        // join small: ~5,000 species at 7-9s per 96-row chunk.
-        const FAMILIES = [
-            'wd:Q25400',  // Asteraceae
-            'wd:Q46299',  // Rosaceae
-            'wd:Q25308',  // Orchidaceae
-            'wd:Q44448',  // Fabaceae
-            'wd:Q53476',  // Lamiaceae
-            'wd:Q145869', // Ranunculaceae
-            'wd:Q53480',  // Liliaceae
-            'wd:Q155941', // Iridaceae
-            'wd:Q156551', // Malvaceae
-            'wd:Q156888', // Brassicaceae
-            'wd:Q173756', // Apocynaceae
-            'wd:Q975872', // Ericaceae
-            'wd:Q155848', // Amaryllidaceae
-            'wd:Q25995',  // Caryophyllaceae
-            'wd:Q134172', // Solanaceae
-            'wd:Q157115', // Primulaceae
-            'wd:Q144723', // Papaveraceae
-            'wd:Q156060', // Violaceae
-            'wd:Q155802', // Campanulaceae
-            'wd:Q156179', // Onagraceae
-        ].join(' ');
-
-        // ORDER BY is not cosmetic: without a total order, LIMIT/OFFSET pages
-        // overlap (measured 37 duplicates across two 96-row pages), so infinite
-        // scroll would repeat cards and silently skip others.
-        function buildQuery(limit, offset) {
-            return 'SELECT ?item ?itemLabel ?img ?article ?famLabel WHERE {\n' +
-                '  VALUES ?fam { ' + FAMILIES + ' }\n' +
-                '  ?genus wdt:P171 ?fam .\n' +
-                '  ?item wdt:P171 ?genus ;\n' +
-                '        wdt:P105 wd:Q7432 ;\n' +
-                '        wdt:P18 ?img .\n' +
-                '  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }\n' +
-                '  SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }\n' +
-                '}\n' +
-                'ORDER BY ?item\n' +
-                'LIMIT ' + limit + ' OFFSET ' + offset;
-        }
-
-        // === state ==========================================================
-        const grid = document.getElementById('dirGrid');
-        const sentinel = document.getElementById('dirSentinel');
-        const spinner = document.getElementById('dirSpinner');
-        const errorBox = document.getElementById('dirError');
-        const endNote = document.getElementById('dirEnd');
-        const countEl = document.getElementById('dirCount');
-
-        let buffer = [];        // fetched-but-unrendered rows
-        let fetchOffset = 0;    // SPARQL OFFSET reached so far
-        let treflePage = 0;     // last Trefle page fetched
-        let rendered = 0;
-        let exhausted = false;  // server returned a short chunk
-        let loading = false;
-        let prefetch = null;    // in-flight next chunk
-        const seen = new Set(); // keys already rendered
-
-        // Which catalogue is feeding the grid.
-        //
-        // Trefle first: filtered to the same twenty families, it holds ~164,000
-        // species against roughly 5,000 reachable through Wikidata's taxon
-        // graph, and answers a REST call in a fraction of a 7-9s SPARQL query.
-        // Wikidata stays as the fallback so an unreachable or unconfigured
-        // proxy degrades the page instead of emptying it.
-        let engine = (window.ffApi && typeof ffApi.fetchTrefleBatch === 'function')
-            ? 'trefle' : 'wikidata';
-
-        /** Ask Commons for a scaled thumbnail. The originals are routinely
-         *  5-20MB each, which would make this page unusable on mobile data. */
-        function thumb(url, width) {
-            try {
-                const m = decodeURIComponent(url).match(/Special:FilePath\/(.+)$/);
-                if (!m) return url;
-                return 'https://commons.wikimedia.org/wiki/Special:FilePath/' +
-                    encodeURIComponent(m[1]) + '?width=' + (width || 400);
-            } catch { return url; }
-        }
-
-        /** Drop anything already on screen. Keyed on the QID where there is one
-         *  (Wikidata) and on the name otherwise (Trefle carries no Wikidata id).
-         *  Without this, overlapping LIMIT/OFFSET pages repeat cards -- 37
-         *  duplicates measured across two 96-row Wikidata pages. */
-        function dedupe(items) {
-            const out = [];
-            for (const it of items) {
-                if (!it || !it.name) continue;
-                const key = it.qid || ('n:' + it.name.trim().toLowerCase());
-                if (seen.has(key)) continue;
-                seen.add(key);
-                out.push(it);
-            }
-            return out;
-        }
-
-        function normalize(rows) {
-            const out = [];
-            for (const r of rows) {
-                if (!r.item || !r.img) continue;
-                const qid = r.item.value.split('/').pop();
-                const label = r.itemLabel ? r.itemLabel.value : '';
-                // An unresolved label falls back to the QID, which is not a species
-                // name -- drop the row rather than render "Q12345".
-                if (!label || /^Q\d+$/.test(label)) continue;
-                out.push({
-                    qid: qid,
-                    name: label,
-                    family: r.famLabel ? r.famLabel.value : '',
-                    img: thumb(r.img.value, 400),
-                    link: r.article ? r.article.value : ('https://www.wikidata.org/wiki/' + qid),
-                });
-            }
-            return dedupe(out);
-        }
-
-        async function fetchChunk(offset) {
-            const url = ENDPOINT + '?format=json&query=' + encodeURIComponent(buildQuery(CHUNK, offset));
-            const res = await fetch(url, { headers: { Accept: 'application/sparql-results+json' } });
-            if (!res.ok) throw new Error('WDQS ' + res.status);
-            const data = await res.json();
-            return data.results.bindings;
-        }
-
-        /** One page from whichever catalogue is live, already deduped.
-         *  Advances that source's cursor and sets `exhausted` at the end.
-         *  fetchOffset/treflePage advance only on success, so a failed page is
-         *  retried rather than skipped -- safe because ensureBuffer() and
-         *  startPrefetch() never run a fetch concurrently. */
-        async function fetchNext() {
-            if (engine === 'trefle') {
-                try {
-                    const res = await ffApi.fetchTrefleBatch(treflePage + 1);
-                    treflePage += 1;
-                    if (!res.hasMore) exhausted = true;
-                    return dedupe(res.items);
-                } catch (err) {
-                    // Proxy down, or TREFLE_TOKEN not set (503 + fallback).
-                    // With nothing on screen yet we can switch cleanly and fall
-                    // through to Wikidata below. Once cards are rendered we do
-                    // NOT switch: restarting the catalogue from another source
-                    // would repeat everything the user already scrolled past.
-                    const known = window.ffApi && err instanceof ffApi.TrefleUnavailableError;
-                    if (rendered || !known) throw err;
-                    console.warn('Trefle unavailable, using Wikidata:', err.message);
-                    engine = 'wikidata';
-                    seen.clear();
-                }
-            }
-            const at = fetchOffset;
-            const rows = await fetchChunk(at);
-            fetchOffset = at + CHUNK;
-            if (rows.length < CHUNK) exhausted = true;
-            return normalize(rows);
-        }
-
-        /** Warm the next page while the user is still scrolling the current one,
-         *  so a slow query hides behind several instant renders. */
-        function startPrefetch() {
-            if (prefetch || exhausted) return;
-            prefetch = fetchNext()
-                .then((items) => { buffer.push.apply(buffer, items); prefetch = null; })
-                .catch(() => { prefetch = null; });
-        }
-
-        async function ensureBuffer() {
-            if (buffer.length >= BATCH || exhausted) return;
-            if (prefetch) { await prefetch; return; }
-            // Loop rather than fetch once: a page can be deduped away entirely,
-            // and a Trefle page (20) is smaller than a Wikidata chunk (96), so
-            // one fetch does not always fill a batch. Bounded so a run of empty
-            // pages cannot spin.
-            for (let i = 0; i < 5 && buffer.length < BATCH && !exhausted; i++) {
-                const items = await fetchNext();
-                buffer.push.apply(buffer, items);
-            }
-        }
-
-        function renderBatch() {
-            const slice = buffer.splice(0, BATCH);
-            if (!slice.length) return 0;
-            // Cards come from the shared render engine (scripts/ui.js), so a
-            // Trefle card and a Wikidata card are identical, and the card design
-            // lives in exactly one place for every grid on the site.
-            const n = ffUi.appendPlantCards(grid, slice);
-            rendered += n;
-            countEl.textContent = rendered + ' species loaded';
-            return n;
-        }
-
-        function showSkeletons(n) {
-            let cells = '';
-            for (let i = 0; i < n; i++) {
-                cells += '<div class="skel bg-white border border-neutral-200 rounded-2xl overflow-hidden">' +
-                    '<div class="aspect-[4/5] skeleton"></div>' +
-                    '<div class="p-4 space-y-2"><div class="h-3 skeleton rounded"></div>' +
-                    '<div class="h-3 w-2/3 skeleton rounded"></div></div></div>';
-            }
-            grid.insertAdjacentHTML('beforeend', cells);
-        }
-        function clearSkeletons() {
-            const nodes = grid.querySelectorAll('.skel');
-            for (let i = 0; i < nodes.length; i++) nodes[i].remove();
-        }
-
-        // DOM node culling.
-        //
-        // What actually degrades a long scroll is decoded bitmaps, not markup: a
-        // few thousand live <img> nodes hold far more memory than their elements
-        // do. Far-offscreen cards drop their image source (freeing the decode)
-        // while keeping the element's box, so scroll height and position stay
-        // stable and nothing jumps. The src is restored as a card comes back.
-        const CULL_MARGIN = 2500;
-        function cullOffscreen() {
-            // Every card is an <article>; skeletons are <div class="skel">, so
-            // this selector needs no data-qid (Trefle records have no QID).
-            const cards = grid.querySelectorAll('article');
-            const top = window.scrollY - CULL_MARGIN;
-            const bottom = window.scrollY + window.innerHeight + CULL_MARGIN;
-            for (let i = 0; i < cards.length; i++) {
-                const card = cards[i];
-                const img = card.querySelector('img');
-                if (!img) continue;
-                const y = card.offsetTop;
-                const far = (y + card.offsetHeight < top) || (y > bottom);
-                if (far && img.getAttribute('src')) {
-                    img.dataset.src = img.getAttribute('src');
-                    img.removeAttribute('src');
-                } else if (!far && !img.getAttribute('src') && img.dataset.src) {
-                    img.setAttribute('src', img.dataset.src);
-                }
-            }
-        }
-        let cullTimer = null;
-        window.addEventListener('scroll', () => {
-            if (cullTimer) return;
-            cullTimer = setTimeout(() => { cullTimer = null; cullOffscreen(); }, 250);
-        }, { passive: true });
-
-        async function loadMore() {
-            if (loading) return;
-            if (exhausted && !buffer.length) return;
-            loading = true;
-            errorBox.classList.add('hidden');
-
-            const needsNetwork = buffer.length < BATCH && !exhausted;
-            if (needsNetwork) { spinner.classList.remove('hidden'); showSkeletons(BATCH); }
-
-            try {
-                await ensureBuffer();
-                clearSkeletons();
-                renderBatch();
-
-                // Keep a chunk in reserve so most scrolls never wait on WDQS.
-                if (buffer.length < BATCH * 3) startPrefetch();
-
-                if (!buffer.length && exhausted) {
-                    endNote.classList.remove('hidden');
-                    if (io) io.disconnect();
-                }
-            } catch (err) {
-                console.error(err);
-                clearSkeletons();
-                if (!rendered) errorBox.classList.remove('hidden');
-                else countEl.textContent = rendered + ' species loaded · scroll to retry';
-            } finally {
-                spinner.classList.add('hidden');
-                loading = false;
-            }
-        }
-
-        let io = null;
-        function initObserver() {
-            if (!('IntersectionObserver' in window)) {
-                // No observer support: fall back to a button so the page still works.
-                const btn = document.createElement('button');
-                btn.className = 'tap mx-auto px-6 bg-neutral-900 text-white text-sm font-medium rounded-full';
-                btn.textContent = 'Load more';
-                btn.onclick = loadMore;
-                sentinel.appendChild(btn);
+        // directory.js is deferred, so it has not executed yet at this point in
+        // the parse. Deferred scripts all run before DOMContentLoaded, so
+        // waiting for that event is what makes ffDirectory available here.
+        document.addEventListener('DOMContentLoaded', function () {
+            var countEl = document.getElementById('dirCount');
+            if (!window.ffDirectory || typeof ffDirectory.mount !== 'function') {
+                // No engine means no grid, ever. Say so rather than leave
+                // "Loading species..." up forever.
+                if (countEl) countEl.textContent = '';
+                var box = document.getElementById('dirError');
+                if (box) box.classList.remove('hidden');
                 return;
             }
-            io = new IntersectionObserver((entries) => {
-                for (let i = 0; i < entries.length; i++) {
-                    if (entries[i].isIntersecting) { loadMore(); return; }
-                }
-            }, { rootMargin: '600px 0px' });
-            io.observe(sentinel);
-        }
 
-        document.getElementById('dirRetry').addEventListener('click', () => {
-            errorBox.classList.add('hidden');
-            loadMore();
+            var handle = ffDirectory.mount({
+                grid:       document.getElementById('dirGrid'),
+                sentinel:   document.getElementById('dirSentinel'),
+                spinner:    document.getElementById('dirSpinner'),
+                endNote:    document.getElementById('dirEnd'),
+                errorBox:   document.getElementById('dirError'),
+                retryBtn:   document.getElementById('dirRetry'),
+                infinite:   true,
+                link:       'species',
+                // 400px, not the 500 default: this grid is four columns wide on
+                // a desktop and two on a phone, so the smaller thumbnail is the
+                // one that actually gets displayed.
+                thumbWidth: 400,
+                onCount: function (n) {
+                    if (countEl) countEl.textContent = n + ' species loaded';
+                },
+                onError: function (err, rendered) {
+                    // With cards already up, the error box stays hidden (it
+                    // would push the grid down); the counter carries the news
+                    // instead, and the next scroll retries.
+                    if (rendered && countEl) {
+                        countEl.textContent = rendered + ' species loaded · scroll to retry';
+                    }
+                },
+            });
+
+            // Hand the running engine to the view module. Without this, routing
+            // AWAY from a directly-loaded directory.html leaves this engine's
+            // IntersectionObserver and scroll listener alive on a detached grid.
+            window.ffDirectoryInline = handle;
+            handle.start();
         });
-
-        // The card markup now lives in scripts/ui.js. If that file did not
-        // load there is no fallback renderer to fall back to, so say so
-        // instead of leaving a silently empty grid.
-        if (!window.ffUi || typeof ffUi.appendPlantCards !== 'function') {
-            countEl.textContent = '';
-            errorBox.classList.remove('hidden');
-            return;
-        }
-
-        initObserver();
-        loadMore();
     })();
     </script>
 </body>

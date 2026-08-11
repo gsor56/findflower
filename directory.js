@@ -1,62 +1,33 @@
 /* ============================================================================
    FindFlower — reusable Wikidata plant-card engine (directory.js)
    ----------------------------------------------------------------------------
-   directory.html grew a self-contained infinite-scroll grid backed by the
-   Wikidata Query Service. Two more surfaces now want the SAME live plant cards:
-   the dashboard's "Discover" feed (infinite) and the scanner page's mini
-   directory (a fixed ~40-card grid). Rather than copy the query logic three
-   times, this module exposes it once:
+   The site has four live plant grids: the encyclopedia (directory.html), the
+   dashboard's "Discover" feed, the scanner page's mini directory, and the home
+   preview. This module is the ONE engine behind them:
 
        window.ffDirectory.mount({ grid, ... })  ->  { start, stop }
 
-   directory.html keeps its own battle-tested inline copy untouched (no reason
-   to risk a working page); this module is the shared engine for the new embeds.
+   It owns paging, dedupe, buffering, rendering and culling. It does not own
+   fetching or markup — scripts/api.js grabs the data and scripts/ui.js draws
+   the card, so a change to either lands everywhere at once.
 
-   Design notes carried over from directory.html, because they are load-bearing:
-     • A fixed 20-family VALUES set, not `wdt:P31 wd:Q506`. Modelling means only
-       ~35 entities are direct instances of "flowering plant"; the family join
-       keeps the query fast (~5k species, 7-9s per 96-row chunk).
-     • ORDER BY ?item is required — without a total order LIMIT/OFFSET pages
-       overlap and infinite scroll repeats/skips cards.
-     • The `seen` Set dedupes across pages (measured 37 dupes across two pages).
-     • Commons thumbnails, never originals (originals are 5-20 MB each).
+   directory.html used to carry a near-identical inline copy of all of this.
+   It no longer does: that block is now a mount() call, so the encyclopedia and
+   the embeds cannot drift apart. The one thing it still needs is the
+   data-ff-once guard, because the router starts this same engine through
+   scripts/views/directory.js on a swap and two engines on one #dirGrid would
+   double-fetch every card.
+
+   Load-bearing behaviour, kept here because it is easy to "simplify" away:
+     • The `seen` Set dedupes across pages (measured 37 dupes across two
+       Wikidata pages, whose LIMIT/OFFSET windows overlap).
+     • A source switch is only legal before the first card paints — restarting
+       the catalogue mid-scroll would repeat everything already scrolled past.
+     • loadMore() never throws; it returns a painted count, which is what stops
+       fill() from spinning at full speed against a dead network.
    ========================================================================== */
 (function () {
     'use strict';
-
-    var ENDPOINT = 'https://query.wikidata.org/sparql';
-    var CHUNK = 96; // rows fetched per network call
-
-    var FAMILIES = [
-        'wd:Q25400',  'wd:Q46299',  'wd:Q25308',  'wd:Q44448',  'wd:Q53476',
-        'wd:Q145869', 'wd:Q53480',  'wd:Q155941', 'wd:Q156551', 'wd:Q156888',
-        'wd:Q173756', 'wd:Q975872', 'wd:Q155848', 'wd:Q25995',  'wd:Q134172',
-        'wd:Q157115', 'wd:Q144723', 'wd:Q156060', 'wd:Q155802', 'wd:Q156179'
-    ].join(' ');
-
-    function buildQuery(limit, offset) {
-        return 'SELECT ?item ?itemLabel ?img ?article ?famLabel WHERE {\n' +
-            '  VALUES ?fam { ' + FAMILIES + ' }\n' +
-            '  ?genus wdt:P171 ?fam .\n' +
-            '  ?item wdt:P171 ?genus ;\n' +
-            '        wdt:P105 wd:Q7432 ;\n' +
-            '        wdt:P18 ?img .\n' +
-            '  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }\n' +
-            '  SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }\n' +
-            '}\n' +
-            'ORDER BY ?item\n' +
-            'LIMIT ' + limit + ' OFFSET ' + offset;
-    }
-
-    // Ask Commons for a scaled thumbnail — the originals are far too large.
-    function thumb(url, width) {
-        try {
-            var m = decodeURIComponent(url).match(/Special:FilePath\/(.+)$/);
-            if (!m) return url;
-            return 'https://commons.wikimedia.org/wiki/Special:FilePath/' +
-                encodeURIComponent(m[1]) + '?width=' + (width || 500);
-        } catch (e) { return url; }
-    }
 
     // ---- mount: one embeddable, self-contained grid ------------------------
     // opts:
@@ -68,7 +39,12 @@
     //   batch     cards rendered per step (default 12)
     //   cull      drop far-offscreen image sources to save memory (default true)
     //   link      'species' -> species.html?name=  |  'wiki' -> external article
+    //   thumbWidth  Commons thumbnail width for Wikidata rows (default 500)
     //   onCount(n)  called after each render with the running total
+    //   onError(err, rendered)  a page failed. errorBox already handles the
+    //             nothing-rendered case; this is for surfaces that also want to
+    //             say something when SOME cards are up (the encyclopedia turns
+    //             its counter into "… · scroll to retry").
     function mount(opts) {
         opts = opts || {};
         var grid = opts.grid;
@@ -77,6 +53,15 @@
         // audibly, rather than render an empty grid with no explanation.
         if (!window.ffUi || typeof ffUi.plantCardHTML !== 'function') {
             console.error('ffDirectory.mount: scripts/ui.js is not loaded.');
+            if (opts.errorBox) opts.errorBox.classList.remove('hidden');
+            return { start: function () {}, stop: function () {} };
+        }
+        // Same rule for the data half. This used to be a soft dependency — no
+        // ffApi just meant "use the SPARQL code in this file" — but that code
+        // moved to api.js, so a missing api.js now leaves no catalogue at all.
+        // Say so rather than run an engine that can only paint an empty grid.
+        if (!window.ffApi || typeof ffApi.fetchWikidataBatch !== 'function') {
+            console.error('ffDirectory.mount: scripts/api.js is not loaded.');
             if (opts.errorBox) opts.errorBox.classList.remove('hidden');
             return { start: function () {}, stop: function () {} };
         }
@@ -91,7 +76,9 @@
         var BATCH    = opts.batch || 12;
         var cull     = opts.cull !== false;
         var linkMode = opts.link || 'species';
+        var thumbWidth = opts.thumbWidth || 500;
         var onCount  = typeof opts.onCount === 'function' ? opts.onCount : null;
+        var onError  = typeof opts.onError === 'function' ? opts.onError : null;
 
         var buffer = [];        // fetched-but-unrendered rows
         var fetchOffset = 0;
@@ -103,10 +90,13 @@
         var seen = new Set();
         var io = null;
 
-        // Trefle first (~164k species in the same twenty families, one fast
-        // REST call), Wikidata as the fallback when the proxy is unreachable
-        // or TREFLE_TOKEN is unset. opts.source: 'wikidata' pins the old path.
-        var engine = (opts.source !== 'wikidata' && window.ffApi &&
+        // Trefle first: filtered to the same twenty families it holds ~164,000
+        // species against roughly 5,000 reachable through Wikidata's taxon
+        // graph, and answers a REST call in a fraction of a 7–9s SPARQL query.
+        // Wikidata stays as the fallback so an unreachable or unconfigured
+        // proxy degrades the page instead of emptying it.
+        // opts.source: 'wikidata' pins the fallback (used by the tests).
+        var engine = (opts.source !== 'wikidata' &&
             typeof ffApi.fetchTrefleBatch === 'function') ? 'trefle' : 'wikidata';
 
         function cardLink(s) {
@@ -131,34 +121,12 @@
             return out;
         }
 
-        function normalize(rows) {
-            var out = [];
-            for (var i = 0; i < rows.length; i++) {
-                var r = rows[i];
-                if (!r.item || !r.img) continue;
-                var qid = r.item.value.split('/').pop();
-                var label = r.itemLabel ? r.itemLabel.value : '';
-                if (!label || /^Q\d+$/.test(label)) continue;
-                out.push({
-                    qid: qid,
-                    name: label,
-                    family: r.famLabel ? r.famLabel.value : '',
-                    img: thumb(r.img.value, 500),
-                    link: r.article ? r.article.value : ('https://www.wikidata.org/wiki/' + qid)
-                });
-            }
-            return dedupe(out);
-        }
-
-        async function fetchChunk(offset) {
-            var url = ENDPOINT + '?format=json&query=' + encodeURIComponent(buildQuery(CHUNK, offset));
-            var res = await fetch(url, { headers: { Accept: 'application/sparql-results+json' } });
-            if (!res.ok) throw new Error('WDQS ' + res.status);
-            var data = await res.json();
-            return data.results.bindings;
-        }
-
-        /** One page from the live catalogue, deduped, cursor advanced. */
+        /** One page from the live catalogue, deduped, cursor advanced.
+         *  Both branches call api.js, so the query and the REST contract live
+         *  in one file; this function only decides WHICH source and WHEN to
+         *  give up on it. Cursors advance only on success, so a failed page is
+         *  retried rather than skipped — safe because ensureBuffer() and
+         *  startPrefetch() never run a fetch concurrently. */
         async function fetchNext() {
             if (engine === 'trefle') {
                 try {
@@ -180,10 +148,10 @@
                 }
             }
             var at = fetchOffset;
-            var rows = await fetchChunk(at);
-            fetchOffset = at + CHUNK;
-            if (rows.length < CHUNK) exhausted = true;
-            return normalize(rows);
+            var wd = await ffApi.fetchWikidataBatch(at, { thumbWidth: thumbWidth });
+            fetchOffset = wd.nextOffset;
+            if (!wd.hasMore) exhausted = true;
+            return dedupe(wd.items);
         }
 
         function startPrefetch() {
@@ -302,6 +270,7 @@
             } catch (err) {
                 clearSkeletons();
                 if (!rendered && errorBox) errorBox.classList.remove('hidden');
+                if (onError) { try { onError(err, rendered); } catch (e) { /* hook's problem */ } }
             } finally {
                 if (spinner) spinner.classList.add('hidden');
                 loading = false;
