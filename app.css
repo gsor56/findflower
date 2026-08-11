@@ -29,6 +29,68 @@ body {
    `font-serif`, so we never override an element that asked for the serif. */
 
 /* ============================================================================
+   Fluid scale — clamp() for display type, container padding and grid gaps
+   ----------------------------------------------------------------------------
+   Every page sizes type in fixed steps (`text-4xl md:text-6xl`). Between the
+   breakpoints the value does not move, so a 360px phone gets the same 36px
+   heading as a 760px tablet and long species names break mid-word. These
+   rules make the BASE step fluid: it interpolates from a comfortable phone
+   size up to the Tailwind default, which it reaches at 1280px.
+
+   Deliberately BASE utilities only — no `md:` / `sm:` variants. Those apply
+   from 640px and 768px up, where the layouts are not the ones breaking, and
+   they encode composition the pages were designed around (`text-4xl
+   md:text-6xl` is a chosen jump, not an accident). Overriding them would
+   redesign every desktop page under the guise of a mobile fix. The ceiling of
+   each clamp is the Tailwind default, so at desktop widths nothing moves and
+   the responsive variants still hand off exactly as authored.
+
+   !important throughout: the Tailwind Play CDN injects its utilities AFTER
+   this file, so an un-flagged rule loses the cascade. Only font-size and
+   spacing are touched — never line-height, which pages set themselves with
+   `leading-*` and which the utilities also carry.
+   ========================================================================== */
+.text-3xl { font-size: clamp(1.5rem,   1.35326rem + 0.65217vw, 1.875rem) !important; }
+.text-4xl { font-size: clamp(1.75rem,  1.55435rem + 0.86957vw, 2.25rem)  !important; }
+.text-5xl { font-size: clamp(2.125rem, 1.78261rem + 1.52174vw, 3rem)     !important; }
+.text-6xl { font-size: clamp(2.5rem,   2.01087rem + 2.17391vw, 3.75rem)  !important; }
+.text-7xl { font-size: clamp(2.75rem,  2.06522rem + 3.04348vw, 4.5rem)   !important; }
+
+/* Container gutters. px-6 alone appears ~95 times, so this is the single
+   highest-leverage spacing rule on the site. */
+.px-4 { padding-left: clamp(0.875rem, 0.82609rem + 0.21739vw, 1rem)    !important;
+        padding-right: clamp(0.875rem, 0.82609rem + 0.21739vw, 1rem)   !important; }
+.px-5 { padding-left: clamp(1rem,     0.90217rem + 0.43478vw, 1.25rem) !important;
+        padding-right: clamp(1rem,     0.90217rem + 0.43478vw, 1.25rem) !important; }
+.px-6 { padding-left: clamp(1.125rem, 0.97826rem + 0.65217vw, 1.5rem)  !important;
+        padding-right: clamp(1.125rem, 0.97826rem + 0.65217vw, 1.5rem) !important; }
+.px-8 { padding-left: clamp(1.25rem,  0.95652rem + 1.30435vw, 2rem)    !important;
+        padding-right: clamp(1.25rem,  0.95652rem + 1.30435vw, 2rem)   !important; }
+
+/* Grid and flex gutters. The ≤375px block further down still overrides
+   `.grid.gap-*` for the smallest phones — higher specificity and later in the
+   file — and its 0.75rem lands on the same value these clamps floor at. */
+.gap-3  { gap: clamp(0.625rem, 0.57609rem + 0.21739vw, 0.75rem) !important; }
+.gap-4  { gap: clamp(0.75rem,  0.65217rem + 0.43478vw, 1rem)    !important; }
+.gap-5  { gap: clamp(0.875rem, 0.72826rem + 0.65217vw, 1.25rem) !important; }
+.gap-6  { gap: clamp(1rem,     0.80435rem + 0.86957vw, 1.5rem)  !important; }
+.gap-8  { gap: clamp(1.25rem,  0.95652rem + 1.30435vw, 2rem)    !important; }
+.gap-12 { gap: clamp(1.75rem,  1.26087rem + 2.17391vw, 3rem)    !important; }
+
+/* Horizontal safe-area gutters for landscape notches. The header, tab bar and
+   sidebar already handle the top and bottom insets; in landscape the left and
+   right insets are the ones that clip a full-bleed container. Applied to the
+   page wrappers rather than globally so nothing double-pads. */
+@supports (padding: max(0px, env(safe-area-inset-left))) {
+    body > header,
+    body > main,
+    body > footer {
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+    }
+}
+
+/* ============================================================================
    Mobile viewport chrome — dynamic viewport height + notch safe areas
    ----------------------------------------------------------------------------
    `100vh` on mobile browsers measures the viewport as if the URL chrome were
@@ -590,3 +652,259 @@ html.ff-routing main {
     .skeleton { animation: none; }
     .fade-in { animation: none; }
 }
+
+/* ============================================================================
+   Smart glass header (nav.js adds/removes .ff-header--solid on scroll)
+   ----------------------------------------------------------------------------
+   At the top of a page the header is invisible chrome: no background, no
+   border, so the hero composition runs edge to edge behind it. Once the page
+   scrolls, content would collide with the links, so the glass comes in.
+
+   Only background-color, backdrop-filter and border-color transition. None of
+   them trigger layout, and the header keeps a constant 4rem height in both
+   states, so nothing below it ever shifts. Deliberately NOT animating the
+   blur radius: an animated backdrop-filter re-rasterizes the layer behind it
+   every frame and is the one property here that will heat a phone.
+
+   Pages ship a solid <header> in their HTML as the no-JS fallback and nav.js
+   replaces it, so the transparent state only ever exists when the script that
+   restores the glass is running.
+   ========================================================================== */
+.ff-header {
+    background-color: transparent;
+    border-bottom: 1px solid transparent;
+    transition: background-color 240ms ease, border-color 240ms ease,
+                -webkit-backdrop-filter 240ms ease, backdrop-filter 240ms ease;
+}
+
+.ff-header--solid {
+    background-color: rgba(252, 252, 252, 0.82);
+    -webkit-backdrop-filter: saturate(180%) blur(12px);
+    backdrop-filter: saturate(180%) blur(12px);
+    border-bottom-color: rgba(229, 229, 229, 0.6);
+}
+
+/* No blur support (older Firefox, some Android WebViews): fall back to a more
+   opaque plate, because 82% over live content is not readable without it. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .ff-header--solid { background-color: rgba(252, 252, 252, 0.97); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ff-header { transition: none; }
+}
+
+/* ============================================================================
+   Hamburger morph — three lines fold into an X
+   ----------------------------------------------------------------------------
+   Driven entirely off the button's own aria-expanded, which nav.js already
+   maintains on every hamburger (see setSidebar). No extra class to keep in
+   sync, and the accessible state and the visual state cannot disagree.
+
+   The bars are absolutely positioned so the transform is pure rotate/translate
+   with no effect on the button's 40px box. Animating `top` would relayout the
+   button on every frame; translateY does not.
+   ========================================================================== */
+.ff-burger {
+    position: relative;
+    display: block;
+    width: 20px;
+    height: 14px;
+    pointer-events: none;   /* the <button> owns the click, not the bars */
+}
+
+.ff-burger > span {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 1.8px;
+    border-radius: 2px;
+    background-color: currentColor;
+    transition: transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 160ms ease;
+}
+
+.ff-burger > span:nth-child(1) { top: 0; }
+.ff-burger > span:nth-child(2) { top: 50%; margin-top: -0.9px; }
+.ff-burger > span:nth-child(3) { bottom: 0; }
+
+/* Open: outer bars slide to the centre line and cross; the middle one fades. */
+.ff-hamburger[aria-expanded="true"] .ff-burger > span:nth-child(1) {
+    transform: translateY(6.1px) rotate(45deg);
+}
+.ff-hamburger[aria-expanded="true"] .ff-burger > span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0.4);
+}
+.ff-hamburger[aria-expanded="true"] .ff-burger > span:nth-child(3) {
+    transform: translateY(-6.1px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ff-burger > span { transition: none; }
+}
+
+/* ============================================================================
+   Desktop nav links — centre-out underline
+   ----------------------------------------------------------------------------
+   scaleX on a pseudo-element from transform-origin: center. A width or
+   background-size animation would work visually but costs a paint of the text
+   run on every frame; a composited scale does not.
+   ========================================================================== */
+.ff-header nav a {
+    position: relative;
+}
+
+.ff-header nav a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 1.5px;
+    border-radius: 2px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ff-header nav a:hover::after,
+.ff-header nav a:focus-visible::after,
+.ff-header nav a[aria-current="page"]::after {
+    transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ff-header nav a::after { transition: none; }
+}
+
+/* ============================================================================
+   Tactile press — .soft-click
+   ----------------------------------------------------------------------------
+   The whole feedback budget of a tap, spent on one composited property. Pair
+   it with ffHaptic() (scripts/ux.js) on the buttons that commit to something.
+
+   `transform` only, so a press never reflows its neighbours. The scale is
+   applied to the element itself, which means it works on <button>, <a> and
+   the pill-shaped controls alike without any per-component styling.
+   ========================================================================== */
+.soft-click {
+    transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
+    -webkit-tap-highlight-color: transparent;
+}
+
+.soft-click:active {
+    transform: scale(0.98);
+}
+
+/* A pressed control must not also fight a hover-lift transform on touch
+   devices, where :hover sticks after the tap. */
+@media (hover: none) {
+    .soft-click:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .soft-click { transition: none; }
+    .soft-click:active { transform: none; }
+}
+
+/* ============================================================================
+   Calm loading — .skeleton-shimmer, and the cross-fade off it
+   ----------------------------------------------------------------------------
+   .skeleton (above) is the plant-card placeholder and keeps its own sizing.
+   .skeleton-shimmer is the general-purpose version for any loading block, and
+   shares the same ff-shimmer keyframes so the whole site sweeps at one rhythm
+   instead of two subtly different ones.
+
+   Slower and lower-contrast than a spinner on purpose: a spinner says "this is
+   taking a while", a shimmer says "this is arriving". Content then cross-fades
+   in with .ff-fade-in rather than popping, which is what makes the swap read as
+   one motion.
+   ========================================================================== */
+.skeleton-shimmer {
+    background-color: #F5F5F5;
+    background-image: linear-gradient(90deg, #F5F5F5 0px, #ECECEC 48px, #F5F5F5 96px);
+    background-size: 600px 100%;
+    background-repeat: no-repeat;
+    animation: ff-shimmer 1.8s linear infinite;
+    border-radius: 12px;
+}
+
+/* Opacity-only, so a cross-fade never moves the layout it is fading into. */
+.ff-fade-in {
+    animation: ff-fade-opacity 320ms ease-out both;
+}
+
+@keyframes ff-fade-opacity {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer { animation: none; }
+    .ff-fade-in { animation: none; }
+}
+
+/* ============================================================================
+   Scroll reveals — global, and fail-safe by default
+   ----------------------------------------------------------------------------
+   Every page carries its own inline copy of this: a `.reveal-up` block at
+   opacity 0 plus its own IntersectionObserver. Fourteen copies of one effect.
+
+   All fourteen share a failure mode. `.reveal-up` is hidden by DEFAULT and only
+   an observer can reveal it, so if the script owning that observer never runs
+   the content stays invisible with no error anywhere. That is exactly how
+   try.html shipped a blank page: a truncated file left its inline block
+   uncompiled, the observer never ran, and every section held at opacity 0.
+
+   Two independent fixes, one here and one in scripts/ux.js:
+
+     - The default below is INVERTED. `.reveal-up` is visible until JS puts
+       .ff-reveal on <html>, which scripts/ux.js does only after confirming it
+       has an IntersectionObserver to reveal them with. No JS, blocked JS, or a
+       parse error in the tag that would have set it all land on "visible".
+
+     - `html:not(.ff-reveal)` is deliberate, not decoration. The pages' inline
+       `.reveal-up { opacity: 0 }` sits in a <style> that loads AFTER this file,
+       so an equal-specificity rule here would lose on source order. `:not()`
+       counts its argument, making this (0,2,0) against their (0,1,0) — it wins
+       on specificity, where source order does not apply. No !important, which
+       would have to be matched on the .active rules and would turn one missed
+       flag into permanently hidden content.
+
+   The revealed state stays keyed to `.active`, the class all fourteen inline
+   observers already set, so the global observer drives the pages' own CSS and
+   each page's observer drives this. Either one alone is enough.
+   ========================================================================== */
+html:not(.ff-reveal) .reveal-up {
+    opacity: 1;
+    transform: none;
+}
+
+html.ff-reveal .reveal-up {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.ff-reveal .reveal-up.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Stagger helpers, matching the inline sets the pages already use. */
+html.ff-reveal .reveal-up.delay-100 { transition-delay: 100ms; }
+html.ff-reveal .reveal-up.delay-200 { transition-delay: 200ms; }
+html.ff-reveal .reveal-up.delay-300 { transition-delay: 300ms; }
+html.ff-reveal .reveal-up.delay-400 { transition-delay: 400ms; }
+
+@media (prefers-reduced-motion: reduce) {
+    html.ff-reveal .reveal-up {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}
+

@@ -61,8 +61,15 @@
     // render unconstrained (e.g. if a stylesheet is slow to apply).
     var SVG_OPEN = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" ' +
         'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">';
-    var ICON_MENU  = SVG_OPEN + '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg>';
     var ICON_CLOSE = SVG_OPEN + '<path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>';
+
+    // The hamburger is three real elements rather than an SVG, so its lines can
+    // physically fold into an X on open. Pure CSS: .ff-burger keys off the
+    // button's own aria-expanded, which setSidebar() already maintains, so
+    // there is no second piece of state to drift out of sync. Fixed 20x14 box
+    // and transform-only motion — the button never changes size.
+    var ICON_BURGER = '<span class="ff-burger" aria-hidden="true">' +
+        '<span></span><span></span><span></span></span>';
     var ICON_DASH  = SVG_OPEN +
         '<rect x="3" y="3" width="7" height="7" rx="1.5"/>' +
         '<rect x="14" y="3" width="7" height="7" rx="1.5"/>' +
@@ -84,9 +91,12 @@
 
     function buildHeader() {
         var header = document.createElement('header');
-        header.className =
-            'fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md ' +
-            'border-b border-neutral-200/60';
+        // No background/border utilities here on purpose. The glass is owned by
+        // .ff-header / .ff-header--solid in app.css so it can transition; a
+        // Tailwind `bg-*` class would win the cascade (the Play CDN injects
+        // after app.css) and pin the bar solid at every scroll position.
+        // `fixed top-0` stays — header.fixed.top-0 carries the safe-area inset.
+        header.className = 'ff-header fixed top-0 left-0 right-0 z-50';
         header.innerHTML =
             '<div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">' +
                 // LEFT — logo + wordmark + Beta pill
@@ -104,7 +114,7 @@
                 '<div class="flex items-center gap-3">' +
                     '<a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
-                    '<a id="ffTryNow" href="try.html" class="text-sm font-medium bg-neutral-900 text-white ' +
+                    '<a id="ffTryNow" href="try.html" class="soft-click text-sm font-medium bg-neutral-900 text-white ' +
                         'px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5" ' +
                         'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
                     // Hamburger is shown at every width. The top bar carries the
@@ -113,12 +123,53 @@
                     // Carries both hooks the delegated handler listens for.
                     '<button id="ffMenuBtn" type="button" data-toggle-sidebar aria-label="Open menu" ' +
                         'aria-controls="ffSidebar" aria-expanded="false" ' +
-                        'class="ff-hamburger flex items-center justify-center text-neutral-700 ' +
+                        'class="ff-hamburger soft-click flex items-center justify-center text-neutral-700 ' +
                         'hover:text-neutral-900 transition-colors" style="min-width:40px;min-height:40px">' +
-                        ICON_MENU + '</button>' +
+                        ICON_BURGER + '</button>' +
                 '</div>' +
             '</div>';
         return header;
+    }
+
+    /**
+     * Toggle the header's glass plate on scroll.
+     *
+     * Transparent while the page is at the top so the hero runs edge to edge
+     * behind the bar; solid once content would otherwise slide under the links.
+     *
+     * Cheap on purpose: one passive listener, coalesced into a single rAF, and
+     * it only touches the DOM when the state actually flips. classList.toggle
+     * with the same value every frame would still invalidate style on some
+     * engines, so the `solid === wasSolid` early-out matters.
+     */
+    function wireHeaderScroll(header) {
+        var THRESHOLD = 12;      // ~one line of scroll: enough to mean "moved"
+        var wasSolid = null;     // null so the first pass always paints
+        var queued = false;
+
+        function paint() {
+            queued = false;
+            var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+            var solid = y > THRESHOLD;
+            if (solid === wasSolid) return;
+            wasSolid = solid;
+            header.classList.toggle('ff-header--solid', solid);
+        }
+
+        function onScroll() {
+            if (queued) return;
+            queued = true;
+            if (window.requestAnimationFrame) window.requestAnimationFrame(paint);
+            else paint();
+        }
+
+        // Passive: this handler never calls preventDefault, and saying so keeps
+        // it off the critical path of the scroll gesture on touch devices.
+        window.addEventListener('scroll', onScroll, { passive: true });
+        // Restoring a scrolled position (back button, deep link, reload) must
+        // not leave the bar transparent over content.
+        window.addEventListener('resize', onScroll, { passive: true });
+        paint();
     }
 
     // Slide-out sidebar for the links kept out of the top bar (Dashboard,
@@ -162,6 +213,11 @@
         var btns = document.querySelectorAll('[data-toggle-sidebar], .ff-hamburger');
         for (var i = 0; i < btns.length; i++) {
             btns[i].setAttribute('aria-expanded', on ? 'true' : 'false');
+            // The icon itself morphs to an X, so the label has to follow it —
+            // a button reading "Open menu" while showing a close mark is a lie
+            // to anyone using a screen reader. aria-expanded also drives the
+            // CSS morph, so state, visuals and label all move together.
+            btns[i].setAttribute('aria-label', on ? 'Close menu' : 'Open menu');
         }
 
         // Freeze the page behind the panel so a scroll gesture over the overlay
@@ -244,6 +300,9 @@
         // Slide-out sidebar (Dashboard / Directory) + its open/close wiring.
         document.body.appendChild(buildSidebar());
         wireSidebar();
+
+        // Transparent-at-top / glass-on-scroll behaviour for the bar just built.
+        wireHeaderScroll(header);
 
         // Bottom tab bar + the body padding that keeps content clear of it.
         document.body.appendChild(buildTabBar());

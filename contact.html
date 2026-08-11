@@ -20,6 +20,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=5">
     <script src="nav.js?v=2" defer></script>
+    <script src="scripts/ux.js?v=1" defer></script>
     <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
          scroll-reveal observer on arrival. The page stays a full document. -->
     <script src="scripts/views/home.js" defer></script>
@@ -141,7 +142,7 @@
                                 <textarea id="message" rows="6" required placeholder="Tell us what happened, or what you’d like to see…" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition resize-none"></textarea>
                             </div>
                             <div class="pt-1">
-                                <button type="submit" class="group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float flex items-center justify-center gap-2">
+                                <button type="submit" data-haptic class="soft-click group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float flex items-center justify-center gap-2">
                                     Send message
                                     <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                                 </button>
@@ -156,7 +157,7 @@
                             </div>
                             <h3 class="text-2xl font-medium tracking-tight text-neutral-900 mb-2">Your draft is ready</h3>
                             <p class="text-neutral-500 font-light max-w-sm mx-auto leading-relaxed mb-6">We’ve opened a pre-filled email in your mail app. Review it and hit send — we’ll take it from there.</p>
-                            <button id="contactAgain" class="text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Write another message</button>
+                            <button id="contactAgain" class="soft-click text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Write another message</button>
                         </div>
                     </div>
                 </div>
