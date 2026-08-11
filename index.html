@@ -140,14 +140,6 @@
             -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
         }
 
-        /* Faint dotted grid background */
-        .grid-dots {
-            background-image: radial-gradient(rgba(23, 23, 23, 0.05) 1px, transparent 1px);
-            background-size: 28px 28px;
-            -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 0%, transparent 75%);
-            mask-image: radial-gradient(ellipse 70% 55% at 50% 35%, black 0%, transparent 75%);
-        }
-
         /* Card hover lift */
         .hover-lift {
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease;
@@ -181,30 +173,6 @@
         }
         .card-in.ready { opacity: 1; transform: translateY(0); }
 
-        /* Ambient sage glow — a slow, low-opacity radial blob behind the hero.
-           Calm and breathing, never pulsing hard enough to distract. */
-        @keyframes glow-drift {
-            0%, 100% { opacity: 0.35; transform: translate(-50%, 0) scale(1); }
-            50%      { opacity: 0.6;  transform: translate(-50%, -2%) scale(1.08); }
-        }
-        .ambient-glow {
-            position: absolute;
-            top: -10%;
-            left: 50%;
-            width: min(760px, 90vw);
-            height: min(760px, 90vw);
-            transform: translate(-50%, 0);
-            background: radial-gradient(circle at center,
-                rgba(124, 151, 129, 0.28) 0%,
-                rgba(124, 151, 129, 0.14) 38%,
-                rgba(124, 151, 129, 0) 70%);
-            filter: blur(28px);
-            border-radius: 9999px;
-            pointer-events: none;
-            z-index: -1;
-            animation: glow-drift 11s infinite ease-in-out;
-        }
-
         /* Soft "breathing" pulse for status badges (Beta tag, live dots). */
         @keyframes breathe {
             0%, 100% { opacity: 1; }
@@ -215,13 +183,224 @@
         /* Gentle lift for buttons — subtle scale + shadow, quick and smooth. */
         .lift-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .lift-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
+        /* app.css gives every .soft-click a press-in, but `.soft-click:active`
+           and `.lift-btn:hover` are both (0,2,0) and this file loads last, so on
+           a hovering mouse the lift would swallow the press. Name both. */
+        .lift-btn.soft-click:active { transform: scale(0.98); }
+
+        /* ====================================================================
+           BOTANICAL HERO
+           --------------------------------------------------------------------
+           Four stacked layers inside one `isolate` section, so every z-index
+           below is local and none of them can leak into <main>:
+
+             0  plates  — two rows of real species cards, drifting apart
+             1  scrim   — off-white gradient that dissolves the plates
+             2  pollen  — <canvas>, drifting spores
+             3  copy    — the headline and calls to action
+
+           Sizes are fluid rather than stepped: a plate is a fraction of the
+           viewport between a floor and a ceiling, so the band reads the same
+           on a 360px phone as on a 1280px laptop instead of showing three
+           cards on one and eleven on the other.
+           ==================================================================== */
+        .ff-hero {
+            --ff-plate-w:   clamp(148px, 15vw,   216px);
+            --ff-plate-h:   clamp(104px, 10.5vw, 150px);
+            --ff-plate-gap: clamp(10px,  1.2vw,  16px);
+            /* Two rows plus the gap between them — the exact height of the band.
+               The scrim's dissolve and the copy block's top padding are both
+               expressed in terms of this rather than in percentages of the hero,
+               because the hero's own height depends on how many lines the
+               headline wraps to. Percentages meant the dissolve drifted relative
+               to the plates every time the copy reflowed. */
+            --ff-band-h: calc(var(--ff-plate-h) * 2 + var(--ff-plate-gap));
+        }
+
+        .ff-plates {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 0;
+            display: flex;
+            flex-direction: column;
+            /* Decorative. Never takes a tap that was aimed at the CTA above it. */
+            pointer-events: none;
+            /* Fade the band in from the page rather than butting the top row
+               against the header with a hard edge. The scrim below fades the
+               other end, so the plates emerge and dissolve. */
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #000 20%, #000 100%);
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, #000 20%, #000 100%);
+        }
+        /* Gated on the plated flag with the copy block's padding, so an unbuilt
+           band collapses to nothing instead of leaving a stray row gap behind. */
+        .ff-hero--plated .ff-plates { gap: var(--ff-plate-gap); }
+
+        .ff-plates__row { overflow: hidden; }
+
+        /* Each track holds its card list an EVEN number of times and slides by
+           exactly -50%, which lands the second half where the first began — an
+           invisible restart with no JS ticking a position. How many times is up to
+           the script: one turn of the list has to be at least as wide as the
+           viewport, or the -50% end of the slide leaves a bare strip at the right
+           edge.
+
+           The gap is a per-card margin-right rather than `gap`, deliberately: with
+           `gap` a 2n-card track measures 2n·w + (2n-1)·g while one full turn is
+           n(w + g), so -50% lands half a gap short and the seam visibly jumps once
+           a minute. Margins fold into the card's own width, so the track measures
+           exactly 2n(w + g) and half of that is one turn. */
+        .ff-plates__track {
+            display: flex;
+            width: max-content;
+            will-change: transform;
+        }
+        .ff-plates__track--left  { animation: ff-plates-left  56s linear infinite; }
+        .ff-plates__track--right { animation: ff-plates-right 72s linear infinite; }
+
+        @keyframes ff-plates-left {
+            from { transform: translate3d(0, 0, 0); }
+            to   { transform: translate3d(-50%, 0, 0); }
+        }
+        @keyframes ff-plates-right {
+            from { transform: translate3d(-50%, 0, 0); }
+            to   { transform: translate3d(0, 0, 0); }
+        }
+
+        .ff-plate {
+            position: relative;
+            flex: 0 0 auto;
+            width: var(--ff-plate-w);
+            height: var(--ff-plate-h);
+            margin-right: var(--ff-plate-gap);
+            border-radius: 16px;
+            overflow: hidden;
+            background-color: #F2F5F2;
+            box-shadow: inset 0 0 0 1px rgba(23, 23, 23, 0.05);
+        }
+        .ff-plate__img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        /* Caption strip: what makes these read as field-guide plates rather
+           than decoration. Real common name, real binomial. */
+        .ff-plate__cap {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            padding: 18px 10px 8px;
+            background: linear-gradient(to top, rgba(23, 23, 23, 0.62) 0%, rgba(23, 23, 23, 0) 100%);
+            color: #fff;
+            font-size: 10.5px;
+            line-height: 1.3;
+            letter-spacing: 0.005em;
+            text-align: left;
+        }
+        .ff-plate__cap b { font-weight: 500; }
+        .ff-plate__cap i {
+            display: block;
+            font-family: 'Fraunces', serif;
+            font-size: 9.5px;
+            opacity: 0.8;
+        }
+        /* Fallback mark for a species with no photograph — the site's own leaf,
+           never a broken-image icon. */
+        .ff-plate__mark {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #C9D6CB;
+        }
+
+        /* The scrim. Transparent at the very top so the plates belong to the
+           page, ramping to solid off-white by the band's bottom edge. The stops
+           are fractions of --ff-band-h, not of the hero: the top row stays
+           crisp under an almost clear scrim, the bottom row dissolves through
+           it, and the copy below always starts on solid ground no matter how
+           many lines the headline wraps to. The second gradient feathers the
+           left and right edges, which only shows through up top where the first
+           one is still transparent — without it the rows would hard-cut at the
+           viewport edge. */
+        .ff-hero-scrim {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background:
+                linear-gradient(to bottom,
+                    rgba(252, 252, 252, 0) 0,
+                    rgba(252, 252, 252, 0.06) calc(var(--ff-band-h) * 0.34),
+                    rgba(252, 252, 252, 0.5)  calc(var(--ff-band-h) * 0.62),
+                    rgba(252, 252, 252, 0.92) calc(var(--ff-band-h) * 0.86),
+                    #FCFCFC var(--ff-band-h),
+                    #FCFCFC 100%),
+                linear-gradient(to right,
+                    #FCFCFC 0%,
+                    rgba(252, 252, 252, 0) 15%,
+                    rgba(252, 252, 252, 0) 85%,
+                    #FCFCFC 100%);
+        }
+
+        /* Pollen. The one animation on the site that is not a CSS transform —
+           a few dozen independently drifting grains cannot be expressed as a
+           transform on a single box. It paints itself on the compositor's own
+           terms and never touches layout. Over the scrim, under the words. */
+        .ff-pollen {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .ff-hero-copy {
+            position: relative;
+            z-index: 3;
+            /* No plates, no reservation. Without JS — or before the hero script
+               has built the band — this is a compact hero rather than 200px of
+               empty gutter above the headline. The script adds .ff-hero--plated
+               in the same statement that appends the cards. */
+            padding-top: clamp(36px, 4vw, 64px);
+        }
+        .ff-hero--plated .ff-hero-copy {
+            /* Reach up into the band's last sliver so the headline rises out of
+               the plates instead of sitting in a column beneath them, but stay
+               below the scrim's 0.86-of-band stop so the badge lands on ground
+               that is already ~93% opaque. Both numbers are fractions of
+               --ff-band-h, so that relationship holds at every viewport width
+               instead of only at the one I measured. */
+            padding-top: calc(var(--ff-band-h) - clamp(24px, 2.6vw, 40px));
+        }
+
+        /* A tight halo rather than a drop shadow: two short off-white glows
+           keep the type crisp over any plate still showing through, and one
+           very faint sage bloom gives the block warmth. */
+        .ff-hero-title {
+            text-shadow:
+                0 1px 1px rgba(252, 252, 252, 0.95),
+                0 0 20px rgba(252, 252, 252, 0.9),
+                0 0 52px rgba(252, 252, 252, 0.6),
+                0 2px 28px rgba(76, 102, 80, 0.1);
+        }
+        .ff-hero-sub {
+            text-shadow: 0 0 16px rgba(252, 252, 252, 0.9), 0 0 34px rgba(252, 252, 252, 0.55);
+        }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
             .reveal-up { opacity: 1; transform: none; }
             .card-in { opacity: 1; transform: none; }
             .draw-path { stroke-dashoffset: 0; }
-            .ambient-glow { opacity: 0.4; }
+            /* Both plate tracks come to rest showing copy 1, so the band stays a
+               legible row of species rather than a half-scrolled seam. The pollen
+               canvas paints one still frame and never starts its loop. */
+            .ff-plates__track { transform: none !important; }
         }
     
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
@@ -310,39 +489,53 @@
         </div>
 
         <!-- HERO -->
-        <section class="relative max-w-7xl mx-auto px-6 flex flex-col items-center text-center mt-12 md:mt-20 mb-32">
-            <!-- Decorative background: grid + slow-breathing sage glow + floating botanical line art -->
-            <div class="absolute inset-0 -z-10 grid-dots"></div>
-            <div class="ambient-glow"></div>
-
-            <svg class="hidden lg:block absolute -left-4 top-24 -z-10 text-sage-200 float-slow" width="150" height="200" viewBox="0 0 150 200" fill="none">
-                <path d="M75 195C75 150 75 110 75 70M75 70C75 35 105 12 145 14C142 55 108 74 75 70ZM75 70C75 35 45 12 5 14C8 55 42 74 75 70ZM75 120C75 98 92 84 120 86C118 112 98 122 75 120ZM75 120C75 98 58 84 30 86C32 112 52 122 75 120Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg class="hidden lg:block absolute -right-2 top-40 -z-10 text-sage-200 float-slower" width="120" height="170" viewBox="0 0 150 200" fill="none">
-                <path d="M75 195C75 150 75 110 75 70M75 70C75 35 105 12 145 14C142 55 108 74 75 70ZM75 70C75 35 45 12 5 14C8 55 42 74 75 70Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-
-            <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
-                <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
-                116 species &middot; on-device camera &middot; no sign-up
+        <section class="ff-hero relative isolate mb-28 md:mb-32">
+            <!--
+              Layer 0 · the plate band. Two rows of real species drawn from the
+              directory's own catalogue, drifting apart. Built and hydrated by
+              the hero script at the foot of this page — empty until then, and
+              empty for good without JS, which is why the copy block only
+              reserves room for the band once the band actually exists.
+            -->
+            <div id="heroPlates" class="ff-plates" aria-hidden="true">
+                <div class="ff-plates__row">
+                    <div class="ff-plates__track ff-plates__track--left"></div>
+                </div>
+                <div class="ff-plates__row">
+                    <div class="ff-plates__track ff-plates__track--right"></div>
+                </div>
             </div>
 
-            <h1 class="reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 max-w-4xl leading-[1.05] mb-6">
-                Understand the <span class="font-serif italic font-normal text-sage-600">natural</span> world.
-            </h1>
-            <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-2xl leading-relaxed mb-10 font-light">
-                FindFlower provides precise botanical identification from a single photo. Point, capture, and understand the flora around you — designed for clarity, built for discovery.
-            </p>
-            <div class="reveal-up delay-300 flex flex-col sm:flex-row items-center gap-4">
-                <a href="try.html" class="lift-btn group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float flex items-center justify-center gap-2">
-                    Start Identifying
-                    <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                </a>
-                <a href="#how" class="w-full sm:w-auto text-base font-medium text-neutral-600 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors">
-                    See how it works
-                </a>
+            <!-- Layer 1 · scrim: dissolves the plates into the page. -->
+            <div class="ff-hero-scrim" aria-hidden="true"></div>
+
+            <!-- Layer 2 · drifting pollen. -->
+            <canvas id="pollenCanvas" class="ff-pollen" aria-hidden="true"></canvas>
+
+            <!-- Layer 3 · the words. -->
+            <div class="ff-hero-copy max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
+                <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
+                    <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
+                    116 species &middot; on-device camera &middot; no sign-up
+                </div>
+
+                <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 max-w-4xl leading-[1.05] mb-6">
+                    Understand the <span class="font-serif italic font-normal text-sage-600">natural</span> world.
+                </h1>
+                <p class="ff-hero-sub reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-2xl leading-relaxed mb-10 font-light">
+                    Point your camera at a flower. A Vision Transformer names it, then live Wikidata and Trefle records fill in the binomial, family and growing habit.
+                </p>
+                <div class="reveal-up delay-300 flex flex-col sm:flex-row items-center gap-4">
+                    <a href="try.html" class="lift-btn soft-click group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float flex items-center justify-center gap-2">
+                        Start Identifying
+                        <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                    <a href="#how" class="soft-click w-full sm:w-auto text-base font-medium text-neutral-600 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors">
+                        See how it works
+                    </a>
+                </div>
+                <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">No installation · Works in any browser · Free during Beta</p>
             </div>
-            <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">No installation · Works in any browser · Free during Beta</p>
         </section>
 
         <!-- DIRECTORY PREVIEW -->
@@ -610,6 +803,430 @@
             </div>
         </div>
     </footer>
+
+    <!-- Botanical hero · the drifting plate band. Real species, real photographs.
+         Runs BEFORE the pollen block below: this one decides the hero's final
+         height (by reserving room for the band), and that one measures it. -->
+    <script>
+    (function () {
+        'use strict';
+        // No species.js means no photographs and no binomials — nothing real to
+        // put on a plate. Leave the band empty and the hero compact.
+        if (typeof ffFetchSpecies !== 'function') return;
+
+        var hero = document.querySelector('.ff-hero');
+        var tracks = document.querySelectorAll('.ff-plates__track');
+        if (!hero || tracks.length < 2) return;
+
+        // The router swaps <main> and re-runs this block against fresh tracks.
+        // Retire the previous band's resize listener first, or every visit leaves
+        // another one behind measuring nodes that have left the document.
+        if (typeof window.ffStopHeroPlates === 'function') {
+            try { window.ffStopHeroPlates(); } catch (e) {}
+        }
+
+        // Ten species from the canonical seed list in tools/build-trefle.js,
+        // deliberately picked from the 28 the preview grid further down does NOT
+        // show: scrolling past the hero should reveal more of the catalogue, not
+        // the same twelve cards a second time.
+        //
+        // Where that list carries a genus ("Magnolia", "Passiflora"), the `q`
+        // here is the species Trefle itself resolved it to — the `matchedName`
+        // in trefle-data.json. A genus article has no binomial to caption, so
+        // half the band would have shown a common name over an empty line;
+        // naming the matched species means every plate states a real binomial,
+        // and it is the same organism the catalogue page will show.
+        var ROWS = [
+            [
+                { common: 'Corn Poppy',       q: 'Papaver rhoeas' },
+                { common: 'Carnation',        q: 'Dianthus caryophyllus' },
+                { common: 'Tiger Lily',       q: 'Lilium lancifolium' },
+                { common: "Poet's Daffodil",  q: 'Narcissus poeticus' },
+                { common: 'Umbrella Magnolia', q: 'Magnolia tripetala' }
+            ],
+            [
+                { common: 'Japanese Camellia',  q: 'Camellia japonica' },
+                { common: 'Blue Passionflower', q: 'Passiflora caerulea' },
+                { common: 'Purple Coneflower',  q: 'Echinacea purpurea' },
+                { common: 'Great Bougainvillea', q: 'Bougainvillea spectabilis' },
+                { common: 'Frangipani',         q: 'Plumeria rubra' }
+            ]
+        ];
+
+        var LEAF = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+            '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" ' +
+            'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+        function esc(s) {
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        /** One plate: shimmer now, photograph and binomial when they land. The
+         *  image starts `hidden` so the shimmer is never visible through it.
+         *
+         *  No loading="lazy" here, deliberately: a hidden element has no box, so
+         *  it never intersects anything, so a lazy image inside one is never
+         *  fetched at all — the plates sat shimmering forever. The band is above
+         *  the fold anyway; fetchpriority keeps it behind the fonts and the text. */
+        function buildPlate(seed) {
+            var el = document.createElement('div');
+            el.className = 'ff-plate';
+            el.innerHTML =
+                '<div class="ph skeleton-shimmer absolute inset-0"></div>' +
+                '<img class="ff-plate__img" alt="" decoding="async" fetchpriority="low" hidden />' +
+                '<div class="ff-plate__cap"><b>' + esc(seed.common) + '</b><i></i></div>';
+            return el;
+        }
+
+        /** No photograph, or one that failed to load: the site's own leaf mark,
+         *  never a broken-image icon. */
+        function fallback(node) {
+            var ph = node.querySelector('.ph');
+            if (!ph) return;
+            ph.className = 'ff-plate__mark';
+            ph.innerHTML = LEAF;
+        }
+
+        function paint(node, binomial, src) {
+            var ph = node.querySelector('.ph');
+            var img = node.querySelector('.ff-plate__img');
+            var cap = node.querySelector('.ff-plate__cap i');
+            if (cap) cap.textContent = binomial;
+            if (!img || !src) { fallback(node); return; }
+            img.onload = function () {
+                // Shimmer cross-fading to content, not a placeholder that pops.
+                if (window.ffUX && typeof window.ffUX.crossFade === 'function') {
+                    window.ffUX.crossFade(ph, img);
+                } else {
+                    if (ph) ph.parentNode.removeChild(ph);
+                    img.hidden = false;
+                }
+            };
+            img.onerror = function () { fallback(node); };
+            img.src = src;
+        }
+
+        /** Fill every copy of one plate from a single lookup: one network round
+         *  trip, however many DOM writes the track's repeat count calls for.
+         *  A rejection still paints, with the leaf mark. */
+        function hydrate(seed, nodes) {
+            function apply(binomial, src) {
+                for (var i = 0; i < nodes.length; i++) paint(nodes[i], binomial, src);
+            }
+            return ffFetchSpecies(seed.q).then(function (info) {
+                apply((info && info.binomial) || '', (info && info.image) || '');
+            }, function () {
+                apply('', '');
+            });
+        }
+
+        /** Width of one plate including the margin that spaces it, measured rather
+         *  than computed: --ff-plate-w is a clamp of vw, so only layout knows what
+         *  it currently resolves to. The probe is absolutely positioned so it is
+         *  out of the track's flow, and it is gone before the frame paints. */
+        function cardWidth() {
+            var probe = buildPlate({ common: '' });
+            probe.style.position = 'absolute';
+            probe.style.visibility = 'hidden';
+            tracks[0].appendChild(probe);
+            var w = probe.getBoundingClientRect().width +
+                    (parseFloat(getComputedStyle(probe).marginRight) || 0);
+            tracks[0].removeChild(probe);
+            return w;
+        }
+
+        /** How many times the species list has to repeat inside each half of the
+         *  track. The -50% slide leaves the track spanning exactly one turn of the
+         *  list either side of its starting edge, so a turn narrower than the
+         *  viewport opens a bare strip at the right-hand edge for part of every
+         *  cycle — five 207px cards cover 1037px, which is 240px short of a 1280px
+         *  window. One card of slack absorbs a resize that lands mid-drag. */
+        function repsFor(cardW, listLen) {
+            var turn = cardW * listLen;
+            if (!turn) return 2;
+            return Math.max(1, Math.ceil((window.innerWidth + cardW) / turn));
+        }
+
+        function build(reps, stagger) {
+            var delay = 0;
+            for (var r = 0; r < 2; r++) {
+                var row = ROWS[r];
+                tracks[r].textContent = '';
+
+                // One group per species, holding every copy of its plate: each
+                // group is filled by a single lookup however many copies there are.
+                var groups = [];
+                for (var i = 0; i < row.length; i++) groups.push({ seed: row[i], nodes: [] });
+
+                // The list, in order, 2 × reps times. Sliding by -50% lands the
+                // second half exactly where the first began, so the loop has no
+                // visible restart — see the seam note in the stylesheet.
+                for (var c = 0; c < reps * 2; c++) {
+                    for (var j = 0; j < row.length; j++) {
+                        var node = buildPlate(row[j]);
+                        groups[j].nodes.push(node);
+                        tracks[r].appendChild(node);
+                    }
+                }
+
+                for (var k = 0; k < groups.length; k++) {
+                    if (!stagger) { hydrate(groups[k].seed, groups[k].nodes); continue; }
+                    (function (group, ms) {
+                        setTimeout(function () {
+                            // A router swap can retire this band mid-stagger. Don't
+                            // spend network on plates that left the document.
+                            if (!document.contains(group.nodes[0])) return;
+                            hydrate(group.seed, group.nodes);
+                        }, ms);
+                    })(groups[k], delay);
+                    delay += stagger;
+                }
+            }
+        }
+
+        var built = 0;
+        function sync() {
+            var want = repsFor(cardWidth(), ROWS[0].length);
+            // Grow only. Widening the window past a threshold rebuilds once;
+            // narrowing leaves the extra repetitions sitting harmlessly off-screen
+            // rather than restarting the marquee for no visible gain.
+            if (want <= built) return;
+            var first = built === 0;
+            built = want;
+            // Spread the ten lookups over a second on the first build so they do
+            // not go out as one burst. A rebuild has nothing to spread: every one
+            // of them was already fetched and sits in the session cache, so
+            // staggering would only hold the plates on their shimmer.
+            build(want, first ? 110 : 0);
+        }
+
+        var resizeTimer = 0;
+        function onResize() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(sync, 200);
+        }
+        window.ffStopHeroPlates = function () {
+            clearTimeout(resizeTimer);
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('orientationchange', onResize);
+            window.ffStopHeroPlates = null;
+        };
+
+        sync();
+        window.addEventListener('resize', onResize);
+        window.addEventListener('orientationchange', onResize);
+
+        // The band exists, so the copy block can now reserve room for it. Setting
+        // this only here is what keeps the no-JS hero compact instead of leaving
+        // 200px of empty gutter above the headline.
+        hero.classList.add('ff-hero--plated');
+    })();
+    </script>
+
+    <!-- Botanical hero · pollen. The one animation on this site that is not a CSS
+         transform: a few dozen grains on independent drifting paths cannot be
+         expressed as a transform on a single box. It never touches layout. -->
+    <script>
+    (function () {
+        'use strict';
+        var canvas = document.getElementById('pollenCanvas');
+        if (!canvas || typeof canvas.getContext !== 'function') return;
+        var ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // The router swaps <main>, which re-runs this block against a brand new
+        // canvas while the previous loop is still ticking a detached one. Retire
+        // the old one first, or every visit to the home page leaves another frame
+        // loop running for the life of the tab.
+        if (typeof window.ffStopPollen === 'function') {
+            try { window.ffStopPollen(); } catch (e) { /* a broken teardown must not block a new one */ }
+        }
+
+        var TAU = Math.PI * 2;
+        var reduce = !!(window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+        var grains = [];
+        var dpr = 1, w = 0, h = 0;
+        var raf = 0, last = 0, visible = true, pending = false, dead = false;
+        var io = null, ro = null;
+
+        function rand(lo, hi) { return lo + Math.random() * (hi - lo); }
+
+        /** Seed one grain. `spread` places it anywhere in the box (first paint);
+         *  otherwise it re-enters from just below the bottom edge. */
+        function seedGrain(g, spread) {
+            g.x = rand(0, w);
+            g.y = spread ? rand(0, h) : h + rand(4, 48);
+            g.r = rand(0.9, 2.5);
+            g.rise = rand(5, 17);          // px per second, upward
+            g.sway = rand(5, 20);          // px of horizontal drift
+            g.freq = rand(0.05, 0.2);      // sway cycles per second
+            g.phase = rand(0, TAU);
+            g.alpha = rand(0.05, 0.15);
+            g.warm = Math.random() < 0.45; // a minority carry a pollen tint
+        }
+
+        function wantCount() { return w < 560 ? 16 : (w < 900 ? 24 : 34); }
+
+        function populate() {
+            grains.length = 0;
+            for (var i = 0, n = wantCount(); i < n; i++) {
+                var g = {};
+                seedGrain(g, true);
+                grains.push(g);
+            }
+        }
+
+        /** Re-measure, and report whether the CSS box actually changed. Returning
+         *  false on an unchanged box is what stops the ResizeObserver below from
+         *  feeding itself: setting canvas.width is an intrinsic-size change, and
+         *  a naive observer would treat its own write as a new resize. */
+        function fit() {
+            var rect = canvas.getBoundingClientRect();
+            var nw = Math.max(1, Math.round(rect.width));
+            var nh = Math.max(1, Math.round(rect.height));
+            if (nw === w && nh === h) return false;
+            w = nw;
+            h = nh;
+            // Cap the ratio at 2: on a 3x phone a full-bleed canvas would cost
+            // triple the fill for grains that are two pixels across.
+            dpr = Math.min(2, window.devicePixelRatio || 1);
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);   // then draw in CSS pixels
+            return true;
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+            for (var i = 0; i < grains.length; i++) {
+                var g = grains[i];
+                var x = g.x + Math.sin(g.phase) * g.sway;
+                // Two arcs per grain: a soft halo under a tighter core, which
+                // reads as out of focus rather than as a dot.
+                ctx.beginPath();
+                ctx.arc(x, g.y, g.r * 2.6, 0, TAU);
+                ctx.fillStyle = g.warm
+                    ? 'rgba(186, 168, 118, ' + (g.alpha * 0.4) + ')'
+                    : 'rgba(124, 151, 129, ' + (g.alpha * 0.4) + ')';
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x, g.y, g.r, 0, TAU);
+                ctx.fillStyle = g.warm
+                    ? 'rgba(176, 154, 96, ' + g.alpha + ')'
+                    : 'rgba(95, 122, 99, ' + g.alpha + ')';
+                ctx.fill();
+            }
+        }
+
+        function step(now) {
+            raf = 0;
+            if (dead) return;
+            if (!last) last = now;
+            // Clamped: a backgrounded tab hands back a multi-second gap, which
+            // would teleport every grain off the top in a single frame.
+            var dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+            last = now;
+            for (var i = 0; i < grains.length; i++) {
+                var g = grains[i];
+                g.y -= g.rise * dt;
+                g.phase += g.freq * dt * TAU;
+                if (g.y < -8) seedGrain(g, false);
+            }
+            draw();
+            schedule();
+        }
+
+        function schedule() {
+            if (dead || raf || !visible || document.hidden) return;
+            raf = window.requestAnimationFrame(step);
+        }
+
+        function pause() {
+            if (!raf) return;
+            window.cancelAnimationFrame(raf);
+            raf = 0;
+        }
+
+        /** Restart from a fresh clock so a pause never shows up as a jump. */
+        function resume() {
+            last = 0;
+            schedule();
+        }
+
+        function onResize() {
+            if (dead || pending) return;
+            pending = true;
+            window.requestAnimationFrame(function () {
+                pending = false;
+                if (dead) return;
+                var was = grains.length;
+                if (!fit()) return;
+                // Re-populate only when the grain budget itself changed. A phone
+                // collapsing its URL bar resizes the hero by 60px, and
+                // re-randomising every grain for that reads as a glitch.
+                if (was !== wantCount()) {
+                    populate();
+                } else {
+                    for (var i = 0; i < grains.length; i++) {
+                        if (grains[i].x > w) grains[i].x = rand(0, w);
+                        if (grains[i].y > h + 48) grains[i].y = rand(0, h);
+                    }
+                }
+                draw();
+            });
+        }
+
+        function onVisibility() {
+            if (document.hidden) pause();
+            else resume();
+        }
+
+        function stop() {
+            dead = true;
+            pause();
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('orientationchange', onResize);
+            document.removeEventListener('visibilitychange', onVisibility);
+            if (io) { try { io.disconnect(); } catch (e) { /* ignore */ } io = null; }
+            if (ro) { try { ro.disconnect(); } catch (e) { /* ignore */ } ro = null; }
+            if (window.ffStopPollen === stop) window.ffStopPollen = null;
+        }
+        window.ffStopPollen = stop;
+
+        fit();
+        populate();
+        draw();
+
+        window.addEventListener('resize', onResize);
+        window.addEventListener('orientationchange', onResize);
+        // Fonts and the plate band settle after first paint, both of which change
+        // the hero's height. Without this the bitmap would keep its first-paint
+        // size and the browser would stretch it.
+        if (typeof ResizeObserver === 'function') {
+            ro = new ResizeObserver(onResize);
+            ro.observe(canvas);
+        }
+
+        // Reduced motion: one still frame of grains, and no frame loop is ever
+        // scheduled. Resizes still redraw it, so it stays sharp.
+        if (reduce) return;
+
+        document.addEventListener('visibilitychange', onVisibility);
+
+        // Off-screen means off. Scrolling past the hero must not leave a rAF loop
+        // painting a canvas nobody can see.
+        if ('IntersectionObserver' in window) {
+            io = new IntersectionObserver(function (entries) {
+                visible = entries[entries.length - 1].isIntersecting;
+                if (visible) resume(); else pause();
+            }, { threshold: 0 });
+            io.observe(canvas);
+        }
+        resume();
+    })();
+    </script>
 
     <!-- Directory preview: first 12 seed species, hydrated live from the shared module -->
     <script>

@@ -98,24 +98,30 @@
         // `fixed top-0` stays — header.fixed.top-0 carries the safe-area inset.
         header.className = 'ff-header fixed top-0 left-0 right-0 z-50';
         header.innerHTML =
-            '<div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">' +
-                // LEFT — logo + wordmark + Beta pill
-                '<div class="flex items-center gap-2">' +
-                    '<a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">' +
-                        LOGO + 'FindFlower' +
+            '<div class="max-w-7xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-2">' +
+                // LEFT — logo + wordmark + Beta pill. min-w-0 so this group is what
+                // yields when 360px runs out of room: without it the flex line
+                // squeezed the Try Now button until its label wrapped onto two.
+                '<div class="flex items-center gap-2 min-w-0">' +
+                    '<a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 min-w-0">' +
+                        LOGO + '<span class="truncate">FindFlower</span>' +
                     '</a>' +
-                    '<span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>' +
+                    // The pill is decorative; the wordmark is not. Below 360px
+                    // there is no room for both, so this is what goes.
+                    '<span class="hidden min-[360px]:inline-block shrink-0 text-xs font-medium ' +
+                        'text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>' +
                 '</div>' +
                 // CENTER — primary links
                 '<nav class="hidden md:flex items-center gap-8 text-sm font-medium">' +
                     navLinksHTML() +
                 '</nav>' +
                 // RIGHT — Sign In, Try Now, and the sidebar hamburger
-                '<div class="flex items-center gap-3">' +
+                '<div class="flex items-center gap-2 sm:gap-3 shrink-0">' +
                     '<a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
                     '<a id="ffTryNow" href="try.html" class="soft-click text-sm font-medium bg-neutral-900 text-white ' +
-                        'px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5" ' +
+                        'px-4 sm:px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5 ' +
+                        'whitespace-nowrap" ' +
                         'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
                     // Hamburger is shown at every width. The top bar carries the
                     // primary links on desktop; the slide-out holds the rest
