@@ -36,10 +36,37 @@ jobs:
           cp *.html *.css *.js *.svg _site/
           cp trefle-data.json _site/
           cp CNAME .nojekyll _site/
+          # These globs are FLAT — *.js does not descend into scripts/. That
+          # directory went unpublished for its whole existence: api.js, ui.js,
+          # router.js and all four view modules 404'd in production. It was
+          # survivable only while every page carried its own inline copy of the
+          # code; the moment directory.html started depending on api.js it
+          # rendered an empty grid. Copy the tree, not a glob of it.
+          cp -R scripts _site/
+          # Tests ship in the repo, not to the web root.
+          rm -f _site/scripts/*.test.mjs
           echo "--- published files ---"
           ls -la _site
-          # Fail loudly rather than deploying a stylesheet-less site again.
-          test -f _site/app.css || { echo "FATAL: app.css missing from _site"; exit 1; }
+          ls -la _site/scripts _site/scripts/views
+          # Fail loudly rather than deploying a broken site again. Each of these
+          # has already been shipped missing at least once.
+          for f in app.css scripts/api.js scripts/ui.js scripts/router.js \
+                   scripts/views/home.js scripts/views/directory.js \
+                   scripts/views/dashboard.js scripts/views/scanner.js; do
+            test -f "_site/$f" || { echo "FATAL: $f missing from _site"; exit 1; }
+          done
+          # Every same-origin src=/href= in the published HTML must resolve to a
+          # real file. This is the check that would have caught both outages.
+          for html in _site/*.html; do
+            grep -oE '(src|href)="[^"#?:]+(\.js|\.css|\.svg|\.json)[^"]*"' "$html" \
+              | sed -E 's/^(src|href)="//; s/"$//; s/\?.*$//' \
+              | while read -r ref; do
+                  case "$ref" in /*|http*) continue ;; esac
+                  test -f "_site/$ref" || echo "MISSING: $ref (referenced by $(basename "$html"))"
+                done
+          done > /tmp/missing.txt
+          cat /tmp/missing.txt
+          test ! -s /tmp/missing.txt || { echo "FATAL: published HTML references files that were not deployed"; exit 1; }
 
       - uses: actions/configure-pages@v5
 
