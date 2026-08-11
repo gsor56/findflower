@@ -97,27 +97,6 @@
         .delay-300 { transition-delay: 300ms; }
         .delay-400 { transition-delay: 400ms; }
 
-        /* Interface preview border pulse */
-        @keyframes pulse-border {
-            0% { border-color: rgba(95, 122, 99, 0.15); }
-            50% { border-color: rgba(95, 122, 99, 0.45); }
-            100% { border-color: rgba(95, 122, 99, 0.15); }
-        }
-        .scanning-element {
-            animation: pulse-border 3.5s infinite ease-in-out;
-        }
-
-        /* A soft scanning sweep across the preview image */
-        @keyframes scan-sweep {
-            0% { transform: translateY(-120%); opacity: 0; }
-            15% { opacity: 1; }
-            85% { opacity: 1; }
-            100% { transform: translateY(320%); opacity: 0; }
-        }
-        .scan-line {
-            animation: scan-sweep 4.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
         /* Gentle floating for decorative botanical art */
         @keyframes float-slow {
             0%, 100% { transform: translateY(0) rotate(0deg); }
@@ -134,12 +113,6 @@
         }
         .active .draw-path { stroke-dashoffset: 0; }
 
-        /* Image masking for the preview card */
-        .image-mask {
-            mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to bottom, black 82%, transparent 100%);
-        }
-
         /* Card hover lift */
         .hover-lift {
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease;
@@ -148,6 +121,77 @@
             transform: translateY(-6px);
             box-shadow: 0 20px 50px -20px rgba(23, 23, 23, 0.14);
             border-color: rgba(95, 122, 99, 0.4);
+        }
+
+        /* ====================================================================
+           "How it works" — the sample record card
+           --------------------------------------------------------------------
+           The tabs are real <button>s, not links: nothing navigates, the card
+           just re-renders from a different record in trefle-data.json. Their
+           selected state is read from [aria-selected] rather than a parallel
+           `.active` class, so there is exactly one piece of state and the
+           accessibility tree and the styling can never disagree about it.
+
+           Only colour properties transition. The tab row is above the fold on
+           a phone in landscape, and animating its box would reflow the card
+           beneath it on every tap.
+           ==================================================================== */
+        .ff-sample-tab {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            padding: 0.375rem 0.875rem;
+            border-radius: 9999px;
+            border: 1px solid #E5E5E5;
+            background-color: #FFFFFF;
+            color: #737373;
+            transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+        }
+        .ff-sample-tab:hover { color: #171717; border-color: #D4D4D4; }
+        .ff-sample-tab[aria-selected="true"] {
+            background-color: #F2F5F2;
+            border-color: #C9D6CB;
+            color: #3D5341;
+        }
+
+        /* One grid row of the record. The label column is fixed so the values
+           line up down the card however long the labels get.
+
+           It is fixed on purpose, and a fluid clamp() here was tried and
+           reverted: the card is NARROWEST just past the md breakpoint (five of
+           twelve columns ≈ 273px at 768px, where 360px gives it the full 324px),
+           so that is where a narrower label column would pay off — but the floor
+           it needs is set by "GROWTH HABIT", which wraps to two lines under about
+           7rem. Measured: at a 91px column the label breaks while the value still
+           wraps, which is both problems at once. Any floor high enough to keep
+           the label on one line lands within a few px of the 7.5rem below, so the
+           clamp bought nothing and cost a wrapped label. The label text itself is
+           not available to shorten — species.html and try.html both print
+           "Growth habit" for this same Trefle field.
+
+           `start` rather than `center` because "Full sun to light shade" does
+           wrap on the narrowest card, and its label should stay level with the
+           first line rather than float against the middle of two. */
+        .ff-sample-row {
+            display: grid;
+            grid-template-columns: 7.5rem 1fr;
+            gap: 0.75rem;
+            align-items: start;
+            padding: 0.6875rem 1.25rem;
+        }
+        .ff-sample-row + .ff-sample-row { border-top: 1px solid #F5F5F5; }
+        .ff-sample-row > dt {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #A3A3A3;
+            padding-top: 0.125rem;
+        }
+        .ff-sample-row > dd {
+            font-size: 0.875rem;
+            font-weight: 300;
+            color: #404040;
+            line-height: 1.45;
         }
 
         /* Arrow nudge on button hover */
@@ -516,7 +560,7 @@
             <div class="ff-hero-copy max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
                 <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
                     <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
-                    116 species &middot; on-device camera &middot; no sign-up
+                    116 classes &middot; on-device camera &middot; no sign-up
                 </div>
 
                 <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 max-w-4xl leading-[1.05] mb-6">
@@ -568,7 +612,16 @@
             </div>
         </section>
 
-        <!-- STATS STRIP -->
+        <!-- STATS STRIP
+             Four figures, each one checkable against something in this repo:
+               116  — space/class_names.json has exactly 116 labels
+               ViT  — space/app.py serves a Vision Transformer through ONNX Runtime
+               Free — pricing.html states it for the duration of the Beta
+               0    — try.html reaches the model with no account and no key
+             The two that used to sit here ("<2s average result time", "Weekly
+             model refinements") were measurements nobody had taken and a
+             cadence one person cannot promise, so they are gone rather than
+             softened. -->
         <section class="max-w-7xl mx-auto px-6 mb-36">
             <div class="reveal-up grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 border-y border-neutral-200 py-12">
                 <div class="text-center md:border-r border-neutral-200">
@@ -576,21 +629,26 @@
                     <div class="text-sm text-neutral-500 font-light">Botanical classes</div>
                 </div>
                 <div class="text-center md:border-r border-neutral-200">
-                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">&lt;2s</div>
-                    <div class="text-sm text-neutral-500 font-light">Average result time</div>
+                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">ViT</div>
+                    <div class="text-sm text-neutral-500 font-light">Vision Transformer pipeline</div>
                 </div>
                 <div class="text-center md:border-r border-neutral-200">
                     <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">Free</div>
-                    <div class="text-sm text-neutral-500 font-light">During Beta</div>
+                    <div class="text-sm text-neutral-500 font-light">During the Beta</div>
                 </div>
                 <div class="text-center">
-                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">Weekly</div>
-                    <div class="text-sm text-neutral-500 font-light">Model refinements</div>
+                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">0</div>
+                    <div class="text-sm text-neutral-500 font-light">Accounts required</div>
                 </div>
             </div>
         </section>
 
-        <!-- HOW IT WORKS -->
+        <!-- HOW IT WORKS
+             Asymmetrical on purpose: the three steps take the wide column and a
+             real record from the catalogue takes the narrow one, so the section
+             explains the pipeline and shows its output at the same time. The
+             steps used to sit in three equal boxes under a horizontal rule,
+             which read as a diagram of a process rather than the process. -->
         <section id="how" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
             <div class="reveal-up max-w-2xl mb-16">
                 <span class="text-sm font-medium text-sage-600 mb-4 block">How it works</span>
@@ -599,44 +657,133 @@
                 </h2>
             </div>
 
-            <div class="relative grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
-                <!-- Connecting line -->
-                <div class="hidden md:block absolute top-6 left-[16%] right-[16%] h-px bg-gradient-to-r from-sage-200 via-neutral-200 to-sage-200 -z-0"></div>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-10 lg:gap-16 items-start">
 
-                <!-- Step 1 -->
-                <div class="reveal-up relative flex flex-col items-start bg-[#FCFCFC]">
-                    <div class="w-12 h-12 rounded-full bg-white border border-neutral-200 flex items-center justify-center mb-6 shadow-subtle relative z-10">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                    </div>
-                    <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-2">Step 01</span>
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Capture or upload</h4>
-                    <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        Point your camera at a plant, or drop in a photo you already have. A single clear image of a leaf or bloom is all FindFlower needs to begin.
-                    </p>
+                <!-- LEFT · the steps, hung off one vertical spine -->
+                <div class="md:col-span-7 relative">
+                    <!-- The spine sits behind the markers and dissolves rather than
+                         stopping at a hard edge. The last step has nothing below it
+                         to connect to, and a gradient works that out without any
+                         per-item :last-child plumbing. -->
+                    <div class="absolute left-[19px] top-6 bottom-6 w-px bg-gradient-to-b from-neutral-200 via-neutral-200 to-transparent" aria-hidden="true"></div>
+
+                    <ol class="relative space-y-10 list-none">
+                        <li class="reveal-up flex gap-5">
+                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-subtle flex items-center justify-center">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 01</span>
+                                <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">Capture or upload</h4>
+                                <p class="text-base text-neutral-500 font-light leading-relaxed">
+                                    Point your camera at a plant, or drop in a photo you already have. One clear frame of a bloom or a leaf is enough to begin — there is nothing to install and no account to make first.
+                                </p>
+                            </div>
+                        </li>
+
+                        <li class="reveal-up delay-100 flex gap-5">
+                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-subtle flex items-center justify-center">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 02</span>
+                                <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">The model reads it</h4>
+                                <p class="text-base text-neutral-500 font-light leading-relaxed">
+                                    Your photo is sent to a Vision Transformer running under ONNX Runtime, which returns a species and a confidence score. The image is used for that prediction and is not stored afterwards &mdash; the <a href="privacy.html" class="text-sage-600 hover:text-sage-700 underline underline-offset-2 decoration-sage-200">privacy page</a> sets out exactly what happens to it.
+                                </p>
+                            </div>
+                        </li>
+
+                        <li class="reveal-up delay-200 flex gap-5">
+                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-subtle flex items-center justify-center">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                            </span>
+                            <div class="min-w-0">
+                                <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 03</span>
+                                <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">Learn the species</h4>
+                                <p class="text-base text-neutral-500 font-light leading-relaxed">
+                                    A name on its own teaches you nothing. Wikidata supplies the binomial and family, Trefle the growth habit and light needs, Wikipedia the plate and the article &mdash; assembled into a record like the one shown here.
+                                </p>
+                            </div>
+                        </li>
+                    </ol>
                 </div>
 
-                <!-- Step 2 -->
-                <div class="reveal-up delay-100 relative flex flex-col items-start bg-[#FCFCFC]">
-                    <div class="w-12 h-12 rounded-full bg-white border border-neutral-200 flex items-center justify-center mb-6 shadow-subtle relative z-10">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
-                    </div>
-                    <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-2">Step 02</span>
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Instant analysis</h4>
-                    <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        The identification engine reads structure, form, and detail in moments — entirely inside your browser, with your image never leaving the page unnecessarily.
-                    </p>
-                </div>
+                <!-- RIGHT · a real record from the catalogue.
+                     Sticky on desktop so it stays alongside whichever step you are
+                     reading; it simply scrolls with the page on a phone. -->
+                <div class="md:col-span-5 md:sticky md:top-28">
+                    <div class="reveal-up delay-100">
+                        <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase block mb-3">Sample record</span>
 
-                <!-- Step 3 -->
-                <div class="reveal-up delay-200 relative flex flex-col items-start bg-[#FCFCFC]">
-                    <div class="w-12 h-12 rounded-full bg-white border border-neutral-200 flex items-center justify-center mb-6 shadow-subtle relative z-10">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        <!-- Three species from trefle-data.json, picked because their
+                             records disagree in every field that matters: full sun
+                             against shade, dry ground against water, edible against
+                             undocumented. A tab row where every card looked the same
+                             would not be worth tapping. -->
+                        <div id="sampleTabs" class="flex flex-wrap gap-2 mb-4" role="tablist" aria-label="Sample species">
+                            <button type="button" role="tab" aria-selected="true" aria-controls="samplePanel"
+                                class="ff-sample-tab soft-click" data-key="rudbeckia hirta" data-binomial="Rudbeckia hirta">Black-eyed Susan</button>
+                            <button type="button" role="tab" aria-selected="false" aria-controls="samplePanel"
+                                class="ff-sample-tab soft-click" data-key="nelumbo nucifera" data-binomial="Nelumbo nucifera">Sacred Lotus</button>
+                            <button type="button" role="tab" aria-selected="false" aria-controls="samplePanel"
+                                class="ff-sample-tab soft-click" data-key="ranunculus" data-binomial="Ranunculus auricomus">Buttercup</button>
+                        </div>
+
+                        <article id="samplePanel" role="tabpanel" tabindex="0"
+                            class="bg-white border border-neutral-200/70 rounded-2xl shadow-subtle overflow-hidden">
+                            <div class="flex items-center gap-4 p-5">
+                                <div class="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-sage-50">
+                                    <!-- The leaf mark is the DEFAULT state, not a failure
+                                         state. With JS off nothing ever fetches a plate,
+                                         and a shimmer that resolves to nothing would be a
+                                         lie about what is coming. The script swaps to a
+                                         shimmer only once a request is actually in flight. -->
+                                    <div id="samplePh" class="absolute inset-0 flex items-center justify-center">
+                                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-300"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    </div>
+                                    <!-- No loading="lazy" here, deliberately: the element
+                                         starts `hidden`, a hidden element has no box, and
+                                         a box that never intersects the viewport never
+                                         triggers a lazy load. The script controls when
+                                         src is set, which is the same saving. -->
+                                    <img id="sampleImg" class="w-full h-full object-cover" alt="" hidden />
+                                </div>
+                                <div class="min-w-0">
+                                    <p id="sampleCommon" class="text-base font-medium text-neutral-900 leading-tight truncate">Black-eyed Susan</p>
+                                    <p id="sampleBinomial" class="text-sm font-light text-sage-600 italic mt-0.5 truncate">Rudbeckia hirta</p>
+                                </div>
+                            </div>
+
+                            <!-- These rows are trefle-data.json's record for Rudbeckia
+                                 hirta, copied verbatim, so the card is complete before a
+                                 single script runs and stays complete if none ever does.
+                                 The script re-renders them from the file itself, which is
+                                 also what keeps this copy from quietly going stale.
+
+                                 No "edible" row here even though the record carries
+                                 `edible: false`: species.js documents that Trefle returns
+                                 false for plants that are plainly edible (dandelion,
+                                 sunflower), so the site never reads it as a statement
+                                 about safety. Only an affirmative yes is shown. -->
+                            <dl id="sampleFields" class="border-t border-neutral-100">
+                                <div class="ff-sample-row"><dt>Family</dt><dd>Asteraceae</dd></div>
+                                <div class="ff-sample-row"><dt>Growth habit</dt><dd>Forb/herb</dd></div>
+                                <div class="ff-sample-row"><dt>Sunlight</dt><dd>Full sun to light shade</dd></div>
+                                <div class="ff-sample-row"><dt>Light index</dt><dd>8 <span class="text-neutral-300">/ 10</span></dd></div>
+                                <div class="ff-sample-row"><dt>Humidity</dt><dd>7 <span class="text-neutral-300">/ 10</span></dd></div>
+                            </dl>
+
+                            <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-neutral-100 bg-neutral-50/50">
+                                <span class="text-xs text-neutral-400 font-light">Trefle &middot; Wikidata &middot; Wikipedia</span>
+                                <a id="sampleLink" href="species.html?name=Rudbeckia%20hirta"
+                                    class="group text-xs font-medium text-sage-600 hover:text-sage-700 inline-flex items-center gap-1 flex-shrink-0">
+                                    Full profile
+                                    <svg class="cta-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                                </a>
+                            </div>
+                        </article>
                     </div>
-                    <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-2">Step 03</span>
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Learn the species</h4>
-                    <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        Receive the species, family, and confidence — paired with rich, verified context drawn live from Wikipedia, so you leave knowing more than a name.
-                    </p>
                 </div>
             </div>
         </section>
@@ -655,7 +802,7 @@
                 </div>
                 <div class="reveal-up delay-100 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                     <p>
-                        FindFlower was engineered to bridge the gap between human curiosity and botanical science. By simply providing a photograph, users receive immediate, structurally accurate classifications of flora from their surroundings.
+                        FindFlower exists to close a small, ordinary gap: you can see a plant perfectly clearly and still have no way to name it. Give it one photograph and it returns a species, a confidence score, and the botanical record standing behind them.
                     </p>
                     <p>
                         Software should enhance our connection to the physical world, not abstract it. The identification engine is designed to be unobtrusive, highly responsive, and strictly focused on delivering precise information when you need it.
@@ -667,12 +814,18 @@
             </div>
         </section>
 
-        <!-- TRUST / ARCHITECTURE -->
+        <!-- TRUST / ARCHITECTURE
+             Three claims, and each one is checkable: the model is in space/app.py,
+             the three data sources are in species.js and scripts/api.js, and the
+             absence of a sign-up is visible from try.html. The card that used to
+             sit third claimed "500 distinct botanical classes" and weekly dataset
+             refinements — the real figure is 116 (space/class_names.json) and the
+             cadence was never a commitment anyone had made. -->
         <section id="architecture" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
             <div class="reveal-up max-w-2xl mb-14">
                 <span class="text-sm font-medium text-sage-600 mb-4 block">Why FindFlower</span>
                 <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                    Built on principles we don’t compromise on.
+                    Built out of things you can check.
                 </h2>
             </div>
 
@@ -681,15 +834,18 @@
                 <!-- Feature 1 -->
                 <div class="reveal-up hover-lift flex flex-col bg-white border border-neutral-200/70 rounded-2xl p-8">
                     <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
+                        <!-- Four patches: a Vision Transformer cuts the image into a
+                             grid before it attends across them. -->
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
-                            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-                            <line x1="2" y1="9" x2="22" y2="9"></line>
-                            <circle cx="6" cy="6.5" r="0.6" fill="currentColor" stroke="none"></circle>
+                            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+                            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+                            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+                            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
                         </svg>
                     </div>
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Browser-based architecture</h4>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Vision Transformer pipeline</h4>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        No heavy applications or complex installations. FindFlower runs securely and seamlessly within your modern web browser, granting instant access wherever you are.
+                        The classifier is a Vision Transformer exported to ONNX and served through ONNX Runtime, across 116 botanical classes. Every prediction comes back with its confidence and its closest alternatives, not a single unexplained answer.
                     </p>
                 </div>
 
@@ -701,9 +857,9 @@
                             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
                         </svg>
                     </div>
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Verified knowledge</h4>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Live Wikidata &amp; Trefle encyclopedia</h4>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        Identification is only the first step. Every positive match queries live, structured data from Wikipedia, providing rich, peer-verified botanical context instantly.
+                        A name is where the work starts. Wikidata contributes the structured taxonomy, Trefle the growing data, Wikipedia the plate and the article &mdash; each fetched when you ask for it rather than frozen into a copy that quietly ages.
                     </p>
                 </div>
 
@@ -711,12 +867,13 @@
                 <div class="reveal-up delay-200 hover-lift flex flex-col bg-white border border-neutral-200/70 rounded-2xl p-8">
                     <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
-                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
                         </svg>
                     </div>
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Continuous improvement</h4>
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Zero registration required</h4>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        We are building carefully. As of our current Beta, the model recognizes 500 distinct botanical classes — and we refine our dataset and accuracy every single week.
+                        No account, no API key, no install &mdash; open the scanner and identify. The only record kept is the scan history your own browser holds, and you can clear it whenever you like.
                     </p>
                 </div>
 
@@ -746,7 +903,7 @@
                         Ready to explore?
                     </h2>
                     <p class="text-neutral-400 text-lg mb-10 max-w-xl mx-auto font-light">
-                        Join the Beta today and experience the fastest, calmest way to understand the plant life around you.
+                        Open the scanner and point it at something growing. Free for the whole of the Beta &mdash; no account, no install, nothing to cancel.
                     </p>
                     <a href="try.html" class="group inline-flex items-center gap-2 text-base font-medium bg-white text-neutral-900 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors">
                         Try FindFlower Now
@@ -797,8 +954,8 @@
             <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
                 <p>&copy; 2026 FindFlower · Engineered by gsor56</p>
                 <div class="flex gap-4 mt-4 md:mt-0">
-                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>System Status: Operational</span>
-                    <span>Model Version: Beta 0.9.4</span>
+                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>Vision Transformer &middot; 116 classes</span>
+                    <span>ONNX Runtime &middot; fp32 weights</span>
                 </div>
             </div>
         </div>
@@ -1350,24 +1507,233 @@
     })();
     </script>
 
+    <!-- ========================================================================
+         "How it works" — the sample record card
+         ------------------------------------------------------------------------
+         The tabs render from trefle-data.json: the same same-origin file
+         species.js merges into every species profile. So the fields on the
+         homepage are the fields the app actually shows, not a mock-up of them.
+         The plate and the binomial come from ffFetchSpecies — the same
+         Wikipedia/Wikidata path a scan result takes.
+
+         The markup already holds a complete record, so this script's job is to
+         make the tabs work and to re-render from the live file (which is what
+         keeps the copy in the markup from going stale). With JS off, or with no
+         network, the card stays complete and correct.
+
+         Router note: this block re-runs on every client-side arrival at
+         index.html. Every node it touches lives inside <main>, which the router
+         replaces wholesale, and the two listeners below are attached to one of
+         those nodes — so the previous run's wiring is collected with the DOM it
+         was bound to. Nothing survives a swap, so there is nothing to retire.
+         ======================================================================== -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const observerOptions = {
-                root: null,
-                rootMargin: '0px 0px -10% 0px',
-                threshold: 0.15
-            };
+    (function () {
+        'use strict';
 
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('active');
+        var tabs = document.getElementById('sampleTabs');
+        var fields = document.getElementById('sampleFields');
+        if (!tabs || !fields) return;
+
+        var img = document.getElementById('sampleImg');
+        var ph = document.getElementById('samplePh');
+        var common = document.getElementById('sampleCommon');
+        var binomial = document.getElementById('sampleBinomial');
+        var link = document.getElementById('sampleLink');
+
+        // Same key species.js writes, deliberately: whichever of us runs first
+        // pays for the request and the other reads it back out of the session.
+        var CACHE_KEY = 'ff_trefle_map';
+        var mapPromise = null;
+
+        function loadMap() {
+            if (mapPromise) return mapPromise;
+            mapPromise = new Promise(function (resolve) {
+                try {
+                    var cached = sessionStorage.getItem(CACHE_KEY);
+                    if (cached) { resolve(JSON.parse(cached)); return; }
+                } catch (e) { /* private mode, or a poisoned entry — just refetch */ }
+                fetch('trefle-data.json').then(function (res) {
+                    return res.ok ? res.json() : null;
+                }).then(function (map) {
+                    if (map) {
+                        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(map)); } catch (e) {}
                     }
-                });
-            }, observerOptions);
+                    resolve(map || null);
+                }).catch(function () { resolve(null); });
+            });
+            return mapPromise;
+        }
 
-            document.querySelectorAll('.reveal-up').forEach(el => observer.observe(el));
+        // trefle-data.json is generated from a third-party API, so its strings
+        // are treated as untrusted even though the file ships with the site.
+        function esc(s) {
+            return String(s).replace(/[&<>"]/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+            });
+        }
+
+        function row(label, value) {
+            return '<div class="ff-sample-row"><dt>' + label + '</dt><dd>' + value + '</dd></div>';
+        }
+        // Trefle's growth figures are 0–10 indices, not measurements. Printing
+        // the denominator is what stops "8" reading as eight of something.
+        function indexRow(label, n) {
+            return row(label, n + ' <span class="text-neutral-300">/ 10</span>');
+        }
+
+        /**
+         * The record as rows, skipping every field Trefle left empty — an
+         * absent row is honest, a row reading "—" is filler.
+         *
+         * Edibility follows species.js's rule exactly: only an affirmative
+         * `edible: true` is shown. Trefle returns false for plants that are
+         * plainly edible (dandelion, sunflower), so this card must not become
+         * the one place on the site that reads it as a claim about safety.
+         */
+        function rowsFor(rec) {
+            var html = '';
+            if (rec.family)      html += row('Family', esc(rec.family));
+            if (rec.growthHabit) html += row('Growth habit', esc(rec.growthHabit));
+            if (rec.sunlight)    html += row('Sunlight', esc(rec.sunlight));
+            if (typeof rec.lightIndex === 'number')          html += indexRow('Light index', rec.lightIndex);
+            if (typeof rec.atmosphericHumidity === 'number') html += indexRow('Humidity', rec.atmosphericHumidity);
+            if (typeof rec.moistureUse === 'number')         html += indexRow('Moisture use', rec.moistureUse);
+            if (rec.toxicity)    html += row('Toxicity', esc(rec.toxicity));
+            if (rec.edible === true) {
+                var parts = (rec.ediblePart && rec.ediblePart.length)
+                    ? esc(rec.ediblePart.join(', ')) : '';
+                html += row('Edible', parts ? 'Yes &mdash; ' + parts : 'Yes');
+            }
+            return html;
+        }
+
+        // Which tab's data is on screen. Also the guard every async callback
+        // checks, so a second tap mid-flight cannot paint the first tap's data.
+        var current = null;
+
+        /** Loading shows a shimmer; settled-with-no-plate shows the leaf mark.
+         *  Never both: a shimmer behind a leaf reads as neither one. */
+        function setThumb(loading) {
+            img.hidden = true;
+            img.removeAttribute('src');
+            if (!ph) return;
+            ph.hidden = false;
+            ph.classList.toggle('skeleton-shimmer', !!loading);
+            var mark = ph.firstElementChild;
+            // visibility, not display: the mark keeps its box either way, so
+            // swapping it can never nudge the header's layout.
+            if (mark) mark.style.visibility = loading ? 'hidden' : '';
+        }
+
+        function renderRecord(key, initial) {
+            loadMap().then(function (map) {
+                if (current !== key || !document.contains(fields)) return;
+                var rec = map && map[key];
+                if (!rec) {
+                    // On the first pass the markup already holds this species'
+                    // record, so there is nothing to correct. Only a *switch*
+                    // must never leave one species' name over another's data.
+                    if (initial) return;
+                    fields.innerHTML = row('Record', 'Catalogue unavailable');
+                } else {
+                    fields.innerHTML = rowsFor(rec);
+                }
+                if (window.ffUX) ffUX.crossFade(null, fields);
+            });
+        }
+
+        function loadPlate(query, key) {
+            if (typeof ffFetchSpecies !== 'function') return;  // species.js absent
+            setThumb(true);
+            ffFetchSpecies(query).then(function (info) {
+                if (current !== key || !document.contains(img)) return;
+                if (info && info.binomial) binomial.textContent = info.binomial;
+                if (!info || !info.image) { setThumb(false); return; }
+                img.onload = function () {
+                    if (current !== key) return;
+                    if (ph) ph.hidden = true;
+                    if (window.ffUX) ffUX.crossFade(null, img); else img.hidden = false;
+                };
+                img.onerror = function () { if (current === key) setThumb(false); };
+                img.alt = common.textContent;
+                img.src = info.image;
+            }).catch(function () {
+                if (current === key) setThumb(false);
+            });
+        }
+
+        function select(btn, initial) {
+            var key = btn.getAttribute('data-key');
+            if (!key || key === current) return;
+            current = key;
+
+            var all = tabs.querySelectorAll('.ff-sample-tab');
+            for (var i = 0; i < all.length; i++) {
+                all[i].setAttribute('aria-selected', all[i] === btn ? 'true' : 'false');
+            }
+
+            // The heading comes off the tab itself so it changes in the same
+            // frame as the tap. The record is a fetch away at worst, and a
+            // heading that lags behind the selection reads as a dead button.
+            var bino = btn.getAttribute('data-binomial') || '';
+            common.textContent = btn.textContent.trim();
+            if (bino) binomial.textContent = bino;
+            link.href = 'species.html?name=' + encodeURIComponent(bino || key);
+
+            renderRecord(key, initial);
+            loadPlate(bino || key, key);
+        }
+
+        tabs.addEventListener('click', function (e) {
+            var btn = (e.target && e.target.closest) ? e.target.closest('.ff-sample-tab') : null;
+            if (btn) select(btn, false);
         });
+
+        // A tablist is expected to move under the arrow keys, and the selection
+        // follows focus — with three cheap, cached records there is no reason to
+        // make someone press Enter as well.
+        tabs.addEventListener('keydown', function (e) {
+            if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+            var all = [].slice.call(tabs.querySelectorAll('.ff-sample-tab'));
+            var i = all.indexOf(document.activeElement);
+            if (i === -1) return;
+            e.preventDefault();
+            var step = (e.key === 'ArrowRight') ? 1 : all.length - 1;
+            var next = all[(i + step) % all.length];
+            next.focus();
+            select(next, false);
+        });
+
+        var first = tabs.querySelector('.ff-sample-tab[aria-selected="true"]') ||
+                    tabs.querySelector('.ff-sample-tab');
+        if (!first) return;
+
+        // The card sits well below the fold, and the markup is already showing
+        // the right record — so there is nothing to gain from spending its first
+        // request during page load. Hold it until the card is nearly in view,
+        // the same way the directory preview holds its cards.
+        var panel = document.getElementById('samplePanel');
+        if (panel && 'IntersectionObserver' in window) {
+            new IntersectionObserver(function (entries, obs) {
+                for (var i = 0; i < entries.length; i++) {
+                    if (!entries[i].isIntersecting) continue;
+                    obs.unobserve(entries[i].target);
+                    select(first, true);
+                }
+            }, { rootMargin: '200px 0px' }).observe(panel);
+        } else {
+            select(first, true);
+        }
+    })();
     </script>
+
+    <!-- The scroll-reveal observer that used to sit here is gone. It was the
+         fourteenth copy of one effect, and two layers already cover this page
+         from outside it: scripts/ux.js arms a global observer and re-scans on
+         any DOM mutation, and scripts/views/home.js re-arms one per route.
+         Either alone is sufficient, and app.css keeps .reveal-up VISIBLE until
+         a script confirms it can reveal things — so the failure mode is content
+         without animation rather than the blank page this page used to risk. -->
 </body>
 </html>
