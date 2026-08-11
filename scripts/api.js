@@ -17,8 +17,11 @@
 //         throw e; // contract break — let the page show an honest failure
 //     }
 //
-// Card contract (same key set the Wikidata engine in directory.js produces,
-// so generatePlantCard handles both sources uniformly):
+// Both catalogues live here — fetchTrefleBatch() and fetchWikidataBatch() —
+// and they return the SAME card shape, so ffDirectory.mount() differs only in
+// which one it calls and ui.js renders either without knowing the source.
+//
+// Card contract:
 //     { qid, name, family, img, link }
 //     qid   — null for Trefle (no Wikidata id), the Wikidata entity for SPARQL
 //     name  — common name when Trefle has one, else scientific
@@ -26,13 +29,25 @@
 //     img   — Trefle list records carry an image_url (PlantNet-hosted) when
 //             one exists, else null. Many obscure taxa have none; api.js
 //             reports that honestly and leaves the skip-or-placeholder
-//             decision to the engine/ui layer.
-//     link  — species.html?name=… ; the species page resolves it either way
+//             decision to the engine/ui layer. Wikidata images are always
+//             Commons THUMBNAILS — the P18 originals are 5–20 MB each.
+//     link  — the source link, and it differs by catalogue on purpose:
+//             Trefle has no article, so it is species.html?name=…, while
+//             Wikidata carries the real Wikipedia article URL. Callers that
+//             want every card to point inward (the encyclopedia) rewrite it;
+//             callers that want to send people to Wikipedia (the dashboard
+//             feed, try.html's mini-grid) use it as given.
 //
-// Details contract (same record shape trefle-data.json holds, so live and
-// prebuilt lookups merge through one path — see mergeTrefle in species.js):
+// Details contract (a superset of the record shape trefle-data.json holds, so
+// live and prebuilt lookups merge through one path — see mergeTrefle in
+// species.js):
 //     { trefleId, matchedName, family, growthHabit, lightIndex, sunlight,
-//       moistureUse, atmosphericHumidity, edible, ediblePart, toxicity, source }
+//       moistureUse, atmosphericHumidity, edible, ediblePart, toxicity,
+//       image, source }
+//     image — only live records carry it. tools/build-trefle.js predates the
+//             field, so prebuilt entries have no `image` key and species.js
+//             falls back to the Wikipedia thumbnail. Consumers must treat it
+//             as optional rather than assume every record has a photo.
 
 (function () {
     'use strict';
@@ -208,20 +223,35 @@
         return { items: items, hasMore: hasMore };
     }
 
-    /** Taxonomy + care record for one species (used after ViT names a flower).
+    /** Taxonomy + care record for one species (used after ViT names a flower,
+     *  and by species.html when the static trefle-data.json map misses).
      *  Search returns the best match, then the record is pulled by id.
      *  Returns null when Trefle has no record for the name — absence, not
-     *  failure; throws TrefleUnavailableError when the source is unreachable. */
-    async function fetchTrefleDetails(speciesName) {
-        if (!speciesName || !String(speciesName).trim()) return null;
-        var name = String(speciesName).trim();
+     *  failure; throws TrefleUnavailableError when the source is unreachable.
+     *
+     *  opts.hint: an alternate name to try when the primary query finds
+     *  nothing. species.html passes the page title so a Wikipedia-only common
+     *  name ("Nonesuch") still resolves after the binomial lookup misses, and
+     *  vice versa. Two cheap search calls beat an empty profile. */
+    async function fetchTrefleDetails(speciesName, opts) {
+        var o = opts || {};
+        var tries = [];
+        if (speciesName && String(speciesName).trim()) tries.push(String(speciesName).trim());
+        if (o.hint && String(o.hint).trim()) tries.push(String(o.hint).trim());
+        if (!tries.length) return null;
 
-        var s = await apiFetch('/trefle/plants/search?q=' + encodeURIComponent(name) + '&page=1');
-        var first = (s.data || [])[0];
+        var first = null;
+        for (var i = 0; i < tries.length && !first; i++) {
+            // Skip a hint that is just the primary query in different case.
+            if (i && tries[i].toLowerCase() === tries[0].toLowerCase()) continue;
+            var s = await apiFetch('/trefle/plants/search?q=' + encodeURIComponent(tries[i]) + '&page=1');
+            first = (s.data || [])[0] || null;
+        }
         if (!first) return null;
 
         var d = await apiFetch('/trefle/plants/' + encodeURIComponent(first.id));
-        var ms = (d.data && d.data.main_species) || {};
+        var rec = (d.data) || {};
+        var ms = rec.main_species || {};
         var g = ms.growth || {};
         var spec = ms.specifications || {};
         var light = (typeof g.light === 'number') ? g.light : null;
@@ -229,7 +259,7 @@
         return {
             trefleId: first.id,
             matchedName: first.scientific_name || null,
-            family: ms.family || (d.data && d.data.family) || null,
+            family: ms.family || rec.family || null,
             growthHabit: spec.growth_habit || null,
             lightIndex: light,
             sunlight: lightToText(light),
@@ -240,7 +270,135 @@
             ediblePart: (ms.edible_part && ms.edible_part.length) ? ms.edible_part : null,
             // Trefle toxicity is a string ('none' | 'low' | 'medium' | 'high') when present.
             toxicity: (spec.toxicity && String(spec.toxicity).trim()) ? String(spec.toxicity).trim() : null,
+            // A PlantNet/Trefle-hosted photo. The search hit carries it more
+            // reliably than the detail record, so prefer that and fall back.
+            image: first.image_url || rec.image_url || null,
             source: 'Trefle (trefle.io)',
+        };
+    }
+
+    // ====================================================================
+    //  Wikidata (WDQS) — the fallback catalogue.
+    //
+    //  Moved here from directory.js so BOTH catalogues sit behind one
+    //  fetcher. Before, the SPARQL half lived in two places: directory.js
+    //  for the shared embeds and a near-identical inline copy in
+    //  directory.html. Two copies of a query whose ORDER BY is load-bearing
+    //  is how the pages drift apart silently.
+    // ====================================================================
+
+    var WDQS = 'https://query.wikidata.org/sparql';
+
+    // Rows per SPARQL call — 8 twelve-card batches. Callers get nextOffset
+    // back rather than hard-coding this.
+    var WIKIDATA_CHUNK = 96;
+
+    // The same twenty families as FLOWER_FAMILIES, as Wikidata entities.
+    //
+    // Why a family list and not `?item wdt:P31 wd:Q506`: Wikidata models a
+    // species as an instance of "taxon" (Q16521) carrying a rank, so only 35
+    // entities are direct instances of "flowering plant" — three pages, then
+    // nothing. The obvious fix, a transitive `wdt:P171*` walk up to
+    // Magnoliophyta, does return 83k species but takes 45–57s per page, which
+    // is not a scroll experience. A fixed family set keeps the join small:
+    // ~5,000 species at 7–9s per 96-row chunk.
+    var WD_FAMILIES = [
+        'wd:Q25400',  // Asteraceae
+        'wd:Q46299',  // Rosaceae
+        'wd:Q25308',  // Orchidaceae
+        'wd:Q44448',  // Fabaceae
+        'wd:Q53476',  // Lamiaceae
+        'wd:Q145869', // Ranunculaceae
+        'wd:Q53480',  // Liliaceae
+        'wd:Q155941', // Iridaceae
+        'wd:Q156551', // Malvaceae
+        'wd:Q156888', // Brassicaceae
+        'wd:Q173756', // Apocynaceae
+        'wd:Q975872', // Ericaceae
+        'wd:Q155848', // Amaryllidaceae
+        'wd:Q25995',  // Caryophyllaceae
+        'wd:Q134172', // Solanaceae
+        'wd:Q157115', // Primulaceae
+        'wd:Q144723', // Papaveraceae
+        'wd:Q156060', // Violaceae
+        'wd:Q155802', // Campanulaceae
+        'wd:Q156179', // Onagraceae
+    ].join(' ');
+
+    /** ORDER BY is not cosmetic: without a total order, LIMIT/OFFSET pages
+     *  overlap (measured 37 duplicates across two 96-row pages), so infinite
+     *  scroll would repeat cards and silently skip others. */
+    function buildWikidataQuery(limit, offset) {
+        return 'SELECT ?item ?itemLabel ?img ?article ?famLabel WHERE {\n' +
+            '  VALUES ?fam { ' + WD_FAMILIES + ' }\n' +
+            '  ?genus wdt:P171 ?fam .\n' +
+            '  ?item wdt:P171 ?genus ;\n' +
+            '        wdt:P105 wd:Q7432 ;\n' +
+            '        wdt:P18 ?img .\n' +
+            '  OPTIONAL { ?article schema:about ?item ; schema:isPartOf <https://en.wikipedia.org/> . }\n' +
+            '  SERVICE wikibase:label { bd:serviceParam wikibase:language "en" }\n' +
+            '}\n' +
+            'ORDER BY ?item\n' +
+            'LIMIT ' + limit + ' OFFSET ' + offset;
+    }
+
+    /** Ask Commons for a scaled thumbnail. P18 originals are routinely
+     *  5–20 MB each, which would make a 12-card grid unusable on mobile data. */
+    function commonsThumb(url, width) {
+        try {
+            var m = decodeURIComponent(url).match(/Special:FilePath\/(.+)$/);
+            if (!m) return url;
+            return 'https://commons.wikimedia.org/wiki/Special:FilePath/' +
+                encodeURIComponent(m[1]) + '?width=' + (width || 500);
+        } catch (e) { return url; }
+    }
+
+    /** SPARQL bindings → the shared card contract.
+     *  Note `link` here is the SOURCE link (the Wikipedia article, or the
+     *  entity page when there is none), NOT species.html — the caller decides,
+     *  because the dashboard and try.html embeds link outward while the
+     *  encyclopedia links inward. */
+    function normalizeWikidataRows(rows, width) {
+        var out = [];
+        for (var i = 0; i < rows.length; i++) {
+            var r = rows[i];
+            if (!r.item || !r.img) continue;
+            var qid = r.item.value.split('/').pop();
+            var label = r.itemLabel ? r.itemLabel.value : '';
+            // An unresolved label falls back to the QID, which is not a species
+            // name — drop the row rather than render "Q12345".
+            if (!label || /^Q\d+$/.test(label)) continue;
+            out.push({
+                qid: qid,
+                name: label,
+                family: r.famLabel ? r.famLabel.value : '',
+                img: commonsThumb(r.img.value, width),
+                link: r.article ? r.article.value : ('https://www.wikidata.org/wiki/' + qid),
+            });
+        }
+        return out;
+    }
+
+    /** One SPARQL page. Returns { items, hasMore, nextOffset }.
+     *  Throws on a non-OK response — unlike Trefle there is no further
+     *  fallback, so the caller shows its error state.
+     *  opts.thumbWidth: Commons thumbnail width (default 500). */
+    async function fetchWikidataBatch(offset, opts) {
+        var o = opts || {};
+        var at = Math.max(0, parseInt(offset, 10) || 0);
+        var url = WDQS + '?format=json&query=' +
+            encodeURIComponent(buildWikidataQuery(WIKIDATA_CHUNK, at));
+        var res = await fetch(url, { headers: { Accept: 'application/sparql-results+json' } });
+        if (!res.ok) throw new Error('WDQS ' + res.status);
+        var data = await res.json();
+        var rows = (data.results && data.results.bindings) || [];
+        return {
+            items: normalizeWikidataRows(rows, o.thumbWidth || 500),
+            // A short chunk is the end of the catalogue. Measured on the row
+            // count, not the normalized count: rows dropped for a missing label
+            // do not mean the source is spent.
+            hasMore: rows.length >= WIKIDATA_CHUNK,
+            nextOffset: at + WIKIDATA_CHUNK,
         };
     }
 
@@ -255,5 +413,6 @@
         TrefleUnavailableError: TrefleUnavailableError,
         fetchTrefleBatch: fetchTrefleBatch,
         fetchTrefleDetails: fetchTrefleDetails,
+        fetchWikidataBatch: fetchWikidataBatch,
     };
 })();

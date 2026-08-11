@@ -441,13 +441,21 @@ section('api.js — fetchTrefleDetails');
     });
     const rec = await win.ffApi.fetchTrefleDetails('Rosa canina');
 
-    // The shape must match trefle-data.json exactly, or species.js's merge —
-    // which holds the only copy of the toxicity and edibility safety rules —
-    // would need a second branch for live records.
-    const keys = Object.keys(rec).sort().join(',');
-    ok(keys === ['atmosphericHumidity', 'edible', 'ediblePart', 'family', 'growthHabit',
-        'lightIndex', 'matchedName', 'moistureUse', 'source', 'sunlight', 'toxicity', 'trefleId']
-        .sort().join(','), 'the record shape matches trefle-data.json');
+    // The shape must be a SUPERSET of trefle-data.json's, or species.js's merge
+    // — which holds the only copy of the toxicity and edibility safety rules —
+    // would need a second branch for live records. `image` is live-only: the
+    // build script predates the field, so prebuilt entries lack the key and
+    // species.js treats it as optional. (trefle-data.json also carries
+    // `searchTerm`, which is build bookkeeping and not part of the contract.)
+    const REQUIRED = ['atmosphericHumidity', 'edible', 'ediblePart', 'family', 'growthHabit',
+        'lightIndex', 'matchedName', 'moistureUse', 'source', 'sunlight', 'toxicity', 'trefleId'];
+    const missing = REQUIRED.filter(k => !(k in rec));
+    ok(missing.length === 0,
+        'the record carries every field trefle-data.json holds' +
+        (missing.length ? ' (missing: ' + missing.join(',') + ')' : ''));
+    const extra = Object.keys(rec).filter(k => REQUIRED.indexOf(k) === -1);
+    ok(extra.length === 1 && extra[0] === 'image',
+        '...and adds only `image`, which prebuilt records do not have');
     ok(rec.sunlight === 'Full sun to light shade', 'light index 8 maps through the shared ladder');
     ok(rec.growthHabit === 'Shrub' && rec.toxicity === 'none', 'specifications are read');
     ok(rec.edible === true && rec.ediblePart[0] === 'fruit', 'edibility is read');
@@ -458,6 +466,172 @@ section('api.js — fetchTrefleDetails');
         'no search hit returns null — absence, not failure');
     ok(await empty.ffApi.fetchTrefleDetails('') === null, 'an empty name returns null without a request');
     ok(await empty.ffApi.fetchTrefleDetails('   ') === null, 'a blank name returns null without a request');
+}
+
+{
+    // The search hit carries image_url; the detail record often does not. A
+    // profile whose Wikipedia article has no photo depends on this being read.
+    const win = apiWin((url) => {
+        if (url.includes('/search')) {
+            return jsonRes({ data: [{ id: 51834, scientific_name: 'Medicago lupulina', image_url: 'https://bs.plantnet.org/image/o/abc' }] });
+        }
+        return jsonRes({ data: { main_species: { family: 'Fabaceae' } } });
+    });
+    const rec = await win.ffApi.fetchTrefleDetails('Nonesuch');
+    ok(rec.image === 'https://bs.plantnet.org/image/o/abc',
+        'the search hit\'s image_url is carried into the record');
+
+    const noImg = apiWin((url) => url.includes('/search')
+        ? jsonRes({ data: [{ id: 1, scientific_name: 'X y' }] })
+        : jsonRes({ data: { main_species: {} } }));
+    ok((await noImg.ffApi.fetchTrefleDetails('X y')).image === null,
+        '...and reported as null when neither record has one');
+}
+
+{
+    // ---- PRODUCTION REGRESSION, 2026-08-10 -------------------------------
+    // Directory cards come from Trefle, so their labels are often COMMON names.
+    // "Nonesuch" (Medicago lupulina) has a Wikipedia disambiguation page, which
+    // yielded no article, no photo and no facts -- the reported empty profile.
+    // opts.hint gives the lookup a second name to try.
+    const queries = [];
+    const win = apiWin((url) => {
+        const m = /[?&]q=([^&]*)/.exec(url);
+        if (m) {
+            queries.push(decodeURIComponent(m[1]));
+            // Only the common name resolves; the (absent) binomial does not.
+            if (decodeURIComponent(m[1]) !== 'Nonesuch') return jsonRes({ data: [] });
+            return jsonRes({ data: [{ id: 51834, scientific_name: 'Medicago lupulina', image_url: 'https://img/n.jpg' }] });
+        }
+        return jsonRes({ data: { main_species: { family: 'Fabaceae', growth: { light: 7 } } } });
+    });
+
+    const missed = await win.ffApi.fetchTrefleDetails('Unresolvable name');
+    ok(missed === null, 'without a hint, an unresolvable name is still null');
+
+    queries.length = 0;
+    const rec = await win.ffApi.fetchTrefleDetails('Unresolvable name', { hint: 'Nonesuch' });
+    ok(rec && rec.matchedName === 'Medicago lupulina',
+        'the hint resolves a common name after the primary query misses');
+    ok(queries.length === 2 && queries[1] === 'Nonesuch',
+        '...via exactly one extra search call');
+    ok(rec.family === 'Fabaceae' && rec.sunlight === 'Full sun to light shade',
+        '...and the care facts come back with it');
+}
+
+{
+    // The hint must not cost a request when the primary query already worked,
+    // and must not fire twice for the same string in different case.
+    let calls = 0;
+    const win = apiWin((url) => {
+        if (url.includes('/search')) { calls++; return jsonRes({ data: [{ id: 7, scientific_name: 'Rosa canina' }] }); }
+        return jsonRes({ data: { main_species: {} } });
+    });
+    await win.ffApi.fetchTrefleDetails('Rosa canina', { hint: 'Dog rose' });
+    ok(calls === 1, 'a successful primary query never triggers the hint');
+
+    let calls2 = 0;
+    const win2 = apiWin((url) => {
+        if (url.includes('/search')) { calls2++; return jsonRes({ data: [] }); }
+        return jsonRes({ data: { main_species: {} } });
+    });
+    ok(await win2.ffApi.fetchTrefleDetails('rose', { hint: 'ROSE' }) === null,
+        'a hint that only differs in case is skipped');
+    ok(calls2 === 1, '...costing one request, not two');
+}
+
+// ===========================================================================
+section('api.js — fetchWikidataBatch');
+// ===========================================================================
+
+// The SPARQL half moved here from directory.js in the Step 5 dedupe. It used to
+// exist TWICE — once in directory.js for the embeds, once inline in
+// directory.html for the encyclopedia — and the query's ORDER BY is what stops
+// LIMIT/OFFSET pages from overlapping. Two copies of that is two chances to
+// lose it. These tests pin the contract now that there is one copy.
+
+const wdBinding = (n) => ({
+    item: { value: 'http://www.wikidata.org/entity/Q' + n },
+    itemLabel: { value: 'Species ' + n },
+    famLabel: { value: 'Rosaceae' },
+    img: { value: 'http://commons.wikimedia.org/wiki/Special:FilePath/Flower%20' + n + '.jpg' },
+    article: { value: 'https://en.wikipedia.org/wiki/Species_' + n },
+});
+const wdRes = (bindings) => jsonRes({ results: { bindings } });
+
+{
+    const rows = [
+        wdBinding(1),
+        // An unresolved label falls back to the QID, which is not a species
+        // name — the row must be dropped, not rendered as "Q42".
+        { ...wdBinding(42), itemLabel: { value: 'Q42' } },
+        // No P18 image: the card design is image-led, so there is nothing to show.
+        { item: { value: 'http://www.wikidata.org/entity/Q7' }, itemLabel: { value: 'Species 7' } },
+        // No Wikipedia article — the entity page is the honest fallback link.
+        { ...wdBinding(9), article: undefined },
+    ];
+    const win = apiWin(() => wdRes(rows));
+    const res = await win.ffApi.fetchWikidataBatch(0);
+
+    ok(res.items.length === 2, 'a QID-labelled row and an imageless row are both dropped');
+    ok(res.items[0].qid === 'Q1', 'the QID is taken from the entity URI');
+    ok(res.items[0].name === 'Species 1', 'the label is the name');
+    ok(res.items[0].family === 'Rosaceae', 'famLabel becomes family');
+    ok(res.items[1].link === 'https://www.wikidata.org/wiki/Q9',
+        'a row with no article links to the entity page instead');
+    ok(res.items[0].link === 'https://en.wikipedia.org/wiki/Species_1',
+        'Wikidata rows carry the real article URL — callers rewrite it if they want species.html');
+
+    // Commons originals are 5–20 MB each; a 12-card grid of them is unusable
+    // on mobile data. The thumbnail rewrite is not cosmetic.
+    ok(/[?&]width=500/.test(res.items[0].img), 'images are Commons thumbnails at the default width');
+    ok(res.items[0].img.startsWith('https://commons.wikimedia.org/wiki/Special:FilePath/'),
+        '...still served from Special:FilePath');
+
+    const q = decodeURIComponent(win._lastUrl);
+    ok(/ORDER BY \?item/.test(q),
+        'the query keeps ORDER BY — without a total order, LIMIT/OFFSET pages overlap (37 dupes measured)');
+    ok(/LIMIT 96 OFFSET 0/.test(q), 'the chunk size and offset are in the query');
+    ok(/VALUES \?fam \{/.test(q) && /wd:Q25400/.test(q) && /wd:Q156179/.test(q),
+        '...against the fixed twenty-family set, not wdt:P31 wd:Q506');
+    ok(win._lastUrl.startsWith('https://query.wikidata.org/sparql?format=json&query='),
+        'it goes to WDQS asking for JSON');
+}
+
+{
+    const win = apiWin(() => wdRes([wdBinding(1)]));
+    const res = await win.ffApi.fetchWikidataBatch(0, { thumbWidth: 400 });
+    ok(/[?&]width=400/.test(res.items[0].img), 'thumbWidth overrides the default');
+}
+
+{
+    // A short chunk is the end of the catalogue. Measured on the ROW count, not
+    // the normalized count: rows dropped for a missing label do not mean the
+    // source is spent, and treating them that way truncates the encyclopedia.
+    const short = [];
+    for (let i = 0; i < 30; i++) short.push(wdBinding(i));
+    const win = apiWin(() => wdRes(short));
+    const res = await win.ffApi.fetchWikidataBatch(0);
+    ok(res.hasMore === false, 'a chunk shorter than 96 rows ends the catalogue');
+
+    const full = [];
+    for (let i = 0; i < 96; i++) full.push(i % 2 ? wdBinding(i) : { ...wdBinding(i), itemLabel: { value: 'Q' + i } });
+    const win2 = apiWin(() => wdRes(full));
+    const res2 = await win2.ffApi.fetchWikidataBatch(96);
+    ok(res2.items.length === 48 && res2.hasMore === true,
+        'a full 96-row chunk means more, even when half the rows are unusable');
+    ok(res2.nextOffset === 192, 'nextOffset advances by the chunk size, not by the kept count');
+}
+
+{
+    // No further fallback exists below Wikidata, so unlike Trefle this throws
+    // and the caller shows its error state.
+    const win = apiWin(() => ({ ok: false, status: 429, json: async () => ({}), text: async () => '' }));
+    let caught = null;
+    try { await win.ffApi.fetchWikidataBatch(0); } catch (e) { caught = e; }
+    ok(caught && /WDQS 429/.test(caught.message), 'a non-OK WDQS response throws');
+    ok(!(caught instanceof win.ffApi.TrefleUnavailableError),
+        '...as a plain Error — it must NOT look like a skippable Trefle outage');
 }
 
 // ===========================================================================
@@ -581,6 +755,58 @@ function treflePage(page, total) {
     await handle.start();
     ok(!errorBox.classList.contains('hidden'), '...and surfaces the error instead of a silent empty grid');
     ok(!grid._html.length, '...having written nothing');
+}
+
+{
+    // api.js missing. This used to be survivable — no ffApi just meant "use the
+    // SPARQL code inside directory.js" — but that code moved to api.js in the
+    // Step 5 dedupe, so a missing api.js now leaves no catalogue at all. Same
+    // rule as ui.js: say so rather than run an engine that can only ever paint
+    // an empty grid.
+    const win = makeWindow();
+    win.fetch = async () => { throw new Error('should not be called'); };
+    loadAll(win, ['ui.js']);
+    // directory.js reads window.ffApi at mount time, so loading it alone is
+    // enough to reach the guard.
+    loadAll(win, ['../directory.js']);
+    const grid = makeEl('grid');
+    const errorBox = makeEl('err');
+    const handle = win.ffDirectory.mount({ grid, errorBox, infinite: false });
+    ok(typeof handle.start === 'function' && typeof handle.stop === 'function',
+        'mount() without api.js still returns a usable handle');
+    await handle.start();
+    ok(!errorBox.classList.contains('hidden'), '...and surfaces the error');
+    ok(!grid._html.length, '...having written nothing');
+}
+
+{
+    // The encyclopedia asks for 400px thumbnails (four columns on a desktop,
+    // two on a phone) rather than the 500 default. That option has to reach the
+    // fetcher, or every card on the busiest grid pulls a larger image than it
+    // will ever display.
+    let q = '';
+    const win = dirWin(async (url) => {
+        if (url.includes('/trefle/')) return jsonRes({ error: 'x', fallback: true }, 503);
+        q = url;
+        return jsonRes({ results: { bindings: [] } });
+    });
+    await win.ffDirectory.mount({
+        grid: makeEl('grid'), infinite: false, max: 12, cull: false, thumbWidth: 400,
+    }).start();
+    ok(q.includes('query.wikidata.org'), 'the fallback reached WDQS');
+    // The width lands on the image URL, not the query, so assert on a rendered card.
+    const win2 = dirWin(async (url) => {
+        if (url.includes('/trefle/')) return jsonRes({ error: 'x', fallback: true }, 503);
+        return jsonRes({ results: { bindings: [{
+            item: { value: 'http://www.wikidata.org/entity/Q1' },
+            itemLabel: { value: 'Rosa canina' },
+            famLabel: { value: 'Rosaceae' },
+            img: { value: 'https://commons.wikimedia.org/wiki/Special:FilePath/x.jpg' },
+        }] } });
+    });
+    const grid2 = makeEl('grid');
+    await win2.ffDirectory.mount({ grid: grid2, infinite: false, max: 12, cull: false, thumbWidth: 400 }).start();
+    ok(/width=400/.test(grid2._html.join('')), 'thumbWidth reaches the rendered card');
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
