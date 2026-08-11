@@ -51,6 +51,7 @@ jobs:
           # Fail loudly rather than deploying a broken site again. Each of these
           # has already been shipped missing at least once.
           for f in app.css scripts/api.js scripts/ui.js scripts/router.js \
+                   scripts/ux.js \
                    scripts/views/home.js scripts/views/directory.js \
                    scripts/views/dashboard.js scripts/views/scanner.js; do
             test -f "_site/$f" || { echo "FATAL: $f missing from _site"; exit 1; }
