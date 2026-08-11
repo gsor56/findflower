@@ -125,10 +125,13 @@
     // Merge Trefle fields into an info object. Never blocks the page: any
     // missing field simply stays empty so the UI shows the honest fallback.
     //
-    // Two sources, in order:
-    //   1. trefle-data.json — prefetched at build time, ~40 seed species, free
+    // Three sources, in order:
+    //   1. `prefetched` — a record ffFetchSpecies already pulled while trying
+    //      to resolve a common name into a binomial (step 2b). Passing it in
+    //      is what stops the same species being looked up twice per page.
+    //   2. trefle-data.json — prefetched at build time, ~40 seed species, free
     //      and instant. Covers the common scans.
-    //   2. the live API via the Cloudflare proxy (scripts/api.js) — reached
+    //   3. the live API via the Cloudflare proxy (scripts/api.js) — reached
     //      only when the static map misses, so the long tail of species gets
     //      care data too. Costs one request, so the result is cached with the
     //      rest of the species entry.
@@ -136,19 +139,26 @@
     // The live call is strictly additive: if api.js is not on the page, or the
     // proxy has no TREFLE_TOKEN, or Trefle is down, the merge simply does
     // nothing and the panel renders from Wikidata alone.
-    async function mergeTrefle(name, info) {
-        let rec = null;
-        try {
-            const map = await loadTrefleMap();
-            rec = map && map[ffCleanName(name).toLowerCase()];
-        } catch (e) { rec = null; }
+    async function mergeTrefle(name, info, prefetched) {
+        let rec = prefetched || null;
+        if (!rec) {
+            try {
+                const map = await loadTrefleMap();
+                rec = map && map[ffCleanName(name).toLowerCase()];
+            } catch (e) { rec = null; }
+        }
 
         // Static map missed — ask the live API, if it is available here.
         if (!rec && window.ffApi && typeof ffApi.fetchTrefleDetails === 'function') {
             try {
                 // Prefer the binomial: Trefle indexes scientific names, so
-                // "Rosa canina" resolves where "dog rose" may not.
-                rec = await ffApi.fetchTrefleDetails(info.binomial || ffCleanName(name));
+                // "Rosa canina" resolves where "dog rose" may not. The plain
+                // name is passed as the hint, because the reverse also happens:
+                // Trefle carries "Nonesuch" as a common name for Medicago
+                // lupulina while Wikipedia's page for it is a disambiguation
+                // and yields no binomial at all.
+                const primary = info.binomial || ffCleanName(name);
+                rec = await ffApi.fetchTrefleDetails(primary, { hint: ffCleanName(name) });
             } catch (e) {
                 rec = null; // unreachable/unconfigured — Wikidata still stands
             }
@@ -169,6 +179,21 @@
         if (typeof rec.moistureUse === 'number') info.moistureUse = rec.moistureUse;
         // Family: Wikidata wins; Trefle fills the gap only if we have nothing.
         if (!info.family && rec.family) info.family = rec.family;
+        // Binomial: same rule. When Wikipedia handed us a disambiguation page
+        // there is no P225 taxon name, and Trefle's matched scientific name is
+        // the only thing standing between the visitor and a nameless profile.
+        if (!info.binomial && rec.matchedName) info.binomial = rec.matchedName;
+        // Photo: only ever a fallback. A Wikipedia thumbnail is chosen for the
+        // article and is the better image when it exists; Trefle's PlantNet
+        // photo is what keeps the profile from showing a broken frame when
+        // Wikipedia has no illustration.
+        if (!info.image && rec.image) {
+            info.image = rec.image;
+            info.originalImage = rec.image;
+            info.attribution = info.attribution
+                ? info.attribution + ' · Image: Trefle / PlantNet'
+                : 'Image: Trefle / PlantNet';
+        }
         // Edibility: Trefle's `edible:false` is an unreliable false-negative
         // (it flags dandelion & sunflower as inedible), so only surface an
         // affirmative "edible" — never assert inedibility from Trefle.
@@ -334,6 +359,44 @@
         }
     }
 
+    // ---- Wikipedia REST summary -------------------------------------------
+    // Split out of ffFetchSpecies so it can be called twice: once for the name
+    // the visitor arrived with, and again for a binomial that Trefle resolved
+    // when the first title turned out to be a disambiguation page.
+    // Returns the parsed payload, or null when there is no usable article.
+    async function fetchSummary(title) {
+        try {
+            const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title));
+            if (!res.ok) return null;
+            const d = await res.json();
+            // A disambiguation page has no species facts in it, and its extract
+            // is a list of unrelated meanings — worse than nothing.
+            if (d.type === 'disambiguation' || !d.extract) return null;
+            return d;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Copy a Wikipedia summary payload onto an info object.
+    function applySummary(info, d, fallbackTitle) {
+        info.found = true;
+        info.title = d.title || fallbackTitle;
+        info.summary = d.extract || '';
+        info.description = d.description || '';
+        if (d.content_urls && d.content_urls.desktop && d.content_urls.desktop.page) {
+            info.articleUrl = d.content_urls.desktop.page;
+        }
+        if (d.thumbnail && d.thumbnail.source) {
+            info.image = d.thumbnail.source;
+            info.originalImage = (d.originalimage && d.originalimage.source) || d.thumbnail.source;
+            info.attribution = 'Image & text: Wikipedia / Wikimedia Commons (CC BY-SA)';
+        } else {
+            info.attribution = 'Text: Wikipedia (CC BY-SA)';
+        }
+        return d.wikibase_item || null;
+    }
+
     // ============================================================
     //  ffFetchSpecies — the shared entry point.
     //  opts.related === true also pulls family label + sibling
@@ -358,30 +421,45 @@
 
         // 2 · Wikipedia REST summary (one request).
         let qid = null;
-        try {
-            const sres = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title));
-            if (!sres.ok) throw new Error('summary not found');
-            const d = await sres.json();
-            if (d.type === 'disambiguation' || !d.extract) throw new Error('ambiguous');
+        const summary = await fetchSummary(title);
+        if (summary) {
+            qid = applySummary(info, summary, title);
+        }
 
-            info.found = true;
-            info.title = d.title || title;
-            info.summary = d.extract || '';
-            info.description = d.description || '';
-            if (d.content_urls && d.content_urls.desktop && d.content_urls.desktop.page) {
-                info.articleUrl = d.content_urls.desktop.page;
+        // 2b · No usable article under that title. This is the common name /
+        //      disambiguation case, and it used to end the lookup here: the
+        //      profile rendered with a broken image frame and every fact reading
+        //      "Not documented in the source article."
+        //
+        //      Measured example — a directory card for "Nonesuch" (a Trefle
+        //      common name for Medicago lupulina):
+        //        /page/summary/Nonesuch -> type:"disambiguation" -> gave up
+        //        Trefle /plants/search?q=Nonesuch -> Medicago lupulina, id 51834,
+        //          Fabaceae, Forb/herb, light 7, and a PlantNet photo
+        //        /page/summary/Medicago lupulina -> a full article with a photo
+        //
+        //      So Trefle is asked to translate the common name into a binomial,
+        //      and Wikipedia is asked again under that name. Two extra requests
+        //      on a path that previously produced an empty page; none at all on
+        //      the happy path, because this only runs when the first title
+        //      missed.
+        let trefleRec = null;
+        if (!summary && window.ffApi && typeof ffApi.fetchTrefleDetails === 'function') {
+            try {
+                trefleRec = await ffApi.fetchTrefleDetails(clean);
+            } catch (e) {
+                trefleRec = null; // unreachable/unconfigured — nothing lost
             }
-            if (d.thumbnail && d.thumbnail.source) {
-                info.image = d.thumbnail.source;
-                info.originalImage = (d.originalimage && d.originalimage.source) || d.thumbnail.source;
-                info.attribution = 'Image & text: Wikipedia / Wikimedia Commons (CC BY-SA)';
-            } else {
-                info.attribution = 'Text: Wikipedia (CC BY-SA)';
+            if (trefleRec && trefleRec.matchedName &&
+                trefleRec.matchedName.toLowerCase() !== clean.toLowerCase()) {
+                const second = await fetchSummary(trefleRec.matchedName);
+                if (second) qid = applySummary(info, second, trefleRec.matchedName);
             }
-            qid = d.wikibase_item || null;
-        } catch (err) {
-            // Nothing usable from Wikipedia — cache the honest empty result so
-            // repeated views don't re-request, and let the caller fall back.
+        }
+
+        // Still nothing from Wikipedia OR Trefle: cache the honest empty result
+        // so repeated views don't re-request, and let the caller fall back.
+        if (!summary && !trefleRec) {
             info.attribution = 'Source: Wikipedia';
             cacheSet(clean, info);
             return info;
@@ -400,10 +478,11 @@
         // 4 · Text-derived facts (range, toxicity fallback, growing, family).
         deriveFromText(info);
 
-        // 4b · Trefle build-time extras (growth habit, sunlight, edibility, and
-        //      a toxicity cross-check). Same-origin static file — never blocks
-        //      the page and never overrides Wikidata toxicity silently.
-        await mergeTrefle(clean, info);
+        // 4b · Trefle extras (growth habit, sunlight, edibility, a photo when
+        //      Wikipedia has none, and a toxicity cross-check). The record
+        //      fetched in 2b is reused so the same species is never looked up
+        //      twice in one call.
+        await mergeTrefle(clean, info, trefleRec);
 
         // 5 · Related data (detail page only): family (chain-walked) + related taxa.
         if (opts.related) {
