@@ -144,7 +144,10 @@
             border: 1px solid #E5E5E5;
             background-color: #FFFFFF;
             color: #737373;
-            transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease;
+            /* transform last: the tab carries .soft-click, and this rule wins
+               over it, so the press scale has to be listed here or it snaps. */
+            transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease,
+                        transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
         }
         .ff-sample-tab:hover { color: #171717; border-color: #D4D4D4; }
         .ff-sample-tab[aria-selected="true"] {
@@ -570,11 +573,11 @@
                     Point your camera at a flower. A Vision Transformer names it, then live Wikidata and Trefle records fill in the binomial, family and growing habit.
                 </p>
                 <div class="reveal-up delay-300 flex flex-col sm:flex-row items-center gap-4">
-                    <a href="try.html" class="lift-btn soft-click group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float flex items-center justify-center gap-2">
+                    <a href="try.html" class="lift-btn soft-click group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float flex items-center justify-center gap-2">
                         Start Identifying
                         <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
-                    <a href="#how" class="soft-click w-full sm:w-auto text-base font-medium text-neutral-600 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors">
+                    <a href="#how" class="soft-click w-full sm:w-auto text-base font-medium text-neutral-600 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition">
                         See how it works
                     </a>
                 </div>

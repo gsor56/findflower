@@ -120,7 +120,11 @@
                     '<a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
                     '<a id="ffTryNow" href="try.html" class="soft-click text-sm font-medium bg-neutral-900 text-white ' +
-                        'px-4 sm:px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5 ' +
+                        // `transition`, not `transition-colors`: this button carries
+                        // .soft-click, whose press scale needs `transform` in the
+                        // transition list. The utility lands after app.css, so
+                        // whichever one is named here is the list that wins.
+                        'px-4 sm:px-5 rounded-full hover:bg-neutral-800 transition flex items-center gap-1.5 ' +
                         'whitespace-nowrap" ' +
                         'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
                     // Hamburger is shown at every width. The top bar carries the
@@ -130,7 +134,8 @@
                     '<button id="ffMenuBtn" type="button" data-toggle-sidebar aria-label="Open menu" ' +
                         'aria-controls="ffSidebar" aria-expanded="false" ' +
                         'class="ff-hamburger soft-click flex items-center justify-center text-neutral-700 ' +
-                        'hover:text-neutral-900 transition-colors" style="min-width:40px;min-height:40px">' +
+                        // `transition` for the same reason as #ffTryNow above.
+                        'hover:text-neutral-900 transition" style="min-width:40px;min-height:40px">' +
                         ICON_BURGER + '</button>' +
                 '</div>' +
             '</div>';

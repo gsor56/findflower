@@ -122,11 +122,11 @@
                         <label class="text-sm font-medium text-neutral-900 mb-1 block">Was the identification correct?</label>
                         <p class="text-sm text-neutral-500 font-light mb-4">Tell us how the last prediction did.</p>
                         <div class="grid grid-cols-2 gap-3">
-                            <button type="button" data-choice="correct" class="soft-click choice flex items-center justify-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-xl transition-colors" aria-pressed="false">
+                            <button type="button" data-choice="correct" class="soft-click choice flex items-center justify-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-xl transition" aria-pressed="false">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 6 9 17l-5-5"/></svg>
                                 Correct
                             </button>
-                            <button type="button" data-choice="incorrect" class="soft-click choice flex items-center justify-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-xl transition-colors" aria-pressed="false">
+                            <button type="button" data-choice="incorrect" class="soft-click choice flex items-center justify-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-xl transition" aria-pressed="false">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M18 6 6 18M6 6l12 12"/></svg>
                                 Incorrect
                             </button>
@@ -169,7 +169,7 @@
 
                     <!-- Submit -->
                     <div class="pt-2">
-                        <button type="submit" data-haptic class="soft-click group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors shadow-float flex items-center justify-center gap-2">
+                        <button type="submit" data-haptic class="soft-click group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float flex items-center justify-center gap-2">
                             Submit feedback
                             <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                         </button>
@@ -190,7 +190,7 @@
                     </p>
                     <div class="flex flex-col sm:flex-row gap-3 justify-center">
                         <a href="try.html" class="text-sm font-medium bg-neutral-900 text-white px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors">Identify another flower</a>
-                        <button id="fbAgain" class="soft-click text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Submit more feedback</button>
+                        <button id="fbAgain" class="soft-click text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition">Submit more feedback</button>
                     </div>
                 </div>
 

@@ -424,7 +424,9 @@ html.ff-routing main {
     border-radius: 18px;
     padding: 10px;
     cursor: pointer;
-    transition: border-color 0.18s ease, background-color 0.18s ease;
+    /* No transition here: these chips carry .soft-click, whose own transition
+       is declared further down this file and therefore wins. The combined list
+       for both lives with that rule, so there is one place to read. */
 }
 .ff-candidate:hover { border-color: #8FA893; background-color: #F6F8F6; }
 
@@ -790,6 +792,22 @@ html.ff-routing main {
    the pill-shaped controls alike without any per-component styling.
    ========================================================================== */
 .soft-click {
+    /* Anything carrying this class must have `transform` in whichever
+       transition list finally wins, or the press has no easing at all: it
+       jumps to 0.98 and jumps back. That is easy to lose, because the list
+       below is one of the first things to be overridden —
+
+         * Tailwind's `transition-colors` utility sets the same longhand and
+           the Play CDN injects it at runtime, i.e. after this file;
+         * a page's own <style> block follows the app.css <link> too.
+
+       Measured before this was fixed: 38 of 38 .soft-click elements resolved
+       to a list with no transform in it, so every press on the site snapped.
+       The rule is therefore: pair .soft-click with Tailwind's plain
+       `transition` (a superset of transition-colors that includes transform),
+       and any component rule that declares its own list must name transform
+       itself. press.qa.mjs asserts this for every .soft-click on the site, so
+       a regression fails a suite instead of quietly going unnoticed. */
     transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
     -webkit-tap-highlight-color: transparent;
 }
@@ -802,6 +820,16 @@ html.ff-routing main {
    devices, where :hover sticks after the tap. */
 @media (hover: none) {
     .soft-click:hover { transform: none; }
+}
+
+/* The candidate chip is the one component whose own transition sits EARLIER in
+   this file than .soft-click, so it is the one case where .soft-click is the
+   winner and the chip is what loses. Both lists are merged here, after that
+   rule, and deliberately before the reduced-motion block below so that block
+   still switches the whole thing off. */
+.ff-candidate {
+    transition: border-color 0.18s ease, background-color 0.18s ease,
+                transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
