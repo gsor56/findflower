@@ -4,10 +4,14 @@
 # Credentials, in one place so there is no second place to look:
 #
 #   HF_TOKEN  — the ONLY secret this script reads. Looked for in the environment
-#               first, then in Kaggle's secret store, because attaching a secret
-#               on Kaggle does not export it as an environment variable.
+#               first, then in Kaggle's secret store, then in HF_TOKEN_FALLBACK
+#               below, because attaching a secret on Kaggle does not export it as
+#               an environment variable and Kaggle has no API for Secrets.
 #               Kaggle: Add-ons > Secrets, label it exactly HF_TOKEN.
 #               Local:  setx HF_TOKEN <token>  /  export HF_TOKEN=<token>
+#               HF_TOKEN_FALLBACK is written in at deploy time and stripped back
+#               out before committing. The copy on Kaggle (a PRIVATE kernel) may
+#               therefore carry a token that this file in git does not.
 #   kaggle.json — belongs at ~/.kaggle/kaggle.json (chmod 600) and is used by the
 #               `kaggle` CLI to PUSH this kernel. The script never reads it; a
 #               notebook already running on Kaggle needs no Kaggle credential.
@@ -48,9 +52,24 @@ _pip("requests", "pillow")
 from huggingface_hub import HfApi
 from huggingface_hub.utils import HfHubHTTPError
 
+# Last-resort token, for a push-and-forget run where nobody is going to open the
+# Kaggle UI to attach a secret. Kaggle has no API for Secrets, so a token in the
+# code is the only other way to get one into the session.
+#
+# THIS MUST STAY EMPTY IN GIT. The repo is public. The deploy step writes the
+# real token in, runs `kaggle kernels push`, and strips it back out immediately --
+# the Kaggle kernel is private and keeps its copy, git never sees one. If you find
+# a token sitting here in a commit, it is already compromised: revoke it at
+# https://huggingface.co/settings/tokens and issue a new one.
+#
+# Checked LAST, so attaching a real Kaggle Secret later silently takes over.
+HF_TOKEN_FALLBACK = ""
+
+
 def _read_hf_token():
     """
-    Find HF_TOKEN, in order: the environment, then Kaggle's secret store.
+    Find HF_TOKEN, in order: the environment, Kaggle's secret store, then the
+    baked-in fallback.
 
     The environment alone is not enough on Kaggle. Attaching a secret in the UI
     does NOT export it as an environment variable -- it is handed out by
@@ -72,6 +91,11 @@ def _read_hf_token():
             return tok, "kaggle secret"
     except Exception as e:
         print(f"[preflight] Kaggle secret store unavailable ({type(e).__name__})")
+    tok = HF_TOKEN_FALLBACK.strip()
+    if tok:
+        print("[preflight] using the baked-in HF_TOKEN_FALLBACK. Attach a Kaggle "
+              "Secret named HF_TOKEN and this branch stops being used.")
+        return tok, "baked-in fallback"
     return "", "nowhere"
 
 
@@ -83,6 +107,7 @@ if not HF_TOKEN:
         "            LABELLED EXACTLY 'HF_TOKEN' holding a WRITE token from\n"
         "            https://huggingface.co/settings/tokens, then re-run.\n"
         "            Locally: set the HF_TOKEN environment variable.\n"
+        "            Or set HF_TOKEN_FALLBACK above -- but never in a commit.\n"
         "            Halting now rather than downloading a dataset and training\n"
         "            for eight hours with nowhere to push the result."
     )
