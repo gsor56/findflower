@@ -3,8 +3,10 @@
 # ==============================================================================
 # Credentials, in one place so there is no second place to look:
 #
-#   HF_TOKEN  — the ONLY secret this script reads, from the environment.
-#               Kaggle: Add-ons > Secrets, name it HF_TOKEN.
+#   HF_TOKEN  — the ONLY secret this script reads. Looked for in the environment
+#               first, then in Kaggle's secret store, because attaching a secret
+#               on Kaggle does not export it as an environment variable.
+#               Kaggle: Add-ons > Secrets, label it exactly HF_TOKEN.
 #               Local:  setx HF_TOKEN <token>  /  export HF_TOKEN=<token>
 #   kaggle.json — belongs at ~/.kaggle/kaggle.json (chmod 600) and is used by the
 #               `kaggle` CLI to PUSH this kernel. The script never reads it; a
@@ -15,13 +17,6 @@
 # ==============================================================================
 import os
 import sys
-
-if not os.environ.get("HF_TOKEN"):
-    raise SystemExit(
-        "HF_TOKEN not set. Add it as a Kaggle Secret (Add-ons > Secrets) or as an "
-        "environment variable. Refusing to start a multi-hour run that cannot "
-        "push its result."
-    )
 
 # ------------------------------------------------------------------------------
 # PRE-FLIGHT: prove the token actually works before anything expensive.
@@ -53,11 +48,56 @@ _pip("requests", "pillow")
 from huggingface_hub import HfApi
 from huggingface_hub.utils import HfHubHTTPError
 
-HF_TOKEN = os.environ["HF_TOKEN"].strip()
-if HF_TOKEN != os.environ["HF_TOKEN"]:
-    print("[preflight] NOTE: HF_TOKEN had surrounding whitespace; using the trimmed value.")
+def _read_hf_token():
+    """
+    Find HF_TOKEN, in order: the environment, then Kaggle's secret store.
 
-HF_REPO_ID = "gsor56/findflower-ViT"          # private model repo on the Hub
+    The environment alone is not enough on Kaggle. Attaching a secret in the UI
+    does NOT export it as an environment variable -- it is handed out by
+    `kaggle_secrets.UserSecretsClient`, and a script that only reads os.environ
+    dies on a KeyError one second into an eight-hour booking with a secret that
+    was attached correctly the whole time.
+
+    The value is never printed. Only its length and last four characters are, and
+    only so a truncated paste can be recognised without leaking the token into a
+    log that Kaggle keeps.
+    """
+    tok = (os.environ.get("HF_TOKEN") or "").strip()
+    if tok:
+        return tok, "environment"
+    try:
+        from kaggle_secrets import UserSecretsClient
+        tok = (UserSecretsClient().get_secret("HF_TOKEN") or "").strip()
+        if tok:
+            return tok, "kaggle secret"
+    except Exception as e:
+        print(f"[preflight] Kaggle secret store unavailable ({type(e).__name__})")
+    return "", "nowhere"
+
+
+HF_TOKEN, _tok_src = _read_hf_token()
+if not HF_TOKEN:
+    raise SystemExit(
+        "[preflight] HF_TOKEN not found.\n"
+        "            On Kaggle: notebook -> Add-ons -> Secrets -> attach a secret\n"
+        "            LABELLED EXACTLY 'HF_TOKEN' holding a WRITE token from\n"
+        "            https://huggingface.co/settings/tokens, then re-run.\n"
+        "            Locally: set the HF_TOKEN environment variable.\n"
+        "            Halting now rather than downloading a dataset and training\n"
+        "            for eight hours with nowhere to push the result."
+    )
+print(f"[preflight] HF_TOKEN found in {_tok_src} "
+      f"(len={len(HF_TOKEN)}, ends '...{HF_TOKEN[-4:]}')")
+
+# Uppercase VIT. This has to match convert_to_onnx.py:47 exactly -- Hugging Face
+# repo ids are case-sensitive, so "findflower-ViT" and "findflower-VIT" are two
+# different repos, and a mismatch means training pushes weights that the ONNX
+# converter then never sees.
+HF_REPO_ID = "gsor56/findflower-VIT"          # private model repo on the Hub
+# Deliberately NOT renamed to match: this is a separate repo that already holds
+# whatever images previous collector runs uploaded. Renaming it here would not
+# move them, it would silently create an empty second repo and report "restored
+# 0 images". Change it only after confirming which spelling actually exists.
 HF_DATA_REPO = "gsor56/findflower-ViT-data"   # dataset repo holding the images
 HF_PRIVATE = True                             # keep both repos private
 
@@ -157,6 +197,25 @@ BASE_MODEL = "google/vit-base-patch16-224"
 DATA_SOURCE = "auto"
 LOCAL_DATA_ROOTS = ["/kaggle/input"]   # searched for the deepest image tree
 
+# ---- Clade filter for taxonomy-named attached datasets ------------------------
+# The attached dataset for this run is iNaturalist 2021 `train_mini`
+# (authuria/inaturalist, 44.7 GB), whose class folders carry the FULL taxonomy:
+#
+#   00000_Animalia_Annelida_Clitellata_Haplotaxida_Lumbricidae_Lumbricus_terrestris
+#   05432_Plantae_Tracheophyta_Magnoliopsida_Ranunculales_Papaveraceae_Papaver_rhoeas
+#
+# That set is all of life -- 10,000 species, of which only the Plantae subset is
+# what FindFlower identifies. Training the whole thing would spend most of a
+# 5,000-way head on earthworms, moths and gulls, and the app would happily offer
+# them as answers to "what flower is this". CLASS_FILTER keeps only directories
+# whose taxonomy string contains one of these tokens.
+#
+# It is applied ONLY when the tree is actually taxonomy-named (see
+# `_taxonomy_named` below). A plain flower tree of `Rosa_canina/` folders would
+# match nothing, and a filter that silently empties the class set is worse than
+# no filter at all. Set to () to admit everything.
+CLASS_FILTER = ("Plantae",)
+
 # ---- Scale ---------------------------------------------------------------------
 MAX_SPECIES = 5000         # hard ceiling on classes admitted this run
 MIN_IMAGES = 200           # a species is trainable at >= this many images
@@ -164,7 +223,13 @@ TARGET_IMAGES = 300        # stop collecting a species once it reaches this many
 MIN_IMAGES_LARGE = 40      # floor used once >1000 species are present (see below)
 
 # ---- Training budget ----------------------------------------------------------
-EPOCHS_PER_RUN = 4         # upper bound; the time-bomb usually ends the run first
+# 14 is an upper bound, not a plan. With iNat21 train_mini filtered to Plantae
+# (~4.3k species x 50 images, ~43 of them training) an epoch is ~184k images,
+# which is roughly 30 minutes on a T4 -- not the 3.5-4 hours the 300-images-per-
+# species arithmetic further down predicts. At 4 epochs a session would train for
+# two hours and then sit idle for six. The time bomb and TAIL_RESERVE_SECONDS are
+# what actually end the run; this number only has to be larger than they allow.
+EPOCHS_PER_RUN = 14
 BATCH_SIZE = 64            # T4 16GB fits 64 at 224px under AMP; falls back on OOM
 GRAD_ACCUM_STEPS = 1       # raise to grow the effective batch without more VRAM
 LEARNING_RATE = 3e-4       # HEAD lr; the backbone is layer-wise decayed from it
@@ -1008,26 +1073,78 @@ else:
 # and cached.
 INDEX_CACHE = os.path.join(WORK, "sample_index.json")
 
-def _label_from_dirname(name):
+_KINGDOMS = {"animalia", "plantae", "fungi", "protozoa", "chromista",
+             "bacteria", "archaea", "viruses"}
+
+def _strip_index(name):
+    """'00123_Rosa_canina' -> 'Rosa_canina'. Leaves anything else alone."""
+    head, sep, rest = name.partition("_")
+    return rest if (sep and head.isdigit() and rest) else name
+
+def _taxo_tokens(name):
+    n = _strip_index(name.strip()).replace("_", " ").replace("-", " ")
+    return [t for t in n.split() if t]
+
+def _taxonomy_named(entries, probe=64):
+    """
+    Do these directory names encode a full taxonomy, iNat21-style?
+
+    Answered by sampling rather than assumed, because the same script has to
+    handle a plain `Rosa_canina/` tree. Requires a clear majority: one stray
+    `Plantae_something` folder in an otherwise ordinary tree must not flip the
+    interpretation and hand CLASS_FILTER a set it will empty.
+    """
+    sample = [e for e in entries[:probe]]
+    if not sample:
+        return False
+    hits = sum(1 for e in sample
+               if len(_taxo_tokens(e)) >= 7 and _taxo_tokens(e)[0].lower() in _KINGDOMS)
+    return hits >= max(1, int(0.6 * len(sample)))
+
+def _label_from_dirname(name, taxonomy=False):
     """
     'Papaver_rhoeas' / 'papaver rhoeas' / '00123_Papaver_rhoeas' -> a stable label.
 
     The leading-number strip matters: several public flower sets prefix class
     folders with an index, and treating '00123_Rosa_canina' and 'Rosa_canina' as
     two different species would silently split a class in half.
+
+    With `taxonomy=True` the iNat21 form is reduced to its binomial. The rank
+    count there is fixed -- kingdom, phylum, class, order, family, then genus and
+    epithet -- so dropping the first five is exact, and it keeps trinomials
+    (subspecies, hybrids) whole instead of truncating them at two tokens. This
+    label is user-facing: it reaches id2label, the Hub config and the answer the
+    app shows, so 'Plantae Tracheophyta Magnoliopsida Ranunculales Papaveraceae
+    Papaver rhoeas' is not an acceptable value for it.
     """
-    n = name.strip().replace("_", " ").replace("-", " ")
-    n = " ".join(n.split())
-    parts = n.split(" ", 1)
-    if len(parts) == 2 and parts[0].isdigit():
-        n = parts[1]
-    return n
+    toks = _taxo_tokens(name)
+    if taxonomy and len(toks) >= 7 and toks[0].lower() in _KINGDOMS:
+        toks = toks[5:]
+    return " ".join(toks)
+
+def _clade_allowed(dirname):
+    return (not CLASS_FILTER) or any(k.lower() in dirname.lower() for k in CLASS_FILTER)
 
 def build_index_local(tree):
-    out = {}
-    for entry in sorted(os.listdir(tree)):
+    entries = sorted(os.listdir(tree))
+    taxonomy = _taxonomy_named(entries)
+    filtering = taxonomy and bool(CLASS_FILTER)
+    if taxonomy:
+        print(f"[index] directory names are taxonomy-encoded (iNat21 style); "
+              f"labels reduced to the binomial")
+    if filtering:
+        print(f"[index] clade filter active: keeping {'/'.join(CLASS_FILTER)} only")
+    elif CLASS_FILTER:
+        print(f"[index] clade filter {CLASS_FILTER} IGNORED: this tree is not "
+              f"taxonomy-named, so the filter would match nothing")
+
+    out, skipped = {}, 0
+    for entry in entries:
         d = os.path.join(tree, entry)
         if not os.path.isdir(d):
+            continue
+        if filtering and not _clade_allowed(entry):
+            skipped += 1
             continue
         try:
             files = [os.path.join(d, f) for f in os.listdir(d)
@@ -1036,10 +1153,30 @@ def build_index_local(tree):
             continue
         if not files:
             continue
-        lbl = _label_from_dirname(entry)
+        lbl = _label_from_dirname(entry, taxonomy=taxonomy)
         # Two directory spellings can normalise to the same label; merge them
         # rather than letting the second silently replace the first.
         out.setdefault(lbl, []).extend(files)
+
+    if filtering:
+        print(f"[index] clade filter kept {len(out):,} classes, dropped {skipped:,}")
+        # A filter that leaves nothing is a configuration error, not a result.
+        # Recovering with the unfiltered tree beats ending the session here.
+        if not out:
+            print("[index] !! the filter matched NOTHING -- falling back to the "
+                  "unfiltered tree. Check CLASS_FILTER against the folder names.")
+            for entry in entries:
+                d = os.path.join(tree, entry)
+                if not os.path.isdir(d):
+                    continue
+                try:
+                    files = [os.path.join(d, f) for f in os.listdir(d)
+                             if f.lower().endswith(IMG_EXT)]
+                except OSError:
+                    continue
+                if files:
+                    out.setdefault(_label_from_dirname(entry, taxonomy=taxonomy),
+                                   []).extend(files)
     return out
 
 def build_index_from_data_dir():
@@ -1058,7 +1195,7 @@ def build_index_from_data_dir():
     return out
 
 _t_index = time.monotonic()
-_cache_key = f"{DATA_MODE}:{CLASS_TREE or DATA_DIR}"
+_cache_key = f"{DATA_MODE}:{CLASS_TREE or DATA_DIR}:filter={','.join(CLASS_FILTER)}"
 samples_by_label = None
 if os.path.isfile(INDEX_CACHE):
     try:
