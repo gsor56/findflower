@@ -8,7 +8,7 @@
   "enable_gpu": "true",
   "enable_tpu": "false",
   "enable_internet": "true",
-  "machine_shape": "",
+  "machine_shape": "NvidiaTeslaT4",
   "dataset_sources": ["authuria/inaturalist"],
   "competition_sources": [],
   "kernel_sources": [],
