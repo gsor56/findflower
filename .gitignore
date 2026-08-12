@@ -3,6 +3,13 @@ kaggle.json
 *.env
 .env
 *secret*.txt
+# Token files sitting in the repo root. `*secret*.txt` did NOT match
+# "github_token(classic).txt", so a `git add -A` would have committed a live
+# GitHub PAT to a public repo. Match on the credential words themselves.
+*token*.txt
+*token*.json
+*_pat.txt
+credentials.json
 # Holds a live provider api_key inline; the repo is public.
 proxy/litellm-config.yaml
 
