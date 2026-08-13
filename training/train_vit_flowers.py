@@ -1,5 +1,5 @@
 # ==============================================================================
-# FindFlower ViT — large-scale (4,000–5,000 species) fine-tuning on Kaggle
+# FindFlower MaxViT-384 — dense-species (1,500 × 400+ img) fine-tuning on Kaggle
 # ==============================================================================
 # Credentials, in one place so there is no second place to look:
 #
@@ -114,11 +114,19 @@ if not HF_TOKEN:
 print(f"[preflight] HF_TOKEN found in {_tok_src} "
       f"(len={len(HF_TOKEN)}, ends '...{HF_TOKEN[-4:]}')")
 
-# Uppercase VIT. This has to match convert_to_onnx.py:47 exactly -- Hugging Face
-# repo ids are case-sensitive, so "findflower-ViT" and "findflower-VIT" are two
-# different repos, and a mismatch means training pushes weights that the ONNX
-# converter then never sees.
-HF_REPO_ID = "gsor56/findflower-VIT"          # private model repo on the Hub
+# A FRESH repo for the MaxViT-384 pivot. Deliberately not the 224px ViT repo:
+# the manifest lives inside the model repo, so pointing at a new id is what gives
+# this architecture a clean class list, a clean epoch count and a clean history
+# without touching `gsor56/findflower-VIT`, which still holds the finished 224px
+# run (4,387 species, top-1 67.75%). Nothing here deletes or rewrites that.
+#
+# convert_to_onnx.py:47 still names the old ViT repo. That is correct for now --
+# it converts the deployed 224px model. Point it here only when the MaxViT weights
+# are the ones being served.
+#
+# (Repo ids are matched case-INsensitively by the Hub; "findflower-ViT" and
+# "findflower-VIT" resolve to the same repo. Verified against the API.)
+HF_REPO_ID = "gsor56/findflower-maxvit"       # private model repo on the Hub
 # Deliberately NOT renamed to match: this is a separate repo that already holds
 # whatever images previous collector runs uploaded. Renaming it here would not
 # move them, it would silently create an empty second repo and report "restored
@@ -170,15 +178,15 @@ except Exception as e:
 print(f"[preflight] write access to {HF_REPO_ID} confirmed — safe to train")
 
 # ==============================================================================
-# Incremental, resumable ViT fine-tuning for flower species classification
+# Incremental, resumable MaxViT-384 fine-tuning for flower species classification
 # ------------------------------------------------------------------------------
 # Designed to run as a SINGLE Kaggle notebook cell. "Run and forget":
-#   * Trains from a pre-staged image tree (4–5k species) or scrapes iNaturalist
+#   * Trains from a pre-staged image tree or scrapes iNaturalist
 #   * Tracks progress in manifest.json on the Hugging Face Hub
 #   * Resumes model from the last checkpoint on the Hub (never restarts scratch)
 #   * Grows the classification head when you add species, preserving old weights
 #   * Saves progress INCREMENTALLY so a Kaggle timeout never loses finished work
-#   * Hard 8.5h time-bomb, then pushes, quantizes and evaluates before the kill
+#   * Hard TIME_BOMB_SECONDS bomb, then pushes, quantizes and evaluates
 #
 # Setup (once):
 #   1. Kaggle: enable GPU (Settings -> Accelerator -> GPU T4 x2)
@@ -186,7 +194,25 @@ print(f"[preflight] write access to {HF_REPO_ID} confirmed — safe to train")
 #   3. Attach the species image dataset, or edit SPECIES_LIST for the scrape path.
 #
 # ------------------------------------------------------------------------------
-# READ THIS BEFORE SETTING NUM_SPECIES TO 5000 — the arithmetic does not fit
+# THE COST OF 384px, measured -- read before changing BATCH_SIZE or EPOCHS_PER_RUN
+# ------------------------------------------------------------------------------
+# The 224px ViT-B/16 run on this exact hardware measured 115-117 img/s training
+# and 4,271 Plantae classes at 27m 35s per epoch (full log, run #2).
+#
+#   Pixels     384^2 / 224^2 = 2.94x the input area.
+#   Attention  MaxViT is block-local + grid-global, so attention stays linear in
+#              the token count instead of quadratic -- that is why it is usable at
+#              384 at all. The MBConv stages, however, are pure convolution over
+#              2.94x the area.
+#   Net        expect roughly 10-15 img/s, i.e. 8-12x slower per image. At 1,500
+#              species x 50 images that is ~1 to 1.5 hours per epoch, so a 10.5h
+#              session buys single-digit epochs. EPOCHS_PER_RUN=75 is a ceiling
+#              spanning many sessions; the manifest is what accumulates them.
+#   VRAM       BATCH_SIZE=16 x GRAD_ACCUM_STEPS=4 keeps the effective batch at 64
+#              while the resident activations stay inside 16 GB. If a T4 still
+#              OOMs, the loop skips the batch (see _oom_backoff) rather than dying.
+# ------------------------------------------------------------------------------
+# READ THIS BEFORE SETTING MAX_SPECIES TO 5000 — the arithmetic does not fit
 # ------------------------------------------------------------------------------
 # 5,000 species x 300 images = 1,500,000 images.
 #
@@ -199,9 +225,11 @@ print(f"[preflight] write access to {HF_REPO_ID} confirmed — safe to train")
 #           ~25,000 observation pages: several DAYS of wall clock, spread over
 #           dozens of 9-hour sessions. It is a collector, not a training input.
 #   Compute one epoch over 1.5M images at 224px on a T4 with AMP runs at roughly
-#           100–120 img/s => 3.5–4.2 HOURS PER EPOCH. An 8.5h session therefore
+#           100–120 img/s => 3.5–4.2 HOURS PER EPOCH. A 10.5h session therefore
 #           buys about TWO epochs, and that is the real reason this script is
-#           built to resume rather than to finish.
+#           built to resume rather than to finish. At 384px on MaxViT-base the
+#           per-image cost is 8-12x higher again, so the dense-1,500 plan below
+#           is not a smaller version of this — it is the only version that fits.
 #
 # The consequence, made explicit so it is not discovered at hour eight: at this
 # scale a single session cannot produce a converged 5,000-class model. What it
@@ -212,7 +240,20 @@ print(f"[preflight] write access to {HF_REPO_ID} confirmed — safe to train")
 # ------------------------------------------------------------------------------
 # 0. Config -- the only things you ever need to touch
 # ------------------------------------------------------------------------------
-BASE_MODEL = "google/vit-base-patch16-224"
+# The backbone. Two families are supported and the choice is made by the id:
+#
+#   "timm/<name>"                 -> loaded with timm.create_model
+#   anything else (a transformers -> loaded with ViTForImageClassification
+#   checkpoint like google/vit-*)
+#
+# MaxViT is a hybrid: MBConv stages for local structure, then alternating
+# block-local and grid-global attention. That is the reason for the pivot -- at
+# 384px a plain ViT-B/16 sees 576 patches of 16px and never looks INSIDE a patch,
+# while MaxViT's convolutional stem resolves stamen and petal-margin detail that
+# separates two Papaver species, and the grid attention still relates the whole
+# inflorescence. It is a timm checkpoint, not a transformers one, so sections 5-10
+# below dispatch on IS_TIMM rather than assuming ViTForImageClassification.
+BASE_MODEL = "timm/maxvit_base_tf_384.in1k"
 
 # ---- Where images come from ---------------------------------------------------
 #   "auto"  detect: an attached Kaggle Dataset wins, else the Hub, else iNat
@@ -242,41 +283,47 @@ LOCAL_DATA_ROOTS = ["/kaggle/input"]   # searched for the deepest image tree
 CLASS_FILTER = ("Plantae",)
 
 # ---- Scale ---------------------------------------------------------------------
-MAX_SPECIES = 5000         # hard ceiling on classes admitted this run
-MIN_IMAGES = 200           # a species is trainable at >= this many images
-TARGET_IMAGES = 300        # stop collecting a species once it reaches this many
-MIN_IMAGES_LARGE = 40      # floor used once >1000 species are present (see below)
+# Quality over quantity: 1,500 densely-photographed species rather than 5,000
+# thin ones. MAX_SPECIES keeps the RICHEST classes (the eligible list is sorted by
+# image count before the cap is applied), so this is a density filter as much as a
+# ceiling.
+MAX_SPECIES = 1500         # hard ceiling on classes admitted this run
+MIN_IMAGES = 400           # a species is trainable at >= this many images
+TARGET_IMAGES = 500        # stop collecting a species once it reaches this many
+MIN_IMAGES_LARGE = 400     # floor used once >1000 species are present (see below)
 
 # ---- Training budget ----------------------------------------------------------
-# 14 is an upper bound, not a plan. With iNat21 train_mini filtered to Plantae
-# (~4.3k species x 50 images, ~43 of them training) an epoch is ~184k images,
-# which is roughly 30 minutes on a T4 -- not the 3.5-4 hours the 300-images-per-
-# species arithmetic further down predicts. At 4 epochs a session would train for
-# two hours and then sit idle for six. The time bomb and TAIL_RESERVE_SECONDS are
-# what actually end the run; this number only has to be larger than they allow.
-EPOCHS_PER_RUN = 14
-BATCH_SIZE = 64            # T4 16GB fits 64 at 224px under AMP; falls back on OOM
-GRAD_ACCUM_STEPS = 1       # raise to grow the effective batch without more VRAM
+# 75 is a CEILING that spans sessions, not a plan for one. The manifest carries
+# `trained_epochs` across runs, so each booking picks up where the last stopped;
+# what actually ends a session is TAIL_RESERVE_SECONDS below. MaxViT-base at 384px
+# is roughly 8-12x the cost per image of ViT-B/16 at 224px, so expect single-digit
+# epochs per session, not 75.
+EPOCHS_PER_RUN = 75
+BATCH_SIZE = 16            # 384px MaxViT-base: 64 OOMs a 16GB T4; 16 fits under AMP
+GRAD_ACCUM_STEPS = 4       # 16 x 4 = an effective batch of 64, same as the 224 run
 LEARNING_RATE = 3e-4       # HEAD lr; the backbone is layer-wise decayed from it
 BACKBONE_LR = 5e-5         # top encoder block lr, decayed downward by LLRD_DECAY
 LLRD_DECAY = 0.70          # layer-wise lr decay, 0.65–0.75 is the ViT range
 WEIGHT_DECAY = 0.05
 WARMUP_FRACTION = 0.05     # of total optimizer steps
 VAL_FRACTION = 0.15        # 85/15 train/val split
-IMAGE_SIZE = 224
+IMAGE_SIZE = 384           # maxvit_base_tf_384 is FIXED at 384; do not change alone
 NUM_WORKERS = 4
 LABEL_SMOOTHING = 0.1
 LOSS_MODE = "focal_smooth"  # "smooth" | "focal" | "focal_smooth"
 FOCAL_GAMMA = 1.5          # mild on purpose; 2.0+ destabilises a 5k-way head
 
-# ---- The 8.5-hour Kaggle time-bomb -------------------------------------------
-# 30600s is checked at the end of EVERY epoch, as specified. TAIL_RESERVE is the
-# separate, earlier deadline that stops a NEW epoch from starting, because the
-# work that happens after the bomb (push, ONNX export, the quantization ladder,
-# two evaluation passes) is itself 25–50 minutes. Firing at 30600 and only then
-# beginning an hour of post-processing is how a session gets killed holding
-# everything it just earned.
-TIME_BOMB_SECONDS = 30600           # 8.5h — the specified hard limit
+# ---- The Kaggle session time-bomb --------------------------------------------
+# Kaggle's GPU sessions run to 12 hours. 37800s (10.5h) is checked at the end of
+# EVERY epoch. TAIL_RESERVE is the separate, earlier deadline that stops a NEW
+# epoch from starting, because the work that happens after the bomb (push, ONNX
+# export, the quantization ladder, two evaluation passes) is itself 25-50 minutes.
+# Firing at 37800 and only then beginning an hour of post-processing is how a
+# session gets killed holding everything it just earned.
+#
+# Net effect: new epochs stop at 9.75h, the bomb fires at 10.5h, and the tail has
+# the remaining ~1.5h of the 12-hour booking to finish in.
+TIME_BOMB_SECONDS = 37800           # 10.5h — the hard limit for this run
 TAIL_RESERVE_SECONDS = 45 * 60      # keep this much for push + quantize + eval
 STEP_CHECKPOINT_EVERY = 1500        # mid-epoch weight saves; a 4h epoch is too
                                     # long to risk losing to a wipe
@@ -475,6 +522,40 @@ from huggingface_hub import hf_hub_download, snapshot_download
 from huggingface_hub.utils import EntryNotFoundError, RepositoryNotFoundError
 from transformers import ViTForImageClassification, ViTImageProcessor
 
+# ------------------------------------------------------------------------------
+# timm — the MaxViT backbone lives here, not in transformers.
+# ------------------------------------------------------------------------------
+# Kaggle's image ships timm, but the version drifts and MaxViT's `maxxvit.py`
+# arrived in 0.9. --no-deps for the usual reason (nothing may replace the numpy
+# that the GPU-matched torch was built against); timm's only hard requirements are
+# torch/torchvision/huggingface_hub, all already present.
+#
+# IS_TIMM is the single switch every architecture-specific branch below reads. A
+# transformers checkpoint id keeps the old ViT code path alive, so reverting the
+# pivot is a one-line change to BASE_MODEL.
+IS_TIMM = BASE_MODEL.startswith(("timm/", "hf_hub:"))
+TIMM_ARCH = BASE_MODEL.split("/", 1)[1] if IS_TIMM else ""
+
+timm = None
+if IS_TIMM:
+    try:
+        import timm
+    except Exception:
+        _pip("--no-deps", "timm")
+        import timm
+    _need = (0, 9)
+    _have = tuple(int(x) for x in timm.__version__.split(".")[:2]
+                  if x.isdigit()) or (0, 0)
+    if _have < _need:
+        # An old timm has no maxxvit.py at all, and create_model would raise a
+        # bare "Unknown model" that reads like a typo rather than a version
+        # problem. Upgrade in place; --no-deps keeps numpy/torch untouched.
+        print(f"[init] timm {timm.__version__} predates MaxViT; upgrading")
+        _pip("--no-deps", "--upgrade", "timm")
+        import importlib
+        timm = importlib.reload(timm)
+    print(f"[init] timm {timm.__version__}, arch={TIMM_ARCH}")
+
 RUN_START = time.monotonic()
 def elapsed():            return time.monotonic() - RUN_START
 def session_time_left():  return SESSION_BUDGET_SECONDS - elapsed()
@@ -492,9 +573,10 @@ torch.manual_seed(42)
 torch.cuda.manual_seed_all(42)
 
 # cudnn autotunes convolution algorithms for a fixed input shape. Every batch
-# here is (B, 3, 224, 224), so the tuning cost is paid once and repaid for the
-# rest of the run. Determinism is deliberately not requested: it would cost
-# throughput we do not have to spare against an 8.5-hour ceiling.
+# here is (B, 3, IMAGE_SIZE, IMAGE_SIZE), so the tuning cost is paid once and
+# repaid for the rest of the run — and MaxViT's MBConv stages are convolution, so
+# this matters more here than it did for a pure ViT. Determinism is deliberately
+# not requested: it would cost throughput we do not have to spare.
 torch.backends.cudnn.benchmark = True
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -571,28 +653,28 @@ print(f"[init] AMP: enabled={AMP_ENABLED} dtype={str(AMP_DTYPE).split('.')[-1]} 
       f"api={'torch.amp' if _AMP_NEW else 'torch.cuda.amp (legacy)'}")
 
 # ------------------------------------------------------------------------------
-# 1b. The 8.5-hour clock. One wall-clock origin, read from everywhere.
+# 1b. The session clock. One wall-clock origin, read from everywhere.
 # ------------------------------------------------------------------------------
-# The brief specifies `start_time = time.time()` and a `> 30600` check, so that
-# is exactly what is implemented. time.monotonic() is used for the same quantity
-# because it cannot go backwards if the container's clock is stepped by NTP
-# mid-run — a wall-clock jump of a few minutes is the difference between saving
-# the model and losing it.
+# The brief specifies `start_time = time.time()` and a `> TIME_BOMB_SECONDS`
+# check, so that is exactly what is implemented. time.monotonic() is used for the
+# same quantity because it cannot go backwards if the container's clock is stepped
+# by NTP mid-run — a wall-clock jump of a few minutes is the difference between
+# saving the model and losing it.
 start_time = time.time()
 
 def bomb_elapsed():
-    """Seconds since the run began — the quantity compared against 30600."""
+    """Seconds since the run began — the quantity compared against the bomb."""
     return time.monotonic() - RUN_START
 
 def time_bomb_fired():
-    """The literal spec: (time.time() - start_time) > 30600."""
+    """The literal spec: (time.time() - start_time) > TIME_BOMB_SECONDS."""
     return bomb_elapsed() > TIME_BOMB_SECONDS
 
 def tail_deadline_passed():
     """
     True once there is no longer room to START another epoch and still finish the
     tail (push + ONNX export + the quantization ladder + two eval passes). Firing
-    only at 30600 and THEN beginning ~40 minutes of post-processing is how a
+    only at the bomb and THEN beginning ~40 minutes of post-processing is how a
     session gets killed holding everything it just earned.
     """
     return bomb_elapsed() > (TIME_BOMB_SECONDS - TAIL_RESERVE_SECONDS)
@@ -945,8 +1027,8 @@ def download_species(label):
 # ==============================================================================
 # The scraper above is a fine way to assemble a few hundred species. It is not a
 # way to assemble five thousand: at ~60 requests/minute, 1.5M photos is days of
-# wall clock, and the session dies in 8.5 hours. So at scale the images must
-# already exist, and this block finds them.
+# wall clock, and the session dies in 10.5 hours (TIME_BOMB_SECONDS). So at scale
+# the images must already exist, and this block finds them.
 #
 #   "local"  an ImageFolder tree under LOCAL_DATA_ROOTS (normally an attached
 #            read-only Kaggle Dataset). This is THE path for 4–5k species: the
@@ -1247,19 +1329,63 @@ print(f"[index] {len(samples_by_label):,} class dirs, {_total_imgs:,} images "
       f"in {hms(time.monotonic() - _t_index)}")
 
 # ------------------------------------------------------------------------------
-# The image floor, and why it moves with scale.
+# The image floor, and why it has to be able to give way.
 # ------------------------------------------------------------------------------
-# MIN_IMAGES=200 is the right bar for a 126-species model: it keeps the class set
-# clean and there is no shortage of candidates. Applied to a 5,000-species tree it
-# is a scythe — real botanical datasets are steeply long-tailed, and a 200-image
-# floor throws away the majority of species, which is the opposite of the goal.
-# So once the tree is large the floor drops to MIN_IMAGES_LARGE and the imbalance
-# is handled where it belongs: in the loss (focal) and the sampler.
+# MIN_IMAGES / MIN_IMAGES_LARGE express the density this pivot is aiming at: 400+
+# images per species, so a 1,500-way head is learning from real within-species
+# variation rather than memorising fifty photographs. That is the right target and
+# it is what the constants say.
+#
+# It is not what every attached dataset can supply. iNaturalist 2021 `train_mini`
+# — the tree attached to this kernel — holds EXACTLY 50 images per species by
+# construction (measured: min=50 median=50 max=50 over 4,271 Plantae classes). A
+# 400 floor admits zero classes there, `collected` collapses to whatever the
+# manifest already knew, and on a fresh repo that is nothing at all: the run would
+# exit two minutes into a twelve-hour booking having trained on nothing.
+#
+# So the floor is a REQUEST, not an assertion. If it admits fewer classes than the
+# run needs, it steps down through a ladder to the highest value the tree can
+# actually satisfy and says so loudly. The alternative — honouring a number the
+# data cannot meet — trades a wasted session for no benefit, and the imbalance a
+# lower floor lets in is already handled where it belongs: focal loss and the
+# sqrt-inverse-frequency sampler.
+#
+# MIN_VIABLE_CLASSES is the bar for "did the floor leave us a trainable problem".
+# Below this it is not a thin class set, it is a broken filter.
+MIN_VIABLE_CLASSES = 50
+
+def _eligible_at(floor):
+    out = [(lbl, len(f)) for lbl, f in samples_by_label.items() if len(f) >= floor]
+    out.sort(key=lambda t: (-t[1], t[0]))          # richest classes first
+    return out
+
 FLOOR = MIN_IMAGES_LARGE if len(samples_by_label) > 1000 else MIN_IMAGES
-eligible = [(lbl, len(f)) for lbl, f in samples_by_label.items() if len(f) >= FLOOR]
-eligible.sort(key=lambda t: (-t[1], t[0]))     # richest classes first
+FLOOR_REQUESTED = FLOOR
+eligible = _eligible_at(FLOOR)
 print(f"[classes] floor={FLOOR} img/species -> {len(eligible):,} eligible "
       f"of {len(samples_by_label):,}")
+
+if len(eligible) < MIN_VIABLE_CLASSES and samples_by_label:
+    _sizes = sorted((len(f) for f in samples_by_label.values()), reverse=True)
+    # The highest floor that still admits MIN_VIABLE_CLASSES classes is just the
+    # size of the MIN_VIABLE_CLASSES-th richest class. Then walk the ladder down
+    # from the request so the reported floor is a round, explainable number rather
+    # than whatever one outlier class happens to hold.
+    _best_possible = _sizes[min(len(_sizes), MIN_VIABLE_CLASSES) - 1]
+    for _cand in (400, 300, 200, 150, 100, 75, 50, 40, 30, 20, 10):
+        if _cand <= FLOOR_REQUESTED and _cand <= _best_possible:
+            FLOOR = _cand
+            break
+    else:
+        FLOOR = max(2, _best_possible)
+    eligible = _eligible_at(FLOOR)
+    print(f"[classes] !! the requested floor of {FLOOR_REQUESTED} img/species "
+          f"admits only {len(_eligible_at(FLOOR_REQUESTED)):,} classes -- this "
+          f"tree's richest class has {_sizes[0]:,} images.")
+    print(f"[classes] !! relaxing the floor to {FLOOR} img/species -> "
+          f"{len(eligible):,} eligible. To train at {FLOOR_REQUESTED}+ images per "
+          f"species, attach a denser dataset (iNat21 full train, or several "
+          f"sessions of the `inat` collector building up HF_DATA_REPO).")
 
 if len(eligible) > MAX_SPECIES:
     print(f"[classes] capping at MAX_SPECIES={MAX_SPECIES:,} "
@@ -1312,13 +1438,115 @@ if _counts:
 # ==============================================================================
 # 5. Load model -- resume from Hub checkpoint if present; grow head if needed
 # ==============================================================================
+# Two loaders, one interface. Everything downstream of this section talks to the
+# model through four helpers and never asks what family it belongs to:
+#
+#   forward_logits(m, x)   -> a plain (B, C) tensor, .logits unwrapped if needed
+#   classifier_of(m)       -> the final nn.Linear
+#   set_classifier(m, fc)  -> replace it
+#   reset_classifier(m, n) -> rebuild it at a new width, timm's own way
+#
+# That indirection is the whole reason a MaxViT pivot is a section-5 change and not
+# a rewrite: the training loop, the metrics, the checkpointing and the ONNX export
+# are all architecture-agnostic once logits are just a tensor.
+def forward_logits(m, x):
+    """
+    Logits from either family. timm returns a bare tensor; transformers returns
+    ImageClassifierOutput. Both accept pixel_values positionally, so one call
+    covers both and the unwrapping is decided by the type, not by a flag that
+    could disagree with the object actually in memory.
+    """
+    out = m(x)
+    return out if torch.is_tensor(out) else out.logits
+
+def classifier_of(m):
+    if hasattr(m, "get_classifier"):          # timm's documented accessor
+        return m.get_classifier()
+    return m.classifier                        # transformers ViT
+
+def set_classifier(m, fc):
+    if hasattr(m, "get_classifier"):
+        # MaxViT's head is NormMlpClassifierHead(norm, pre_logits, drop, fc): the
+        # Linear is head.fc, and reset_classifier rebuilds ONLY that, leaving the
+        # pretrained norm and pre_logits MLP intact. Assigning through the same
+        # attribute keeps that invariant.
+        m.head.fc = fc
+    else:
+        m.classifier = fc
+
+def reset_classifier(m, n):
+    if hasattr(m, "reset_classifier"):
+        m.reset_classifier(n)
+    else:
+        old = classifier_of(m)
+        set_classifier(m, nn.Linear(old.in_features, n))
+
+# ------------------------------------------------------------------------------
+# The processor. Kept even on the timm path, deliberately.
+# ------------------------------------------------------------------------------
+# timm carries its normalization in `pretrained_cfg`, not in a preprocessor
+# config. But the inference server, convert_to_onnx.py and try.html all read
+# preprocessor_config.json from the Hub repo to learn mean/std/size. Building a
+# ViTImageProcessor around timm's own numbers means the pivot does not silently
+# change the contract those three consumers depend on — and section 6 below can go
+# on reading processor.image_mean without caring which family loaded the weights.
+TIMM_CFG = {}
+
 def load_processor():
+    if IS_TIMM:
+        return None            # built after the model, from its pretrained_cfg
     try:
         return ViTImageProcessor.from_pretrained(HF_REPO_ID, token=HF_TOKEN)
     except Exception:
         return ViTImageProcessor.from_pretrained(BASE_MODEL)
 
+def processor_from_timm(m):
+    """A ViTImageProcessor that reports exactly what this timm model was trained
+    with. resolve_model_data_config is timm's own answer to that question; the
+    hand-rolled fallback exists because it moved modules between 0.9 and 1.x."""
+    cfg = {}
+    try:
+        cfg = dict(timm.data.resolve_model_data_config(m))
+    except Exception:
+        try:
+            from timm.data import resolve_data_config
+            cfg = dict(resolve_data_config({}, model=m))
+        except Exception:
+            pc = dict(getattr(m, "pretrained_cfg", {}) or {})
+            cfg = {"mean": pc.get("mean", (0.5, 0.5, 0.5)),
+                   "std": pc.get("std", (0.5, 0.5, 0.5)),
+                   "input_size": pc.get("input_size", (3, IMAGE_SIZE, IMAGE_SIZE)),
+                   "crop_pct": pc.get("crop_pct", 0.875)}
+    TIMM_CFG.update(cfg)
+    return ViTImageProcessor(
+        do_resize=True, size={"height": IMAGE_SIZE, "width": IMAGE_SIZE},
+        do_rescale=True, rescale_factor=1 / 255, do_normalize=True,
+        image_mean=list(cfg.get("mean", (0.5, 0.5, 0.5))),
+        image_std=list(cfg.get("std", (0.5, 0.5, 0.5))),
+    )
+
 processor = load_processor()
+
+# ------------------------------------------------------------------------------
+# Resume.
+# ------------------------------------------------------------------------------
+# The transformers path can use from_pretrained. The timm path cannot: there is no
+# PretrainedModel wrapper and no guarantee that timm's own hub-config schema in
+# whatever version Kaggle ships matches the one that wrote the checkpoint. So the
+# timm resume is done explicitly and under our control -- read config.json for the
+# label count, build the architecture at that width, load the state dict. That is
+# version-proof in a way `create_model('hf_hub:...')` is not.
+def _load_state_dict(local_dir):
+    st = os.path.join(local_dir, "model.safetensors")
+    if os.path.exists(st):
+        from safetensors.torch import load_file
+        return load_file(st, device="cpu")
+    for cand in ("pytorch_model.bin", "model.bin"):
+        p = os.path.join(local_dir, cand)
+        if os.path.exists(p):
+            blob = torch.load(p, map_location="cpu", weights_only=False)
+            return blob.get("state_dict", blob) if isinstance(blob, dict) else blob
+    return None
 
 def try_load_checkpoint():
     """Return a model loaded from the Hub checkpoint, or None if none exists."""
@@ -1326,10 +1554,45 @@ def try_load_checkpoint():
         local = snapshot_download(repo_id=HF_REPO_ID, repo_type="model",
                                   token=HF_TOKEN,
                                   allow_patterns=["*.json", "*.safetensors", "*.bin"])
-        if not os.path.exists(os.path.join(local, "config.json")):
+        cfg_path = os.path.join(local, "config.json")
+        if not os.path.exists(cfg_path):
             return None
-        model = ViTForImageClassification.from_pretrained(local)
-        print(f"[model] resumed checkpoint with {model.config.num_labels} labels")
+        if not IS_TIMM:
+            model = ViTForImageClassification.from_pretrained(local)
+            print(f"[model] resumed checkpoint with {model.config.num_labels} labels")
+            return model
+
+        with open(cfg_path, encoding="utf-8") as f:
+            cfg = json.load(f)
+        arch = cfg.get("architecture") or cfg.get("timm_arch") or TIMM_ARCH
+        old_n = int(cfg.get("num_classes") or cfg.get("num_labels") or 0)
+        if arch != TIMM_ARCH:
+            # A checkpoint for a different backbone in the same repo is not a
+            # checkpoint we can grow -- the parameter shapes do not line up. Say so
+            # instead of loading half a state dict and training noise.
+            print(f"[model] checkpoint architecture '{arch}' != '{TIMM_ARCH}'; "
+                  f"ignoring it and starting from the pretrained backbone")
+            return None
+        if old_n < 1:
+            return None
+        sd = _load_state_dict(local)
+        if sd is None:
+            return None
+        model = timm.create_model(TIMM_ARCH, pretrained=False, num_classes=old_n)
+        missing, unexpected = model.load_state_dict(sd, strict=False)
+        if missing or unexpected:
+            print(f"[model] state dict: {len(missing)} missing, "
+                  f"{len(unexpected)} unexpected key(s)")
+            if len(missing) > 0.2 * len(list(model.state_dict())):
+                print("[model] too much of the checkpoint is missing; discarding it")
+                return None
+        model._ff_id2label = {int(k): v for k, v in
+                              (cfg.get("id2label") or {}).items()}
+        if not model._ff_id2label:
+            names = cfg.get("label_names") or cfg.get("labels") or []
+            model._ff_id2label = {i: n for i, n in enumerate(names)}
+        model._ff_num_labels = old_n
+        print(f"[model] resumed checkpoint with {old_n} labels")
         return model
     except (EntryNotFoundError, RepositoryNotFoundError):
         return None
@@ -1337,42 +1600,82 @@ def try_load_checkpoint():
         print(f"[model] no usable checkpoint ({e})")
         return None
 
+def _prev_id2label(m):
+    """Old index -> label, from whichever family the checkpoint came from."""
+    if hasattr(m, "config"):
+        return {int(k): v for k, v in m.config.id2label.items()}
+    return dict(getattr(m, "_ff_id2label", {}) or {})
+
+def _prev_num_labels(m):
+    if hasattr(m, "config"):
+        return int(m.config.num_labels)
+    return int(getattr(m, "_ff_num_labels", classifier_of(m).out_features))
+
 prev_model = try_load_checkpoint()
 
 if prev_model is None:
     print("[model] initializing fresh from", BASE_MODEL)
-    model = ViTForImageClassification.from_pretrained(
-        BASE_MODEL, num_labels=num_labels,
-        id2label=id2label, label2id=label2id,
-        ignore_mismatched_sizes=True,
-    )
-else:
-    old_num = prev_model.config.num_labels
-    if old_num == num_labels:
-        model = prev_model
-        model.config.id2label = id2label
-        model.config.label2id = label2id
+    if IS_TIMM:
+        model = timm.create_model(TIMM_ARCH, pretrained=True,
+                                  num_classes=num_labels)
     else:
+        model = ViTForImageClassification.from_pretrained(
+            BASE_MODEL, num_labels=num_labels,
+            id2label=id2label, label2id=label2id,
+            ignore_mismatched_sizes=True,
+        )
+else:
+    old_num = _prev_num_labels(prev_model)
+    model = prev_model
+    if old_num != num_labels:
         # ---- Grow the classification head, preserving old class weights ----
         print(f"[model] resizing head {old_num} -> {num_labels} (preserving weights)")
-        model = prev_model
-        in_features = model.classifier.in_features
-        new_head = nn.Linear(in_features, num_labels)
-        # Sensible init for the whole new layer...
-        nn.init.xavier_uniform_(new_head.weight)
-        nn.init.zeros_(new_head.bias)
-        # ...then copy old rows for classes that already existed, by label name.
-        old_id2label = {int(k): v for k, v in prev_model.config.id2label.items()}
+        old_fc = classifier_of(model)
+        old_w = old_fc.weight.detach().clone()
+        old_b = (old_fc.bias.detach().clone() if old_fc.bias is not None else None)
+        reset_classifier(model, num_labels)
+        new_fc = classifier_of(model)
+        nn.init.xavier_uniform_(new_fc.weight)
+        if new_fc.bias is not None:
+            nn.init.zeros_(new_fc.bias)
+        # Copy old rows for classes that already existed, BY LABEL NAME. Copying by
+        # index would be silently wrong the first time a species is dropped from the
+        # tree: every class after it shifts down one and inherits its neighbour's
+        # weights, which looks like training and predicts nonsense.
+        moved = 0
         with torch.no_grad():
-            for old_idx, lbl in old_id2label.items():
-                if lbl in label2id and old_idx < model.classifier.weight.shape[0]:
+            for old_idx, lbl in _prev_id2label(model).items():
+                if lbl in label2id and old_idx < old_w.shape[0]:
                     new_idx = label2id[lbl]
-                    new_head.weight[new_idx] = model.classifier.weight[old_idx]
-                    new_head.bias[new_idx]   = model.classifier.bias[old_idx]
-        model.classifier = new_head
+                    new_fc.weight[new_idx] = old_w[old_idx]
+                    if old_b is not None and new_fc.bias is not None:
+                        new_fc.bias[new_idx] = old_b[old_idx]
+                    moved += 1
+        print(f"[model] carried {moved:,} existing class vector(s) across the resize")
+    if hasattr(model, "config"):
         model.config.num_labels = num_labels
         model.config.id2label = id2label
         model.config.label2id = label2id
+    else:
+        model._ff_id2label = dict(id2label)
+        model._ff_num_labels = num_labels
+
+if IS_TIMM:
+    processor = processor_from_timm(model)
+    _in = TIMM_CFG.get("input_size", (3, IMAGE_SIZE, IMAGE_SIZE))
+    if int(_in[-1]) != IMAGE_SIZE:
+        # maxvit_base_tf_384 has fixed_input_size=True: the grid-attention
+        # partitioning is computed for a 384 feature map and a different input
+        # silently changes the window layout (or throws deep inside the stage).
+        # Failing here costs a minute; failing at step 1 costs the booking.
+        raise SystemExit(
+            f"[model] IMAGE_SIZE={IMAGE_SIZE} but {TIMM_ARCH} expects "
+            f"{int(_in[-1])}. Set IMAGE_SIZE to {int(_in[-1])} or pick a variant "
+            f"trained at {IMAGE_SIZE}."
+        )
+    print(f"[model] {TIMM_ARCH}: {sum(p.numel() for p in model.parameters())/1e6:.1f}M "
+          f"params, {num_labels:,}-way head, "
+          f"input {IMAGE_SIZE}px, crop_pct={TIMM_CFG.get('crop_pct', 0.875)}")
 
 model.to(DEVICE)
 
@@ -1381,6 +1684,24 @@ model.to(DEVICE)
 # ==============================================================================
 mean = processor.image_mean
 std  = processor.image_std
+
+# ------------------------------------------------------------------------------
+# The validation resize, and why the crop ratio is not a constant.
+# ------------------------------------------------------------------------------
+# 1.14 is 1/0.875 — the crop_pct every ImageNet ViT is evaluated at, and the right
+# number for google/vit-base-patch16-224. It is the WRONG number for
+# maxvit_base_tf_384.in1k, which timm records as crop_pct=1.0 with crop_mode
+# 'squash': that checkpoint was validated on the whole frame squashed to 384x384,
+# not on a centre crop of a 438px resize. Evaluating it at 0.875 throws away the
+# outer 12% of every validation image and costs real top-1 for no reason.
+#
+# So the ratio comes from the model's own config when there is one. At crop_pct=1.0
+# the resize equals IMAGE_SIZE and the CenterCrop below becomes a no-op, which is
+# exactly 'squash'.
+EVAL_CROP_PCT = float(TIMM_CFG.get("crop_pct") or 0.875)
+EVAL_RESIZE = max(IMAGE_SIZE, int(round(IMAGE_SIZE / max(0.05, EVAL_CROP_PCT))))
+print(f"[aug] eval resize {EVAL_RESIZE}px -> centre crop {IMAGE_SIZE}px "
+      f"(crop_pct={EVAL_CROP_PCT:.3f})")
 
 # ------------------------------------------------------------------------------
 # Albumentations, defensively constructed.
@@ -1489,8 +1810,8 @@ if ALBU:
     ])
     _albu_val = A.Compose([
         _first_ok(
-            lambda: A.Resize(height=int(IMAGE_SIZE * 1.14), width=int(IMAGE_SIZE * 1.14)),
-            lambda: A.Resize(int(IMAGE_SIZE * 1.14), int(IMAGE_SIZE * 1.14)),
+            lambda: A.Resize(height=EVAL_RESIZE, width=EVAL_RESIZE),
+            lambda: A.Resize(EVAL_RESIZE, EVAL_RESIZE),
         ),
         _first_ok(
             lambda: A.CenterCrop(height=IMAGE_SIZE, width=IMAGE_SIZE),
@@ -1518,7 +1839,13 @@ else:
         transforms.RandomErasing(p=0.35, scale=(0.02, 0.08), value=0),
     ])
     _tv_val = transforms.Compose([
-        transforms.Resize(int(IMAGE_SIZE * 1.14)),
+        # A tuple squashes to a square (crop_pct=1.0, timm's 'squash' mode); a bare
+        # int resizes the SHORT side and lets CenterCrop take the middle, which is
+        # the classic 0.875 recipe. The albumentations branch above always passes
+        # height and width, so it squashes either way and the CenterCrop is what
+        # makes the two paths agree.
+        transforms.Resize((EVAL_RESIZE, EVAL_RESIZE) if EVAL_RESIZE == IMAGE_SIZE
+                          else EVAL_RESIZE),
         transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(mean, std),
@@ -1615,8 +1942,59 @@ val_loader   = DataLoader(FlowerDataset(val_samples, val_tf),
 # ==============================================================================
 BEST_PATH = os.path.join(WORK, BEST_MODEL_PATH)
 
+def _timm_hub_config():
+    """
+    The config.json a timm checkpoint needs on the Hub.
+
+    Two audiences, one file. `architecture` / `num_classes` / `pretrained_cfg` are
+    timm's own schema, so `timm.create_model("hf_hub:gsor56/findflower-maxvit",
+    pretrained=True)` works for anyone downstream. `id2label` / `label2id` /
+    `num_labels` are the transformers spelling that the inference server and
+    try.html already read. Writing both costs a few KB and removes a whole class of
+    "which loader am I" bug.
+
+    pretrained_cfg is DERIVED from the live model rather than typed out: the mean,
+    std, input_size and crop_pct have to be the ones training actually used, and a
+    hand-copied table is how those drift apart.
+    """
+    pc = dict(getattr(model, "pretrained_cfg", {}) or {})
+    pc.update({
+        "num_classes": num_labels,
+        "input_size": list(TIMM_CFG.get("input_size", (3, IMAGE_SIZE, IMAGE_SIZE))),
+        "mean": list(mean), "std": list(std),
+        "crop_pct": EVAL_CROP_PCT,
+    })
+    pc.pop("url", None)          # points at the in1k weights, not ours
+    pc.pop("hf_hub_id", None)
+    return {
+        "architecture": TIMM_ARCH,
+        "num_classes": num_labels,
+        "num_features": int(getattr(model, "num_features", 0)) or None,
+        "pretrained_cfg": pc,
+        "label_names": [id2label[i] for i in range(num_labels)],
+        # transformers-compatible aliases
+        "model_type": "timm_wrapper",
+        "num_labels": num_labels,
+        "id2label": {str(k): v for k, v in id2label.items()},
+        "label2id": label2id,
+        "image_size": IMAGE_SIZE,
+        "base_model": BASE_MODEL,
+    }
+
 def save_checkpoint_local():
-    model.save_pretrained(CKPT_DIR, safe_serialization=True)
+    if IS_TIMM:
+        # timm models have no save_pretrained. safetensors directly, which is the
+        # same format from_pretrained would have written and the one the Hub UI and
+        # every downstream loader prefer.
+        from safetensors.torch import save_file
+        sd = {k: v.detach().cpu().contiguous()
+              for k, v in model.state_dict().items()}
+        save_file(sd, os.path.join(CKPT_DIR, "model.safetensors"),
+                  metadata={"format": "pt"})
+        with open(os.path.join(CKPT_DIR, "config.json"), "w", encoding="utf-8") as f:
+            json.dump(_timm_hub_config(), f, indent=2)
+    else:
+        model.save_pretrained(CKPT_DIR, safe_serialization=True)
     processor.save_pretrained(CKPT_DIR)
     with open(os.path.join(CKPT_DIR, "class_names.json"), "w") as f:
         json.dump(classes, f, indent=2)
@@ -1668,41 +2046,68 @@ def push_best_model():
 def push_to_hub_full(msg):
     """
     Requirement 4: weights (safetensors) + feature extractor + the full
-    id2label/label2id mapping, via the transformers push_to_hub path.
+    id2label/label2id mapping.
 
-    push_to_hub is used because it is what the brief asks for and because it
-    writes the model card and config the Hub UI reads. It is wrapped, not
-    trusted: it is a network call at the end of an 8-hour run, and if it fails
-    the upload_folder path above has already put the same bytes on the Hub. A
-    failure here must never be the thing that loses the session.
+    Run #2 failed here with `PushToHubMixin.push_to_hub() got an unexpected keyword
+    argument 'safe_serialization'` — transformers moved that argument out of the
+    mixin's signature, and passing it unconditionally turned a working push into a
+    TypeError at the very end of a six-hour run. The fallback saved it, but the fix
+    is to ask the signature what it accepts instead of guessing.
+
+    A timm model has no push_to_hub at all, so on that path upload_folder IS the
+    push, not a fallback: `save_checkpoint_local` has already written the exact
+    same safetensors + config.json + preprocessor_config.json that a
+    `from_pretrained` consumer needs.
     """
-    model.config.id2label = {int(k): v for k, v in id2label.items()}
-    model.config.label2id = label2id
+    if hasattr(model, "config"):
+        model.config.id2label = {int(k): v for k, v in id2label.items()}
+        model.config.label2id = label2id
+
+    def _push(obj, what, **extra):
+        """push_to_hub, called with only the kwargs this version admits."""
+        import inspect
+        try:
+            accepted = set(inspect.signature(obj.push_to_hub).parameters)
+        except (TypeError, ValueError):
+            accepted = set()
+        kw = {"token": HF_TOKEN, "private": HF_PRIVATE, "commit_message": msg}
+        kw.update(extra)
+        # VAR_KEYWORD means **kwargs, which swallows anything -- but the run #2
+        # failure proves it can still reject a name it swallowed in an older
+        # release, so drop unknowns whenever the signature is introspectable.
+        if accepted and not any(
+                p.kind is inspect.Parameter.VAR_KEYWORD
+                for p in inspect.signature(obj.push_to_hub).parameters.values()):
+            kw = {k: v for k, v in kw.items() if k in accepted}
+        obj.push_to_hub(HF_REPO_ID, **kw)
+        print(f"[push] {what}.push_to_hub -> {HF_REPO_ID}")
+
     ok = True
+    if hasattr(model, "push_to_hub"):
+        try:
+            _push(model, "model", safe_serialization=True)
+        except Exception as e:
+            ok = False
+            print(f"[push] model.push_to_hub failed: {type(e).__name__}: {e}")
+    else:
+        ok = False           # timm: upload_folder below is the real push
+        print(f"[push] {TIMM_ARCH} is a timm model (no push_to_hub); "
+              f"using upload_folder, which carries the same artefacts")
     try:
-        model.push_to_hub(HF_REPO_ID, token=HF_TOKEN, private=HF_PRIVATE,
-                          safe_serialization=True, commit_message=msg)
-        print(f"[push] model.push_to_hub -> {HF_REPO_ID}")
-    except Exception as e:
-        ok = False
-        print(f"[push] model.push_to_hub failed: {type(e).__name__}: {e}")
-    try:
-        processor.push_to_hub(HF_REPO_ID, token=HF_TOKEN, private=HF_PRIVATE,
-                              commit_message=f"{msg} (feature extractor)")
-        print("[push] processor.push_to_hub -> Hub")
+        _push(processor, "processor")
     except Exception as e:
         ok = False
         print(f"[push] processor.push_to_hub failed: {type(e).__name__}: {e}")
     if not ok:
-        print("[push] falling back to upload_folder for the same artefacts")
+        print("[push] upload_folder for the same artefacts")
         try:
-            push_checkpoint(msg + " (fallback)")
+            push_checkpoint(msg + " (upload_folder)")
         except Exception as e:
-            print(f"[push] fallback ALSO failed: {e}")
+            print(f"[push] upload_folder ALSO failed: {e}")
     return ok
 
 # ==============================================================================
-# 8. Train -- LLRD + focal/label-smoothing loss + the 8.5-hour time bomb
+# 8. Train -- LLRD + focal/label-smoothing loss + the session time bomb
 # ==============================================================================
 # ------------------------------------------------------------------------------
 # 8a. Loss. Focal AND label smoothing, which pull in opposite directions.
@@ -1763,52 +2168,163 @@ print(f"[loss] {LOSS_MODE}  smoothing={LABEL_SMOOTHING}  gamma={FOCAL_GAMMA}")
 # ------------------------------------------------------------------------------
 # 8b. Layer-wise Learning Rate Decay (LLRD).
 # ------------------------------------------------------------------------------
-# A ViT's early blocks encode edges and colour; its late blocks encode the
-# composition that actually separates two similar Papaver species. Training both
-# at one rate either destroys the general features or starves the specific ones.
-# LLRD assigns each depth its own rate, decaying by LLRD_DECAY per level down:
+# Early layers encode edges and colour; late layers encode the composition that
+# actually separates two similar Papaver species. Training both at one rate either
+# destroys the general features or starves the specific ones. LLRD assigns each
+# depth its own rate, decaying by LLRD_DECAY per level down:
 #
-#   depth 0        patch embeddings + position embeddings + cls token
-#   depth 1..12    encoder.layer.{0..11}
-#   depth 13       final layernorm, pooler, classifier
+#   depth 0            the stem / patch embedding
+#   depth 1..N         the transformer or hybrid blocks, in forward order
+#   depth N+1          final norm, pooler, head
 #
-#   lr(depth) = BACKBONE_LR * LLRD_DECAY ** (n_layers + 1 - depth)
+#   lr(depth) = BACKBONE_LR * LLRD_DECAY ** (N + 1 - depth)
 #
 # The head is deliberately NOT part of that ladder. It is brand new (or has just
-# grown by thousands of rows) and needs LEARNING_RATE, which is ~6x the top
-# block's rate. A single shared rate here is the classic way to get a run that
-# looks like it is training and never separates the tail classes.
-def vit_depth(name, n_layers):
-    if name.startswith("vit.embeddings") or "embeddings" in name.split(".")[:2]:
-        return 0
-    if ".encoder.layer." in name or name.startswith("vit.encoder.layer."):
-        try:
-            return int(name.split("encoder.layer.")[1].split(".")[0]) + 1
-        except (IndexError, ValueError):
-            return n_layers + 1
-    return n_layers + 1   # layernorm / pooler / anything unmatched
+# grown by hundreds of rows) and needs LEARNING_RATE, which is ~6x the top block's
+# rate. A single shared rate here is the classic way to get a run that looks like
+# it is training and never separates the tail classes.
+#
+# The hard part on a pivot is that "the blocks" is a different parameter tree for
+# every family, and getting it wrong is silent: an unmatched name falls to the
+# deepest bucket, so a broken map trains the ENTIRE backbone at BACKBONE_LR and
+# looks completely normal in the logs. So the map is DISCOVERED from the model's
+# own named_parameters() and then asserted:
+#
+#   MaxViT / ConvNeXt / timm hybrids   stages.{s}.blocks.{b}.*     -> 24 blocks
+#   timm plain ViT                     blocks.{i}.*
+#   transformers ViT                   [vit.]encoder.layer.{i}.*
+#   Swin                               layers.{s}.blocks.{b}.*
+#
+# Ordering matters and lexical sort would put stage 10 before stage 2, so the keys
+# are integer tuples and sorted as tuples.
+import re as _re
 
-N_LAYERS = getattr(model.config, "num_hidden_layers", 12)
+_DEPTH_PATTERNS = (
+    ("stages",  _re.compile(r"(?:^|\.)stages\.(\d+)\.blocks\.(\d+)\.")),
+    ("layers",  _re.compile(r"(?:^|\.)layers\.(\d+)\.blocks\.(\d+)\.")),
+    ("blocks",  _re.compile(r"(?:^|\.)blocks\.(\d+)\.")),
+    ("encoder", _re.compile(r"(?:^|\.)encoder\.layer\.(\d+)\.")),
+)
+_STEM_HINTS = ("stem.", "patch_embed.", "embeddings.", "conv_stem", "cls_token",
+               "pos_embed", "position_embeddings", "patch_embeddings")
+
+def build_depth_map(m):
+    """
+    Return (depth_of, n_blocks, prefixes, kind).
+
+    `depth_of(name) -> int` in 0..n_blocks+1. `prefixes[d]` is the list of
+    parameter-name prefixes belonging to depth d, which section 10c reuses to pick
+    ONNX nodes by block — the same map, so the ladder and the optimizer can never
+    disagree about which block is "outer".
+    """
+    names = [n for n, _ in m.named_parameters()]
+    kind, pat, keys = None, None, set()
+    for k, p in _DEPTH_PATTERNS:
+        found = {tuple(int(g) for g in mt.groups())
+                 for n in names for mt in [p.search(n)] if mt}
+        if found:
+            kind, pat, keys = k, p, found
+            break
+    if not keys:
+        return (lambda name: 1), 1, {0: [], 1: [], 2: []}, "flat"
+
+    order = {key: i + 1 for i, key in enumerate(sorted(keys))}
+    n_blocks = len(order)
+    top = n_blocks + 1
+
+    # Which stage does each depth belong to, so a stage-level parameter that is not
+    # inside a block (MaxViT keeps some downsample/norm weights there) can be
+    # charged to that stage's FIRST block rather than dumped at the top.
+    stage_first = {}
+    if len(next(iter(order))) == 2:
+        for (s, _b), d in sorted(order.items(), key=lambda kv: kv[1]):
+            stage_first.setdefault(s, d)
+    _stage_only = _re.compile(r"(?:^|\.)(?:stages|layers)\.(\d+)\.")
+
+    prefixes = {d: [] for d in range(top + 1)}
+    for key, d in order.items():
+        if kind in ("stages", "layers"):
+            body = f"{kind}.{key[0]}.blocks.{key[1]}."
+        elif kind == "blocks":
+            body = f"blocks.{key[0]}."
+        else:
+            body = f"encoder.layer.{key[0]}."
+        # Both spellings: parameter/initializer names are dotted, while the legacy
+        # ONNX exporter emits module paths with slashes.
+        prefixes[d] = [body, body.replace(".", "/")]
+
+    def depth_of(name):
+        mt = pat.search(name)
+        if mt:
+            return order.get(tuple(int(g) for g in mt.groups()), top)
+        sm = _stage_only.search(name)
+        if sm:
+            return stage_first.get(int(sm.group(1)), top)
+        if any(h in name for h in _STEM_HINTS):
+            return 0
+        return top          # final norm / pooler / head / anything unmatched
+
+    return depth_of, n_blocks, prefixes, kind
+
+DEPTH_OF, N_LAYERS, DEPTH_PREFIXES, DEPTH_KIND = build_depth_map(model)
+print(f"[llrd] depth map: {DEPTH_KIND} tree, {N_LAYERS} block(s) "
+      f"+ stem + head")
+if N_LAYERS <= 1:
+    # Not fatal — a one-bucket ladder is just uniform BACKBONE_LR — but it means
+    # the pattern table above does not know this architecture, and saying nothing
+    # would hide that behind a run that trains slightly worse for no visible reason.
+    print("[llrd] !! no block structure recognised in named_parameters(); the "
+          "whole backbone will train at one rate. Add this model's block pattern "
+          "to _DEPTH_PATTERNS.")
+
+# The head is identified by object identity, not by a name prefix: MaxViT's is
+# head.fc, a transformers ViT's is classifier, and a timm ViT's is head. Asking the
+# model for its own classifier and comparing parameter ids is exact, and it cannot
+# drift when the next architecture arrives.
+_HEAD_IDS = {id(p) for p in classifier_of(model).parameters()}
 
 # LayerNorm weights and every bias are excluded from weight decay. Decaying a
 # LayerNorm gain toward zero is decaying the layer's output scale toward zero,
 # which is not regularisation — it is damage, and it is the most common silent
-# bug in hand-rolled ViT optimizers.
+# bug in hand-rolled ViT optimizers. MaxViT adds one more: relative_position_bias
+# tables are 2-D, so ndim<=1 does not catch them, and decaying a position bias
+# toward zero erases the spatial prior that block attention is built on.
 def no_decay(name, param):
-    return param.ndim <= 1 or name.endswith(".bias") or "layernorm" in name.lower()
+    low = name.lower()
+    return (param.ndim <= 1 or name.endswith(".bias")
+            or "layernorm" in low or ".norm" in low or low.startswith("norm")
+            or "rel_pos" in low or "relative_position" in low)
+
+# ------------------------------------------------------------------------------
+# The decay factor has to be renormalised for depth, or the pivot silently becomes
+# head-only fine-tuning.
+# ------------------------------------------------------------------------------
+# LLRD_DECAY=0.70 is tuned for a 12-block ViT, where the bottom of the ladder lands
+# at BACKBONE_LR * 0.70**13 = 4.8e-07 — small, but still training. (That is the
+# exact number the 224px run printed.) maxvit_base has 24 blocks, and applying the
+# same PER-LEVEL factor over twice the depth gives BACKBONE_LR * 0.70**25 = 6.7e-09:
+# thirteen orders of magnitude below the head, i.e. frozen. The MBConv stages that
+# are the entire reason for choosing MaxViT would never move, and nothing in the
+# logs would say so.
+#
+# So the tuned quantity is treated as the ladder's TOTAL SPAN (0.70**13 ≈ 1/103
+# from top block to stem) rather than its step size, and the step is whatever
+# spreads that span over the blocks this architecture actually has.
+_REF_BLOCKS = 12
+LLRD_DECAY_EFF = LLRD_DECAY ** ((_REF_BLOCKS + 1) / max(1, N_LAYERS + 1))
 
 groups, group_names = {}, {}
 for name, param in model.named_parameters():
     if not param.requires_grad:
         continue
-    is_head = name.startswith("classifier")
-    depth = N_LAYERS + 1 if is_head else vit_depth(name, N_LAYERS)
+    is_head = id(param) in _HEAD_IDS
+    depth = N_LAYERS + 1 if is_head else DEPTH_OF(name)
     wd = 0.0 if no_decay(name, param) else WEIGHT_DECAY
     if is_head:
         lr = LEARNING_RATE
         key = ("head", wd)
     else:
-        lr = BACKBONE_LR * (LLRD_DECAY ** (N_LAYERS + 1 - depth))
+        lr = BACKBONE_LR * (LLRD_DECAY_EFF ** (N_LAYERS + 1 - depth))
         key = (depth, wd)
     if key not in groups:
         groups[key] = {"params": [], "lr": lr, "weight_decay": wd,
@@ -1821,11 +2337,17 @@ param_groups = [groups[k] for k in sorted(groups, key=lambda k: (str(k[0]), k[1]
 optimizer = torch.optim.AdamW(param_groups, betas=(0.9, 0.999), eps=1e-8)
 scaler = amp_scaler()
 
-_lrs = sorted({round(g["lr"], 9) for g in param_groups})
+_lrs = sorted({round(g["lr"], 12) for g in param_groups})
 print(f"[llrd] {len(param_groups)} param groups over {N_LAYERS} blocks, "
-      f"decay={LLRD_DECAY}")
-print(f"[llrd] lr range: {min(_lrs):.2e} (embeddings) .. {BACKBONE_LR:.2e} "
+      f"decay={LLRD_DECAY} requested -> {LLRD_DECAY_EFF:.4f} per level "
+      f"(same total span over {N_LAYERS} blocks as {LLRD_DECAY} over {_REF_BLOCKS})")
+print(f"[llrd] lr range: {min(_lrs):.2e} (stem) .. {BACKBONE_LR:.2e} "
       f"(top block) .. {LEARNING_RATE:.2e} (head)")
+_head_n = sum(p.numel() for k, g in groups.items() if k[0] == "head"
+              for p in g["params"])
+print(f"[llrd] head params: {_head_n:,} "
+      f"({100*_head_n/max(1,sum(p.numel() for p in model.parameters())):.1f}% "
+      f"of the model)")
 
 # ------------------------------------------------------------------------------
 # 8c. Warmup + cosine schedule, expressed in STEPS this session will actually run.
@@ -1922,7 +2444,7 @@ def evaluate(loader=None, limit=None, tag="val"):
         x = x.to(DEVICE, non_blocking=True)
         y = y.to(DEVICE, non_blocking=True)
         with amp_autocast():
-            logits = model(pixel_values=x).logits
+            logits = forward_logits(model, x)
         acc.update(logits.float(), y)
         if limit and acc.total >= limit:
             break
@@ -1978,7 +2500,7 @@ for epoch in range(1, EPOCHS_PER_RUN + 1):
         y = y.to(DEVICE, non_blocking=True)
         try:
             with amp_autocast():
-                logits = model(pixel_values=x).logits
+                logits = forward_logits(model, x)
                 loss = criterion(logits, y) / GRAD_ACCUM_STEPS
             scaler.scale(loss).backward()
             if step % GRAD_ACCUM_STEPS == 0:
@@ -1997,7 +2519,7 @@ for epoch in range(1, EPOCHS_PER_RUN + 1):
             _oom_backoff()
             continue
 
-        running += float(loss) * GRAD_ACCUM_STEPS * y.size(0)
+        running += float(loss.detach()) * GRAD_ACCUM_STEPS * y.size(0)
         seen += y.size(0)
 
         if step % 100 == 0:
@@ -2179,7 +2701,7 @@ push_best_model()
 # to FP32 at load and peaks at 511 MB resident against a 512 MB server limit.
 # INT8 is the only quantized format that helps here.
 print("\n[phase] EXPORT + QUANTIZE")
-_pip("--no-deps", "onnx", "onnxruntime")
+_pip("--no-deps", "onnx", "onnxruntime", "onnxscript")
 
 ONNX_OK = True
 try:
@@ -2193,17 +2715,20 @@ except Exception as e:
 
 class LogitsOnly(nn.Module):
     """
-    ViT wrapped so the ONNX graph has a single tensor output.
+    The backbone wrapped so the ONNX graph has a single tensor output.
 
-    Without this the traced graph returns ImageClassifierOutput, and every
-    consumer then has to know that logits live at output[0]. The inference server
-    reads output 0 by name, so the name is pinned here at export time.
+    A transformers model traces to ImageClassifierOutput, and every consumer then
+    has to know that logits live at output[0]. The inference server reads output 0
+    by name, so the name is pinned here at export time. A timm model already
+    returns a bare tensor; forward_logits handles both, so the wrapper stays
+    identical across the pivot and the exported graph keeps the same signature the
+    server has always consumed.
     """
     def __init__(self, m):
         super().__init__()
         self.m = m
     def forward(self, pixel_values):
-        return self.m(pixel_values=pixel_values).logits
+        return forward_logits(self.m, pixel_values)
 
 # ------------------------------------------------------------------------------
 # 10a. The evaluation subset: stratified, bounded, and the SAME for every rung.
@@ -2250,20 +2775,57 @@ FP32_PATH = os.path.join(WORK, ONNX_FP32_PATH)
 INT8_PATH = os.path.join(WORK, ONNX_INT8_PATH)
 
 def export_fp32():
+    """
+    Export the FP32 ONNX graph, legacy exporter first.
+
+    torch 2.10 defaults `torch.onnx.export` to the dynamo path, which needs
+    onnxscript — that missing module is exactly what aborted run #2's export after
+    six hours of training. onnxscript is installed above now, but the LEGACY
+    (TorchScript) exporter is still tried first, for two reasons that matter more
+    than being current:
+
+      * the inference server already consumes a legacy-exported graph, and
+      * quantize_dynamic's node selection below reads initializer names, which the
+        legacy exporter keeps as clean parameter paths.
+
+    dynamo is the fallback, at opset 18 because that is its floor for several of
+    the ops MaxViT's grid attention lowers to.
+    """
     m = LogitsOnly(model).eval().to("cpu")
     dummy = torch.randn(1, 3, IMAGE_SIZE, IMAGE_SIZE)
-    torch.onnx.export(
-        m, (dummy,), FP32_PATH,
+    common = dict(
         input_names=["pixel_values"], output_names=["logits"],
         # Batch stays dynamic so the same file serves a single request and a
-        # batched eval loop. Height/width are fixed at 224 on purpose: dynamic
-        # spatial dims defeat onnxruntime's shape inference and cost throughput
-        # for a flexibility this model does not have (ViT is patch-locked).
+        # batched eval loop. Height/width are FIXED: maxvit_base_tf_384 declares
+        # fixed_input_size, its grid attention is partitioned for a 384 feature
+        # map, and dynamic spatial dims would defeat onnxruntime's shape inference
+        # for a flexibility this model does not have.
         dynamic_axes={"pixel_values": {0: "batch"}, "logits": {0: "batch"}},
-        opset_version=ONNX_OPSET, do_constant_folding=True,
+        do_constant_folding=True,
     )
+    attempts = [
+        ("legacy", dict(common, opset_version=ONNX_OPSET, dynamo=False)),
+        ("dynamo", dict(common, opset_version=max(ONNX_OPSET, 18), dynamo=True)),
+        ("default", dict(common, opset_version=ONNX_OPSET)),
+    ]
+    last = None
+    for tag, kw in attempts:
+        try:
+            torch.onnx.export(m, (dummy,), FP32_PATH, **kw)
+            print(f"[onnx] exported with the {tag} exporter "
+                  f"(opset {kw['opset_version']})")
+            model.to(DEVICE)
+            return os.path.getsize(FP32_PATH) / 1e6
+        except TypeError as e:
+            # This torch does not know the `dynamo` kwarg at all -> skip to the
+            # call that does not pass it.
+            last = e
+            continue
+        except Exception as e:
+            last = e
+            print(f"[onnx] {tag} exporter failed: {type(e).__name__}: {e}")
     model.to(DEVICE)
-    return os.path.getsize(FP32_PATH) / 1e6
+    raise RuntimeError(f"every ONNX exporter path failed; last: {last}")
 
 def ort_session(path):
     # The SAME session options the inference server uses, so a number measured
@@ -2326,17 +2888,18 @@ def paired_delta(base_mask, cand_mask):
 # ------------------------------------------------------------------------------
 # 10c. The quantization ladder.
 # ------------------------------------------------------------------------------
-# Dynamic INT8 on a ViT is not uniformly safe. The parts that hurt, in order:
+# Dynamic INT8 is not uniformly safe on either architecture. What hurts, in order:
 #
-#   the classifier head    5,000 rows of near-collinear class vectors; 256 INT8
-#                          levels cannot separate species whose logits differ by
-#                          less than the quantization step. This is almost always
-#                          where the loss comes from at high class counts.
+#   the classifier head    thousands of rows of near-collinear class vectors; 256
+#                          INT8 levels cannot separate species whose logits differ
+#                          by less than the quantization step. This is almost
+#                          always where the loss comes from at high class counts.
 #   attention Q/K/V        the scaled dot product amplifies weight error, then
 #                          softmax turns amplified error into a different
-#                          attention MAP, not just a noisier one.
-#   the outer blocks       layer 0 sees raw patches (widest activation range) and
-#                          the last layer feeds the head directly.
+#                          attention MAP, not just a noisier one. On MaxViT this
+#                          is attn.qkv/attn.proj inside attn_block and attn_grid.
+#   the outer blocks       the first block sees the rawest activations (widest
+#                          range) and the last one feeds the head directly.
 #   the middle-block MLPs  the safest ~60% of the parameters, and where most of
 #                          the file size lives. Quantizing only these is the
 #                          endpoint of the ladder.
@@ -2345,37 +2908,136 @@ def paired_delta(base_mask, cand_mask):
 # recovers. The loop stops at the first rung under QUANT_MAX_ACC_LOSS, keeping the
 # smallest artefact that meets the bar rather than the safest one.
 def matmul_nodes(path):
+    """(node_name, searchable_tag) for every quantizable MatMul/Gemm.
+
+    onnxruntime excludes nodes by NAME, so the first field is what ends up in
+    `nodes_to_exclude`. But the name alone is not a reliable place to look for
+    "which block is this": the legacy exporter names nodes after the module tree
+    (`/stages.1/blocks.0/attn_block/attn/qkv/MatMul`) while the dynamo exporter
+    emits `node_MatMul_87` and keeps the module path only on the weight
+    INITIALIZER (`stages.1.blocks.0.attn_block.attn.qkv.weight`). export_fp32()
+    tries three exporters, so the ladder cannot assume which one won -- the tag
+    is the node name plus its constant-weight initializer names, and selection
+    matches against that union. Whichever exporter ran, one of the two halves
+    carries the path.
+    """
     g = onnx.load(path, load_external_data=False).graph
-    return [n.name for n in g.node if n.op_type in ("MatMul", "Gemm") and n.name]
+    inits = {i.name for i in g.initializer}
+    out = []
+    for n in g.node:
+        if n.op_type not in ("MatMul", "Gemm") or not n.name:
+            continue
+        # MatMulConstBOnly means only weight-bearing MatMuls are quantized at
+        # all, so every node we care about has at least one initializer input.
+        out.append((n.name, "\x00".join([n.name] + [i for i in n.input
+                                                    if i in inits])))
+    return out
 
-def _sel(names, *needles):
-    return [n for n in names if any(s in n for s in needles)]
+def _variants(*needles):
+    """Each dotted needle, plus its slashed spelling (legacy node names)."""
+    out = []
+    for s in needles:
+        out.append(s)
+        if "." in s:
+            out.append(s.replace(".", "/"))
+    return tuple(dict.fromkeys(out))
 
-def build_rungs(names):
-    head = _sel(names, "classifier")
-    attn = _sel(names, "attention/attention/query", "attention/attention/key",
-                "attention/attention/value", "attention/output/dense",
-                "attention.attention.query", "attention.attention.key",
-                "attention.attention.value", "attention.output.dense")
-    outer = []
-    for i in list(range(2)) + list(range(max(0, N_LAYERS - 2), N_LAYERS)):
-        outer += _sel(names, f"encoder/layer.{i}/", f"encoder.layer.{i}.")
-    # Everything that is NOT a middle-block MLP -> the most conservative rung.
-    mid_lo, mid_hi = 2, max(3, N_LAYERS - 2)
-    mid_mlp = []
-    for i in range(mid_lo, mid_hi):
-        mid_mlp += _sel(names, f"encoder/layer.{i}/intermediate",
-                        f"encoder/layer.{i}/output/dense",
-                        f"encoder.layer.{i}.intermediate",
-                        f"encoder.layer.{i}.output.dense")
-    all_but_mid_mlp = [n for n in names if n not in set(mid_mlp)]
-    return [
-        ("INT8 (all MatMul)",                    []),
-        ("INT8, head in FP32",                   head),
-        ("INT8, head + attention in FP32",       head + attn),
-        ("INT8, head + attention + outer blocks",head + attn + outer),
-        ("INT8, middle-block MLPs only",         all_but_mid_mlp),
+def _prefix_variants(body):
+    """The three spellings a module prefix can take across the two exporters.
+
+    `stages.1.blocks.0.` -> parameter paths keep it dotted, the fully-slashed
+    form appears in some graphs, and the legacy exporter writes
+    `stages.1/blocks.0/` -- an index stays glued to its parent with a dot while
+    the levels above it are separated by slashes.
+    """
+    toks = [t for t in body.strip("./").replace("/", ".").split(".") if t]
+    mixed = ""
+    for t in toks:
+        if mixed and t.isdigit():
+            mixed = mixed[:-1] + "." + t + "/"
+        else:
+            mixed += t + "/"
+    return tuple(dict.fromkeys([body, "/".join(toks) + "/", mixed]))
+
+# Leaf needles, both families. transformers-ViT spells its projections
+# `attention.attention.query`; timm spells a MaxViT attention block
+# `attn_block.attn.qkv` / `attn_grid.attn.proj`, and its MLPs `mlp.fc1`/`fc2`.
+# "attn." does not match "attn_block." (no dot after the underscore), so the
+# attention needles stay clear of the MLP that sits inside the same block.
+_HEAD_NEEDLES = _variants("classifier", "head.fc", "head.pre_logits")
+_ATTN_NEEDLES = _variants(
+    "attention.attention.query", "attention.attention.key",
+    "attention.attention.value", "attention.output.dense",
+    "attn.qkv", "attn.proj", "attn.q_proj", "attn.k_proj", "attn.v_proj",
+    "attn.q.", "attn.kv.",
+)
+_MLP_NEEDLES = _variants("intermediate.dense", "output.dense",
+                         "mlp.fc1", "mlp.fc2")
+
+def _sel(nodes, *needles):
+    return [nm for nm, tag in nodes if any(s in tag for s in needles)]
+
+def _sel_in(nodes, prefixes, needles=None):
+    """Nodes under any of `prefixes`, optionally narrowed to `needles`."""
+    return [nm for nm, tag in nodes
+            if any(p in tag for p in prefixes)
+            and (needles is None or any(s in tag for s in needles))]
+
+def _block_prefixes(depths):
+    out = []
+    for d in depths:
+        for body in (DEPTH_PREFIXES.get(d) or ()):
+            out += list(_prefix_variants(body))
+    return tuple(dict.fromkeys(out))
+
+def build_rungs(nodes):
+    head = _sel(nodes, *_HEAD_NEEDLES)
+    attn = _sel(nodes, *_ATTN_NEEDLES)
+
+    # Depth 1 is the first block and N_LAYERS the last (0 is the stem); the
+    # prefixes come from the same map the optimizer built its LLRD ladder from,
+    # so "outer block" can never mean two different things in one run.
+    outer_d = [d for d in (1, 2, N_LAYERS - 1, N_LAYERS) if 1 <= d <= N_LAYERS]
+    outer = _sel_in(nodes, _block_prefixes(sorted(set(outer_d))))
+
+    mid_d = [d for d in range(3, N_LAYERS - 1) if 1 <= d <= N_LAYERS]
+    mid_mlp = _sel_in(nodes, _block_prefixes(mid_d), _MLP_NEEDLES)
+    all_but_mid_mlp = [nm for nm, _ in nodes if nm not in set(mid_mlp)]
+
+    if not head:
+        print("[quant] !! no classifier node matched; the head rung is a no-op. "
+              "Add this model's head name to _HEAD_NEEDLES.")
+    if not attn:
+        print("[quant] !! no attention projection matched; the attention rung is "
+              "a no-op. Add this model's names to _ATTN_NEEDLES.")
+    print(f"[quant] selection: head={len(head)} attn={len(attn)} "
+          f"outer={len(outer)} mid_mlp={len(mid_mlp)} of {len(nodes)} nodes")
+
+    cand = [
+        ("INT8 (all MatMul)",                     []),
+        ("INT8, head in FP32",                    head),
+        ("INT8, head + attention in FP32",        head + attn),
+        ("INT8, head + attention + outer blocks", head + attn + outer),
+        ("INT8, middle-block MLPs only",          all_but_mid_mlp),
     ]
+
+    # A rung whose exclusion set repeats an earlier one costs a quantize plus a
+    # full eval to re-measure a number we already have, and the last rung
+    # degenerates into "quantize nothing" if no middle MLP matched -- which
+    # would pass the accuracy gate trivially while shipping an FP32 file under
+    # an INT8 name. Drop both cases here rather than in the timing loop.
+    rungs, seen = [], set()
+    for label, excl in cand:
+        if label.endswith("MLPs only") and not mid_mlp:
+            print("[quant] skipping the middle-MLP rung: nothing matched, so it "
+                  "would exclude every node and quantize nothing")
+            continue
+        key = frozenset(excl)
+        if key in seen:
+            continue
+        seen.add(key)
+        rungs.append((label, list(dict.fromkeys(excl))))
+    return rungs
 
 def quantize(exclude, out_path):
     quantize_dynamic(
@@ -2405,9 +3067,9 @@ if ONNX_OK:
         print(f"[onnx] exported FP32: {ONNX_FP32_PATH} ({fp32_mb:.1f} MB)")
         onnx_fp32 = eval_onnx(FP32_PATH, "fp32")
 
-        names = matmul_nodes(FP32_PATH)
-        rungs = build_rungs(names)
-        print(f"[quant] {len(names):,} quantizable MatMul/Gemm nodes; "
+        q_nodes = matmul_nodes(FP32_PATH)
+        rungs = build_rungs(q_nodes)
+        print(f"[quant] {len(q_nodes):,} quantizable MatMul/Gemm nodes; "
               f"{len(rungs)} rungs available")
 
         # One eval is `onnx_fp32['seconds']`; one quantize is roughly a third of
@@ -2522,8 +3184,10 @@ if chosen_rung is not None and chosen_rung < len(quant_report):
     _delta = quant_report[chosen_rung]["loss"]
 
 blank(); rule()
-print(f"  FINDFLOWER ViT — RUN #{manifest['runs']} SUMMARY".ljust(W))
+print(f"  FINDFLOWER {(TIMM_ARCH or 'ViT').upper()} — RUN #{manifest['runs']} "
+      f"SUMMARY".ljust(W))
 rule()
+row("architecture", f"{BASE_MODEL} @ {IMAGE_SIZE}px")
 row("species (classes)", f"{num_labels:,}")
 row("epochs completed this run", f"{epochs_done_this_run}")
 row("cumulative epochs", f"{manifest['trained_epochs']}")
