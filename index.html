@@ -255,6 +255,10 @@
             --ff-plate-w:   clamp(148px, 15vw,   216px);
             --ff-plate-h:   clamp(104px, 10.5vw, 150px);
             --ff-plate-gap: clamp(10px,  1.2vw,  16px);
+            min-height: calc(100svh - 4rem);
+            margin-top: -4rem;
+            display: grid;
+            align-items: stretch;
             /* Two rows plus the gap between them — the exact height of the band.
                The scrim's dissolve and the copy block's top padding are both
                expressed in terms of this rather than in percentages of the hero,
@@ -425,15 +429,12 @@
             justify-content: center;
             width: 100%;
             max-width: 80rem;
+            min-height: calc(100svh - 4rem);
             margin-inline: auto;
             padding-inline: 1.5rem;
+            padding-block: clamp(4.5rem, 8vh, 6rem);
             box-sizing: border-box;
             text-align: center;
-            /* No plates, no reservation. Without JS — or before the hero script
-               has built the band — this is a compact hero rather than 200px of
-               empty gutter above the headline. The script adds .ff-hero--plated
-               in the same statement that appends the cards. */
-            padding-top: clamp(36px, 4vw, 64px);
         }
         .ff-hero-stage {
             position: relative;
@@ -463,18 +464,6 @@
             filter: blur(28px);
         }
         .ff-hero-stage > * { position: relative; z-index: 1; }
-        .ff-hero--plated .ff-hero-copy {
-            /* Reach up into the band's last sliver so the headline rises out of
-               the plates instead of sitting in a column beneath them, but stay
-               below the scrim's 0.86-of-band stop so the badge lands on ground
-               that is already ~93% opaque. Both numbers are fractions of
-               --ff-band-h, so that relationship holds at every viewport width
-               instead of only at the one I measured. */
-            min-height: calc(var(--ff-band-h) + clamp(24rem, 37vw, 34rem));
-            padding-top: calc(var(--ff-band-h) * 0.82);
-            padding-bottom: clamp(3.5rem, 7vw, 6rem);
-        }
-
         /* Keep the copy crisp over the photo plates while a contained sage bloom
            gives the center of the hero a little atmosphere on the white page. */
         .ff-hero-text {
