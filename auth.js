@@ -26,6 +26,20 @@ const AUTH0_CONFIG = {
 
 // The single callback page Auth0 redirects back to after login.
 const AUTH0_CALLBACK = window.location.origin + "/login.html";
+const FF_SESSION_PROFILE_KEY = "ff_session_profile";
+
+function ffCacheSessionProfile(user) {
+    if (!user) return;
+    try {
+        localStorage.setItem(FF_SESSION_PROFILE_KEY, JSON.stringify({
+            authenticated: true,
+            name: user.given_name || user.nickname || user.name || user.email || "Botanist",
+            email: user.email || null,
+            picture: user.picture || null,
+            sub: user.sub || null,
+        }));
+    } catch {}
+}
 
 // True only once real credentials have been supplied.
 const AUTH0_READY =
@@ -84,6 +98,7 @@ async function ffLogin(returnTo) {
 }
 
 async function ffLogout() {
+    try { localStorage.removeItem(FF_SESSION_PROFILE_KEY); } catch {}
     const client = await ffGetClient();
     if (!client) return;
     await client.logout({
@@ -110,6 +125,7 @@ async function ffRenderHeader() {
     if (!link) return;
     const user = await ffUser();
     if (user) {
+        ffCacheSessionProfile(user);
         link.textContent = user.given_name || user.nickname || user.name || "Account";
         // Signed in, the name is a route to your own stuff -- not a logout trap.
         // This used to be href="#" with a logout handler, so clicking your own
@@ -150,6 +166,7 @@ async function getUserSession() {
     try {
         const user = await ffUser();
         if (!user) return guest;
+        ffCacheSessionProfile(user);
         return {
             authenticated: true,
             name: user.given_name || user.nickname || user.name || user.email || "Botanist",
