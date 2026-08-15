@@ -322,9 +322,26 @@ html.ff-routing main {
 }
 
 .ff-drawer-auth {
-    padding-bottom: 1.1rem;
-    margin-bottom: 0.75rem;
-    border-bottom: 1px solid #EEEEEE;
+    position: relative;
+    padding: 1.65rem 0.8rem 0.8rem;
+    margin-bottom: 1rem;
+    border: 1px solid #E2E5D9;
+    border-radius: 10px;
+    background: #F5F6EF;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.ff-drawer-auth::before {
+    content: 'Field Botanist ID';
+    position: absolute;
+    top: 0.55rem;
+    left: 0.8rem;
+    color: #71806D;
+    font-size: 0.59rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    line-height: 1;
+    text-transform: uppercase;
 }
 
 .ff-drawer-auth__guest,
@@ -350,9 +367,9 @@ html.ff-routing main {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: #4C6650;
-    background: #E4EBE5;
-    border: 1px solid #C9D6CB;
+    color: #40543D;
+    background: #E0E8DC;
+    border: 1px solid #BFCDB8;
     font-family: 'Fraunces', serif;
     font-size: 0.95rem;
 }
@@ -364,7 +381,8 @@ html.ff-routing main {
 .ff-drawer-profile strong {
     display: block;
     overflow: hidden;
-    color: #262626;
+    color: #2C3329;
+    font-family: 'Fraunces', serif;
     font-size: 0.83rem;
     font-weight: 600;
     line-height: 1.35;
@@ -411,14 +429,14 @@ html.ff-routing main {
 .ff-drawer-button--solid:hover { background: #262626; }
 
 .ff-drawer-profile {
-    padding: 0.25rem;
+    padding: 0.05rem;
     color: inherit;
     text-decoration: none;
 }
 
 .ff-drawer-profile__arrow {
     margin-left: auto;
-    color: #7C9781;
+    color: #587052;
     font-size: 1rem;
 }
 
@@ -435,16 +453,16 @@ html.ff-routing main {
     gap: 0.75rem;
     padding: 0.55rem 0.7rem;
     border-radius: 8px;
-    color: #525252;
+    color: #2C3329;
     font-size: 0.84rem;
-    font-weight: 500;
+    font-weight: 550;
     text-decoration: none;
     transition: color 160ms ease, background-color 160ms ease;
 }
 
-.ff-drawer-link svg { width: 21px; height: 21px; color: #7C9781; }
-.ff-drawer-link:hover { color: #171717; background: #F5F5F5; }
-.ff-drawer-link.is-active { color: #3D5341; background: #F2F5F2; }
+.ff-drawer-link > svg { width: 21px; height: 21px; color: #607A5C; stroke-width: 1.9; }
+.ff-drawer-link:hover { color: #1F281E; background: #F1F4EE; }
+.ff-drawer-link.is-active { color: #344931; background: #EAF0E7; }
 
 .ff-drawer-community {
     margin-top: 0.85rem;
@@ -453,7 +471,7 @@ html.ff-routing main {
 }
 
 .ff-drawer-link--community { grid-template-columns: 30px minmax(0, 1fr) auto; }
-.ff-drawer-link--community .ff-community-flower { width: 30px; height: 36px; color: #5F7A63; }
+.ff-drawer-link--community .ff-community-flower { width: 30px; height: 36px; color: #4F704D; stroke-width: 1.9; }
 
 .ff-coming-soon {
     padding: 0.2rem 0.45rem;
@@ -494,8 +512,17 @@ html.ff-routing main {
 }
 
 .ff-drawer-location > svg { width: 20px; height: 20px; color: #5F7A63; margin-top: 0.1rem; }
-.ff-drawer-location strong { display: block; color: #262626; font-size: 0.78rem; font-weight: 600; line-height: 1.35; }
-.ff-drawer-location span { display: block; margin-top: 0.12rem; color: #737373; font-size: 0.65rem; line-height: 1.35; overflow-wrap: anywhere; }
+.ff-drawer-location strong { display: block; color: #2C3329; font-size: 0.78rem; font-weight: 600; line-height: 1.35; }
+.ff-drawer-location span {
+    display: block;
+    margin-top: 0.12rem;
+    overflow-wrap: anywhere;
+    color: #788078;
+    font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.01em;
+    line-height: 1.4;
+}
 
 .ff-drawer-time {
     margin-top: 0.65rem;
