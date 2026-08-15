@@ -409,12 +409,31 @@
         .ff-hero-copy {
             position: relative;
             z-index: 3;
+            width: 100%;
+            text-align: center;
             /* No plates, no reservation. Without JS — or before the hero script
                has built the band — this is a compact hero rather than 200px of
                empty gutter above the headline. The script adds .ff-hero--plated
                in the same statement that appends the cards. */
             padding-top: clamp(36px, 4vw, 64px);
         }
+        .ff-hero-copy::before {
+            content: '';
+            position: absolute;
+            z-index: 0;
+            top: 68%;
+            left: 50%;
+            width: min(88vw, 66rem);
+            height: clamp(21rem, 38vw, 30rem);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            background: radial-gradient(ellipse at center,
+                rgba(178, 207, 183, 0.16) 0%,
+                rgba(216, 230, 218, 0.14) 44%,
+                rgba(252, 252, 252, 0) 76%);
+            filter: blur(12px);
+        }
+        .ff-hero-copy > * { position: relative; z-index: 1; }
         .ff-hero--plated .ff-hero-copy {
             /* Reach up into the band's last sliver so the headline rises out of
                the plates instead of sitting in a column beneath them, but stay
@@ -433,20 +452,22 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: min(100%, 54rem);
+            width: min(100%, 56rem);
+            margin-inline: auto;
             isolation: isolate;
         }
         .ff-hero-text::before {
             content: '';
             position: absolute;
-            z-index: -1;
-            inset: 2% 7% 8%;
+            z-index: 0;
+            inset: -14% -9% -18%;
             pointer-events: none;
             background: radial-gradient(ellipse at center,
-                rgba(201, 214, 203, 0.42) 0%,
-                rgba(228, 235, 229, 0.24) 34%,
-                rgba(252, 252, 252, 0) 74%);
-            filter: blur(13px);
+                rgba(150, 187, 157, 0.2) 0%,
+                rgba(201, 221, 204, 0.28) 28%,
+                rgba(228, 235, 229, 0.18) 52%,
+                rgba(252, 252, 252, 0) 78%);
+            filter: blur(24px);
         }
         .ff-hero-text > * { position: relative; z-index: 1; }
         .ff-hero-title {
