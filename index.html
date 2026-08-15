@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
+<!-- FindFlower botanical identification app. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -425,18 +425,42 @@
             padding-top: calc(var(--ff-band-h) - clamp(24px, 2.6vw, 40px));
         }
 
-        /* A tight halo rather than a drop shadow: two short off-white glows
-           keep the type crisp over any plate still showing through, and one
-           very faint sage bloom gives the block warmth. */
+        /* Keep the copy crisp over the photo plates while a contained sage bloom
+           gives the center of the hero a little atmosphere on the white page. */
+        .ff-hero-text {
+            position: relative;
+            z-index: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: min(100%, 54rem);
+            isolation: isolate;
+        }
+        .ff-hero-text::before {
+            content: '';
+            position: absolute;
+            z-index: -1;
+            inset: 2% 7% 8%;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center,
+                rgba(201, 214, 203, 0.42) 0%,
+                rgba(228, 235, 229, 0.24) 34%,
+                rgba(252, 252, 252, 0) 74%);
+            filter: blur(13px);
+        }
+        .ff-hero-text > * { position: relative; z-index: 1; }
         .ff-hero-title {
             text-shadow:
                 0 1px 1px rgba(252, 252, 252, 0.95),
                 0 0 20px rgba(252, 252, 252, 0.9),
                 0 0 52px rgba(252, 252, 252, 0.6),
-                0 2px 28px rgba(76, 102, 80, 0.1);
+                0 2px 30px rgba(76, 102, 80, 0.14);
         }
         .ff-hero-sub {
-            text-shadow: 0 0 16px rgba(252, 252, 252, 0.9), 0 0 34px rgba(252, 252, 252, 0.55);
+            text-shadow:
+                0 0 16px rgba(252, 252, 252, 0.92),
+                0 0 34px rgba(252, 252, 252, 0.6),
+                0 2px 22px rgba(95, 122, 99, 0.1);
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -566,12 +590,14 @@
                     116 classes &middot; on-device camera &middot; no sign-up
                 </div>
 
-                <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 max-w-4xl leading-[1.05] mb-6">
-                    Understand the <span class="font-serif italic font-normal text-sage-600">natural</span> world.
-                </h1>
-                <p class="ff-hero-sub reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-2xl leading-relaxed mb-10 font-light">
-                    Point your camera at a flower. A Vision Transformer names it, then live Wikidata and Trefle records fill in the binomial, family and growing habit.
-                </p>
+                <div class="ff-hero-text">
+                    <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 max-w-4xl leading-[1.05] mb-6">
+                        Understand the <span class="font-serif italic font-normal text-sage-600">natural</span> world.
+                    </h1>
+                    <p class="ff-hero-sub reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-2xl leading-relaxed mb-10 font-light">
+                        Point your camera at a flower. A Vision Transformer names it, then live Wikidata and Trefle records fill in the binomial, family and growing habit.
+                    </p>
+                </div>
                 <div class="reveal-up delay-300 flex flex-col sm:flex-row items-center gap-4">
                     <a href="try.html" class="lift-btn soft-click group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float flex items-center justify-center gap-2">
                         Start Identifying
@@ -623,7 +649,7 @@
                0    — try.html reaches the model with no account and no key
              The two that used to sit here ("<2s average result time", "Weekly
              model refinements") were measurements nobody had taken and a
-             cadence one person cannot promise, so they are gone rather than
+             cadence a small project cannot promise, so they are gone rather than
              softened. -->
         <section class="max-w-7xl mx-auto px-6 mb-36">
             <div class="reveal-up grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 border-y border-neutral-200 py-12">
@@ -811,7 +837,7 @@
                         Software should enhance our connection to the physical world, not abstract it. The identification engine is designed to be unobtrusive, highly responsive, and strictly focused on delivering precise information when you need it.
                     </p>
                     <p>
-                        This is a solo project &mdash; every detail, from the moment you upload an image to the clarity of the result you read, is considered by one person. FindFlower is built slowly and deliberately, so that what reaches you always feels calm, considered, and genuinely useful.
+                        FindFlower is built slowly and deliberately, with every detail considered from the moment you upload an image to the clarity of the result you read. What reaches you should always feel calm, considered, and genuinely useful.
                     </p>
                 </div>
             </div>
@@ -890,7 +916,7 @@
                 <p class="text-2xl md:text-4xl font-serif font-normal text-neutral-800 leading-snug tracking-tight">
                     “The more clearly we can name the living world, the more closely we tend to care for it.”
                 </p>
-                <p class="mt-8 text-sm font-medium text-neutral-500">Bhrigu Choudhury &middot; gsor56</p>
+                <p class="mt-8 text-sm font-medium text-neutral-500">A FindFlower field note</p>
             </div>
         </section>
 
@@ -955,7 +981,7 @@
             </div>
 
             <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
-                <p>&copy; 2026 FindFlower · Engineered by gsor56</p>
+                <p>&copy; 2026 FindFlower &middot; Open botanical reference</p>
                 <div class="flex gap-4 mt-4 md:mt-0">
                     <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>Vision Transformer &middot; 116 classes</span>
                     <span>ONNX Runtime &middot; fp32 weights</span>
@@ -1218,16 +1244,16 @@
         function seedGrain(g, spread) {
             g.x = rand(0, w);
             g.y = spread ? rand(0, h) : h + rand(4, 48);
-            g.r = rand(0.9, 2.5);
-            g.rise = rand(5, 17);          // px per second, upward
-            g.sway = rand(5, 20);          // px of horizontal drift
+            g.r = rand(1.1, 2.8);
+            g.rise = rand(6, 18);          // px per second, upward
+            g.sway = rand(6, 22);          // px of horizontal drift
             g.freq = rand(0.05, 0.2);      // sway cycles per second
             g.phase = rand(0, TAU);
-            g.alpha = rand(0.05, 0.15);
+            g.alpha = rand(0.1, 0.22);
             g.warm = Math.random() < 0.45; // a minority carry a pollen tint
         }
 
-        function wantCount() { return w < 560 ? 16 : (w < 900 ? 24 : 34); }
+        function wantCount() { return w < 560 ? 22 : (w < 900 ? 34 : 48); }
 
         function populate() {
             grains.length = 0;
@@ -1266,15 +1292,15 @@
                 // Two arcs per grain: a soft halo under a tighter core, which
                 // reads as out of focus rather than as a dot.
                 ctx.beginPath();
-                ctx.arc(x, g.y, g.r * 2.6, 0, TAU);
+                ctx.arc(x, g.y, g.r * 2.8, 0, TAU);
                 ctx.fillStyle = g.warm
-                    ? 'rgba(186, 168, 118, ' + (g.alpha * 0.4) + ')'
-                    : 'rgba(124, 151, 129, ' + (g.alpha * 0.4) + ')';
+                    ? 'rgba(213, 168, 75, ' + (g.alpha * 0.5) + ')'
+                    : 'rgba(124, 151, 129, ' + (g.alpha * 0.5) + ')';
                 ctx.fill();
                 ctx.beginPath();
                 ctx.arc(x, g.y, g.r, 0, TAU);
                 ctx.fillStyle = g.warm
-                    ? 'rgba(176, 154, 96, ' + g.alpha + ')'
+                    ? 'rgba(190, 151, 76, ' + g.alpha + ')'
                     : 'rgba(95, 122, 99, ' + g.alpha + ')';
                 ctx.fill();
             }
