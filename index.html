@@ -409,7 +409,15 @@
         .ff-hero-copy {
             position: relative;
             z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             width: 100%;
+            max-width: 80rem;
+            margin-inline: auto;
+            padding-inline: 1.5rem;
+            box-sizing: border-box;
             text-align: center;
             /* No plates, no reservation. Without JS — or before the hero script
                has built the band — this is a compact hero rather than 200px of
@@ -417,23 +425,34 @@
                in the same statement that appends the cards. */
             padding-top: clamp(36px, 4vw, 64px);
         }
-        .ff-hero-copy::before {
+        .ff-hero-stage {
+            position: relative;
+            z-index: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: min(100%, 64rem);
+            margin-inline: auto;
+            isolation: isolate;
+        }
+        .ff-hero-stage::before {
             content: '';
             position: absolute;
             z-index: 0;
-            top: 68%;
+            top: 54%;
             left: 50%;
-            width: min(88vw, 66rem);
-            height: clamp(21rem, 38vw, 30rem);
+            width: min(112vw, 74rem);
+            height: 132%;
             transform: translate(-50%, -50%);
             pointer-events: none;
             background: radial-gradient(ellipse at center,
-                rgba(178, 207, 183, 0.16) 0%,
-                rgba(216, 230, 218, 0.14) 44%,
-                rgba(252, 252, 252, 0) 76%);
-            filter: blur(12px);
+                rgba(201, 228, 207, 0.72) 0%,
+                rgba(190, 219, 196, 0.48) 30%,
+                rgba(224, 238, 226, 0.34) 54%,
+                rgba(252, 252, 252, 0) 78%);
+            filter: blur(28px);
         }
-        .ff-hero-copy > * { position: relative; z-index: 1; }
+        .ff-hero-stage > * { position: relative; z-index: 1; }
         .ff-hero--plated .ff-hero-copy {
             /* Reach up into the band's last sliver so the headline rises out of
                the plates instead of sitting in a column beneath them, but stay
@@ -448,28 +467,13 @@
            gives the center of the hero a little atmosphere on the white page. */
         .ff-hero-text {
             position: relative;
-            z-index: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
             width: min(100%, 56rem);
             margin-inline: auto;
-            isolation: isolate;
+            text-align: center;
         }
-        .ff-hero-text::before {
-            content: '';
-            position: absolute;
-            z-index: 0;
-            inset: -14% -9% -18%;
-            pointer-events: none;
-            background: radial-gradient(ellipse at center,
-                rgba(150, 187, 157, 0.2) 0%,
-                rgba(201, 221, 204, 0.28) 28%,
-                rgba(228, 235, 229, 0.18) 52%,
-                rgba(252, 252, 252, 0) 78%);
-            filter: blur(24px);
-        }
-        .ff-hero-text > * { position: relative; z-index: 1; }
         .ff-hero-title {
             text-shadow:
                 0 1px 1px rgba(252, 252, 252, 0.95),
@@ -605,7 +609,8 @@
             <canvas id="pollenCanvas" class="ff-pollen" aria-hidden="true"></canvas>
 
             <!-- Layer 3 · the words. -->
-            <div class="ff-hero-copy max-w-7xl mx-auto px-6 flex flex-col items-center text-center">
+            <div class="ff-hero-copy">
+                <div class="ff-hero-stage">
                 <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
                     <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
                     116 classes &middot; on-device camera &middot; no sign-up
@@ -628,7 +633,8 @@
                         See how it works
                     </a>
                 </div>
-                <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">No installation · Works in any browser · Free during Beta</p>
+                    <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">No installation · Works in any browser · Free during Beta</p>
+                </div>
             </div>
         </section>
 
