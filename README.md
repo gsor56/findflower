@@ -140,5 +140,6 @@ Released under the [MIT License](LICENSE) — free to use, modify, and learn fro
 ---
 
 <div align="center">
-<sub>Built with 🌱 by a student who really likes flowers.</sub>
+<sub>Built with 🌱 by a student who really likes flowers.<br>
+The readme may be outdated. Don't refer.</sub>
 </div>
