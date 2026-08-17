@@ -18,8 +18,8 @@
     <meta name="twitter:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=5">
-    <script src="nav.js?v=2" defer></script>
+    <link rel="stylesheet" href="app.css?v=7">
+    <script src="nav.js?v=3" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="directory.js" defer></script>
     <!-- Fetch/render split: api.js grabs data, ui.js turns it into DOM.
@@ -126,6 +126,61 @@
         }
         .scan-line { animation: scan-sweep 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1); }
 
+        /* ====================================================================
+           Viewfinder reticle — live camera
+           --------------------------------------------------------------------
+           Two composited-only motions, both switched off by the blanket
+           prefers-reduced-motion rule at the foot of this stylesheet.
+
+             sweep   — a soft line drifts down the frame on a loop. The line is
+                       painted at the TOP of a full-height element and translated
+                       by exactly ±100% of that element's own height, so it
+                       traverses the box whatever size the box resolves to. Its
+                       wrapper clips it so it never spills onto the live feed.
+             breathe — the corner brackets scale gently around their centre. The
+                       scale lives on a wrapper with no other transform, so the
+                       centring translate on the parent box is never clobbered.
+           ==================================================================== */
+        .ff-reticle-sweep-clip {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+        }
+        .ff-reticle-sweep {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 100%;
+            /* A thin white line with a faint sage halo beneath it. */
+            background:
+                linear-gradient(to bottom,
+                    rgba(124, 151, 129, 0) 0,
+                    rgba(124, 151, 129, 0.22) 22px,
+                    rgba(124, 151, 129, 0) 44px),
+                linear-gradient(to bottom,
+                    rgba(255, 255, 255, 0.95) 0,
+                    rgba(255, 255, 255, 0.95) 2px,
+                    rgba(255, 255, 255, 0) 2px);
+            animation: ff-reticle-sweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes ff-reticle-sweep {
+            0%   { transform: translateY(0);    opacity: 0; }
+            12%  { opacity: 0.85; }
+            88%  { opacity: 0.85; }
+            100% { transform: translateY(100%); opacity: 0; }
+        }
+
+        .ff-reticle-frame {
+            position: absolute;
+            inset: 0;
+            animation: ff-reticle-breathe 3.6s ease-in-out infinite;
+        }
+        @keyframes ff-reticle-breathe {
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.04); }
+        }
+
         /* Confidence bar fill */
         .conf-fill { transition: width 1s cubic-bezier(0.16, 1, 0.3, 1); }
 
@@ -174,6 +229,9 @@
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
             .reveal-up { opacity: 1; transform: none; }
+            /* A frozen scan line sitting at the frame's top edge reads as a bug,
+               not as "still". Hide it when motion is off. */
+            .ff-reticle-sweep { opacity: 0; }
         }
     
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
@@ -288,10 +346,18 @@
                                      is large enough that the model isn't classifying background. -->
                                 <div id="camReticle" class="hidden absolute inset-0 pointer-events-none">
                                     <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[62%] aspect-square">
-                                        <span class="absolute -top-px -left-px w-7 h-7 border-t-2 border-l-2 border-white/90 rounded-tl-lg"></span>
-                                        <span class="absolute -top-px -right-px w-7 h-7 border-t-2 border-r-2 border-white/90 rounded-tr-lg"></span>
-                                        <span class="absolute -bottom-px -left-px w-7 h-7 border-b-2 border-l-2 border-white/90 rounded-bl-lg"></span>
-                                        <span class="absolute -bottom-px -right-px w-7 h-7 border-b-2 border-r-2 border-white/90 rounded-br-lg"></span>
+                                        <!-- Scan sweep: a soft line drifting down the frame on a
+                                             loop, clipped to the box so it never spills onto the feed. -->
+                                        <div class="ff-reticle-sweep-clip" aria-hidden="true">
+                                            <div class="ff-reticle-sweep"></div>
+                                        </div>
+                                        <!-- Corner brackets, gently breathing around the centre. -->
+                                        <div class="ff-reticle-frame">
+                                            <span class="absolute -top-px -left-px w-7 h-7 border-t-2 border-l-2 border-white/90 rounded-tl-lg"></span>
+                                            <span class="absolute -top-px -right-px w-7 h-7 border-t-2 border-r-2 border-white/90 rounded-tr-lg"></span>
+                                            <span class="absolute -bottom-px -left-px w-7 h-7 border-b-2 border-l-2 border-white/90 rounded-bl-lg"></span>
+                                            <span class="absolute -bottom-px -right-px w-7 h-7 border-b-2 border-r-2 border-white/90 rounded-br-lg"></span>
+                                        </div>
                                     </div>
                                     <p class="absolute bottom-3 left-0 right-0 text-center text-xs font-medium text-white/90 drop-shadow px-4">
                                         Fill the box with the flower

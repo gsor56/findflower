@@ -1,7 +1,9 @@
 # --- Secrets / credentials (NEVER commit) ---
 kaggle.json
+.kaggle/
 *.env
 .env
+.env.*
 *secret*.txt
 # Token files sitting in the repo root. `*secret*.txt` did NOT match
 # "github_token(classic).txt", so a `git add -A` would have committed a live
@@ -10,6 +12,9 @@ kaggle.json
 *token*.json
 *_pat.txt
 credentials.json
+# A whole directory of live credentials (a GitHub PAT among them) kept outside
+# git. `git add -A` would otherwise commit it to this public repo.
+my-secrets/
 # Holds a live provider api_key inline; the repo is public.
 proxy/litellm-config.yaml
 
@@ -18,6 +23,15 @@ proxy/litellm-config.yaml
 # but its .onnxdata weights sibling is ~327MB.
 *.onnx
 *.onnxdata
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.npy
+*.npz
+/training/data/
+/training/checkpoint/
+/training/output/
 
 # --- Build output ---
 # _site/ is assembled by .github/workflows/pages.yml at deploy time.

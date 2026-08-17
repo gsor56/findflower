@@ -77,6 +77,45 @@
         '<rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>';
     var ICON_DIR   = SVG_OPEN +
         '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/></svg>';
+    var ICON_HOME  = SVG_OPEN +
+        '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>';
+    var ICON_HOW   = SVG_OPEN +
+        '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.7 2.7 0 0 1 5.1 1.2c0 2-2.6 2.3-2.6 4"/><path d="M12 18h.01"/></svg>';
+    var ICON_PRICE = SVG_OPEN +
+        '<path d="M20 12V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7"/><path d="M8 8h8M8 12h5M18 16v5M15.5 18.5h5"/></svg>';
+    var ICON_API   = SVG_OPEN +
+        '<path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg>';
+    var ICON_ABOUT = SVG_OPEN +
+        '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
+    var ICON_PIN   = SVG_OPEN +
+        '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+    var ICON_REFRESH = SVG_OPEN +
+        '<path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 8.2A7 7 0 0 1 18.4 7L20 9M4 15l1.6 2A7 7 0 0 0 17.9 15.8"/></svg>';
+    var ICON_COMMUNITY =
+        '<svg class="ff-community-flower" width="30" height="36" viewBox="0 0 30 36" fill="none" aria-hidden="true">' +
+        '<path d="M15 34V17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>' +
+        '<path d="M15 26c-5.2 0-8.4-2.5-9.4-6.8 5.1-.4 8.3 2 9.4 6.8Zm0 2.7c4.8 0 7.9-2.2 9.1-6.2-4.8-.5-7.9 1.6-9.1 6.2Z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>' +
+        '<path d="M15 17c-4.5 0-7.7-2.8-7.7-6.5 3.7-.7 6.4.8 7.7 3.3 1.3-2.5 4-4 7.7-3.3 0 3.7-3.2 6.5-7.7 6.5Z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>' +
+        '<circle cx="15" cy="9" r="3.5" fill="#D5A84B" stroke="currentColor" stroke-width="1.2"/>' +
+        '</svg>';
+
+    function escapeHTML(value) {
+        return String(value == null ? '' : value).replace(/[&<>'"]/g, function (ch) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch];
+        });
+    }
+
+    function safeImageURL(value) {
+        var url = String(value || '');
+        return /^(https:\/\/|data:image\/)/i.test(url) ? escapeHTML(url) : '';
+    }
+
+    function drawerLinkIsActive(href) {
+        var parts = href.split('#');
+        if ((parts[0] || 'index.html').toLowerCase() !== PAGE) return false;
+        if (parts[1]) return location.hash.toLowerCase() === ('#' + parts[1]).toLowerCase();
+        return !location.hash;
+    }
 
     function navLinksHTML() {
         return LINKS.map(function (l) {
@@ -183,90 +222,186 @@
         paint();
     }
 
-    // Slide-out sidebar for the links kept out of the top bar (Dashboard,
-    // Directory). Opened by the hamburger; closed by the X or Escape. It covers
-    // the full viewport (see .ff-sidebar in app.css), so there is no backdrop to
-    // click through — the X and Escape are the ways out.
-    function sidebarLink(label, href, icon) {
-        var active = (href === PAGE);
-        var cls = 'flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-colors ' +
-            (active ? 'bg-sage-50 text-sage-700' : 'text-neutral-700 hover:bg-neutral-100');
-        return '<a href="' + href + '" class="' + cls + '"' +
+    function drawerLink(label, href, icon) {
+        var active = drawerLinkIsActive(href);
+        return '<a href="' + href + '" class="ff-drawer-link' + (active ? ' is-active' : '') + '"' +
             (active ? ' aria-current="page"' : '') + '>' + icon + '<span>' + label + '</span></a>';
     }
 
     function buildSidebar() {
         var wrap = document.createElement('div');
         wrap.innerHTML =
-            '<aside id="ffSidebar" class="ff-sidebar" aria-label="More navigation" aria-hidden="true">' +
-                '<div class="flex items-center justify-between mb-6">' +
-                    '<span class="text-base font-medium tracking-tight text-neutral-900">Menu</span>' +
-                    '<button id="ffSidebarClose" type="button" aria-label="Close menu" ' +
-                        'class="flex items-center justify-center text-neutral-500 hover:text-neutral-900 ' +
-                        'transition-colors" style="min-width:40px;min-height:40px">' + ICON_CLOSE + '</button>' +
+            '<div id="ffSidebarBackdrop" class="ff-sidebar-backdrop" aria-hidden="true"></div>' +
+            '<aside id="ffSidebar" class="ff-sidebar" aria-label="Site menu" aria-hidden="true" aria-modal="true" role="dialog" tabindex="-1">' +
+                '<div class="ff-sidebar__header">' +
+                    '<div><span class="ff-sidebar__eyebrow">FindFlower</span><h2>Explore</h2></div>' +
+                    '<button id="ffSidebarClose" type="button" aria-label="Close menu" class="ff-sidebar__close">' + ICON_CLOSE + '</button>' +
                 '</div>' +
-                '<nav class="flex flex-col gap-1">' +
-                    sidebarLink('Dashboard', 'dashboard.html', ICON_DASH) +
-                    sidebarLink('Directory', 'directory.html', ICON_DIR) +
-                '</nav>' +
+                '<div class="ff-sidebar__scroll">' +
+                    '<section id="ffDrawerAuth" class="ff-drawer-auth" aria-live="polite"></section>' +
+                    '<nav class="ff-drawer-nav" aria-label="All pages">' +
+                        drawerLink('Home', 'index.html', ICON_HOME) +
+                        drawerLink('Dashboard', 'dashboard.html', ICON_DASH) +
+                        drawerLink('Directory', 'directory.html', ICON_DIR) +
+                        drawerLink('How it works', 'how.html', ICON_HOW) +
+                        drawerLink('Pricing', 'pricing.html', ICON_PRICE) +
+                        drawerLink('API', 'api.html', ICON_API) +
+                        drawerLink('About', 'index.html#about', ICON_ABOUT) +
+                    '</nav>' +
+                    '<div class="ff-drawer-community">' +
+                        '<a href="#" class="ff-drawer-link ff-drawer-link--community" data-coming-soon="true" aria-label="Community, coming soon">' +
+                            ICON_COMMUNITY + '<span>Community</span><span class="ff-coming-soon">Coming Soon</span>' +
+                        '</a>' +
+                    '</div>' +
+                '</div>' +
+                '<footer class="ff-drawer-utility" aria-live="polite">' +
+                    '<div class="ff-drawer-utility__top"><span class="ff-sidebar__eyebrow">Your local field note</span>' +
+                        '<button id="ffLocationRefresh" type="button" class="ff-location-refresh" aria-label="Refresh location" title="Refresh location">' + ICON_REFRESH + '</button></div>' +
+                    '<div class="ff-drawer-location">' + ICON_PIN + '<div><strong id="ffDrawerPlace">Location unavailable</strong><span id="ffDrawerCoords">Allow location access to find your place</span></div></div>' +
+                    '<div class="ff-drawer-time"><span>Local time</span><time id="ffDrawerTime">--:--</time></div>' +
+                '</footer>' +
             '</aside>';
         return wrap;
     }
 
-    // Open/close the panel. `.active` is the single source of truth for
-    // visibility; app.css keeps it translated off-screen without it.
+    var sidebarFocus = null;
+    var sidebarOverflow = '';
+    var locationStarted = false;
+    var clockTimer = null;
+
+    function renderDrawerAuth() {
+        var host = document.getElementById('ffDrawerAuth');
+        if (!host) return;
+        var guest = '<div class="ff-drawer-auth__guest"><span class="ff-drawer-auth__mark">FF</span><div><strong>Welcome to FindFlower</strong><span>Sign in to keep your field notes together.</span></div></div>' +
+            '<div class="ff-drawer-auth__actions"><a href="login.html" class="ff-drawer-button ff-drawer-button--quiet">Sign In</a><a href="try.html" class="ff-drawer-button ff-drawer-button--solid">Try Now</a></div>';
+        host.innerHTML = guest;
+        function paintProfile(session) {
+            if (!session || !session.authenticated) return;
+            var name = escapeHTML(session.name || 'Botanist');
+            var email = escapeHTML(session.email || 'Signed in');
+            var picture = safeImageURL(session.picture);
+            var avatar = picture ? '<img src="' + picture + '" alt="" class="ff-drawer-profile__avatar">' : '<span class="ff-drawer-profile__initial">' + escapeHTML((session.name || 'B')[0].toUpperCase()) + '</span>';
+            host.innerHTML = '<a href="dashboard.html" class="ff-drawer-profile">' + avatar + '<span><strong>' + name + '</strong><small>' + email + '</small></span><span class="ff-drawer-profile__arrow">&rarr;</span></a>';
+            var image = host.querySelector('img');
+            if (image) image.addEventListener('error', function () {
+                var initial = document.createElement('span');
+                initial.className = 'ff-drawer-profile__initial';
+                initial.textContent = (session.name || 'B')[0].toUpperCase();
+                image.replaceWith(initial);
+            }, { once: true });
+        }
+        if (typeof window.getUserSession !== 'function') {
+            try { paintProfile(JSON.parse(localStorage.getItem('ff_session_profile') || 'null')); } catch (e) {}
+            return;
+        }
+        window.getUserSession().then(paintProfile).catch(function () {});
+    }
+
+    function paintClock() {
+        var time = document.getElementById('ffDrawerTime');
+        if (!time) return;
+        var now = new Date();
+        time.textContent = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' }).format(now);
+        time.dateTime = now.toISOString();
+    }
+
+    function setLocationMessage(place, coords) {
+        var placeEl = document.getElementById('ffDrawerPlace');
+        var coordsEl = document.getElementById('ffDrawerCoords');
+        if (placeEl) placeEl.textContent = place;
+        if (coordsEl) coordsEl.textContent = coords || '';
+    }
+
+    function reverseGeocode(position) {
+        var lat = position.coords.latitude;
+        var lon = position.coords.longitude;
+        var accuracy = Math.round(position.coords.accuracy || 0);
+        var coords = lat.toFixed(5) + ', ' + lon.toFixed(5) + (accuracy ? ' · ±' + accuracy + ' m' : '');
+        window.ffDrawerLocation = { latitude: lat, longitude: lon, accuracy: position.coords.accuracy || null, altitude: position.coords.altitude || null, timestamp: position.timestamp || Date.now(), place: null, city: null, state: null };
+        window.dispatchEvent(new CustomEvent('ff:location', { detail: window.ffDrawerLocation }));
+        setLocationMessage('Finding your place…', coords);
+        fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lon), { headers: { 'Accept-Language': navigator.language || 'en' } })
+            .then(function (res) { return res.ok ? res.json() : null; })
+            .then(function (data) {
+                var address = data && data.address;
+                var city = address && (address.city || address.town || address.village || address.municipality || address.county);
+                var state = address && (address.state || address.region);
+                var place = city ? city + (state ? ', ' + state : '') : 'Current location';
+                window.ffDrawerLocation.place = place;
+                window.ffDrawerLocation.city = city || null;
+                window.ffDrawerLocation.state = state || null;
+                window.dispatchEvent(new CustomEvent('ff:location', { detail: window.ffDrawerLocation }));
+                setLocationMessage(place, coords);
+            })
+            .catch(function () { setLocationMessage('Current location', coords); });
+    }
+
+    function startLocation() {
+        if (locationStarted) return;
+        locationStarted = true;
+        paintClock();
+        if (!clockTimer) clockTimer = window.setInterval(paintClock, 30000);
+        if (!navigator.geolocation) { setLocationMessage('Location unavailable', 'Geolocation is not supported here'); return; }
+        setLocationMessage('Locating…', 'Waiting for a precise browser reading');
+        navigator.geolocation.getCurrentPosition(reverseGeocode, function (error) {
+            locationStarted = false;
+            var message = error && error.code === 1 ? 'Location permission needed' : 'Location unavailable';
+            setLocationMessage(message, 'Tap refresh to try again');
+        }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 });
+    }
+
     function setSidebar(on) {
         var sb = document.getElementById('ffSidebar');
+        var backdrop = document.getElementById('ffSidebarBackdrop');
         if (!sb) return;
         sb.classList.toggle('active', on);
+        if (backdrop) backdrop.classList.toggle('active', on);
         sb.setAttribute('aria-hidden', on ? 'false' : 'true');
-
+        if (backdrop) backdrop.setAttribute('aria-hidden', on ? 'false' : 'true');
         var btns = document.querySelectorAll('[data-toggle-sidebar], .ff-hamburger');
         for (var i = 0; i < btns.length; i++) {
             btns[i].setAttribute('aria-expanded', on ? 'true' : 'false');
-            // The icon itself morphs to an X, so the label has to follow it —
-            // a button reading "Open menu" while showing a close mark is a lie
-            // to anyone using a screen reader. aria-expanded also drives the
-            // CSS morph, so state, visuals and label all move together.
             btns[i].setAttribute('aria-label', on ? 'Close menu' : 'Open menu');
         }
-
-        // Freeze the page behind the panel so a scroll gesture over the overlay
-        // doesn't drag the document underneath it.
-        document.body.style.overflow = on ? 'hidden' : '';
+        if (on) {
+            sidebarFocus = document.activeElement;
+            sidebarOverflow = document.body.style.overflow;
+            document.body.style.overflow = 'hidden';
+            renderDrawerAuth();
+            startLocation();
+            window.setTimeout(function () { var close = document.getElementById('ffSidebarClose'); if (close) close.focus(); }, 20);
+        } else {
+            document.body.style.overflow = sidebarOverflow;
+            if (sidebarFocus && typeof sidebarFocus.focus === 'function') sidebarFocus.focus();
+            sidebarFocus = null;
+        }
     }
 
     function wireSidebar() {
-        // Delegated from the document, so the toggle works for ANY hamburger —
-        // desktop or mobile, present at load or injected later, and unaffected
-        // by the header being rebuilt. No per-button binding to keep in sync.
         document.addEventListener('click', function (e) {
             var t = e.target;
             if (!t || typeof t.closest !== 'function') return;
-
-            if (t.closest('[data-toggle-sidebar], .ff-hamburger')) {
-                e.preventDefault();
-                var sb = document.getElementById('ffSidebar');
-                setSidebar(!(sb && sb.classList.contains('active')));
-                return;
-            }
-            if (t.closest('#ffSidebarClose')) {
-                e.preventDefault();
-                setSidebar(false);
-                return;
-            }
-            // Following a link inside the panel navigates away — close first so
-            // a back-button return never lands on an open menu with a locked body.
+            if (t.closest('[data-toggle-sidebar], .ff-hamburger')) { e.preventDefault(); var sb = document.getElementById('ffSidebar'); setSidebar(!(sb && sb.classList.contains('active'))); return; }
+            if (t.closest('#ffSidebarClose, #ffSidebarBackdrop')) { e.preventDefault(); setSidebar(false); return; }
+            if (t.closest('[data-coming-soon="true"]')) { e.preventDefault(); return; }
+            if (t.closest('#ffLocationRefresh')) { e.preventDefault(); locationStarted = false; startLocation(); return; }
             if (t.closest('#ffSidebar a')) setSidebar(false);
         });
-
         document.addEventListener('keydown', function (e) {
-            if (e.key === 'Escape' || e.keyCode === 27) setSidebar(false);
+            var sb = document.getElementById('ffSidebar');
+            if (e.key === 'Escape' || e.keyCode === 27) { setSidebar(false); return; }
+            if (!sb || !sb.classList.contains('active') || (e.key !== 'Tab' && e.keyCode !== 9)) return;
+            var focusable = sb.querySelectorAll('a[href], button:not([disabled])');
+            if (!focusable.length) return;
+            var first = focusable[0], last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+            else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
         });
     }
 
-    // Bottom tab bar — Home · Scan · Dashboard. Icons are inline so the bar has
-    // no asset dependency. Active tab is coloured via aria-current (see app.css).
+    // Bottom tab bar — Home · Scan · Directory · Dashboard. Icons are inline so
+    // the bar has no asset dependency. Active tab is coloured via aria-current
+    // (see app.css).
     var TABS = [
         {
             label: 'Home', href: 'index.html', match: ['index.html', ''],
@@ -275,6 +410,10 @@
         {
             label: 'Scan', href: 'try.html', match: ['try.html'],
             icon: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'
+        },
+        {
+            label: 'Directory', href: 'directory.html', match: ['directory.html'],
+            icon: '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/>'
         },
         {
             label: 'Dashboard', href: 'dashboard.html', match: ['dashboard.html'],
@@ -311,6 +450,8 @@
         // Slide-out sidebar (Dashboard / Directory) + its open/close wiring.
         document.body.appendChild(buildSidebar());
         wireSidebar();
+        renderDrawerAuth();
+        paintClock();
 
         // Transparent-at-top / glass-on-scroll behaviour for the bar just built.
         wireHeaderScroll(header);
@@ -336,14 +477,15 @@
     function setActive(key) {
         PAGE = key || currentPage();
 
-        // Desktop links + sidebar links: both key off an exact href match.
+        // Desktop links + drawer links repaint after every client-side route.
         var links = document.querySelectorAll('header nav a[href], #ffSidebar a[href]');
         for (var i = 0; i < links.length; i++) {
             var a = links[i];
             var href = (a.getAttribute('href') || '').toLowerCase();
-            var on = (href === PAGE);
+            var on = a.classList.contains('ff-drawer-link') ? drawerLinkIsActive(href) : (href === PAGE);
             if (on) a.setAttribute('aria-current', 'page');
             else a.removeAttribute('aria-current');
+            if (a.classList.contains('ff-drawer-link')) a.classList.toggle('is-active', on);
         }
 
         // Bottom tab bar: match through the TABS table, so "/" still lights Home.
@@ -358,6 +500,7 @@
         if (typeof window.ffRenderHeader === 'function') {
             try { window.ffRenderHeader(); } catch (e) { /* non-fatal */ }
         }
+        renderDrawerAuth();
     }
 
     window.ffNavSetActive = setActive;

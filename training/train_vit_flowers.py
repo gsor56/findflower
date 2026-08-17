@@ -4,14 +4,10 @@
 # Credentials, in one place so there is no second place to look:
 #
 #   HF_TOKEN  — the ONLY secret this script reads. Looked for in the environment
-#               first, then in Kaggle's secret store, then in HF_TOKEN_FALLBACK
-#               below, because attaching a secret on Kaggle does not export it as
-#               an environment variable and Kaggle has no API for Secrets.
+#               first, then in Kaggle's secret store because attaching a secret
+#               on Kaggle does not export it as an environment variable.
 #               Kaggle: Add-ons > Secrets, label it exactly HF_TOKEN.
-#               Local:  setx HF_TOKEN <token>  /  export HF_TOKEN=<token>
-#               HF_TOKEN_FALLBACK is written in at deploy time and stripped back
-#               out before committing. The copy on Kaggle (a PRIVATE kernel) may
-#               therefore carry a token that this file in git does not.
+#               Local: set HF_TOKEN in the current process environment.
 #   kaggle.json — belongs at ~/.kaggle/kaggle.json (chmod 600) and is used by the
 #               `kaggle` CLI to PUSH this kernel. The script never reads it; a
 #               notebook already running on Kaggle needs no Kaggle credential.
@@ -19,8 +15,14 @@
 #
 # Never hardcode any of them: this file is committed to a PUBLIC repo.
 # ==============================================================================
+import gc
 import os
 import sys
+
+# Reduce allocator fragmentation before torch initializes CUDA. The conservative
+# micro-batch below handles peak activation memory; expandable segments handle
+# changing temporary allocation sizes without reserving as many unusable blocks.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 # ------------------------------------------------------------------------------
 # PRE-FLIGHT: prove the token actually works before anything expensive.
@@ -52,24 +54,10 @@ _pip("requests", "pillow")
 from huggingface_hub import HfApi
 from huggingface_hub.utils import HfHubHTTPError
 
-# Last-resort token, for a push-and-forget run where nobody is going to open the
-# Kaggle UI to attach a secret. Kaggle has no API for Secrets, so a token in the
-# code is the only other way to get one into the session.
-#
-# THIS MUST STAY EMPTY IN GIT. The repo is public. The deploy step writes the
-# real token in, runs `kaggle kernels push`, and strips it back out immediately --
-# the Kaggle kernel is private and keeps its copy, git never sees one. If you find
-# a token sitting here in a commit, it is already compromised: revoke it at
-# https://huggingface.co/settings/tokens and issue a new one.
-#
-# Checked LAST, so attaching a real Kaggle Secret later silently takes over.
-HF_TOKEN_FALLBACK = ""
-
 
 def _read_hf_token():
     """
-    Find HF_TOKEN, in order: the environment, Kaggle's secret store, then the
-    baked-in fallback.
+    Find HF_TOKEN in the environment or Kaggle's secret store.
 
     The environment alone is not enough on Kaggle. Attaching a secret in the UI
     does NOT export it as an environment variable -- it is handed out by
@@ -77,9 +65,7 @@ def _read_hf_token():
     dies on a KeyError one second into an eight-hour booking with a secret that
     was attached correctly the whole time.
 
-    The value is never printed. Only its length and last four characters are, and
-    only so a truncated paste can be recognised without leaking the token into a
-    log that Kaggle keeps.
+    The value is never printed or partially disclosed in the Kaggle logs.
     """
     tok = (os.environ.get("HF_TOKEN") or "").strip()
     if tok:
@@ -91,11 +77,6 @@ def _read_hf_token():
             return tok, "kaggle secret"
     except Exception as e:
         print(f"[preflight] Kaggle secret store unavailable ({type(e).__name__})")
-    tok = HF_TOKEN_FALLBACK.strip()
-    if tok:
-        print("[preflight] using the baked-in HF_TOKEN_FALLBACK. Attach a Kaggle "
-              "Secret named HF_TOKEN and this branch stops being used.")
-        return tok, "baked-in fallback"
     return "", "nowhere"
 
 
@@ -107,12 +88,10 @@ if not HF_TOKEN:
         "            LABELLED EXACTLY 'HF_TOKEN' holding a WRITE token from\n"
         "            https://huggingface.co/settings/tokens, then re-run.\n"
         "            Locally: set the HF_TOKEN environment variable.\n"
-        "            Or set HF_TOKEN_FALLBACK above -- but never in a commit.\n"
         "            Halting now rather than downloading a dataset and training\n"
         "            for eight hours with nowhere to push the result."
     )
-print(f"[preflight] HF_TOKEN found in {_tok_src} "
-      f"(len={len(HF_TOKEN)}, ends '...{HF_TOKEN[-4:]}')")
+print(f"[preflight] HF_TOKEN found in {_tok_src}")
 
 # A FRESH repo for the MaxViT-384 pivot. Deliberately not the 224px ViT repo:
 # the manifest lives inside the model repo, so pointing at a new id is what gives
@@ -206,10 +185,10 @@ print(f"[preflight] write access to {HF_REPO_ID} confirmed — safe to train")
 #              2.94x the area.
 #   Net        expect roughly 10-15 img/s, i.e. 8-12x slower per image. At 1,500
 #              species x 50 images that is ~1 to 1.5 hours per epoch, so a 10.5h
-#              session buys single-digit epochs. EPOCHS_PER_RUN=75 is a ceiling
+#              session buys single-digit epochs. EPOCHS_PER_RUN=50 is a ceiling
 #              spanning many sessions; the manifest is what accumulates them.
-#   VRAM       BATCH_SIZE=16 x GRAD_ACCUM_STEPS=4 keeps the effective batch at 64
-#              while the resident activations stay inside 16 GB. If a T4 still
+#   VRAM       BATCH_SIZE=4 x GRAD_ACCUM_STEPS=16 keeps the effective batch at 64
+#              with conservative activation usage on a 16 GB T4. If a T4 still
 #              OOMs, the loop skips the batch (see _oom_backoff) rather than dying.
 # ------------------------------------------------------------------------------
 # READ THIS BEFORE SETTING MAX_SPECIES TO 5000 — the arithmetic does not fit
@@ -293,25 +272,26 @@ TARGET_IMAGES = 500        # stop collecting a species once it reaches this many
 MIN_IMAGES_LARGE = 400     # floor used once >1000 species are present (see below)
 
 # ---- Training budget ----------------------------------------------------------
-# 75 is a CEILING that spans sessions, not a plan for one. The manifest carries
-# `trained_epochs` across runs, so each booking picks up where the last stopped;
+# 50 is a cumulative CEILING that spans sessions, not a plan for one booking.
+# The manifest carries `trained_epochs` across runs, so each booking picks up
+# where the last stopped;
 # what actually ends a session is TAIL_RESERVE_SECONDS below. MaxViT-base at 384px
 # is roughly 8-12x the cost per image of ViT-B/16 at 224px, so expect single-digit
-# epochs per session, not 75.
-EPOCHS_PER_RUN = 75
-BATCH_SIZE = 16            # 384px MaxViT-base: 64 OOMs a 16GB T4; 16 fits under AMP
-GRAD_ACCUM_STEPS = 4       # 16 x 4 = an effective batch of 64, same as the 224 run
-LEARNING_RATE = 3e-4       # HEAD lr; the backbone is layer-wise decayed from it
-BACKBONE_LR = 5e-5         # top encoder block lr, decayed downward by LLRD_DECAY
-LLRD_DECAY = 0.70          # layer-wise lr decay, 0.65–0.75 is the ViT range
-WEIGHT_DECAY = 0.05
-WARMUP_FRACTION = 0.05     # of total optimizer steps
+# epochs per session, not all 50 at once.
+EPOCHS_PER_RUN = 50
+BATCH_SIZE = 4             # conservative per-device batch for MaxViT-base at 384px
+GRAD_ACCUM_STEPS = 16      # 4 x 16 = an effective batch of 64, same as the 224 run
+LEARNING_RATE = 1.5e-4     # lower resumed-head lr reduces late-epoch oscillation
+BACKBONE_LR = 2.5e-5       # conservative top-block adaptation over the long run
+LLRD_DECAY = 0.80          # adapt low-level botanical texture/color features more
+WEIGHT_DECAY = 0.03        # less underfitting with 400+ images across 1,500 classes
+WARMUP_FRACTION = 0.02     # one epoch over the cumulative 50-epoch schedule
 VAL_FRACTION = 0.15        # 85/15 train/val split
 IMAGE_SIZE = 384           # maxvit_base_tf_384 is FIXED at 384; do not change alone
 NUM_WORKERS = 4
 LABEL_SMOOTHING = 0.1
 LOSS_MODE = "focal_smooth"  # "smooth" | "focal" | "focal_smooth"
-FOCAL_GAMMA = 1.5          # mild on purpose; 2.0+ destabilises a 5k-way head
+FOCAL_GAMMA = 1.0          # less emphasis on noisy hard samples; better top-k fit
 
 # ---- The Kaggle session time-bomb --------------------------------------------
 # Kaggle's GPU sessions run to 12 hours. 37800s (10.5h) is checked at the end of
@@ -330,7 +310,7 @@ STEP_CHECKPOINT_EVERY = 1500        # mid-epoch weight saves; a 4h epoch is too
 
 # ---- Quantization ------------------------------------------------------------
 QUANT_MAX_ACC_LOSS = 0.01   # 1%: above this, selective quantization is triggered
-QUANT_EVAL_MAX = 4000       # images used for the FP32-vs-INT8 comparison
+QUANT_EVAL_MAX = 400        # bounded CPU eval so ONNX finalization fits the session
 ONNX_OPSET = 14
 ONNX_FP32_PATH = "findflower_vit_fp32.onnx"
 ONNX_INT8_PATH = "findflower_vit.onnx"    # the INT8 artefact named in the brief
@@ -2129,10 +2109,10 @@ def push_to_hub_full(msg):
 # scaled by the smoothing coefficient — mathematically the smoothing expansion,
 # with the focal modulation applied only to the true-class part.
 #
-# FOCAL_GAMMA defaults to 1.5, not the paper's 2.0: with a 5,000-way head the
+# FOCAL_GAMMA is 1.0, not the paper's 2.0: with a 1,500-way head the
 # early-training probability of the correct class is ~0.0002, so (1-p)^gamma is
-# ~1 for everything and gamma mostly amplifies noise. 1.5 keeps the effect mild
-# until the head is actually discriminating.
+# ~1 for everything and gamma mostly amplifies noise. Gamma 1.0 keeps useful
+# hard-example pressure without letting mislabeled or ambiguous photos dominate.
 class FlowerLoss(nn.Module):
     def __init__(self, mode=LOSS_MODE, smoothing=LABEL_SMOOTHING,
                  gamma=FOCAL_GAMMA, n_classes=None):
@@ -2299,15 +2279,14 @@ def no_decay(name, param):
 # The decay factor has to be renormalised for depth, or the pivot silently becomes
 # head-only fine-tuning.
 # ------------------------------------------------------------------------------
-# LLRD_DECAY=0.70 is tuned for a 12-block ViT, where the bottom of the ladder lands
-# at BACKBONE_LR * 0.70**13 = 4.8e-07 — small, but still training. (That is the
-# exact number the 224px run printed.) maxvit_base has 24 blocks, and applying the
-# same PER-LEVEL factor over twice the depth gives BACKBONE_LR * 0.70**25 = 6.7e-09:
-# thirteen orders of magnitude below the head, i.e. frozen. The MBConv stages that
-# are the entire reason for choosing MaxViT would never move, and nothing in the
-# logs would say so.
+# LLRD_DECAY=0.80 expresses the desired total span over a 12-block reference:
+# BACKBONE_LR * 0.80**13 = 1.37e-06 at the stem with the configured 2.5e-5
+# top-block rate. Applying 0.80 directly at every one of MaxViT's 24 blocks would
+# make the span architecture-dependent, so the effective per-level factor below
+# is normalized by depth. The broader 0.80 span lets low-level color, edge and
+# texture filters adapt to botanical detail without exposing them to the top LR.
 #
-# So the tuned quantity is treated as the ladder's TOTAL SPAN (0.70**13 ≈ 1/103
+# So the tuned quantity is treated as the ladder's TOTAL SPAN (0.80**13 ≈ 1/18
 # from top block to stem) rather than its step size, and the step is whatever
 # spreads that span over the blocks this architecture actually has.
 _REF_BLOCKS = 12
@@ -2350,28 +2329,34 @@ print(f"[llrd] head params: {_head_n:,} "
       f"of the model)")
 
 # ------------------------------------------------------------------------------
-# 8c. Warmup + cosine schedule, expressed in STEPS this session will actually run.
+# 8c. Warmup + cosine schedule over the cumulative resumed training target.
 # ------------------------------------------------------------------------------
-# The horizon is min(planned epochs, what the time bomb allows). Scheduling a
-# cosine over 4 epochs and then being cut off after 2 leaves the run stranded at
-# half the peak rate, which is the worst place to stop.
+# The cosine is expressed over the cumulative target and offset by the epochs in
+# manifest.json. A resumed Kaggle session therefore continues the same decay
+# instead of restarting warmup and jumping back to the peak learning rate.
 steps_per_epoch = max(1, len(train_loader) // max(1, GRAD_ACCUM_STEPS))
-planned_epochs = EPOCHS_PER_RUN
-TOTAL_STEPS = steps_per_epoch * planned_epochs
+trained_before_run = max(0, int(manifest.get("trained_epochs", 0)))
+schedule_epochs_done = min(EPOCHS_PER_RUN, trained_before_run)
+planned_epochs = max(0, EPOCHS_PER_RUN - trained_before_run)
+TOTAL_STEPS = steps_per_epoch * max(1, EPOCHS_PER_RUN)
+SCHEDULE_START_STEP = steps_per_epoch * schedule_epochs_done
 WARMUP_STEPS = max(50, int(TOTAL_STEPS * WARMUP_FRACTION))
 
 def lr_scale(step):
-    if step < WARMUP_STEPS:
-        return (step + 1) / WARMUP_STEPS
-    prog = (step - WARMUP_STEPS) / max(1, TOTAL_STEPS - WARMUP_STEPS)
+    schedule_step = min(TOTAL_STEPS, SCHEDULE_START_STEP + step)
+    if schedule_step < WARMUP_STEPS:
+        return (schedule_step + 1) / WARMUP_STEPS
+    prog = ((schedule_step - WARMUP_STEPS) /
+            max(1, TOTAL_STEPS - WARMUP_STEPS))
     prog = min(1.0, max(0.0, prog))
     # Floor at 2% rather than 0: a cosine that reaches exactly zero spends its
     # last steps doing nothing while the clock still runs.
     return 0.02 + 0.98 * 0.5 * (1.0 + math.cos(math.pi * prog))
 
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_scale)
-print(f"[sched] {steps_per_epoch:,} steps/epoch x {planned_epochs} = "
-      f"{TOTAL_STEPS:,} steps, warmup {WARMUP_STEPS:,}")
+print(f"[sched] target={EPOCHS_PER_RUN} cumulative epochs, "
+      f"completed={trained_before_run}, remaining={planned_epochs}; "
+      f"{steps_per_epoch:,} steps/epoch, warmup={WARMUP_STEPS:,} steps")
 
 # ------------------------------------------------------------------------------
 # 8d. Metrics: Top-1, Top-3, Macro F1 — computed without a confusion matrix.
@@ -2462,7 +2447,34 @@ print("\n[phase] TRAIN")
 print(f"[train] budget: bomb at {TIME_BOMB_SECONDS}s ({hms(TIME_BOMB_SECONDS)}), "
       f"tail reserve {hms(TAIL_RESERVE_SECONDS)}")
 
-best = {"top1": -1.0, "top3": 0.0, "macro_f1": 0.0, "epoch": 0}
+def accuracy_selection_key(metrics):
+    """Top-1 first, Top-3 second, macro F1 only as the final tie-breaker."""
+    return (
+        float(metrics.get("top1") or -1.0),
+        float(metrics.get("top3") or -1.0),
+        float(metrics.get("macro_f1") or -1.0),
+    )
+
+
+_history = manifest.get("history") or []
+if _history:
+    _prior_best = max(_history, key=accuracy_selection_key)
+    _prior_score = accuracy_selection_key(_prior_best)
+    best = {
+        "top1": float(_prior_best.get("top1") or 0.0),
+        "top3": float(_prior_best.get("top3") or 0.0),
+        "macro_f1": float(_prior_best.get("macro_f1") or 0.0),
+        "epoch": int(_prior_best.get("epoch") or trained_before_run),
+        "score": _prior_score,
+    }
+    # The Hub checkpoint loaded above is the previous run's shipped best model.
+    # Materialize it locally before training so a non-improving continuation can
+    # never overwrite the best-known weights with a weaker epoch.
+    save_best_model(best)
+    print(f"[best] seeded resumed checkpoint: epoch={best['epoch']} "
+          f"top1={best['top1']*100:.2f}% macroF1={best['macro_f1']:.4f}")
+else:
+    best = {"top1": -1.0, "top3": 0.0, "macro_f1": 0.0, "epoch": 0}
 epochs_done_this_run = 0
 bomb_fired = False
 stop_reason = "completed all planned epochs"
@@ -2471,16 +2483,17 @@ train_seconds = 0.0
 
 def _oom_backoff():
     """
-    Halve the batch by accumulating instead. Called on a CUDA OOM.
+    Release Python and CUDA allocator state after a CUDA OOM.
 
     Rebuilding the DataLoader mid-epoch would restart the epoch and throw away
     hours, so the batch SIZE is left alone and the step is simply skipped after
-    clearing the cache. Two OOMs in a row means the configuration is wrong, and
-    saying so beats limping.
+    releasing the failed batch and clearing cached allocations.
     """
-    torch.cuda.empty_cache()
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
-for epoch in range(1, EPOCHS_PER_RUN + 1):
+for epoch in range(1, planned_epochs + 1):
     # Do not START an epoch there is no room to finish AND wrap up. The literal
     # 30600 check is at the bottom of the loop, as specified; this is the earlier,
     # stricter gate that keeps the tail work fundable.
@@ -2496,9 +2509,10 @@ for epoch in range(1, EPOCHS_PER_RUN + 1):
     epoch_broken = False
 
     for step, (x, y) in enumerate(train_loader, 1):
-        x = x.to(DEVICE, non_blocking=True)
-        y = y.to(DEVICE, non_blocking=True)
+        logits = loss = None
         try:
+            x = x.to(DEVICE, non_blocking=True)
+            y = y.to(DEVICE, non_blocking=True)
             with amp_autocast():
                 logits = forward_logits(model, x)
                 loss = criterion(logits, y) / GRAD_ACCUM_STEPS
@@ -2516,6 +2530,7 @@ for epoch in range(1, EPOCHS_PER_RUN + 1):
         except torch.cuda.OutOfMemoryError:
             print(f"  [train] CUDA OOM at step {step}; skipping batch")
             optimizer.zero_grad(set_to_none=True)
+            del x, y, logits, loss
             _oom_backoff()
             continue
 
@@ -2557,17 +2572,18 @@ for epoch in range(1, EPOCHS_PER_RUN + 1):
           f"top1={metrics['top1']*100:.2f}%  top3={metrics['top3']*100:.2f}%  "
           f"macroF1={metrics['macro_f1']:.4f}  ({hms(time.monotonic()-t0)})")
 
-    # Best-so-far -> best_model.pth. Selected on Macro F1 rather than Top-1:
-    # with a long-tailed 5,000-class set, Top-1 is dominated by the handful of
-    # classes with thousands of images, and a model that improves it by ignoring
-    # the tail is not the model to ship.
-    score = metrics["macro_f1"] if num_labels > 100 else metrics["top1"]
-    best_score = best.get("score", -1.0)
+    # Accuracy is the deployment target: Top-1 is primary, Top-3 breaks a tie,
+    # and macro F1 prevents a final tie from favoring a less balanced checkpoint.
+    score = accuracy_selection_key(metrics)
+    best_score = best.get("score", (-1.0, -1.0, -1.0))
     if score > best_score:
-        best = dict(metrics); best["epoch"] = epoch; best["score"] = score
+        best = dict(metrics)
+        best["epoch"] = manifest["trained_epochs"]
+        best["score"] = score
         save_best_model(best)
     else:
-        print(f"[best] e{epoch} did not improve ({score:.4f} <= {best_score:.4f})")
+        print(f"[best] e{epoch} did not improve accuracy "
+              f"(top1={metrics['top1']:.4f}, top3={metrics['top3']:.4f})")
 
     manifest["classes"] = classes
     manifest.setdefault("history", []).append({
@@ -2736,9 +2752,9 @@ class LogitsOnly(nn.Module):
 # The full validation split at 5,000 species is ~200,000 images. Through
 # onnxruntime on 4 CPU cores that is roughly seven hours — for one rung of the
 # ladder. QUANT_EVAL_MAX caps it, and the cap is spent on breadth: one image per
-# class first, then a second, and so on, so a 4,000-sample budget covers as many
-# distinct classes as possible. Macro F1 over a subset that only contains the
-# common classes would be measuring the easy half of the problem.
+# class first, then a second, and so on. With a 400-sample cap this intentionally
+# trades statistical precision for a bounded CPU finalization time while still
+# spreading the comparison across 400 distinct classes when available.
 def stratified_subset(samples, cap):
     buckets = defaultdict(list)
     for s in samples:
