@@ -117,12 +117,92 @@
     </header>
 
     <!-- LOGIN -->
-    <main class="flex-1 flex items-center justify-center px-6 pt-24 pb-16 relative">
+    <main class="flex-1 flex items-center justify-center px-6 pt-24 pb-16 relative overflow-hidden">
+        <!-- Subtle dotted texture, kept from the original as the base layer. -->
         <div class="absolute inset-0 -z-10 grid-dots"></div>
-        <div class="absolute inset-x-0 top-10 -z-10 h-[420px] bg-[radial-gradient(ellipse_45%_45%_at_50%_30%,rgba(95,122,99,0.10),transparent_70%)]"></div>
 
-        <div class="w-full max-w-md">
-            <div class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-lift p-8 md:p-10">
+        <!-- Living botanical backdrop. Purely decorative: aria-hidden and
+             pointer-events:none (in app.css) so it can never catch a tap meant
+             for the card. Two drifting glows, a slow-blooming focal flower, and
+             a scatter of drifting leaves — all transform/opacity only, all
+             frozen under prefers-reduced-motion. -->
+        <div class="ff-login-bg" aria-hidden="true">
+            <span class="ff-login-glow ff-login-glow--a"></span>
+            <span class="ff-login-glow ff-login-glow--b"></span>
+
+            <!-- Focal bloom: a large, faint line-drawn flower that breathes. -->
+            <div class="ff-bloom">
+                <div class="ff-bloom__spin">
+                    <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+                        <!-- stem -->
+                        <path d="M100 196V96"/>
+                        <!-- six radial petals around the centre -->
+                        <path d="M100 96c0-26 12-46 34-58-4 26-16 46-34 58Z"/>
+                        <path d="M100 96c0-26-12-46-34-58 4 26 16 46 34 58Z"/>
+                        <path d="M100 96c22-14 36-34 38-60-24 6-40 26-38 60Z"/>
+                        <path d="M100 96c-22-14-36-34-38-60 24 6 40 26 38 60Z"/>
+                        <path d="M100 96c26-2 48 8 64 30-26 8-50 0-64-30Z"/>
+                        <path d="M100 96c-26-2-48 8-64 30 26 8 50 0 64-30Z"/>
+                        <!-- leaves on the stem -->
+                        <path d="M100 150c-18-2-32-14-38-32 20 0 34 12 38 32Z"/>
+                        <path d="M100 130c18-2 32-14 38-32-20 0-34 12-38 32Z"/>
+                        <!-- flower centre -->
+                        <circle cx="100" cy="96" r="12"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Drifting leaves (single reusable leaf glyph, positioned + timed
+                 by the --n variants in app.css). -->
+            <span class="ff-leaf ff-leaf--1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+            <span class="ff-leaf ff-leaf--2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+            <span class="ff-leaf ff-leaf--3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+            <span class="ff-leaf ff-leaf--4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+            <span class="ff-leaf ff-leaf--5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+            <span class="ff-leaf ff-leaf--6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+        </div>
+
+        <!-- Split composition: editorial brand narrative + the Auth0 card. On
+             mobile the narrative stacks above the card; on lg the two sit side
+             by side. -->
+        <div class="relative z-10 w-full max-w-5xl grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+
+            <!-- LEFT — editorial brand statement (hidden until lg on the
+                 smallest phones would only crowd the card, so it stays but
+                 shrinks; it never carries anything the card needs). -->
+            <section class="hidden lg:block">
+                <span class="text-sm font-medium text-sage-600 mb-5 block">Your field notebook</span>
+                <h2 class="font-serif text-4xl xl:text-5xl font-normal tracking-tight text-neutral-900 leading-[1.08] mb-6">
+                    Every bloom you find,<br><span class="italic text-sage-600">kept in one place.</span>
+                </h2>
+                <blockquote class="ff-login-quote text-lg text-neutral-600 font-light leading-relaxed mb-10">
+                    Sign in to sync your botanist streak, scan history and field badges across every device. The scanner itself stays free and works without an account.
+                </blockquote>
+                <ul class="space-y-4 text-sm text-neutral-600 font-light">
+                    <li class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-full bg-sage-50 flex items-center justify-center flex-shrink-0">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
+                        </span>
+                        A living history of every species you identify
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-full bg-sage-50 flex items-center justify-center flex-shrink-0">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2-6.3-4.6-6.3 4.6L8 13.8 2 9.4h7.6z"/></svg>
+                        </span>
+                        Streaks and field badges that grow as you explore
+                    </li>
+                    <li class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-full bg-sage-50 flex items-center justify-center flex-shrink-0">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </span>
+                        Private by default — the scan runs, nothing is shared
+                    </li>
+                </ul>
+            </section>
+
+            <!-- RIGHT — the Auth0 card (structure and all IDs preserved) -->
+            <div class="w-full max-w-md mx-auto lg:mx-0 lg:justify-self-end">
+                <div class="bg-white/90 backdrop-blur-sm border border-neutral-200/70 rounded-[2rem] shadow-lift p-8 md:p-10">
                 <!-- Brand mark -->
                 <div class="flex justify-center mb-7">
                     <div class="w-12 h-12 rounded-2xl bg-sage-50 flex items-center justify-center">
@@ -195,10 +275,11 @@
                 </div>
             </div>
 
-            <p class="text-center text-xs text-neutral-400 font-light mt-6">
-                By continuing you agree to the FindFlower <a href="terms.html" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Terms</a> and <a href="privacy.html" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Privacy Policy</a>.
-            </p>
-        </div>
+                <p class="text-center text-xs text-neutral-400 font-light mt-6">
+                    By continuing you agree to the FindFlower <a href="terms.html" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Terms</a> and <a href="privacy.html" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Privacy Policy</a>.
+                </p>
+            </div><!-- /right column -->
+        </div><!-- /split grid -->
     </main>
 
     <!-- FOOTER (shared, compact) -->
