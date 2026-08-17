@@ -116,92 +116,118 @@
         </div>
     </header>
 
-    <!-- LOGIN -->
-    <main class="flex-1 flex items-center justify-center px-6 pt-24 pb-16 relative overflow-hidden">
-        <!-- Subtle dotted texture, kept from the original as the base layer. -->
-        <div class="absolute inset-0 -z-10 grid-dots"></div>
+    <!-- LOGIN · split composition
+         LEFT (lg:w-3/5) — a viewport-filling living botanical stage under bold
+         editorial text. RIGHT (lg:w-2/5) — the frosted Auth0 deck, structurally
+         isolated in its own column so the motion flows underneath it and never
+         obstructs readability. On mobile the panels stack, stage first. -->
+    <main class="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
 
-        <!-- Living botanical backdrop. Purely decorative: aria-hidden and
-             pointer-events:none (in app.css) so it can never catch a tap meant
-             for the card. Two drifting glows, a slow-blooming focal flower, and
-             a scatter of drifting leaves — all transform/opacity only, all
-             frozen under prefers-reduced-motion. -->
-        <div class="ff-login-bg" aria-hidden="true">
-            <span class="ff-login-glow ff-login-glow--a"></span>
-            <span class="ff-login-glow ff-login-glow--b"></span>
+        <!-- LEFT · living botanical panel -->
+        <section class="ff-lb-panel relative w-full lg:w-3/5 overflow-hidden flex items-center px-6 sm:px-10 lg:px-16 pt-28 lg:pt-24 pb-14 lg:pb-16 min-h-[46vh] lg:min-h-0">
 
-            <!-- Focal bloom: a large, faint line-drawn flower that breathes. -->
-            <div class="ff-bloom">
-                <div class="ff-bloom__spin">
-                    <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
-                        <!-- stem -->
-                        <path d="M100 196V96"/>
-                        <!-- six radial petals around the centre -->
-                        <path d="M100 96c0-26 12-46 34-58-4 26-16 46-34 58Z"/>
-                        <path d="M100 96c0-26-12-46-34-58 4 26 16 46 34 58Z"/>
-                        <path d="M100 96c22-14 36-34 38-60-24 6-40 26-38 60Z"/>
-                        <path d="M100 96c-22-14-36-34-38-60 24 6 40 26 38 60Z"/>
-                        <path d="M100 96c26-2 48 8 64 30-26 8-50 0-64-30Z"/>
-                        <path d="M100 96c-26-2-48 8-64 30 26 8 50 0 64-30Z"/>
-                        <!-- leaves on the stem -->
-                        <path d="M100 150c-18-2-32-14-38-32 20 0 34 12 38 32Z"/>
-                        <path d="M100 130c18-2 32-14 38-32-20 0-34 12-38 32Z"/>
-                        <!-- flower centre -->
-                        <circle cx="100" cy="96" r="12"/>
+            <!-- Animation stage. Purely decorative: aria-hidden and
+                 pointer-events:none (app.css) so it can never catch a tap. A
+                 continuously zooming/drifting hero specimen, two drifting glows,
+                 and five leaves rocking on independent planes — transform/opacity
+                 only, clipped to this panel, frozen under prefers-reduced-motion. -->
+            <div class="ff-lb-stage" aria-hidden="true">
+                <span class="ff-lb-glow ff-lb-glow--a"></span>
+                <span class="ff-lb-glow ff-lb-glow--b"></span>
+
+                <!-- Hero specimen: a line-drawn flower with a large veined leaf.
+                     As livingFlora scales it past the frame, the leaf's vein work
+                     fills the panel; `alternate` breathes it back down. -->
+                <div class="ff-lb-hero">
+                    <svg viewBox="0 0 400 400" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <!-- main stem -->
+                        <path d="M232 384C230 320 226 250 236 150"/>
+
+                        <!-- large veined leaf (lower-left) — the intricate detail
+                             revealed as the specimen zooms out past the boundary -->
+                        <path d="M236 300C176 300 108 270 60 190C138 168 214 214 236 300Z"/>
+                        <path d="M78 196C132 226 196 268 234 298"/>      <!-- midrib -->
+                        <path d="M104 208C112 224 120 240 126 254"/>
+                        <path d="M132 224C142 238 152 252 158 266"/>
+                        <path d="M162 244C172 256 182 268 188 280"/>
+                        <path d="M120 200C112 214 108 226 108 240"/>
+                        <path d="M150 218C144 232 142 244 144 258"/>
+                        <path d="M182 238C178 252 178 264 182 276"/>
+
+                        <!-- secondary leaf (right) -->
+                        <path d="M236 252C278 248 322 260 350 302C306 308 262 294 236 252Z"/>
+                        <path d="M256 264C286 278 318 292 344 300"/>
+                        <path d="M280 268C278 282 280 294 286 304"/>
+
+                        <!-- flower head — eight radial petals + centre, at (236,110) -->
+                        <g>
+                            <ellipse cx="236" cy="66" rx="17" ry="44"/>
+                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(45 236 110)"/>
+                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(90 236 110)"/>
+                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(135 236 110)"/>
+                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(180 236 110)"/>
+                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(225 236 110)"/>
+                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(270 236 110)"/>
+                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(315 236 110)"/>
+                            <circle cx="236" cy="110" r="16"/>
+                        </g>
                     </svg>
                 </div>
+
+                <!-- Drifting foliage (single reusable leaf glyph; each plane's
+                     position, size and clock come from the --n variants). -->
+                <span class="ff-lb-leaf ff-lb-leaf--1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+                <span class="ff-lb-leaf ff-lb-leaf--2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+                <span class="ff-lb-leaf ff-lb-leaf--3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+                <span class="ff-lb-leaf ff-lb-leaf--4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
+                <span class="ff-lb-leaf ff-lb-leaf--5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
             </div>
 
-            <!-- Drifting leaves (single reusable leaf glyph, positioned + timed
-                 by the --n variants in app.css). -->
-            <span class="ff-leaf ff-leaf--1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-            <span class="ff-leaf ff-leaf--2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-            <span class="ff-leaf ff-leaf--3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-            <span class="ff-leaf ff-leaf--4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-            <span class="ff-leaf ff-leaf--5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-            <span class="ff-leaf ff-leaf--6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-        </div>
-
-        <!-- Split composition: editorial brand narrative + the Auth0 card. On
-             mobile the narrative stacks above the card; on lg the two sit side
-             by side. -->
-        <div class="relative z-10 w-full max-w-5xl grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-
-            <!-- LEFT — editorial brand statement (hidden until lg on the
-                 smallest phones would only crowd the card, so it stays but
-                 shrinks; it never carries anything the card needs). -->
-            <section class="hidden lg:block">
+            <!-- Editorial text, above the stage -->
+            <div class="relative z-10 max-w-xl">
                 <span class="text-sm font-medium text-sage-600 mb-5 block">Your field notebook</span>
-                <h2 class="font-serif text-4xl xl:text-5xl font-normal tracking-tight text-neutral-900 leading-[1.08] mb-6">
+                <h2 class="font-serif text-4xl sm:text-5xl xl:text-6xl font-normal tracking-tight text-neutral-900 leading-[1.05] mb-7">
                     Every bloom you find,<br><span class="italic text-sage-600">kept in one place.</span>
                 </h2>
-                <blockquote class="ff-login-quote text-lg text-neutral-600 font-light leading-relaxed mb-10">
+
+                <!-- Technical botanical markers -->
+                <div class="ff-lb-markers mb-8">
+                    <span class="ff-lb-marker">116 classes</span>
+                    <span class="ff-lb-marker">Vision Transformer</span>
+                    <span class="ff-lb-marker">No account needed</span>
+                </div>
+
+                <blockquote class="border-l-2 border-sage-200 pl-4 text-lg text-neutral-600 font-light leading-relaxed mb-9 max-w-md">
                     Sign in to sync your botanist streak, scan history and field badges across every device. The scanner itself stays free and works without an account.
                 </blockquote>
                 <ul class="space-y-4 text-sm text-neutral-600 font-light">
                     <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-sage-50 flex items-center justify-center flex-shrink-0">
+                        <span class="w-8 h-8 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
                         </span>
                         A living history of every species you identify
                     </li>
                     <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-sage-50 flex items-center justify-center flex-shrink-0">
+                        <span class="w-8 h-8 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2-6.3-4.6-6.3 4.6L8 13.8 2 9.4h7.6z"/></svg>
                         </span>
                         Streaks and field badges that grow as you explore
                     </li>
                     <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-sage-50 flex items-center justify-center flex-shrink-0">
+                        <span class="w-8 h-8 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                         </span>
                         Private by default — the scan runs, nothing is shared
                     </li>
                 </ul>
-            </section>
+            </div>
+        </section>
 
-            <!-- RIGHT — the Auth0 card (structure and all IDs preserved) -->
-            <div class="w-full max-w-md mx-auto lg:mx-0 lg:justify-self-end">
+        <!-- RIGHT · Auth0 deck. Its own column with a solid ground, so the
+             left panel's motion flows up to its edge and stops — the card stays
+             perfectly legible. All auth IDs and the script below are unchanged. -->
+        <div class="relative w-full lg:w-2/5 flex items-center justify-center px-6 pt-14 lg:pt-24 pb-16 bg-[#FCFCFC]">
+            <div class="w-full max-w-md">
                 <div class="bg-white/90 backdrop-blur-sm border border-neutral-200/70 rounded-[2rem] shadow-lift p-8 md:p-10">
                 <!-- Brand mark -->
                 <div class="flex justify-center mb-7">
