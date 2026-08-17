@@ -675,6 +675,30 @@ html.ff-routing main {
     font-weight: 600;
 }
 
+/* Neutral "at a glance" chip — the taxonomy/care summary that sits under a
+   species name (Family · Growth habit · Sunlight · Toxicity). Same pill
+   footprint as the alert badges above, quieter sage palette so a row of them
+   reads as reference, not warning. */
+.ff-badge--fact {
+    background-color: #F2F5F2;   /* sage-50 */
+    color: #3D5341;              /* sage-700 */
+    border: 1px solid #E4EBE5;   /* sage-100 */
+}
+.ff-badge--fact svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    color: #5F7A63;              /* sage-500 — the icon reads a shade lighter */
+}
+
+/* A family or habit phrase can run long; cap the label and ellipsise it so one
+   chip never stretches the whole row. The pill itself already sets nowrap. */
+.ff-badge__text {
+    max-width: 22ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* Full-width toxicity banner at the top of a result card. */
 .ff-toxic-banner {
     display: flex;
@@ -1179,6 +1203,66 @@ html.ff-routing main {
 @keyframes ff-fade-opacity {
     from { opacity: 0; }
     to   { opacity: 1; }
+}
+
+/* Result-card skeleton (scanner #resLoading). A structural placeholder that
+   mirrors the final match card — image block, name/confidence line, fact
+   grid — so the swap to real content lands in place instead of reflowing.
+   Every bar is a .skeleton-shimmer, so the whole thing sweeps on the shared
+   ff-shimmer rhythm. Sizes echo the real card (24x24 thumb, two-column facts)
+   without being pixel-locked to it: close enough that nothing jumps. */
+.ff-res-skeleton {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+.ff-skel-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+.ff-skel-thumb {
+    width: 96px;
+    height: 96px;
+    border-radius: 16px;
+    flex-shrink: 0;
+}
+.ff-skel-lines {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+}
+.ff-skel-bar { height: 12px; border-radius: 8px; }
+.ff-skel-bar--eyebrow { height: 9px; width: 34%; }
+.ff-skel-bar--title   { height: 22px; width: 72%; border-radius: 9px; }
+.ff-skel-bar--sub     { width: 48%; }
+.ff-skel-conf {
+    height: 6px;
+    border-radius: 9999px;
+    width: 100%;
+    margin-bottom: 24px;
+}
+.ff-skel-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.ff-skel-cell {
+    height: 62px;
+    border-radius: 12px;
+}
+.ff-skel-cell--wide { grid-column: 1 / -1; }
+
+/* Cold-start staging text sits BELOW the skeleton (see try.html): the skeleton
+   says "a card is coming", this line says why it is taking a moment. Centred,
+   quiet, and it never shifts the skeleton above it. */
+.ff-skel-status {
+    margin-top: 22px;
+    text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

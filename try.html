@@ -181,8 +181,33 @@
             50%      { transform: scale(1.04); }
         }
 
-        /* Confidence bar fill */
-        .conf-fill { transition: width 1s cubic-bezier(0.16, 1, 0.3, 1); }
+        /* Confidence bar fill. The width animates on the 1s easing; the colour
+           is tier-aware and set by a class in renderResult() so the meter reads
+           the same story as the result tiers: sage when the model is confident
+           enough to claim a species (>=80%), amber in the uncertain band
+           (40-79%), a quiet grey below that. Only background-color changes
+           between tiers, so the width transition is never interrupted. */
+        .conf-fill {
+            transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+            background-color: #5F7A63;                 /* sage-500 — high */
+        }
+        .conf-fill.is-uncertain { background-color: #F59E0B; }  /* amber-500 */
+        .conf-fill.is-low       { background-color: #A3A3A3; }  /* neutral-400 */
+
+        /* Threshold ticks at the 40% and 80% tier boundaries. Faint, full-height
+           hairlines that paint OVER the fill (later siblings in the track), so
+           they stay visible whatever the bar's width or colour. Decorative —
+           aria-hidden in the markup. */
+        .ff-conf-track { position: relative; }
+        .ff-conf-tick {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background-color: rgba(23, 23, 23, 0.14);
+            transform: translateX(-0.5px);            /* centre the hairline on the mark */
+            pointer-events: none;
+        }
 
         /* ====================================================================
            Capture confirmation — the soft pop on the preview thumbnail
@@ -455,11 +480,42 @@
                         <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Your identification will appear here, complete with a confidence score and botanical context.</p>
                     </div>
 
-                    <!-- Loading state -->
-                    <div id="resLoading" class="hidden flex-1 flex flex-col items-center justify-center text-center">
-                        <svg class="spin text-sage-500 mb-5" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
-                        <p id="resLoadingMain" class="text-neutral-500 font-light">Analyzing image…</p>
-                        <p id="resLoadingSub" class="text-neutral-400 font-light text-sm mt-2"></p>
+                    <!-- Loading state. A structural skeleton that mirrors the
+                         result card below (thumb + name/confidence line + fact
+                         grid), so real content swaps in without a reflow. It
+                         shimmers on the shared .skeleton-shimmer rhythm rather
+                         than spinning: a spinner says "waiting", a skeleton says
+                         "arriving". The staged cold-start copy stays, layered
+                         underneath so the honest "waking the model up" messaging
+                         is unchanged. -->
+                    <div id="resLoading" class="hidden flex-1 flex flex-col">
+                        <div class="ff-res-skeleton" aria-hidden="true">
+                            <!-- Header: thumbnail + eyebrow / name / family lines -->
+                            <div class="ff-skel-head">
+                                <div class="ff-skel-thumb skeleton-shimmer"></div>
+                                <div class="ff-skel-lines">
+                                    <div class="ff-skel-bar ff-skel-bar--eyebrow skeleton-shimmer"></div>
+                                    <div class="ff-skel-bar ff-skel-bar--title skeleton-shimmer"></div>
+                                    <div class="ff-skel-bar ff-skel-bar--sub skeleton-shimmer"></div>
+                                </div>
+                            </div>
+                            <!-- Confidence track -->
+                            <div class="ff-skel-conf skeleton-shimmer"></div>
+                            <!-- Fact grid: two square cells + a wide one, echoing resFacts -->
+                            <div class="ff-skel-grid">
+                                <div class="ff-skel-cell skeleton-shimmer"></div>
+                                <div class="ff-skel-cell skeleton-shimmer"></div>
+                                <div class="ff-skel-cell ff-skel-cell--wide skeleton-shimmer"></div>
+                            </div>
+                        </div>
+                        <!-- Staged cold-start messaging, layered under the skeleton.
+                             aria-live so the honest "waking the model" updates are
+                             announced even though the skeleton itself is hidden from
+                             assistive tech. -->
+                        <div class="ff-skel-status" aria-live="polite">
+                            <p id="resLoadingMain" class="text-neutral-500 font-light">Analyzing image…</p>
+                            <p id="resLoadingSub" class="text-neutral-400 font-light text-sm mt-2"></p>
+                        </div>
                     </div>
 
                     <!-- Tier 2 (40-79%): the model has candidates but no winner. Naming one
@@ -547,8 +603,14 @@
                                 <span class="text-sm text-neutral-500">Confidence</span>
                                 <span id="resConfVal" class="text-sm font-medium text-neutral-900">—</span>
                             </div>
-                            <div class="h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
-                                <div id="resConfBar" class="conf-fill h-full rounded-full bg-sage-500" style="width:0%"></div>
+                            <div class="ff-conf-track h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
+                                <!-- Colour comes from a tier class in renderResult(); the
+                                     sage default keeps a sensible fill before JS runs. -->
+                                <div id="resConfBar" class="conf-fill h-full rounded-full" style="width:0%"></div>
+                                <!-- Tier-boundary ticks: 40% (uncertain floor) and 80%
+                                     (confident floor). Decorative framing marks. -->
+                                <span class="ff-conf-tick" style="left:40%" aria-hidden="true"></span>
+                                <span class="ff-conf-tick" style="left:80%" aria-hidden="true"></span>
                             </div>
                             <p id="resConfNote" class="text-xs text-neutral-400 font-light mt-2"></p>
                         </div>
@@ -1538,8 +1600,19 @@
             $('resName').textContent = cleanName(top.name);
             $('resFamily').textContent = '';
             $('resConfVal').textContent = pct.toFixed(1) + '%';
-            $('resConfBar').style.width = '0%';
-            requestAnimationFrame(() => { $('resConfBar').style.width = Math.max(4, pct).toFixed(1) + '%'; });
+
+            // Tier-aware fill colour, keyed off the same 40/80 boundaries as the
+            // ticks and the result tiers. renderResult() is reached both by the
+            // >=80% path and by a user picking a candidate from the uncertain
+            // flow, so the tier is read from pct here rather than assumed high.
+            const bar = $('resConfBar');
+            bar.classList.remove('is-uncertain', 'is-low');
+            if (pct < 40) bar.classList.add('is-low');
+            else if (pct < 80) bar.classList.add('is-uncertain');
+            // (>=80% keeps the sage default)
+
+            bar.style.width = '0%';
+            requestAnimationFrame(() => { bar.style.width = Math.max(4, pct).toFixed(1) + '%'; });
 
             const note = $('resConfNote');
             if (pct >= 70) note.textContent = 'High confidence match.';
