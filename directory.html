@@ -108,21 +108,28 @@
 
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-200/60">
         <div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-2 font-serif text-lg text-neutral-900">
+            <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
                     <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 FindFlower
             </a>
+            <!-- Canonical fallback link set (nav.js swaps this for the real
+                 header on load). Directory is the active page. -->
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
-                <a href="try.html" class="hover:text-neutral-900 transition-colors">Scanner</a>
-                <a href="directory.html" class="text-neutral-900">Directory</a>
+                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
                 <a href="dashboard.html" class="hover:text-neutral-900 transition-colors">Dashboard</a>
                 <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="directory.html" class="text-neutral-900 transition-colors">Directory</a>
+                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
             </nav>
             <div class="flex items-center gap-3">
                 <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="try.html" class="tap text-sm font-medium bg-neutral-900 text-white px-5 rounded-full hover:bg-neutral-800 transition-colors flex items-center">Scan</a>
+                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
             </div>
         </div>
     </header>
