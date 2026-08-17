@@ -126,6 +126,58 @@
         }
 
         /* ====================================================================
+           VERDANT GLASS TILE
+           --------------------------------------------------------------------
+           The hero's living-glass panel, brought down to card scale: a frosted
+           translucent surface on a 1px soft-sage border, a whisper of inner
+           light, and — on hover — a single petal accent that unfurls in the
+           top-right corner. Transform/opacity only; the accent is a pseudo
+           element so it costs no extra markup and never takes a tap.
+           ==================================================================== */
+        .ff-vglass {
+            position: relative;
+            isolation: isolate;
+            border: 1px solid rgba(201, 214, 203, 0.7);
+            background: linear-gradient(158deg, rgba(255, 255, 255, 0.82), rgba(242, 245, 242, 0.5));
+            -webkit-backdrop-filter: blur(6px) saturate(1.05);
+            backdrop-filter: blur(6px) saturate(1.05);
+            box-shadow: 0 4px 40px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+            overflow: hidden;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-color 0.5s ease;
+        }
+        /* The petal accent. Anchored to the top-right, scaled to nothing and
+           tucked back on its stem until the tile is hovered, then unfurling. */
+        .ff-vglass::after {
+            content: '';
+            position: absolute;
+            top: -14px;
+            right: -14px;
+            width: 78px;
+            height: 78px;
+            z-index: 0;
+            pointer-events: none;
+            background: no-repeat center / contain
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z' stroke='%235F7A63' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            opacity: 0;
+            transform: scale(0.4) rotate(-24deg);
+            transform-origin: top right;
+            transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.34, 1.3, 0.5, 1);
+        }
+        .ff-vglass:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 22px 52px -22px rgba(61, 83, 65, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            border-color: rgba(95, 122, 99, 0.42);
+        }
+        .ff-vglass:hover::after {
+            opacity: 0.5;
+            transform: scale(1) rotate(0deg);
+        }
+        /* The tile's own content sits above the accent. */
+        .ff-vglass > * { position: relative; z-index: 1; }
+
+        /* ====================================================================
            "How it works" — the sample record card
            --------------------------------------------------------------------
            The tabs are real <button>s, not links: nothing navigates, the card
@@ -238,257 +290,211 @@
         .lift-btn.soft-click:active { transform: scale(0.98); }
 
         /* ====================================================================
-           BOTANICAL HERO
+           VERDANT LIVING GLASS — the signature hero
            --------------------------------------------------------------------
-           Four stacked layers inside one `isolate` section, so every z-index
-           below is local and none of them can leak into <main>:
+           An asymmetrical editorial split. The headline holds the wide left
+           rail; a bespoke botanical specimen blooms inside a frosted "living
+           glass" panel on the right. Ambient pollen drifts full-bleed behind
+           the whole band on the one <canvas> the site keeps.
 
-             0  plates  — two rows of real species cards, drifting apart
-             1  scrim   — off-white gradient that dissolves the plates
-             2  pollen  — <canvas>, drifting spores
-             3  copy    — the headline and calls to action
-
-           Sizes are fluid rather than stepped: a plate is a fraction of the
-           viewport between a floor and a ceiling, so the band reads the same
-           on a 360px phone as on a 1280px laptop instead of showing three
-           cards on one and eleven on the other.
+           Every motion here is transform, opacity or stroke-dashoffset only,
+           so the entire hero composites on the GPU and never touches layout.
+           The specimen draws its stem in, opens its petals from the flower's
+           centre, settles its core, then sways its leaves for good. The frosted
+           panel deliberately sits OVER the pollen so the grains blur softly
+           behind the glass.
            ==================================================================== */
         .ff-hero {
-            --ff-plate-w:   clamp(148px, 15vw,   216px);
-            --ff-plate-h:   clamp(104px, 10.5vw, 150px);
-            --ff-plate-gap: clamp(10px,  1.2vw,  16px);
-            min-height: calc(100svh - 4rem);
-            margin-top: -4rem;
-            display: grid;
-            align-items: stretch;
-            /* Two rows plus the gap between them — the exact height of the band.
-               The scrim's dissolve and the copy block's top padding are both
-               expressed in terms of this rather than in percentages of the hero,
-               because the hero's own height depends on how many lines the
-               headline wraps to. Percentages meant the dissolve drifted relative
-               to the plates every time the copy reflowed. */
-            --ff-band-h: calc(var(--ff-plate-h) * 2 + var(--ff-plate-gap));
-        }
-
-        .ff-plates {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 0;
-            display: flex;
-            flex-direction: column;
-            /* Decorative. Never takes a tap that was aimed at the CTA above it. */
-            pointer-events: none;
-            /* Fade the band in from the page rather than butting the top row
-               against the header with a hard edge. The scrim below fades the
-               other end, so the plates emerge and dissolve. */
-            -webkit-mask-image: linear-gradient(to bottom,
-                rgba(0, 0, 0, 0) 0%,
-                #000 18%,
-                #000 58%,
-                rgba(0, 0, 0, 0.72) 78%,
-                rgba(0, 0, 0, 0) 100%);
-            mask-image: linear-gradient(to bottom,
-                rgba(0, 0, 0, 0) 0%,
-                #000 18%,
-                #000 58%,
-                rgba(0, 0, 0, 0.72) 78%,
-                rgba(0, 0, 0, 0) 100%);
-        }
-        /* Gated on the plated flag with the copy block's padding, so an unbuilt
-           band collapses to nothing instead of leaving a stray row gap behind. */
-        .ff-hero--plated .ff-plates { gap: var(--ff-plate-gap); }
-
-        .ff-plates__row { overflow: hidden; }
-
-        /* Each track holds its card list an EVEN number of times and slides by
-           exactly -50%, which lands the second half where the first began — an
-           invisible restart with no JS ticking a position. How many times is up to
-           the script: one turn of the list has to be at least as wide as the
-           viewport, or the -50% end of the slide leaves a bare strip at the right
-           edge.
-
-           The gap is a per-card margin-right rather than `gap`, deliberately: with
-           `gap` a 2n-card track measures 2n·w + (2n-1)·g while one full turn is
-           n(w + g), so -50% lands half a gap short and the seam visibly jumps once
-           a minute. Margins fold into the card's own width, so the track measures
-           exactly 2n(w + g) and half of that is one turn. */
-        .ff-plates__track {
-            display: flex;
-            width: max-content;
-            will-change: transform;
-        }
-        .ff-plates__track--left  { animation: ff-plates-left  56s linear infinite; }
-        .ff-plates__track--right { animation: ff-plates-right 72s linear infinite; }
-
-        @keyframes ff-plates-left {
-            from { transform: translate3d(0, 0, 0); }
-            to   { transform: translate3d(-50%, 0, 0); }
-        }
-        @keyframes ff-plates-right {
-            from { transform: translate3d(-50%, 0, 0); }
-            to   { transform: translate3d(0, 0, 0); }
-        }
-
-        .ff-plate {
             position: relative;
-            flex: 0 0 auto;
-            width: var(--ff-plate-w);
-            height: var(--ff-plate-h);
-            margin-right: var(--ff-plate-gap);
-            border-radius: 16px;
-            overflow: hidden;
-            background-color: #F2F5F2;
-            box-shadow: inset 0 0 0 1px rgba(23, 23, 23, 0.05);
-        }
-        .ff-plate__img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        /* Caption strip: what makes these read as field-guide plates rather
-           than decoration. Real common name, real binomial. */
-        .ff-plate__cap {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            padding: 18px 10px 8px;
-            background: linear-gradient(to top, rgba(23, 23, 23, 0.62) 0%, rgba(23, 23, 23, 0) 100%);
-            color: #fff;
-            font-size: 10.5px;
-            line-height: 1.3;
-            letter-spacing: 0.005em;
-            text-align: left;
-        }
-        .ff-plate__cap b { font-weight: 500; }
-        .ff-plate__cap i {
-            display: block;
-            font-family: 'Fraunces', serif;
-            font-size: 9.5px;
-            opacity: 0.8;
-        }
-        /* Fallback mark for a species with no photograph — the site's own leaf,
-           never a broken-image icon. */
-        .ff-plate__mark {
-            position: absolute;
-            inset: 0;
+            isolation: isolate;
+            margin-top: -4rem;
+            min-height: calc(100svh - 4rem);
             display: flex;
             align-items: center;
-            justify-content: center;
-            color: #C9D6CB;
         }
 
-        /* The scrim. Transparent at the very top so the plates belong to the
-           page, ramping to solid off-white by the band's bottom edge. The stops
-           are fractions of --ff-band-h, not of the hero: the top row stays
-           crisp under an almost clear scrim, the bottom row dissolves through
-           it, and the copy below always starts on solid ground no matter how
-           many lines the headline wraps to. The second gradient feathers the
-           left and right edges, which only shows through up top where the first
-           one is still transparent — without it the rows would hard-cut at the
-           viewport edge. */
-        .ff-hero-scrim {
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            pointer-events: none;
-            background:
-                linear-gradient(to bottom,
-                    rgba(252, 252, 252, 0) 0,
-                    rgba(252, 252, 252, 0.06) calc(var(--ff-band-h) * 0.34),
-                    rgba(252, 252, 252, 0.5)  calc(var(--ff-band-h) * 0.62),
-                    rgba(252, 252, 252, 0.92) calc(var(--ff-band-h) * 0.86),
-                    #FCFCFC var(--ff-band-h),
-                    #FCFCFC 100%),
-                linear-gradient(to right,
-                    #FCFCFC 0%,
-                    rgba(252, 252, 252, 0) 15%,
-                    rgba(252, 252, 252, 0) 85%,
-                    #FCFCFC 100%);
-        }
-
-        /* Pollen. The one animation on the site that is not a CSS transform —
-           a few dozen independently drifting grains cannot be expressed as a
-           transform on a single box. It paints itself on the compositor's own
-           terms and never touches layout. Over the scrim, under the words. */
+        /* Ambient pollen — full-bleed, behind everything, under the words. */
         .ff-pollen {
             position: absolute;
             inset: 0;
-            z-index: 2;
+            z-index: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
         }
 
-        .ff-hero-copy {
-            position: relative;
-            z-index: 3;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            max-width: 80rem;
-            min-height: calc(100svh - 4rem);
-            margin-inline: auto;
-            padding-inline: 1.5rem;
-            padding-block: clamp(4.5rem, 8vh, 6rem);
-            box-sizing: border-box;
-            text-align: center;
-        }
-        .ff-hero-stage {
-            position: relative;
-            z-index: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: min(100%, 64rem);
-            margin-inline: auto;
-            isolation: isolate;
-        }
-        .ff-hero-stage::before {
-            content: '';
+        /* One soft sage bloom of light, low and to the right, seating the
+           specimen on the white page without a hard edge. Never animated. */
+        .ff-hero-glow {
             position: absolute;
             z-index: 0;
-            top: 54%;
-            left: 50%;
-            width: min(112vw, 74rem);
-            height: 132%;
-            transform: translate(-50%, -50%);
+            top: 46%;
+            right: -8%;
+            width: min(64vw, 42rem);
+            height: min(64vw, 42rem);
+            transform: translateY(-50%);
             pointer-events: none;
             background: radial-gradient(ellipse at center,
-                rgba(201, 228, 207, 0.72) 0%,
-                rgba(190, 219, 196, 0.48) 30%,
-                rgba(224, 238, 226, 0.34) 54%,
-                rgba(252, 252, 252, 0) 78%);
-            filter: blur(28px);
+                rgba(201, 228, 207, 0.60) 0%,
+                rgba(196, 222, 202, 0.34) 34%,
+                rgba(252, 252, 252, 0) 72%);
+            filter: blur(30px);
         }
-        .ff-hero-stage > * { position: relative; z-index: 1; }
-        /* Keep the copy crisp over the photo plates while a contained sage bloom
-           gives the center of the hero a little atmosphere on the white page. */
-        .ff-hero-text {
+
+        .ff-hero-inner {
             position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 80rem;
+            margin-inline: auto;
+            padding-inline: 1.5rem;
+            padding-block: clamp(5rem, 10vh, 8rem);
+            display: grid;
+            gap: clamp(2.5rem, 6vw, 5rem);
+            align-items: center;
+            grid-template-columns: 1fr;
+        }
+        /* The asymmetry only takes effect once there is room for two columns:
+           the copy rail a shade wider than the specimen. Below that the
+           specimen drops beneath the copy and both go full width. */
+        @media (min-width: 1024px) {
+            .ff-hero-inner { grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr); }
+        }
+
+        .ff-hero-copy {
+            text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: min(100%, 56rem);
-            margin-inline: auto;
-            text-align: center;
+        }
+        @media (min-width: 1024px) {
+            .ff-hero-copy { text-align: left; align-items: flex-start; }
         }
         .ff-hero-title {
-            text-shadow:
-                0 1px 1px rgba(252, 252, 252, 0.95),
-                0 0 20px rgba(252, 252, 252, 0.9),
-                0 0 52px rgba(252, 252, 252, 0.6),
-                0 2px 30px rgba(76, 102, 80, 0.14);
+            text-shadow: 0 1px 1px rgba(252, 252, 252, 0.9), 0 0 24px rgba(252, 252, 252, 0.7);
         }
-        .ff-hero-sub {
-            text-shadow:
-                0 0 16px rgba(252, 252, 252, 0.92),
-                0 0 34px rgba(252, 252, 252, 0.6),
-                0 2px 22px rgba(95, 122, 99, 0.1);
+
+        /* ---- the living-glass panel ------------------------------------- */
+        .ff-glass-stage {
+            position: relative;
+            width: min(100%, 30rem);
+            margin-inline: auto;
+            aspect-ratio: 5 / 6;
+        }
+        .ff-glass-panel {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1.75rem;
+            border: 1px solid rgba(201, 214, 203, 0.7);
+            background: linear-gradient(155deg, rgba(255, 255, 255, 0.66), rgba(242, 245, 242, 0.42));
+            -webkit-backdrop-filter: blur(8px) saturate(1.08);
+            backdrop-filter: blur(8px) saturate(1.08);
+            box-shadow: 0 24px 60px -26px rgba(61, 83, 65, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            overflow: hidden;
+        }
+        /* A faint inner light so the specimen sits IN light rather than ON a
+           flat card. Decorative, static. */
+        .ff-glass-panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse 76% 62% at 50% 40%,
+                rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%);
+        }
+        .ff-bloom-svg {
+            position: relative;
+            width: 84%;
+            height: auto;
+            max-height: 92%;
+            overflow: visible;
+        }
+
+        /* A small frosted chip, lower-left, tying the illustration back to the
+           product without claiming a specific result. */
+        .ff-glass-chip {
+            position: absolute;
+            left: 1rem;
+            bottom: 1rem;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(201, 214, 203, 0.8);
+            background: rgba(255, 255, 255, 0.72);
+            -webkit-backdrop-filter: blur(6px);
+            backdrop-filter: blur(6px);
+            font-size: 0.6875rem;
+            font-weight: 500;
+            letter-spacing: 0.02em;
+            color: #3D5341;
+            box-shadow: 0 6px 20px -10px rgba(61, 83, 65, 0.4);
+        }
+        .ff-glass-chip__dot {
+            width: 0.4rem;
+            height: 0.4rem;
+            border-radius: 9999px;
+            background: #5F7A63;
+        }
+
+        /* ---- the bloom, drawn and opening ------------------------------- */
+        /* Stem and midribs draw themselves in — the same dash technique the
+           About section's line uses. */
+        .ff-bloom-draw {
+            stroke-dasharray: 620;
+            stroke-dashoffset: 620;
+            animation: ff-bloom-draw 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes ff-bloom-draw { to { stroke-dashoffset: 0; } }
+
+        /* Petals open from the flower's centre. The origin is pinned to the
+           viewBox point (200,150) with transform-box:view-box, and each petal
+           carries its own final rotation (--rot) and a stagger (--d), so one
+           keyframe rule blooms the whole corolla. */
+        .ff-petal {
+            transform-box: view-box;
+            transform-origin: 200px 150px;
+            opacity: 0;
+            animation: ff-petal-open 1s cubic-bezier(0.34, 1.4, 0.5, 1) forwards;
+            animation-delay: var(--d, 0.6s);
+        }
+        @keyframes ff-petal-open {
+            from { opacity: 0; transform: rotate(var(--rot, 0deg)) scale(0.12); }
+            55%  { opacity: 1; }
+            to   { opacity: 1; transform: rotate(var(--rot, 0deg)) scale(1); }
+        }
+
+        /* The centre disc settles in just after the petals. */
+        .ff-bloom-core {
+            transform-box: view-box;
+            transform-origin: 200px 150px;
+            opacity: 0;
+            animation: ff-core-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.1s forwards;
+        }
+        @keyframes ff-core-in {
+            from { opacity: 0; transform: scale(0.3); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        /* Leaves fade in on the stem, then sway forever — a rotate around the
+           point where each meets the stalk (set inline per leaf), so nothing
+           drifts off its stem. */
+        .ff-leaf {
+            transform-box: view-box;
+            opacity: 0;
+            animation:
+                ff-leaf-in 0.9s ease var(--in, 1.2s) forwards,
+                ff-leaf-sway var(--sway-dur, 6s) ease-in-out var(--in, 1.2s) infinite;
+        }
+        @keyframes ff-leaf-in { to { opacity: 1; } }
+        @keyframes ff-leaf-sway {
+            0%, 100% { transform: rotate(var(--sway-a, -3deg)); }
+            50%      { transform: rotate(var(--sway-b, 3deg)); }
         }
 
         @media (prefers-reduced-motion: reduce) {
@@ -496,10 +502,11 @@
             .reveal-up { opacity: 1; transform: none; }
             .card-in { opacity: 1; transform: none; }
             .draw-path { stroke-dashoffset: 0; }
-            /* Both plate tracks come to rest showing copy 1, so the band stays a
-               legible row of species rather than a half-scrolled seam. The pollen
-               canvas paints one still frame and never starts its loop. */
-            .ff-plates__track { transform: none !important; }
+            /* The specimen rests fully open and drawn — no draw-in, no sway. */
+            .ff-bloom-draw { stroke-dashoffset: 0; }
+            .ff-petal { opacity: 1; transform: rotate(var(--rot, 0deg)) scale(1); }
+            .ff-bloom-core { opacity: 1; transform: scale(1); }
+            .ff-leaf { opacity: 1; transform: rotate(0deg); }
         }
     
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
@@ -587,57 +594,105 @@
             </svg>
         </div>
 
-        <!-- HERO -->
-        <section class="ff-hero relative isolate mb-28 md:mb-32">
-            <!--
-              Layer 0 · the plate band. Two rows of real species drawn from the
-              directory's own catalogue, drifting apart. Built and hydrated by
-              the hero script at the foot of this page — empty until then, and
-              empty for good without JS, which is why the copy block only
-              reserves room for the band once the band actually exists.
-            -->
-            <div id="heroPlates" class="ff-plates" aria-hidden="true">
-                <div class="ff-plates__row">
-                    <div class="ff-plates__track ff-plates__track--left"></div>
-                </div>
-                <div class="ff-plates__row">
-                    <div class="ff-plates__track ff-plates__track--right"></div>
-                </div>
-            </div>
-
-            <!-- Layer 1 · scrim: dissolves the plates into the page. -->
-            <div class="ff-hero-scrim" aria-hidden="true"></div>
-
-            <!-- Layer 2 · drifting pollen. -->
+        <!-- HERO · Verdant Living Glass
+             An asymmetrical editorial split: the headline holds the wide left
+             rail, a bespoke blooming specimen sits inside a frosted living-glass
+             panel on the right. Ambient pollen drifts full-bleed behind both on
+             the one <canvas> this page keeps. -->
+        <section class="ff-hero mb-28 md:mb-32">
+            <!-- Ambient pollen, behind everything. -->
             <canvas id="pollenCanvas" class="ff-pollen" aria-hidden="true"></canvas>
+            <!-- A single soft sage bloom of light, seating the specimen. -->
+            <div class="ff-hero-glow" aria-hidden="true"></div>
 
-            <!-- Layer 3 · the words. -->
-            <div class="ff-hero-copy">
-                <div class="ff-hero-stage">
-                <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
-                    <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
-                    116 classes &middot; on-device camera &middot; no sign-up
-                </div>
+            <div class="ff-hero-inner">
 
-                <div class="ff-hero-text">
-                    <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 max-w-4xl leading-[1.05] mb-6">
+                <!-- LEFT RAIL · the words -->
+                <div class="ff-hero-copy">
+                    <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
+                        <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
+                        116 classes &middot; on-device camera &middot; no sign-up
+                    </div>
+
+                    <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
                         Understand the <span class="font-serif italic font-normal text-sage-600">natural</span> world.
                     </h1>
-                    <p class="ff-hero-sub reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-2xl leading-relaxed mb-10 font-light">
+                    <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-xl leading-relaxed mb-10 font-light">
                         Point your camera at a flower. A Vision Transformer names it, then live Wikidata and Trefle records fill in the binomial, family and growing habit.
                     </p>
-                </div>
-                <div class="reveal-up delay-300 flex flex-col sm:flex-row items-center gap-4">
-                    <a href="try.html" class="lift-btn soft-click group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float flex items-center justify-center gap-2">
-                        Start Identifying
-                        <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                    </a>
-                    <a href="#how" class="soft-click w-full sm:w-auto text-base font-medium text-neutral-600 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition">
-                        See how it works
-                    </a>
-                </div>
+
+                    <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                        <a href="try.html" class="lift-btn soft-click group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float flex items-center justify-center gap-2">
+                            Start Identifying
+                            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        </a>
+                        <a href="directory.html" class="soft-click group w-full sm:w-auto text-base font-medium text-neutral-700 border border-neutral-200 bg-white/60 backdrop-blur-sm px-8 py-3.5 rounded-full hover:border-sage-200 hover:text-sage-700 transition flex items-center justify-center gap-2">
+                            Browse the directory
+                            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        </a>
+                    </div>
                     <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">No installation · Works in any browser · Free during Beta</p>
                 </div>
+
+                <!-- RIGHT · the living-glass specimen. Purely decorative: a
+                     bespoke botanical illustration that draws its stem, opens
+                     its petals from the centre, then sways its leaves. -->
+                <div class="reveal-up delay-200 ff-glass-stage" aria-hidden="true">
+                    <div class="ff-glass-panel">
+                        <svg class="ff-bloom-svg" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- STEM + the two leaf midribs, drawn in together. -->
+                            <path class="ff-bloom-draw" d="M200 470C200 400 199 320 200 172M200 300C168 292 142 268 132 232M200 356C232 348 258 324 268 288"
+                                stroke="#4C6650" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+                            <!-- LEAVES · each sways around the point where it meets the stem. -->
+                            <g class="ff-leaf" style="transform-origin:200px 300px; --in:1.15s; --sway-dur:6.5s; --sway-a:-4deg; --sway-b:3deg;">
+                                <path d="M200 300C176 296 150 280 132 232C168 236 196 262 200 300Z" fill="#7C9781" fill-opacity="0.9"/>
+                                <path d="M167 266C177 276 189 288 199 298" stroke="#F2F5F2" stroke-width="1.6" stroke-linecap="round"/>
+                            </g>
+                            <g class="ff-leaf" style="transform-origin:200px 356px; --in:1.35s; --sway-dur:7.5s; --sway-a:3deg; --sway-b:-4deg;">
+                                <path d="M200 356C224 352 250 336 268 288C232 292 204 318 200 356Z" fill="#5F7A63" fill-opacity="0.9"/>
+                                <path d="M233 322C223 332 211 344 201 354" stroke="#F2F5F2" stroke-width="1.6" stroke-linecap="round"/>
+                            </g>
+
+                            <!-- COROLLA · eight petals opening from (200,150).
+                                 Each carries its own final rotation (--rot) and
+                                 a stagger (--d); one keyframe blooms them all. -->
+                            <g>
+                                <ellipse class="ff-petal" style="--rot:0deg;   --d:0.60s" cx="200" cy="96"  rx="26" ry="56" fill="#C9D6CB"/>
+                                <ellipse class="ff-petal" style="--rot:45deg;  --d:0.66s" cx="200" cy="96"  rx="26" ry="56" fill="#B7CBBB"/>
+                                <ellipse class="ff-petal" style="--rot:90deg;  --d:0.72s" cx="200" cy="96"  rx="26" ry="56" fill="#C9D6CB"/>
+                                <ellipse class="ff-petal" style="--rot:135deg; --d:0.78s" cx="200" cy="96"  rx="26" ry="56" fill="#B7CBBB"/>
+                                <ellipse class="ff-petal" style="--rot:180deg; --d:0.84s" cx="200" cy="96"  rx="26" ry="56" fill="#C9D6CB"/>
+                                <ellipse class="ff-petal" style="--rot:225deg; --d:0.90s" cx="200" cy="96"  rx="26" ry="56" fill="#B7CBBB"/>
+                                <ellipse class="ff-petal" style="--rot:270deg; --d:0.96s" cx="200" cy="96"  rx="26" ry="56" fill="#C9D6CB"/>
+                                <ellipse class="ff-petal" style="--rot:315deg; --d:1.02s" cx="200" cy="96"  rx="26" ry="56" fill="#B7CBBB"/>
+                            </g>
+
+                            <!-- CENTRE DISC · settles in after the petals. -->
+                            <g class="ff-bloom-core">
+                                <circle cx="200" cy="150" r="34" fill="#4C6650"/>
+                                <circle cx="200" cy="150" r="34" fill="url(#ffCoreGrad)"/>
+                                <circle cx="188" cy="140" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
+                                <circle cx="208" cy="142" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
+                                <circle cx="198" cy="158" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
+                                <circle cx="212" cy="160" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
+                                <circle cx="186" cy="158" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
+                            </g>
+
+                            <defs>
+                                <radialGradient id="ffCoreGrad" cx="0.4" cy="0.35" r="0.75">
+                                    <stop offset="0" stop-color="#7C9781" stop-opacity="0.85"/>
+                                    <stop offset="1" stop-color="#4C6650" stop-opacity="0"/>
+                                </radialGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <span class="ff-glass-chip">
+                        <span class="ff-glass-chip__dot breathe"></span>
+                        Identified in one frame
+                    </span>
+                </div>
+
             </div>
         </section>
 
@@ -891,7 +946,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                 <!-- Feature 1 -->
-                <div class="reveal-up hover-lift flex flex-col bg-white border border-neutral-200/70 rounded-2xl p-8">
+                <div class="reveal-up ff-vglass flex flex-col rounded-2xl p-8">
                     <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
                         <!-- Four patches: a Vision Transformer cuts the image into a
                              grid before it attends across them. -->
@@ -909,7 +964,7 @@
                 </div>
 
                 <!-- Feature 2 -->
-                <div class="reveal-up delay-100 hover-lift flex flex-col bg-white border border-neutral-200/70 rounded-2xl p-8">
+                <div class="reveal-up delay-100 ff-vglass flex flex-col rounded-2xl p-8">
                     <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
                             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
@@ -923,7 +978,7 @@
                 </div>
 
                 <!-- Feature 3 -->
-                <div class="reveal-up delay-200 hover-lift flex flex-col bg-white border border-neutral-200/70 rounded-2xl p-8">
+                <div class="reveal-up delay-200 ff-vglass flex flex-col rounded-2xl p-8">
                     <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
                             <rect x="3" y="11" width="18" height="10" rx="2"></rect>
@@ -1019,225 +1074,6 @@
             </div>
         </div>
     </footer>
-
-    <!-- Botanical hero · the drifting plate band. Real species, real photographs.
-         Runs BEFORE the pollen block below: this one decides the hero's final
-         height (by reserving room for the band), and that one measures it. -->
-    <script>
-    (function () {
-        'use strict';
-        // No species.js means no photographs and no binomials — nothing real to
-        // put on a plate. Leave the band empty and the hero compact.
-        if (typeof ffFetchSpecies !== 'function') return;
-
-        var hero = document.querySelector('.ff-hero');
-        var tracks = document.querySelectorAll('.ff-plates__track');
-        if (!hero || tracks.length < 2) return;
-
-        // The router swaps <main> and re-runs this block against fresh tracks.
-        // Retire the previous band's resize listener first, or every visit leaves
-        // another one behind measuring nodes that have left the document.
-        if (typeof window.ffStopHeroPlates === 'function') {
-            try { window.ffStopHeroPlates(); } catch (e) {}
-        }
-
-        // Ten species from the canonical seed list in tools/build-trefle.js,
-        // deliberately picked from the 28 the preview grid further down does NOT
-        // show: scrolling past the hero should reveal more of the catalogue, not
-        // the same twelve cards a second time.
-        //
-        // Where that list carries a genus ("Magnolia", "Passiflora"), the `q`
-        // here is the species Trefle itself resolved it to — the `matchedName`
-        // in trefle-data.json. A genus article has no binomial to caption, so
-        // half the band would have shown a common name over an empty line;
-        // naming the matched species means every plate states a real binomial,
-        // and it is the same organism the catalogue page will show.
-        var ROWS = [
-            [
-                { common: 'Corn Poppy',       q: 'Papaver rhoeas' },
-                { common: 'Carnation',        q: 'Dianthus caryophyllus' },
-                { common: 'Tiger Lily',       q: 'Lilium lancifolium' },
-                { common: "Poet's Daffodil",  q: 'Narcissus poeticus' },
-                { common: 'Umbrella Magnolia', q: 'Magnolia tripetala' }
-            ],
-            [
-                { common: 'Japanese Camellia',  q: 'Camellia japonica' },
-                { common: 'Blue Passionflower', q: 'Passiflora caerulea' },
-                { common: 'Purple Coneflower',  q: 'Echinacea purpurea' },
-                { common: 'Great Bougainvillea', q: 'Bougainvillea spectabilis' },
-                { common: 'Frangipani',         q: 'Plumeria rubra' }
-            ]
-        ];
-
-        var LEAF = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
-            '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" ' +
-            'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
-        function esc(s) {
-            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-
-        /** One plate: shimmer now, photograph and binomial when they land. The
-         *  image starts `hidden` so the shimmer is never visible through it.
-         *
-         *  No loading="lazy" here, deliberately: a hidden element has no box, so
-         *  it never intersects anything, so a lazy image inside one is never
-         *  fetched at all — the plates sat shimmering forever. The band is above
-         *  the fold anyway; fetchpriority keeps it behind the fonts and the text. */
-        function buildPlate(seed) {
-            var el = document.createElement('div');
-            el.className = 'ff-plate';
-            el.innerHTML =
-                '<div class="ph skeleton-shimmer absolute inset-0"></div>' +
-                '<img class="ff-plate__img" alt="" decoding="async" fetchpriority="low" hidden />' +
-                '<div class="ff-plate__cap"><b>' + esc(seed.common) + '</b><i></i></div>';
-            return el;
-        }
-
-        /** No photograph, or one that failed to load: the site's own leaf mark,
-         *  never a broken-image icon. */
-        function fallback(node) {
-            var ph = node.querySelector('.ph');
-            if (!ph) return;
-            ph.className = 'ff-plate__mark';
-            ph.innerHTML = LEAF;
-        }
-
-        function paint(node, binomial, src) {
-            var ph = node.querySelector('.ph');
-            var img = node.querySelector('.ff-plate__img');
-            var cap = node.querySelector('.ff-plate__cap i');
-            if (cap) cap.textContent = binomial;
-            if (!img || !src) { fallback(node); return; }
-            img.onload = function () {
-                // Shimmer cross-fading to content, not a placeholder that pops.
-                if (window.ffUX && typeof window.ffUX.crossFade === 'function') {
-                    window.ffUX.crossFade(ph, img);
-                } else {
-                    if (ph) ph.parentNode.removeChild(ph);
-                    img.hidden = false;
-                }
-            };
-            img.onerror = function () { fallback(node); };
-            img.src = src;
-        }
-
-        /** Fill every copy of one plate from a single lookup: one network round
-         *  trip, however many DOM writes the track's repeat count calls for.
-         *  A rejection still paints, with the leaf mark. */
-        function hydrate(seed, nodes) {
-            function apply(binomial, src) {
-                for (var i = 0; i < nodes.length; i++) paint(nodes[i], binomial, src);
-            }
-            return ffFetchSpecies(seed.q).then(function (info) {
-                apply((info && info.binomial) || '', (info && info.image) || '');
-            }, function () {
-                apply('', '');
-            });
-        }
-
-        /** Width of one plate including the margin that spaces it, measured rather
-         *  than computed: --ff-plate-w is a clamp of vw, so only layout knows what
-         *  it currently resolves to. The probe is absolutely positioned so it is
-         *  out of the track's flow, and it is gone before the frame paints. */
-        function cardWidth() {
-            var probe = buildPlate({ common: '' });
-            probe.style.position = 'absolute';
-            probe.style.visibility = 'hidden';
-            tracks[0].appendChild(probe);
-            var w = probe.getBoundingClientRect().width +
-                    (parseFloat(getComputedStyle(probe).marginRight) || 0);
-            tracks[0].removeChild(probe);
-            return w;
-        }
-
-        /** How many times the species list has to repeat inside each half of the
-         *  track. The -50% slide leaves the track spanning exactly one turn of the
-         *  list either side of its starting edge, so a turn narrower than the
-         *  viewport opens a bare strip at the right-hand edge for part of every
-         *  cycle — five 207px cards cover 1037px, which is 240px short of a 1280px
-         *  window. One card of slack absorbs a resize that lands mid-drag. */
-        function repsFor(cardW, listLen) {
-            var turn = cardW * listLen;
-            if (!turn) return 2;
-            return Math.max(1, Math.ceil((window.innerWidth + cardW) / turn));
-        }
-
-        function build(reps, stagger) {
-            var delay = 0;
-            for (var r = 0; r < 2; r++) {
-                var row = ROWS[r];
-                tracks[r].textContent = '';
-
-                // One group per species, holding every copy of its plate: each
-                // group is filled by a single lookup however many copies there are.
-                var groups = [];
-                for (var i = 0; i < row.length; i++) groups.push({ seed: row[i], nodes: [] });
-
-                // The list, in order, 2 × reps times. Sliding by -50% lands the
-                // second half exactly where the first began, so the loop has no
-                // visible restart — see the seam note in the stylesheet.
-                for (var c = 0; c < reps * 2; c++) {
-                    for (var j = 0; j < row.length; j++) {
-                        var node = buildPlate(row[j]);
-                        groups[j].nodes.push(node);
-                        tracks[r].appendChild(node);
-                    }
-                }
-
-                for (var k = 0; k < groups.length; k++) {
-                    if (!stagger) { hydrate(groups[k].seed, groups[k].nodes); continue; }
-                    (function (group, ms) {
-                        setTimeout(function () {
-                            // A router swap can retire this band mid-stagger. Don't
-                            // spend network on plates that left the document.
-                            if (!document.contains(group.nodes[0])) return;
-                            hydrate(group.seed, group.nodes);
-                        }, ms);
-                    })(groups[k], delay);
-                    delay += stagger;
-                }
-            }
-        }
-
-        var built = 0;
-        function sync() {
-            var want = repsFor(cardWidth(), ROWS[0].length);
-            // Grow only. Widening the window past a threshold rebuilds once;
-            // narrowing leaves the extra repetitions sitting harmlessly off-screen
-            // rather than restarting the marquee for no visible gain.
-            if (want <= built) return;
-            var first = built === 0;
-            built = want;
-            // Spread the ten lookups over a second on the first build so they do
-            // not go out as one burst. A rebuild has nothing to spread: every one
-            // of them was already fetched and sits in the session cache, so
-            // staggering would only hold the plates on their shimmer.
-            build(want, first ? 110 : 0);
-        }
-
-        var resizeTimer = 0;
-        function onResize() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(sync, 200);
-        }
-        window.ffStopHeroPlates = function () {
-            clearTimeout(resizeTimer);
-            window.removeEventListener('resize', onResize);
-            window.removeEventListener('orientationchange', onResize);
-            window.ffStopHeroPlates = null;
-        };
-
-        sync();
-        window.addEventListener('resize', onResize);
-        window.addEventListener('orientationchange', onResize);
-
-        // The band exists, so the copy block can now reserve room for it. Setting
-        // this only here is what keeps the no-JS hero compact instead of leaving
-        // 200px of empty gutter above the headline.
-        hero.classList.add('ff-hero--plated');
-    })();
-    </script>
 
     <!-- Botanical hero · pollen. The one animation on this site that is not a CSS
          transform: a few dozen grains on independent drifting paths cannot be
