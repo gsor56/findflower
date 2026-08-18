@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- FindFlower botanical identification app. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -75,7 +74,6 @@
     </script>
 
     <style>
-        /* Base styles and typography refinement */
         body {
             background-color: #FCFCFC;
             color: #171717;
@@ -83,7 +81,10 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Subtle motion classes triggered by Intersection Observer */
+        /* Set by the observer in scripts/ux.js. app.css defines the same class
+           with html:not(.ff-reveal) at (0,2,0), which beats this (0,1,0) until
+           that script runs, so a page with no JS shows its content rather than
+           an empty column. Do not raise the specificity here. */
         .reveal-up {
             opacity: 0;
             transform: translateY(30px);
@@ -99,7 +100,6 @@
         .delay-300 { transition-delay: 300ms; }
         .delay-400 { transition-delay: 400ms; }
 
-        /* Gentle floating for decorative botanical art */
         @keyframes float-slow {
             0%, 100% { transform: translateY(0) rotate(0deg); }
             50% { transform: translateY(-14px) rotate(1.5deg); }
@@ -107,7 +107,6 @@
         .float-slow { animation: float-slow 9s infinite ease-in-out; }
         .float-slower { animation: float-slow 13s infinite ease-in-out; }
 
-        /* SVG line that draws itself in when revealed */
         .draw-path {
             stroke-dasharray: 1200;
             stroke-dashoffset: 1200;
@@ -115,25 +114,28 @@
         }
         .active .draw-path { stroke-dashoffset: 0; }
 
-        /* Card hover lift */
+        /* The hover half is gated because a phone has no hover to leave: without
+           the gate the tapped card keeps the lift until you tap something else.
+           app.css:1157 already does this for .soft-click. .hover-lift only ever
+           lands on the <a> the directory preview builds, so :active fires on iOS
+           too, which it would not on a bare <div>. */
         .hover-lift {
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease;
         }
-        .hover-lift:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 20px 50px -20px rgba(23, 23, 23, 0.14);
+        @media (hover: hover) {
+            .hover-lift:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 20px 50px -20px rgba(23, 23, 23, 0.14);
+                border-color: rgba(95, 122, 99, 0.4);
+            }
+        }
+        .hover-lift:active,
+        .hover-lift:focus-visible {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 34px -18px rgba(23, 23, 23, 0.16);
             border-color: rgba(95, 122, 99, 0.4);
         }
 
-        /* ====================================================================
-           VERDANT GLASS TILE
-           --------------------------------------------------------------------
-           The hero's living-glass panel, brought down to card scale: a frosted
-           translucent surface on a 1px soft-sage border, a whisper of inner
-           light, and — on hover — a single petal accent that unfurls in the
-           top-right corner. Transform/opacity only; the accent is a pseudo
-           element so it costs no extra markup and never takes a tap.
-           ==================================================================== */
         .ff-vglass {
             position: relative;
             isolation: isolate;
@@ -147,8 +149,10 @@
                         box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
                         border-color 0.5s ease;
         }
-        /* The petal accent. Anchored to the top-right, scaled to nothing and
-           tucked back on its stem until the tile is hovered, then unfurling. */
+        /* The petal accent unfurls when the tile is REVEALED, not when it is
+           hovered. These three tiles are plain <div>s with nothing to click, so
+           :active does not fire on them on iOS and a hover-only accent is simply
+           invisible on a phone. Hover deepens it where hover exists. */
         .ff-vglass::after {
             content: '';
             position: absolute;
@@ -165,31 +169,33 @@
             transform-origin: top right;
             transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.34, 1.3, 0.5, 1);
         }
-        .ff-vglass:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 22px 52px -22px rgba(61, 83, 65, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-            border-color: rgba(95, 122, 99, 0.42);
-        }
-        .ff-vglass:hover::after {
-            opacity: 0.5;
+        .ff-vglass.active::after {
+            opacity: 0.42;
             transform: scale(1) rotate(0deg);
+            transition-delay: 260ms;
         }
-        /* The tile's own content sits above the accent. */
+        @media (hover: hover) {
+            .ff-vglass:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 22px 52px -22px rgba(61, 83, 65, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+                border-color: rgba(95, 122, 99, 0.42);
+            }
+            .ff-vglass:hover::after {
+                opacity: 0.62;
+                transform: scale(1.04) rotate(0deg);
+                transition-delay: 0ms;
+            }
+        }
         .ff-vglass > * { position: relative; z-index: 1; }
 
-        /* ====================================================================
-           "How it works" — the sample record card
-           --------------------------------------------------------------------
-           The tabs are real <button>s, not links: nothing navigates, the card
-           just re-renders from a different record in trefle-data.json. Their
-           selected state is read from [aria-selected] rather than a parallel
-           `.active` class, so there is exactly one piece of state and the
-           accessibility tree and the styling can never disagree about it.
+        /* The tabs are real <button>s: nothing navigates, the card re-renders
+           from a different record in trefle-data.json. Selected state is read
+           from [aria-selected] rather than a parallel `.active` class, so the
+           accessibility tree and the styling cannot disagree about it.
 
-           Only colour properties transition. The tab row is above the fold on
-           a phone in landscape, and animating its box would reflow the card
-           beneath it on every tap.
-           ==================================================================== */
+           Only colour transitions. The tab row is above the fold on a phone in
+           landscape, where animating its box reflowed the card under it on
+           every tap. */
         .ff-sample-tab {
             font-size: 0.8125rem;
             font-weight: 500;
@@ -203,7 +209,9 @@
             transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease,
                         transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .ff-sample-tab:hover { color: #171717; border-color: #D4D4D4; }
+        @media (hover: hover) {
+            .ff-sample-tab:hover { color: #171717; border-color: #D4D4D4; }
+        }
         .ff-sample-tab[aria-selected="true"] {
             background-color: #F2F5F2;
             border-color: #C9D6CB;
@@ -216,13 +224,13 @@
            It is fixed on purpose, and a fluid clamp() here was tried and
            reverted: the card is NARROWEST just past the md breakpoint (five of
            twelve columns ≈ 273px at 768px, where 360px gives it the full 324px),
-           so that is where a narrower label column would pay off — but the floor
+           so that is where a narrower label column would pay off, but the floor
            it needs is set by "GROWTH HABIT", which wraps to two lines under about
            7rem. Measured: at a 91px column the label breaks while the value still
            wraps, which is both problems at once. Any floor high enough to keep
            the label on one line lands within a few px of the 7.5rem below, so the
            clamp bought nothing and cost a wrapped label. The label text itself is
-           not available to shorten — species.html and try.html both print
+           not available to shorten: species.html and try.html both print
            "Growth habit" for this same Trefle field.
 
            `start` rather than `center` because "Full sun to light shade" does
@@ -251,11 +259,14 @@
             line-height: 1.45;
         }
 
-        /* Arrow nudge on button hover */
         .cta-arrow { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-        .group:hover .cta-arrow { transform: translateX(4px); }
+        @media (hover: hover) {
+            .group:hover .cta-arrow { transform: translateX(4px); }
+        }
+        .group:active .cta-arrow,
+        .group:focus-visible .cta-arrow { transform: translateX(4px); }
 
-        /* Skeleton shimmer while a directory-preview card hydrates from Wikipedia */
+        /* Shimmer while a directory-preview card hydrates from Wikipedia. */
         @keyframes shimmer {
             0% { background-position: -400px 0; }
             100% { background-position: 400px 0; }
@@ -266,7 +277,7 @@
             animation: shimmer 1.4s infinite linear;
         }
 
-        /* Per-card fade + slight rise when its data resolves */
+        /* Each card fades and rises when its own data resolves. */
         .card-in {
             opacity: 0;
             transform: translateY(12px);
@@ -274,36 +285,31 @@
         }
         .card-in.ready { opacity: 1; transform: translateY(0); }
 
-        /* Soft "breathing" pulse for status badges (Beta tag, live dots). */
+        /* Status badges: the Beta tag and the live dots. */
         @keyframes breathe {
             0%, 100% { opacity: 1; }
             50%      { opacity: 0.55; }
         }
         .breathe { animation: breathe 3.2s infinite ease-in-out; }
 
-        /* Gentle lift for buttons — subtle scale + shadow, quick and smooth. */
+        /* Buttons lift on press: scale plus shadow, 220ms. */
         .lift-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .lift-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
+        @media (hover: hover) {
+            .lift-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
+        }
+        .lift-btn:focus-visible { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
         /* app.css gives every .soft-click a press-in, but `.soft-click:active`
            and `.lift-btn:hover` are both (0,2,0) and this file loads last, so on
            a hovering mouse the lift would swallow the press. Name both. */
         .lift-btn.soft-click:active { transform: scale(0.98); }
 
-        /* ====================================================================
-           VERDANT LIVING GLASS — the signature hero
-           --------------------------------------------------------------------
-           An asymmetrical editorial split. The headline holds the wide left
-           rail; a bespoke botanical specimen blooms inside a frosted "living
-           glass" panel on the right. Ambient pollen drifts full-bleed behind
-           the whole band on the one <canvas> the site keeps.
+        /* The hero: headline in the wide left rail, one run of the pipeline in
+           a frosted panel on the right, pollen full-bleed behind both.
 
-           Every motion here is transform, opacity or stroke-dashoffset only,
-           so the entire hero composites on the GPU and never touches layout.
-           The specimen draws its stem in, opens its petals from the flower's
-           centre, settles its core, then sways its leaves for good. The frosted
-           panel deliberately sits OVER the pollen so the grains blur softly
-           behind the glass.
-           ==================================================================== */
+           Motion here is transform, opacity or stroke-dashoffset and nothing
+           else, so the band composites on the GPU and never touches layout.
+           The panel sits over the pollen canvas on purpose, so the grains blur
+           behind the glass instead of being masked out of it. */
         .ff-hero {
             position: relative;
             isolation: isolate;
@@ -313,7 +319,7 @@
             align-items: center;
         }
 
-        /* Ambient pollen — full-bleed, behind everything, under the words. */
+        /* Ambient pollen: full-bleed, behind everything, under the words. */
         .ff-pollen {
             position: absolute;
             inset: 0;
@@ -372,6 +378,7 @@
         }
         .ff-hero-title {
             text-shadow: 0 1px 1px rgba(252, 252, 252, 0.9), 0 0 24px rgba(252, 252, 252, 0.7);
+            text-wrap: balance;
         }
 
         /* ---- the living-glass panel ------------------------------------- */
@@ -403,16 +410,9 @@
             inset: 0;
             pointer-events: none;
             background: radial-gradient(ellipse 76% 62% at 50% 40%,
-                rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0) 70%);
+                rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 70%);
         }
-        .ff-bloom-svg {
-            position: relative;
-            width: 84%;
-            height: auto;
-            max-height: 92%;
-            overflow: visible;
-        }
-
+        
         /* A small frosted chip, lower-left, tying the illustration back to the
            product without claiming a specific result. */
         .ff-glass-chip {
@@ -442,71 +442,66 @@
             background: #5F7A63;
         }
 
-        /* ---- the bloom, drawn and opening ------------------------------- */
-        /* Stem and midribs draw themselves in — the same dash technique the
-           About section's line uses. */
-        .ff-bloom-draw {
-            stroke-dasharray: 620;
-            stroke-dashoffset: 620;
-            animation: ff-bloom-draw 1.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes ff-bloom-draw { to { stroke-dashoffset: 0; } }
+        /* ---- the identification pass ------------------------------------
+           The rest state below is the FINISHED state, not an empty one: with JS
+           off nothing ever adds .is-running, and a visitor should still see a
+           complete illustration rather than a blank frame. Same reasoning as the
+           sample card's leaf mark further down. */
+        .ff-pass { width: 84%; height: auto; max-height: 92%; overflow: visible; }
 
-        /* Petals open from the flower's centre. The origin is pinned to the
-           viewBox point (200,150) with transform-box:view-box, and each petal
-           carries its own final rotation (--rot) and a stagger (--d), so one
-           keyframe rule blooms the whole corolla. */
-        .ff-petal {
-            transform-box: view-box;
-            transform-origin: 200px 150px;
-            opacity: 0;
-            animation: ff-petal-open 1s cubic-bezier(0.34, 1.4, 0.5, 1) forwards;
-            animation-delay: var(--d, 0.6s);
-        }
-        @keyframes ff-petal-open {
-            from { opacity: 0; transform: rotate(var(--rot, 0deg)) scale(0.12); }
-            55%  { opacity: 1; }
-            to   { opacity: 1; transform: rotate(var(--rot, 0deg)) scale(1); }
-        }
+        .ff-pass-grid { stroke-dasharray: 1; stroke-dashoffset: 0; }
+        .ff-pass-cell,
+        .ff-pass-crop { transform-box: fill-box; transform-origin: center; opacity: 1; transform: scale(1); }
+        .ff-pass-rise { opacity: 1; transform: translateY(0); }
+        .ff-pass-fill { transform-box: fill-box; transform-origin: left center; transform: scaleX(var(--w, 1)); }
 
-        /* The centre disc settles in just after the petals. */
-        .ff-bloom-core {
-            transform-box: view-box;
-            transform-origin: 200px 150px;
-            opacity: 0;
-            animation: ff-core-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.1s forwards;
-        }
-        @keyframes ff-core-in {
-            from { opacity: 0; transform: scale(0.3); }
-            to   { opacity: 1; transform: scale(1); }
+        /* pathLength="1" on the grid path, so the dash figures are 0-1 and no
+           path-length arithmetic has to be kept in sync with the coordinates. */
+        .is-running .ff-pass-grid { animation: ff-pass-draw var(--dur, 800ms) cubic-bezier(0.16, 1, 0.3, 1) var(--d, 200ms) both; }
+        .is-running .ff-pass-cell { animation: ff-pass-cell 420ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 1s) both; }
+        .is-running .ff-pass-crop { animation: ff-pass-crop 620ms cubic-bezier(0.16, 1, 0.3, 1) 2200ms both; }
+        .is-running .ff-pass-rise { animation: ff-pass-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 2600ms) both; }
+        .is-running .ff-pass-fill { animation: ff-pass-fill 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 3s) both; }
+
+        .is-running .ff-pass-cell,
+        .is-running .ff-pass-crop,
+        .is-running .ff-pass-fill { will-change: transform, opacity; }
+
+        @keyframes ff-pass-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+        @keyframes ff-pass-cell { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: scale(1); } }
+        @keyframes ff-pass-crop { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } }
+        @keyframes ff-pass-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes ff-pass-fill { from { transform: scaleX(0); } to { transform: scaleX(var(--w, 1)); } }
+
+        /* Pointer-only. The stage is aria-hidden, so it must stay out of the tab
+           order; a keyboard user gets the finished state and loses nothing. */
+        @media (hover: hover) {
+            [data-replay] { cursor: pointer; }
         }
 
-        /* Leaves fade in on the stem, then sway forever — a rotate around the
-           point where each meets the stalk (set inline per leaf), so nothing
-           drifts off its stem. */
-        .ff-leaf {
-            transform-box: view-box;
-            opacity: 0;
-            animation:
-                ff-leaf-in 0.9s ease var(--in, 1.2s) forwards,
-                ff-leaf-sway var(--sway-dur, 6s) ease-in-out var(--in, 1.2s) infinite;
-        }
-        @keyframes ff-leaf-in { to { opacity: 1; } }
-        @keyframes ff-leaf-sway {
-            0%, 100% { transform: rotate(var(--sway-a, -3deg)); }
-            50%      { transform: rotate(var(--sway-b, 3deg)); }
-        }
+        /* The enrichment trace. No classes of its own beyond sizing: the nodes,
+           paths and labels wear .ff-pass-cell, .ff-pass-grid and .ff-pass-rise,
+           so both animations on this page run off one set of five keyframes and
+           one rest state. --d and --dur are what make them different. */
+        /* Capped: the sticky column is about 470px on a desktop, but full width
+           on a phone, and an uncapped 320-unit viewBox stretched to 700px put
+           17px labels on a diagram whose own card sets body text at 14. */
+        .ff-trace { display: block; width: 100%; max-width: 27rem; height: auto; margin-inline: auto; }
+
+        /* Tabular digits so the count does not wobble on its way to 116. The
+           width is locked in JS from the final value before the first tick. */
+        .ff-count { font-variant-numeric: tabular-nums; display: inline-block; }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
             .reveal-up { opacity: 1; transform: none; }
             .card-in { opacity: 1; transform: none; }
             .draw-path { stroke-dashoffset: 0; }
-            /* The specimen rests fully open and drawn — no draw-in, no sway. */
-            .ff-bloom-draw { stroke-dashoffset: 0; }
-            .ff-petal { opacity: 1; transform: rotate(var(--rot, 0deg)) scale(1); }
-            .ff-bloom-core { opacity: 1; transform: scale(1); }
-            .ff-leaf { opacity: 1; transform: rotate(0deg); }
+            /* The pass rests finished: grid drawn, patches lit, bars filled. */
+            .ff-pass-grid { stroke-dashoffset: 0; }
+            .ff-pass-cell, .ff-pass-crop { opacity: 1; transform: scale(1); }
+            .ff-pass-rise { opacity: 1; transform: translateY(0); }
+            .ff-pass-fill { transform: scaleX(var(--w, 1)); }
         }
     
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
@@ -556,12 +551,14 @@
 
     <main class="relative pt-32 pb-24 overflow-hidden">
 
-        <!-- Page-level decorative botanical line art — inline SVG, faint, non-interactive.
-             Positioned at vertical percentages so they track content length, and bled
-             into the side gutters. Hidden on small screens to avoid crowding text. -->
+        <!-- Two pieces of gutter line art, not four, and deliberately not level
+             with each other: at 20% left and 72% right they never read as a pair
+             framing the content. The two that went were a leaf at 44% right and a
+             stem at 66% left, which put something in both gutters at three of the
+             four heights. All of this is lg: and up, because below that there is no
+             gutter to put anything in. -->
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-            <!-- Fern sprig, left gutter -->
-            <svg class="hidden lg:block absolute left-[-2.5rem] top-[24%] text-sage-200 opacity-70 float-slow" width="120" height="250" viewBox="0 0 120 260" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="hidden lg:block absolute left-[-2.5rem] top-[20%] text-sage-200 opacity-70 float-slow" width="120" height="250" viewBox="0 0 120 260" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M60 255C60 205 58 150 60 40"/>
                 <path d="M60 212C48 207 34 198 26 184M60 212C72 207 86 198 94 184"/>
                 <path d="M60 172C46 168 32 158 24 142M60 172C74 168 88 158 96 142"/>
@@ -570,55 +567,30 @@
                 <path d="M60 44C60 44 54 30 44 22M60 44C60 44 66 30 76 22"/>
             </svg>
 
-            <!-- Single leaf with veins, right gutter -->
-            <svg class="hidden lg:block absolute right-[-2rem] top-[44%] text-sage-200 opacity-60 float-slower" width="96" height="160" viewBox="0 0 100 160" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M50 8C18 40 18 110 50 152C82 110 82 40 50 8Z"/>
-                <path d="M50 22L50 140"/>
-                <path d="M50 56C40 63 32 69 26 79M50 56C60 63 68 69 74 79"/>
-                <path d="M50 92C40 99 32 105 26 115M50 92C60 99 68 105 74 115"/>
-            </svg>
-
-            <!-- Flowering stem, left gutter (lower) -->
-            <svg class="hidden xl:block absolute left-[-1.5rem] top-[66%] text-sage-200 opacity-60 float-slow" width="110" height="210" viewBox="0 0 120 220" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M62 215C60 160 58 110 62 62"/>
-                <path d="M62 62c0-14 11-24 27-24-1 14-13 24-27 24Zm0 0c0-14-11-24-27-24 1 14 13 24 27 24Z"/>
-                <path d="M62 150c-14-2-26-12-30-26 16 0 28 10 30 26Z"/>
-                <path d="M62 118c12-2 24-10 28-24-14 0-26 8-28 24Z"/>
-            </svg>
-
-            <!-- Berry branch, right gutter (lower) -->
-            <svg class="hidden lg:block absolute right-[-2.5rem] top-[84%] text-sage-200 opacity-60 float-slower" width="120" height="190" viewBox="0 0 120 200" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="hidden lg:block absolute right-[-2.5rem] top-[72%] text-sage-200 opacity-60 float-slower" width="120" height="190" viewBox="0 0 120 200" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M22 20C52 42 82 92 100 186"/>
                 <path d="M40 52c-12-6-20-18-20-32 14 2 24 12 24 26M58 92c-12-6-20-18-20-32 14 2 24 12 24 26M78 140c-12-6-20-18-20-32 14 2 24 12 24 26"/>
                 <circle cx="52" cy="60" r="3.5"/><circle cx="70" cy="100" r="3.5"/><circle cx="90" cy="150" r="3.5"/>
             </svg>
         </div>
 
-        <!-- HERO · Verdant Living Glass
-             An asymmetrical editorial split: the headline holds the wide left
-             rail, a bespoke blooming specimen sits inside a frosted living-glass
-             panel on the right. Ambient pollen drifts full-bleed behind both on
-             the one <canvas> this page keeps. -->
         <section class="ff-hero mb-28 md:mb-32">
-            <!-- Ambient pollen, behind everything. -->
             <canvas id="pollenCanvas" class="ff-pollen" aria-hidden="true"></canvas>
-            <!-- A single soft sage bloom of light, seating the specimen. -->
             <div class="ff-hero-glow" aria-hidden="true"></div>
 
             <div class="ff-hero-inner">
 
-                <!-- LEFT RAIL · the words -->
                 <div class="ff-hero-copy">
                     <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
                         <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
-                        116 classes &middot; on-device camera &middot; no sign-up
+                        116 species, no account needed
                     </div>
 
                     <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
-                        Understand the <span class="font-serif italic font-normal text-sage-600">natural</span> world.
+                        Name the flower <span class="font-serif italic font-normal text-sage-600">in front of you</span>.
                     </h1>
                     <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-xl leading-relaxed mb-10 font-light">
-                        Point your camera at a flower. A Vision Transformer names it, then live Wikidata and Trefle records fill in the binomial, family and growing habit.
+                        Photograph it. A Vision Transformer on our server, running under ONNX Runtime, returns a species and how confident it is. Wikidata and Trefle fill in the family and growing habit.
                     </p>
 
                     <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -631,72 +603,97 @@
                             <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                         </a>
                     </div>
-                    <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">No installation · Works in any browser · Free during Beta</p>
+                    <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">Runs in any browser. Nothing to install, and free while it is in beta.</p>
                 </div>
 
-                <!-- RIGHT · the living-glass specimen. Purely decorative: a
-                     bespoke botanical illustration that draws its stem, opens
-                     its petals from the centre, then sways its leaves. -->
-                <div class="reveal-up delay-200 ff-glass-stage" aria-hidden="true">
+                <!-- One pass of the pipeline: patch grid, attention, top-1 with
+                     its runners-up. The figures are illustrative until the eval
+                     numbers land, which is what the chip says. -->
+                <div id="heroPass" data-replay class="reveal-up delay-200 ff-glass-stage" aria-hidden="true">
                     <div class="ff-glass-panel">
-                        <svg class="ff-bloom-svg" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <!-- STEM + the two leaf midribs, drawn in together. -->
-                            <path class="ff-bloom-draw" d="M200 470C200 400 199 320 200 172M200 300C168 292 142 268 132 232M200 356C232 348 258 324 268 288"
-                                stroke="#4C6650" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-
-                            <!-- LEAVES · each sways around the point where it meets the stem. -->
-                            <g class="ff-leaf" style="transform-origin:200px 300px; --in:1.15s; --sway-dur:6.5s; --sway-a:-4deg; --sway-b:3deg;">
-                                <path d="M200 300C176 296 150 280 132 232C168 236 196 262 200 300Z" fill="#7C9781" fill-opacity="0.9"/>
-                                <path d="M167 266C177 276 189 288 199 298" stroke="#F2F5F2" stroke-width="1.6" stroke-linecap="round"/>
-                            </g>
-                            <g class="ff-leaf" style="transform-origin:200px 356px; --in:1.35s; --sway-dur:7.5s; --sway-a:3deg; --sway-b:-4deg;">
-                                <path d="M200 356C224 352 250 336 268 288C232 292 204 318 200 356Z" fill="#5F7A63" fill-opacity="0.9"/>
-                                <path d="M233 322C223 332 211 344 201 354" stroke="#F2F5F2" stroke-width="1.6" stroke-linecap="round"/>
-                            </g>
-
-                            <!-- COROLLA · eight petals opening from (200,150).
-                                 Each carries its own final rotation (--rot) and
-                                 a stagger (--d); one keyframe blooms them all. -->
-                            <g>
-                                <ellipse class="ff-petal" style="--rot:0deg;   --d:0.60s" cx="200" cy="96"  rx="26" ry="56" fill="#C9D6CB"/>
-                                <ellipse class="ff-petal" style="--rot:45deg;  --d:0.66s" cx="200" cy="96"  rx="26" ry="56" fill="#B7CBBB"/>
-                                <ellipse class="ff-petal" style="--rot:90deg;  --d:0.72s" cx="200" cy="96"  rx="26" ry="56" fill="#C9D6CB"/>
-                                <ellipse class="ff-petal" style="--rot:135deg; --d:0.78s" cx="200" cy="96"  rx="26" ry="56" fill="#B7CBBB"/>
-                                <ellipse class="ff-petal" style="--rot:180deg; --d:0.84s" cx="200" cy="96"  rx="26" ry="56" fill="#C9D6CB"/>
-                                <ellipse class="ff-petal" style="--rot:225deg; --d:0.90s" cx="200" cy="96"  rx="26" ry="56" fill="#B7CBBB"/>
-                                <ellipse class="ff-petal" style="--rot:270deg; --d:0.96s" cx="200" cy="96"  rx="26" ry="56" fill="#C9D6CB"/>
-                                <ellipse class="ff-petal" style="--rot:315deg; --d:1.02s" cx="200" cy="96"  rx="26" ry="56" fill="#B7CBBB"/>
-                            </g>
-
-                            <!-- CENTRE DISC · settles in after the petals. -->
-                            <g class="ff-bloom-core">
-                                <circle cx="200" cy="150" r="34" fill="#4C6650"/>
-                                <circle cx="200" cy="150" r="34" fill="url(#ffCoreGrad)"/>
-                                <circle cx="188" cy="140" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
-                                <circle cx="208" cy="142" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
-                                <circle cx="198" cy="158" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
-                                <circle cx="212" cy="160" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
-                                <circle cx="186" cy="158" r="3.4" fill="#3D5341" fill-opacity="0.55"/>
-                            </g>
-
+                        <svg class="ff-pass" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <defs>
+                                <clipPath id="ffPassFrame"><rect x="40" y="44" width="320" height="256" rx="14"/></clipPath>
+                                <linearGradient id="ffPassPlate" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0" stop-color="#F8FBF8"/>
+                                    <stop offset="1" stop-color="#E7EFE9"/>
+                                </linearGradient>
                                 <radialGradient id="ffCoreGrad" cx="0.4" cy="0.35" r="0.75">
                                     <stop offset="0" stop-color="#7C9781" stop-opacity="0.85"/>
                                     <stop offset="1" stop-color="#4C6650" stop-opacity="0"/>
                                 </radialGradient>
                             </defs>
+
+                            <rect x="40" y="44" width="320" height="256" rx="14" fill="url(#ffPassPlate)"/>
+
+                            <g clip-path="url(#ffPassFrame)">
+                                <path d="M200 292C200 256 199 220 200 184" stroke="#4C6650" stroke-width="3" stroke-linecap="round"/>
+                                <path d="M200 246C176 242 152 226 136 190C170 194 196 216 200 246Z" fill="#6E8B74"/>
+                                <path d="M200 280C224 276 248 260 264 222C230 226 204 250 200 280Z" fill="#5F7A63"/>
+                                <g>
+                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#AEC4B3"/>
+                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#9BB6A2" transform="rotate(45 200 184)"/>
+                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#AEC4B3" transform="rotate(90 200 184)"/>
+                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#9BB6A2" transform="rotate(135 200 184)"/>
+                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#AEC4B3" transform="rotate(180 200 184)"/>
+                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#9BB6A2" transform="rotate(225 200 184)"/>
+                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#AEC4B3" transform="rotate(270 200 184)"/>
+                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#9BB6A2" transform="rotate(315 200 184)"/>
+                                </g>
+                                <circle cx="200" cy="184" r="22" fill="#4C6650"/>
+                                <circle cx="200" cy="184" r="22" fill="url(#ffCoreGrad)"/>
+                                <circle cx="193" cy="177" r="2.4" fill="#2E3F32" fill-opacity="0.5"/>
+                                <circle cx="206" cy="179" r="2.4" fill="#2E3F32" fill-opacity="0.5"/>
+                                <circle cx="197" cy="190" r="2.4" fill="#2E3F32" fill-opacity="0.5"/>
+                                <circle cx="208" cy="192" r="2.4" fill="#2E3F32" fill-opacity="0.5"/>
+
+                                <rect class="ff-pass-cell" style="--d:1000ms" x="120" y="108" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
+                                <rect class="ff-pass-cell" style="--d:1080ms" x="200" y="108" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
+                                <rect class="ff-pass-cell" style="--d:1240ms" x="120" y="172" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
+                                <rect class="ff-pass-cell" style="--d:1320ms" x="200" y="172" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
+                                <rect class="ff-pass-cell" style="--d:1480ms" x="120" y="236" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
+                                <rect class="ff-pass-cell" style="--d:1560ms" x="200" y="236" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
+
+                                <path class="ff-pass-grid" pathLength="1" d="M120 44V300M200 44V300M280 44V300M40 108H360M40 172H360M40 236H360"
+                                    stroke="#4C6650" stroke-opacity="0.38" stroke-width="1.1"/>
+                            </g>
+
+                            <g class="ff-pass-crop" stroke="#3D5341" stroke-width="2.2" stroke-linecap="round">
+                                <path d="M120 124V108H136"/>
+                                <path d="M264 108H280V124"/>
+                                <path d="M280 284V300H264"/>
+                                <path d="M136 300H120V284"/>
+                            </g>
+
+                            <text class="ff-pass-rise" style="--d:2600ms" x="40" y="330" font-family="Fraunces, serif" font-style="italic" font-size="21" fill="#3D5341">Rudbeckia hirta</text>
+                            <text class="ff-pass-rise" style="--d:2720ms" x="40" y="350" font-family="Inter, sans-serif" font-size="12.5" fill="#737373">Asteraceae</text>
+
+                            <rect x="40" y="366" width="260" height="7" rx="3.5" fill="#E4EBE5"/>
+                            <rect class="ff-pass-fill" style="--d:3000ms; --w:0.914" x="40" y="366" width="260" height="7" rx="3.5" fill="#4C6650"/>
+                            <text class="ff-pass-rise" style="--d:3200ms" x="360" y="373" text-anchor="end" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#171717">91.4%</text>
+
+                            <text class="ff-pass-rise" style="--d:3400ms" x="40" y="398" font-family="Inter, sans-serif" font-size="9.5" letter-spacing="0.1em" fill="#A3A3A3">ALSO CONSIDERED</text>
+
+                            <text class="ff-pass-rise" style="--d:3500ms" x="40" y="418" font-family="Fraunces, serif" font-style="italic" font-size="12.5" fill="#737373">Rudbeckia fulgida</text>
+                            <rect x="40" y="428" width="260" height="4" rx="2" fill="#EFF3EF"/>
+                            <rect class="ff-pass-fill" style="--d:3560ms; --w:0.052" x="40" y="428" width="260" height="4" rx="2" fill="#7C9781"/>
+                            <text class="ff-pass-rise" style="--d:3560ms" x="360" y="432" text-anchor="end" font-family="Inter, sans-serif" font-size="11" fill="#A3A3A3">5.2%</text>
+
+                            <text class="ff-pass-rise" style="--d:3620ms" x="40" y="446" font-family="Fraunces, serif" font-style="italic" font-size="12.5" fill="#737373">Helianthus annuus</text>
+                            <rect x="40" y="456" width="260" height="4" rx="2" fill="#EFF3EF"/>
+                            <rect class="ff-pass-fill" style="--d:3700ms; --w:0.018" x="40" y="456" width="260" height="4" rx="2" fill="#7C9781"/>
+                            <text class="ff-pass-rise" style="--d:3700ms" x="360" y="460" text-anchor="end" font-family="Inter, sans-serif" font-size="11" fill="#A3A3A3">1.8%</text>
                         </svg>
                     </div>
                     <span class="ff-glass-chip">
                         <span class="ff-glass-chip__dot breathe"></span>
-                        Identified in one frame
+                        Illustrative preview
                     </span>
                 </div>
 
             </div>
         </section>
 
-        <!-- DIRECTORY PREVIEW -->
         <section id="directory-preview" class="max-w-7xl mx-auto px-6 mb-32 scroll-mt-24">
             <div class="reveal-up flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
                 <div class="max-w-2xl">
@@ -714,7 +711,6 @@
                 </a>
             </div>
 
-            <!-- Preview grid — first 12 seed species, hydrated on scroll from the shared module -->
             <div id="previewGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
 
             <!-- Mobile "view all" (the header link is hidden on small screens) -->
@@ -726,20 +722,19 @@
             </div>
         </section>
 
-        <!-- STATS STRIP
-             Four figures, each one checkable against something in this repo:
-               116  — space/class_names.json has exactly 116 labels
-               ViT  — space/app.py serves a Vision Transformer through ONNX Runtime
-               Free — pricing.html states it for the duration of the Beta
-               0    — try.html reaches the model with no account and no key
+        <!-- Four figures, each one checkable against something in this repo:
+               116:  space/class_names.json has exactly 116 labels
+               ViT:  space/app.py serves a Vision Transformer through ONNX Runtime
+               Free: pricing.html states it for the duration of the Beta
+               0:    try.html reaches the model with no account and no key
              The two that used to sit here ("<2s average result time", "Weekly
              model refinements") were measurements nobody had taken and a
              cadence a small project cannot promise, so they are gone rather than
              softened. -->
         <section class="max-w-7xl mx-auto px-6 mb-36">
-            <div class="reveal-up grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 border-y border-neutral-200 py-12">
+            <div id="statsStrip" class="reveal-up grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 border-y border-neutral-200 py-12">
                 <div class="text-center md:border-r border-neutral-200">
-                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">116</div>
+                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2"><span class="ff-count" data-countup="116">116</span></div>
                     <div class="text-sm text-neutral-500 font-light">Botanical classes</div>
                 </div>
                 <div class="text-center md:border-r border-neutral-200">
@@ -757,8 +752,7 @@
             </div>
         </section>
 
-        <!-- HOW IT WORKS
-             Asymmetrical on purpose: the three steps take the wide column and a
+        <!-- Asymmetrical on purpose: the three steps take the wide column and a
              real record from the catalogue takes the narrow one, so the section
              explains the pipeline and shows its output at the same time. The
              steps used to sit in three equal boxes under a horizontal rule,
@@ -773,7 +767,6 @@
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-10 lg:gap-16 items-start">
 
-                <!-- LEFT · the steps, hung off one vertical spine -->
                 <div class="md:col-span-7 relative">
                     <!-- The spine sits behind the markers and dissolves rather than
                          stopping at a hard edge. The last step has nothing below it
@@ -790,7 +783,7 @@
                                 <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 01</span>
                                 <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">Capture or upload</h4>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    Point your camera at a plant, or drop in a photo you already have. One clear frame of a bloom or a leaf is enough to begin — there is nothing to install and no account to make first.
+                                    Point your camera at a plant, or drop in a photo you already have. One clear frame of a bloom or a leaf is enough to begin. There is nothing to install and no account to make first.
                                 </p>
                             </div>
                         </li>
@@ -803,7 +796,7 @@
                                 <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 02</span>
                                 <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">The model reads it</h4>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    Your photo is sent to a Vision Transformer running under ONNX Runtime, which returns a species and a confidence score. The image is used for that prediction and is not stored afterwards &mdash; the <a href="privacy.html" class="text-sage-600 hover:text-sage-700 underline underline-offset-2 decoration-sage-200">privacy page</a> sets out exactly what happens to it.
+                                    Your photo is sent to a Vision Transformer running under ONNX Runtime, which returns a species and a confidence score. The image is used for that prediction and is not stored afterwards. The <a href="privacy.html" class="text-sage-600 hover:text-sage-700 underline underline-offset-2 decoration-sage-200">privacy page</a> sets out what happens to it.
                                 </p>
                             </div>
                         </li>
@@ -816,14 +809,14 @@
                                 <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 03</span>
                                 <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">Learn the species</h4>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    A name on its own teaches you nothing. Wikidata supplies the binomial and family, Trefle the growth habit and light needs, Wikipedia the plate and the article &mdash; assembled into a record like the one shown here.
+                                    A name on its own teaches you nothing. Wikidata supplies the binomial and family, Trefle the growth habit and light needs, Wikipedia the plate and the article. Those four requests assemble into the record shown here.
                                 </p>
                             </div>
                         </li>
                     </ol>
                 </div>
 
-                <!-- RIGHT · a real record from the catalogue.
+                <!-- A real record from the catalogue, in the narrow column.
                      Sticky on desktop so it stays alongside whichever step you are
                      reading; it simply scrolls with the page on a phone. -->
                 <div class="md:col-span-5 md:sticky md:top-28">
@@ -889,7 +882,7 @@
                             </dl>
 
                             <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-neutral-100 bg-neutral-50/50">
-                                <span class="text-xs text-neutral-400 font-light">Trefle &middot; Wikidata &middot; Wikipedia</span>
+                                <span class="text-xs text-neutral-400 font-light">Three sources, one record</span>
                                 <a id="sampleLink" href="species.html?name=Rudbeckia%20hirta"
                                     class="group text-xs font-medium text-sage-600 hover:text-sage-700 inline-flex items-center gap-1 flex-shrink-0">
                                     Full profile
@@ -897,19 +890,41 @@
                                 </a>
                             </div>
                         </article>
+
+                        <!-- Three sources, one record: what step 03 describes, drawn.
+                             Wikidata lands the taxonomy row, Trefle the four growing
+                             rows, Wikipedia the plate, and each one flashes the part
+                             of the card above that it is responsible for. Tap to run
+                             it again. -->
+                        <div id="sampleTrace" data-replay class="reveal-up delay-200 mt-6 px-1">
+                            <svg class="ff-trace" viewBox="0 0 320 100" fill="none" aria-hidden="true">
+                <text class="ff-pass-rise" style="--d:0ms" x="40" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIDATA</text>
+                <text class="ff-pass-rise" style="--d:120ms" x="160" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">TREFLE</text>
+                <text class="ff-pass-rise" style="--d:240ms" x="280" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIPEDIA</text>
+                <circle class="ff-pass-cell" style="--d:200ms" cx="40" cy="26" r="4.5" fill="#5F7A63"/>
+                <circle class="ff-pass-cell" style="--d:500ms" cx="160" cy="26" r="4.5" fill="#5F7A63"/>
+                <circle class="ff-pass-cell" style="--d:800ms" cx="280" cy="26" r="4.5" fill="#5F7A63"/>
+                <text class="ff-pass-rise" style="--d:780ms" x="40" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">binomial, family</text>
+                <text class="ff-pass-rise" style="--d:1080ms" x="160" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">habit, light, water</text>
+                <text class="ff-pass-rise" style="--d:1380ms" x="280" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">plate, article</text>
+                <path class="ff-pass-grid" style="--d:260ms; --dur:520ms" pathLength="1" d="M40 50C40 68 100 70 150 78" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
+                <path class="ff-pass-grid" style="--d:560ms; --dur:520ms" pathLength="1" d="M160 50C160 62 160 70 160 77" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
+                <path class="ff-pass-grid" style="--d:860ms; --dur:520ms" pathLength="1" d="M280 50C280 68 220 70 170 78" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
+                <rect class="ff-pass-rise" style="--d:1320ms" x="112" y="78" width="96" height="18" rx="9" fill="#F2F5F2" stroke="#C9D6CB" stroke-width="1"/>
+                <text class="ff-pass-rise" style="--d:1380ms" x="160" y="90" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" font-weight="500" letter-spacing="0.08em" fill="#3D5341">ONE RECORD</text>
+                            </svg>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- ABOUT / EXPLANATION -->
         <section id="about" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center">
                 <div class="reveal-up relative">
                     <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-8">
                         A quiet tool for <br class="hidden md:block" />a complex world.
                     </h2>
-                    <!-- Elegant self-drawing botanical line -->
                     <svg class="w-full max-w-sm text-sage-400" viewBox="0 0 400 220" fill="none">
                         <path class="draw-path" d="M40 200C40 150 60 120 100 110C70 108 50 88 52 58C82 62 100 84 100 110C102 74 128 50 168 52C166 88 140 110 100 110C140 112 168 138 168 176C132 172 108 148 100 110M100 110C160 120 200 90 210 40C250 60 250 110 210 130C176 146 130 138 100 110Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -928,12 +943,11 @@
             </div>
         </section>
 
-        <!-- TRUST / ARCHITECTURE
-             Three claims, and each one is checkable: the model is in space/app.py,
+        <!-- Three claims, and each one is checkable: the model is in space/app.py,
              the three data sources are in species.js and scripts/api.js, and the
              absence of a sign-up is visible from try.html. The card that used to
              sit third claimed "500 distinct botanical classes" and weekly dataset
-             refinements — the real figure is 116 (space/class_names.json) and the
+             refinements. The real figure is 116 (space/class_names.json) and the
              cadence was never a commitment anyone had made. -->
         <section id="architecture" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
             <div class="reveal-up max-w-2xl mb-14">
@@ -945,7 +959,6 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                <!-- Feature 1 -->
                 <div class="reveal-up ff-vglass flex flex-col rounded-2xl p-8">
                     <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
                         <!-- Four patches: a Vision Transformer cuts the image into a
@@ -963,7 +976,6 @@
                     </p>
                 </div>
 
-                <!-- Feature 2 -->
                 <div class="reveal-up delay-100 ff-vglass flex flex-col rounded-2xl p-8">
                     <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
@@ -973,11 +985,10 @@
                     </div>
                     <h4 class="text-lg font-medium text-neutral-900 mb-3">Live Wikidata &amp; Trefle encyclopedia</h4>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        A name is where the work starts. Wikidata contributes the structured taxonomy, Trefle the growing data, Wikipedia the plate and the article &mdash; each fetched when you ask for it rather than frozen into a copy that quietly ages.
+                        A name is where the work starts. Wikidata contributes the structured taxonomy, Trefle the growing data, Wikipedia the plate and the article. Each is fetched when you ask for it, not frozen into a copy that quietly ages.
                     </p>
                 </div>
 
-                <!-- Feature 3 -->
                 <div class="reveal-up delay-200 ff-vglass flex flex-col rounded-2xl p-8">
                     <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
@@ -987,37 +998,33 @@
                     </div>
                     <h4 class="text-lg font-medium text-neutral-900 mb-3">Zero registration required</h4>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        No account, no API key, no install &mdash; open the scanner and identify. The only record kept is the scan history your own browser holds, and you can clear it whenever you like.
+                        No account, no API key, no install. Open the scanner and identify. The only record kept is the scan history your own browser holds, and you can clear it whenever you like.
                     </p>
                 </div>
 
             </div>
         </section>
 
-        <!-- PHILOSOPHY STATEMENT -->
         <section class="max-w-4xl mx-auto px-6 mb-40 text-center">
             <div class="reveal-up">
                 <svg class="mx-auto mb-8 text-sage-400" width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <p class="text-2xl md:text-4xl font-serif font-normal text-neutral-800 leading-snug tracking-tight">
-                    “The more clearly we can name the living world, the more closely we tend to care for it.”
+                    I wanted one page that names the flower, says how sure it is, and admits what else it could be.
                 </p>
-                <p class="mt-8 text-sm font-medium text-neutral-500">A FindFlower field note</p>
             </div>
         </section>
 
-        <!-- FINAL CTA -->
         <section class="max-w-7xl mx-auto px-6 mb-24">
             <div class="reveal-up relative bg-neutral-900 rounded-[2rem] p-12 md:p-20 text-center flex flex-col items-center overflow-hidden">
-                <!-- Subtle glow + line art inside dark card -->
                 <div class="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(95,122,99,0.35),transparent_70%)]"></div>
                 <svg class="absolute -bottom-6 -right-6 text-white/5 float-slower" width="220" height="220" viewBox="0 0 150 200" fill="none"><path d="M75 195C75 150 75 110 75 70M75 70C75 35 105 12 145 14C142 55 108 74 75 70ZM75 70C75 35 45 12 5 14C8 55 42 74 75 70ZM75 120C75 98 92 84 120 86C118 112 98 122 75 120ZM75 120C75 98 58 84 30 86C32 112 52 122 75 120Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
 
                 <div class="relative">
                     <h2 class="text-3xl md:text-5xl font-medium tracking-tight text-white mb-6">
-                        Ready to explore?
+                        Try it on the nearest flower.
                     </h2>
                     <p class="text-neutral-400 text-lg mb-10 max-w-xl mx-auto font-light">
-                        Open the scanner and point it at something growing. Free for the whole of the Beta &mdash; no account, no install, nothing to cancel.
+                        The scanner runs in the browser. Free for the whole of the beta, with no account, no install and nothing to cancel.
                     </p>
                     <a href="try.html" class="group inline-flex items-center gap-2 text-base font-medium bg-white text-neutral-900 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors">
                         Try FindFlower Now
@@ -1075,7 +1082,270 @@
         </div>
     </footer>
 
-    <!-- Botanical hero · pollen. The one animation on this site that is not a CSS
+    <script>
+    (function () {
+        'use strict';
+        var stage = document.getElementById('heroPass');
+        if (!stage) return;
+
+        // Same reason the pollen canvas needs a teardown: the router re-runs this
+        // block against a new #heroPass while the old timer is still firing at a
+        // detached one, so every visit home would leave another loop behind.
+        if (typeof window.ffStopHeroPass === 'function') {
+            try { window.ffStopHeroPass(); } catch (e) { /* a broken teardown must not block a new one */ }
+        }
+
+        // Rest state IS the finished state: grid drawn, patches lit, bars filled.
+        // So reduced motion (and no JS at all) needs nothing added, only nothing
+        // started.
+        if (window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        var CYCLE = 6000;   // 4600ms of animation, then 1400ms holding the result
+        var timer = null;
+        var io = null;
+        var dead = false;
+
+        function run() {
+            // Restart by taking the class off, forcing a reflow, putting it back.
+            // Without the reflow the browser coalesces both writes into one frame
+            // and the animations never see a change to restart from. Same idiom as
+            // crossFade() in scripts/ux.js.
+            stage.classList.remove('is-running');
+            void stage.offsetWidth;
+            stage.classList.add('is-running');
+        }
+
+        function stopTimer() {
+            if (timer) { clearTimeout(timer); timer = null; }
+        }
+
+        function tick() {
+            run();
+            timer = setTimeout(tick, CYCLE);
+        }
+
+        function start() {
+            if (dead || timer) return;
+            tick();
+        }
+
+        function onVisibility() {
+            if (document.hidden) stopTimer();
+            else start();
+        }
+
+        // Tap to replay. This is the only interaction the hero has on a phone,
+        // where none of the :hover affordances elsewhere on the page resolve.
+        // Pointer-only on purpose: the stage is aria-hidden, so it must not be
+        // given a tabindex just to earn a keyboard equivalent.
+        function onReplay() {
+            stopTimer();
+            tick();
+            if (typeof window.ffHaptic === 'function') window.ffHaptic(20);
+        }
+
+        function stop() {
+            dead = true;
+            stopTimer();
+            stage.removeEventListener('click', onReplay);
+            document.removeEventListener('visibilitychange', onVisibility);
+            if (io) { try { io.disconnect(); } catch (e) { /* ignore */ } io = null; }
+            if (window.ffStopHeroPass === stop) window.ffStopHeroPass = null;
+        }
+        window.ffStopHeroPass = stop;
+
+        stage.addEventListener('click', onReplay);
+        document.addEventListener('visibilitychange', onVisibility);
+
+        // Scrolled past means stopped. A loop repainting a hero nobody can see is
+        // the same waste as the pollen canvas off-screen.
+        if ('IntersectionObserver' in window) {
+            io = new IntersectionObserver(function (entries) {
+                if (entries[entries.length - 1].isIntersecting) start();
+                else stopTimer();
+            }, { threshold: 0 });
+            io.observe(stage);
+        } else {
+            start();
+        }
+    })();
+    </script>
+
+    <script>
+    (function () {
+        'use strict';
+        var trace = document.getElementById('sampleTrace');
+        if (!trace) return;
+
+        if (typeof window.ffStopTrace === 'function') {
+            try { window.ffStopTrace(); } catch (e) { /* a broken teardown must not block a new one */ }
+        }
+
+        // Rest state is the finished diagram, so reduced motion needs nothing
+        // started and nothing added.
+        if (window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        // Resolved at flash time, never cached. The sample-card script re-renders
+        // #sampleFields from trefle-data.json, and again on every tab press, so a
+        // NodeList taken at parse time points at detached rows: the first version
+        // of this flashed the plate and nothing else.
+        function rows() { return document.querySelectorAll('#sampleFields .ff-sample-row'); }
+        function plate() {
+            var ph = document.getElementById('samplePh');
+            return ph ? ph.parentNode : null;
+        }
+
+        // Each source flashes the part of the card it is actually responsible
+        // for, at the moment its path lands. Times track the --d values on the
+        // three .ff-pass-grid paths plus their 520ms draw.
+        var LANDINGS = [
+            [780, function () { return [rows()[0]]; }],
+            [1080, function () { var r = rows(); return [r[1], r[2], r[3], r[4]]; }],
+            [1380, function () { return [plate()]; }]
+        ];
+
+        var timers = [];
+        var io = null;
+        var dead = false;
+
+        function flash(el) {
+            if (!el) return;
+            el.classList.remove('ff-fade-in');
+            void el.offsetWidth;
+            el.classList.add('ff-fade-in');
+        }
+
+        function clearTimers() {
+            for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]);
+            timers.length = 0;
+        }
+
+        function run() {
+            if (dead) return;
+            clearTimers();
+            trace.classList.remove('is-running');
+            void trace.offsetWidth;
+            trace.classList.add('is-running');
+            for (var i = 0; i < LANDINGS.length; i++) {
+                (function (at, pick) {
+                    timers.push(setTimeout(function () {
+                        var targets = pick();
+                        for (var j = 0; j < targets.length; j++) flash(targets[j]);
+                    }, at));
+                })(LANDINGS[i][0], LANDINGS[i][1]);
+            }
+        }
+
+        function onReplay() {
+            run();
+            if (typeof window.ffHaptic === 'function') window.ffHaptic(20);
+        }
+
+        function stop() {
+            dead = true;
+            clearTimers();
+            trace.removeEventListener('click', onReplay);
+            if (io) { try { io.disconnect(); } catch (e) { /* ignore */ } io = null; }
+            if (window.ffStopTrace === stop) window.ffStopTrace = null;
+        }
+        window.ffStopTrace = stop;
+
+        trace.addEventListener('click', onReplay);
+
+        // One-shot on arrival, then only on demand. Unlike the hero this does not
+        // loop: three sources merging is a fact to state once, and a diagram that
+        // kept redrawing itself beside prose would fight the prose.
+        if ('IntersectionObserver' in window) {
+            io = new IntersectionObserver(function (entries, obs) {
+                if (!entries[entries.length - 1].isIntersecting) return;
+                obs.disconnect();
+                io = null;
+                run();
+            }, { threshold: 0.4 });
+            io.observe(trace);
+        } else {
+            run();
+        }
+    })();
+    </script>
+
+    <script>
+    (function () {
+        'use strict';
+        var strip = document.getElementById('statsStrip');
+        if (!strip) return;
+        var el = strip.querySelector('[data-countup]');
+        if (!el) return;
+
+        if (typeof window.ffStopCount === 'function') {
+            try { window.ffStopCount(); } catch (e) { /* a broken teardown must not block a new one */ }
+        }
+
+        var target = parseInt(el.getAttribute('data-countup'), 10);
+        if (isNaN(target)) return;
+        if (typeof requestAnimationFrame !== 'function') return;   // leave 116 as written
+
+        var raf = null;
+
+        // No second observer: the strip already carries .reveal-up, and the class
+        // the reveal observer adds starts a 700ms transition on it. Listening for
+        // the end of that transition costs nothing and starts the count when the
+        // strip has finished arriving, provided the right transition is used.
+        //
+        // It is also the right fallback in both directions. With no
+        // IntersectionObserver .ff-reveal is never set, nothing transitions, and
+        // the figure simply stays as written. Under prefers-reduced-motion app.css
+        // sets transition: none on .reveal-up, so this never fires there either.
+        function onEnd(e) {
+            if (e.target !== strip || e.propertyName !== 'opacity') return;
+
+            // The first opacity transitionend on this strip is the wrong one, and
+            // it cost an afternoon. app.css holds .reveal-up at opacity 1 until
+            // ux.js sets html.ff-reveal; the instant it does, this page's own
+            // opacity: 0 wins and the strip fades OUT over 700ms. That end event
+            // lands about 900ms after load, while the strip is still a screen
+            // below the fold. Counting there meant the figure had already reached
+            // 116 before anyone scrolled to it, so the animation was real,
+            // correct, and never once seen. .active is the only signal that says
+            // the strip faded IN.
+            if (!strip.classList.contains('active')) return;
+
+            strip.removeEventListener('transitionend', onEnd);
+
+            // Lock the box at its final width first. 0 is one glyph wide and 116
+            // is three, and a centred number that grows mid-count drags the label
+            // under it sideways.
+            el.style.minWidth = el.offsetWidth + 'px';
+
+            var t0 = null;
+            var DUR = 900;
+            function frame(now) {
+                if (t0 === null) t0 = now;
+                var t = Math.min(1, (now - t0) / DUR);
+                var eased = 1 - Math.pow(1 - t, 3);
+                el.textContent = String(Math.round(target * eased));
+                if (t < 1) raf = requestAnimationFrame(frame);
+                else { raf = null; el.textContent = String(target); }
+            }
+            el.textContent = '0';
+            raf = requestAnimationFrame(frame);
+        }
+
+        function stop() {
+            if (raf) { cancelAnimationFrame(raf); raf = null; }
+            strip.removeEventListener('transitionend', onEnd);
+            el.textContent = String(target);
+            if (window.ffStopCount === stop) window.ffStopCount = null;
+        }
+        window.ffStopCount = stop;
+
+        strip.addEventListener('transitionend', onEnd);
+    })();
+    </script>
+
+    <!-- Pollen. The one animation on this site that is not a CSS
          transform: a few dozen grains on independent drifting paths cannot be
          expressed as a transform on a single box. It never touches layout. -->
     <script>
@@ -1284,7 +1554,7 @@
     <script>
     (function () {
         'use strict';
-        if (typeof ffFetchSpecies !== 'function') return; // species.js unavailable — leave section empty
+        if (typeof ffFetchSpecies !== 'function') return; // species.js unavailable, leave section empty
 
         // First 12 of directory.html's seed list (kept in sync with that page).
         const PREVIEW = [
@@ -1359,7 +1629,7 @@
             } finally {
                 // Hydration finished (image/text swapped in). The visible entrance
                 // itself is handled by the reveal observer below so cards fade in on
-                // scroll even before their data lands — this just ensures a card that
+                // scroll even before their data lands. This just ensures a card that
                 // was never observed (no IO support) still becomes visible.
                 if (!('IntersectionObserver' in window)) {
                     requestAnimationFrame(() => card.classList.add('ready'));
@@ -1402,13 +1672,10 @@
     })();
     </script>
 
-    <!-- ========================================================================
-         "How it works" — the sample record card
-         ------------------------------------------------------------------------
-         The tabs render from trefle-data.json: the same same-origin file
+    <!-- The tabs render from trefle-data.json: the same same-origin file
          species.js merges into every species profile. So the fields on the
          homepage are the fields the app actually shows, not a mock-up of them.
-         The plate and the binomial come from ffFetchSpecies — the same
+         The plate and the binomial come from ffFetchSpecies, the same
          Wikipedia/Wikidata path a scan result takes.
 
          The markup already holds a complete record, so this script's job is to
@@ -1419,9 +1686,8 @@
          Router note: this block re-runs on every client-side arrival at
          index.html. Every node it touches lives inside <main>, which the router
          replaces wholesale, and the two listeners below are attached to one of
-         those nodes — so the previous run's wiring is collected with the DOM it
-         was bound to. Nothing survives a swap, so there is nothing to retire.
-         ======================================================================== -->
+         those nodes, so the previous run's wiring is collected with the DOM it
+         was bound to. Nothing survives a swap, so there is nothing to retire. -->
     <script>
     (function () {
         'use strict';
@@ -1447,7 +1713,7 @@
                 try {
                     var cached = sessionStorage.getItem(CACHE_KEY);
                     if (cached) { resolve(JSON.parse(cached)); return; }
-                } catch (e) { /* private mode, or a poisoned entry — just refetch */ }
+                } catch (e) { /* private mode, or a poisoned entry: just refetch */ }
                 fetch('trefle-data.json').then(function (res) {
                     return res.ok ? res.json() : null;
                 }).then(function (map) {
@@ -1478,7 +1744,7 @@
         }
 
         /**
-         * The record as rows, skipping every field Trefle left empty — an
+         * The record as rows, skipping every field Trefle left empty. An
          * absent row is honest, a row reading "—" is filler.
          *
          * Edibility follows species.js's rule exactly: only an affirmative
@@ -1498,7 +1764,7 @@
             if (rec.edible === true) {
                 var parts = (rec.ediblePart && rec.ediblePart.length)
                     ? esc(rec.ediblePart.join(', ')) : '';
-                html += row('Edible', parts ? 'Yes &mdash; ' + parts : 'Yes');
+                html += row('Edible', parts ? 'Yes (' + parts + ')' : 'Yes');
             }
             return html;
         }
@@ -1586,7 +1852,7 @@
         });
 
         // A tablist is expected to move under the arrow keys, and the selection
-        // follows focus — with three cheap, cached records there is no reason to
+        // follows focus. With three cheap, cached records there is no reason to
         // make someone press Enter as well.
         tabs.addEventListener('keydown', function (e) {
             if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -1605,7 +1871,7 @@
         if (!first) return;
 
         // The card sits well below the fold, and the markup is already showing
-        // the right record — so there is nothing to gain from spending its first
+        // the right record, so there is nothing to gain from spending its first
         // request during page load. Hold it until the card is nearly in view,
         // the same way the directory preview holds its cards.
         var panel = document.getElementById('samplePanel');
@@ -1628,7 +1894,7 @@
          from outside it: scripts/ux.js arms a global observer and re-scans on
          any DOM mutation, and scripts/views/home.js re-arms one per route.
          Either alone is sufficient, and app.css keeps .reveal-up VISIBLE until
-         a script confirms it can reveal things — so the failure mode is content
+         a script confirms it can reveal things, so the failure mode is content
          without animation rather than the blank page this page used to risk. -->
 </body>
 </html>
