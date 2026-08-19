@@ -86,7 +86,12 @@
     // section carrying its own bottom padding, and stacking 6rem on top of it
     // opens a visible gap. The other eleven pages end flush against their last
     // element and need the margin or the footer crowds it.
-    var FLUSH = { 'index.html': 1, 'how.html': 1, 'login.html': 1, '404.html': 1 };
+    var FLUSH = {
+        'index.html': 1, 'how.html': 1, 'login.html': 1, '404.html': 1,
+        // Both placeholders centre one short block in a min-h-[58vh] section
+        // that already carries pb-28, so mt-24 on top of it opens a gap.
+        'blogs.html': 1, 'community.html': 1,
+    };
 
     var LOGO =
         '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600" aria-hidden="true">' +
@@ -174,9 +179,12 @@
         return el;
     }
 
-    /** The page footer, never the sidebar one. nav.js builds a
-     *  <footer class="ff-drawer-utility"> inside #ffSidebar for the location and
-     *  clock panel, and a bare querySelector('footer') can reach it. */
+    /** The page footer, never the sidebar one. nav.js used to build a
+     *  <footer class="ff-drawer-utility"> inside #ffSidebar for the clock and
+     *  location panel, and a bare querySelector('footer') reached it -- which
+     *  put the page footer inside the drawer. The panel is gone, so today this
+     *  loop always returns on i=0; the skip stays because the drawer is markup
+     *  nav.js owns and this file must not assume what is in it. */
     function pageFooter() {
         var all = document.querySelectorAll('footer');
         for (var i = 0; i < all.length; i++) {

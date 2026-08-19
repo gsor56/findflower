@@ -54,7 +54,7 @@
     var STATIC_PAGES = [
         'index.html', 'how.html', 'pricing.html', 'api.html', 'terms.html',
         'privacy.html', 'releases.html', 'contact.html', 'feedback.html',
-        'species.html',
+        'species.html', 'blogs.html', 'community.html',
     ];
 
     window.ffViews = window.ffViews || {};
