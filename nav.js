@@ -41,9 +41,10 @@
         '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" ' +
         'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
-    // Fixed desktop nav — the primary marketing/product links. Dashboard and
-    // Directory intentionally do NOT live in the top bar; they sit in the
-    // slide-out sidebar (see buildSidebar) opened by the hamburger button.
+    // Fixed desktop nav — the primary marketing/product links. Dashboard,
+    // Directory, Blogs and Community intentionally do NOT live in the top bar;
+    // they sit in the slide-out sidebar (see buildSidebar) opened by the
+    // hamburger button. Four links is what fits at 768px without wrapping.
     var LINKS = [
         { label: 'How it works', href: '/how' },
         { label: 'Pricing',      href: '/pricing' },
@@ -81,17 +82,12 @@
         '<path d="m8 9-4 3 4 3M16 9l4 3-4 3M14 5l-4 14"/></svg>';
     var ICON_ABOUT = SVG_OPEN +
         '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>';
-    var ICON_PIN   = SVG_OPEN +
-        '<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg>';
-    var ICON_REFRESH = SVG_OPEN +
-        '<path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 8.2A7 7 0 0 1 18.4 7L20 9M4 15l1.6 2A7 7 0 0 0 17.9 15.8"/></svg>';
-    var ICON_COMMUNITY =
-        '<svg class="ff-community-flower" width="30" height="36" viewBox="0 0 30 36" fill="none" aria-hidden="true">' +
-        '<path d="M15 34V17" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>' +
-        '<path d="M15 26c-5.2 0-8.4-2.5-9.4-6.8 5.1-.4 8.3 2 9.4 6.8Zm0 2.7c4.8 0 7.9-2.2 9.1-6.2-4.8-.5-7.9 1.6-9.1 6.2Z" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>' +
-        '<path d="M15 17c-4.5 0-7.7-2.8-7.7-6.5 3.7-.7 6.4.8 7.7 3.3 1.3-2.5 4-4 7.7-3.3 0 3.7-3.2 6.5-7.7 6.5Z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>' +
-        '<circle cx="15" cy="9" r="3.5" fill="#D5A84B" stroke="currentColor" stroke-width="1.2"/>' +
-        '</svg>';
+    var ICON_BLOGS = SVG_OPEN +
+        '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6.5A1.5 1.5 0 0 1 5 19.5Z"/>' +
+        '<path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg>';
+    var ICON_COMMUNITY = SVG_OPEN +
+        '<circle cx="9.5" cy="8" r="3.2"/><path d="M3.5 20v-1.4A4.1 4.1 0 0 1 7.6 14.5h3.8a4.1 4.1 0 0 1 4.1 4.1V20"/>' +
+        '<path d="M16.2 5.2a3.2 3.2 0 0 1 0 5.6M17.4 14.7A4.1 4.1 0 0 1 20.5 18.6V20"/></svg>';
 
     function escapeHTML(value) {
         return String(value == null ? '' : value).replace(/[&<>'"]/g, function (ch) {
@@ -112,11 +108,12 @@
      * key off. So the two can no longer be compared directly and everything that
      * asks "is this link the page I am on" has to come through here.
      *
-     * Returns '' for an href with no page part of its own. That case is the
-     * Community placeholder in the drawer, href="#", and the empty key is what
-     * stops it matching: the old code read the missing filename as index.html and
-     * lit "Community · Coming Soon" as the current page every time the home page
-     * loaded without a hash.
+     * Returns '' for an href with no page part of its own -- a bare "#" or "".
+     * The drawer's Community entry used to be exactly that, and the old code read
+     * its missing filename as index.html, so "Community · Coming Soon" lit up as
+     * the current page every time the home page loaded without a hash. Community
+     * is a real route now, but the rule stays: an href with no page cannot be the
+     * page you are on, and treating it as the site root is how that bug happened.
      */
     function routeKey(href) {
         var s = String(href || '').split('#')[0].split('?')[0];
@@ -190,7 +187,8 @@
                         'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
                     // Hamburger is shown at every width. The top bar carries the
                     // primary links on desktop; the slide-out holds the rest
-                    // (Dashboard, Directory) and stays reachable on any screen.
+                    // (Dashboard, Directory, Blogs, Community) and stays reachable
+                    // on any screen.
                     // Carries both hooks the delegated handler listens for.
                     '<button id="ffMenuBtn" type="button" data-toggle-sidebar aria-label="Open menu" ' +
                         'aria-controls="ffSidebar" aria-expanded="false" ' +
@@ -256,11 +254,18 @@
             '<div id="ffSidebarBackdrop" class="ff-sidebar-backdrop" aria-hidden="true"></div>' +
             '<aside id="ffSidebar" class="ff-sidebar" aria-label="Site menu" aria-hidden="true" aria-modal="true" role="dialog" tabindex="-1">' +
                 '<div class="ff-sidebar__header">' +
-                    '<div><span class="ff-sidebar__eyebrow">FindFlower</span><h2>Explore</h2></div>' +
+                    // One line, because the header two inches above it already
+                    // says FindFlower. This used to be an eyebrow reading
+                    // "FindFlower" stacked over a serif "Explore".
+                    '<h2>Menu</h2>' +
                     '<button id="ffSidebarClose" type="button" aria-label="Close menu" class="ff-sidebar__close">' + ICON_CLOSE + '</button>' +
                 '</div>' +
                 '<div class="ff-sidebar__scroll">' +
-                    '<section id="ffDrawerAuth" class="ff-drawer-auth" aria-live="polite"></section>' +
+                    // aria-live is load-bearing on this one section and nowhere
+                    // else in the drawer: it ships as the guest prompt and is
+                    // replaced by the account row when getUserSession resolves,
+                    // which happens after the drawer is already open.
+                    '<section id="ffDrawerAuth" class="ff-drawer-account" aria-live="polite"></section>' +
                     '<nav class="ff-drawer-nav" aria-label="All pages">' +
                         drawerLink('Home', '/', ICON_HOME) +
                         drawerLink('Dashboard', '/dashboard', ICON_DASH) +
@@ -268,34 +273,31 @@
                         drawerLink('How it works', '/how', ICON_HOW) +
                         drawerLink('Pricing', '/pricing', ICON_PRICE) +
                         drawerLink('API', '/api', ICON_API) +
+                        drawerLink('Blogs', '/blogs', ICON_BLOGS) +
+                        drawerLink('Community', '/community', ICON_COMMUNITY) +
                         drawerLink('About', '/#about', ICON_ABOUT) +
                     '</nav>' +
-                    '<div class="ff-drawer-community">' +
-                        '<a href="#" class="ff-drawer-link ff-drawer-link--community" data-coming-soon="true" aria-label="Community, coming soon">' +
-                            ICON_COMMUNITY + '<span>Community</span><span class="ff-coming-soon">Coming Soon</span>' +
-                        '</a>' +
-                    '</div>' +
                 '</div>' +
-                '<footer class="ff-drawer-utility" aria-live="polite">' +
-                    '<div class="ff-drawer-utility__top"><span class="ff-sidebar__eyebrow">Your local field note</span>' +
-                        '<button id="ffLocationRefresh" type="button" class="ff-location-refresh" aria-label="Refresh location" title="Refresh location">' + ICON_REFRESH + '</button></div>' +
-                    '<div class="ff-drawer-location">' + ICON_PIN + '<div><strong id="ffDrawerPlace">Location unavailable</strong><span id="ffDrawerCoords">Allow location access to find your place</span></div></div>' +
-                    '<div class="ff-drawer-time"><span>Local time</span><time id="ffDrawerTime">--:--</time></div>' +
-                '</footer>' +
             '</aside>';
         return wrap;
     }
 
     var sidebarFocus = null;
     var sidebarOverflow = '';
-    var locationStarted = false;
-    var clockTimer = null;
 
     function renderDrawerAuth() {
         var host = document.getElementById('ffDrawerAuth');
         if (!host) return;
-        var guest = '<div class="ff-drawer-auth__guest"><span class="ff-drawer-auth__mark">FF</span><div><strong>Welcome to FindFlower</strong><span>Sign in to keep your field notes together.</span></div></div>' +
-            '<div class="ff-drawer-auth__actions"><a href="/login" class="ff-drawer-button ff-drawer-button--quiet">Sign In</a><a href="/try" class="ff-drawer-button ff-drawer-button--solid">Try Now</a></div>';
+        // No monogram for a guest: the old markup put an "FF" avatar next to
+        // "Welcome to FindFlower", which is a stand-in for a person who is not
+        // signed in. The claim is also kept accurate -- storage.js scopes history
+        // to the Auth0 sub in THIS browser's IndexedDB and never syncs, so this
+        // cannot promise the history follows you to another device.
+        var guest = '<p class="ff-drawer-account__note">Sign in to keep your finds under your own account.</p>' +
+            '<div class="ff-drawer-account__actions">' +
+                '<a href="/login" class="ff-drawer-button ff-drawer-button--quiet">Sign In</a>' +
+                '<a href="/try" class="ff-drawer-button ff-drawer-button--solid">Try Now</a>' +
+            '</div>';
         host.innerHTML = guest;
         function paintProfile(session) {
             if (!session || !session.authenticated) return;
@@ -319,63 +321,18 @@
         window.getUserSession().then(paintProfile).catch(function () {});
     }
 
-    function paintClock() {
-        var time = document.getElementById('ffDrawerTime');
-        if (!time) return;
-        var now = new Date();
-        time.textContent = new Intl.DateTimeFormat([], { hour: 'numeric', minute: '2-digit' }).format(now);
-        time.dateTime = now.toISOString();
-    }
-
-    function setLocationMessage(place, coords) {
-        var placeEl = document.getElementById('ffDrawerPlace');
-        var coordsEl = document.getElementById('ffDrawerCoords');
-        if (placeEl) placeEl.textContent = place;
-        if (coordsEl) coordsEl.textContent = coords || '';
-    }
-
-    function reverseGeocode(position) {
-        var lat = position.coords.latitude;
-        var lon = position.coords.longitude;
-        var accuracy = Math.round(position.coords.accuracy || 0);
-        var coords = lat.toFixed(5) + ', ' + lon.toFixed(5) + (accuracy ? ' · ±' + accuracy + ' m' : '');
-        window.ffDrawerLocation = { latitude: lat, longitude: lon, accuracy: position.coords.accuracy || null, altitude: position.coords.altitude || null, timestamp: position.timestamp || Date.now(), place: null, city: null, state: null };
-        window.dispatchEvent(new CustomEvent('ff:location', { detail: window.ffDrawerLocation }));
-        setLocationMessage('Finding your place…', coords);
-        fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=10&addressdetails=1&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lon), { headers: { 'Accept-Language': navigator.language || 'en' } })
-            .then(function (res) { return res.ok ? res.json() : null; })
-            .then(function (data) {
-                var address = data && data.address;
-                var city = address && (address.city || address.town || address.village || address.municipality || address.county);
-                var state = address && (address.state || address.region);
-                var place = city ? city + (state ? ', ' + state : '') : 'Current location';
-                window.ffDrawerLocation.place = place;
-                window.ffDrawerLocation.city = city || null;
-                window.ffDrawerLocation.state = state || null;
-                window.dispatchEvent(new CustomEvent('ff:location', { detail: window.ffDrawerLocation }));
-                setLocationMessage(place, coords);
-            })
-            .catch(function () { setLocationMessage('Current location', coords); });
-    }
-
-    function startLocation() {
-        if (locationStarted) return;
-        locationStarted = true;
-        paintClock();
-        if (!clockTimer) clockTimer = window.setInterval(paintClock, 30000);
-        if (!navigator.geolocation) { setLocationMessage('Location unavailable', 'Geolocation is not supported here'); return; }
-        setLocationMessage('Locating…', 'Waiting for a precise browser reading');
-        navigator.geolocation.getCurrentPosition(reverseGeocode, function (error) {
-            locationStarted = false;
-            var message = error && error.code === 1 ? 'Location permission needed' : 'Location unavailable';
-            setLocationMessage(message, 'Tap refresh to try again');
-        }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 });
-    }
-
     function setSidebar(on) {
         var sb = document.getElementById('ffSidebar');
         var backdrop = document.getElementById('ffSidebarBackdrop');
         if (!sb) return;
+        // Escape calls setSidebar(false) unconditionally, from anywhere on the
+        // site, whether or not the drawer is open. So the close branch below has
+        // to be a no-op when there was nothing open: restoring the saved overflow
+        // on a stray Escape would unlock the page behind blur.js's modal, and
+        // restoring focus would pull the caret out of whatever the person was
+        // typing in and drop it on the menu button.
+        var wasOpen = sb.classList.contains('active');
+        if (on === wasOpen) return;
         sb.classList.toggle('active', on);
         if (backdrop) backdrop.classList.toggle('active', on);
         sb.setAttribute('aria-hidden', on ? 'false' : 'true');
@@ -390,11 +347,25 @@
             sidebarOverflow = document.body.style.overflow;
             document.body.style.overflow = 'hidden';
             renderDrawerAuth();
-            startLocation();
-            window.setTimeout(function () { var close = document.getElementById('ffSidebarClose'); if (close) close.focus(); }, 20);
+            // Focus moves in the same task as the class flip. This used to be a
+            // 20ms setTimeout, which was a workaround for the visibility
+            // transition documented in app.css: the button was still
+            // visibility:hidden when the timer fired, Chrome dropped the focus
+            // call, and the trap below had nothing to trap. With `visibility 0s`
+            // on .ff-sidebar.active there is nothing left to wait for, and doing
+            // it synchronously closes the window where a fast Tab escapes.
+            var close = document.getElementById('ffSidebarClose');
+            if (close) close.focus();
         } else {
             document.body.style.overflow = sidebarOverflow;
-            if (sidebarFocus && typeof sidebarFocus.focus === 'function') sidebarFocus.focus();
+            // A dialog returns focus to whatever opened it. document.body is the
+            // one thing that can be recorded here and cannot take focus, so the
+            // hamburger is the fallback rather than leaving the caret nowhere.
+            var back = sidebarFocus;
+            if (!back || back === document.body || typeof back.focus !== 'function') {
+                back = document.querySelector('[data-toggle-sidebar], .ff-hamburger');
+            }
+            if (back && typeof back.focus === 'function') back.focus();
             sidebarFocus = null;
         }
     }
@@ -405,8 +376,6 @@
             if (!t || typeof t.closest !== 'function') return;
             if (t.closest('[data-toggle-sidebar], .ff-hamburger')) { e.preventDefault(); var sb = document.getElementById('ffSidebar'); setSidebar(!(sb && sb.classList.contains('active'))); return; }
             if (t.closest('#ffSidebarClose, #ffSidebarBackdrop')) { e.preventDefault(); setSidebar(false); return; }
-            if (t.closest('[data-coming-soon="true"]')) { e.preventDefault(); return; }
-            if (t.closest('#ffLocationRefresh')) { e.preventDefault(); locationStarted = false; startLocation(); return; }
             if (t.closest('#ffSidebar a')) setSidebar(false);
         });
         document.addEventListener('keydown', function (e) {
@@ -469,11 +438,10 @@
             document.body.insertBefore(header, document.body.firstChild);
         }
 
-        // Slide-out sidebar (Dashboard / Directory) + its open/close wiring.
+        // Slide-out sidebar (the pages the top bar has no room for) + wiring.
         document.body.appendChild(buildSidebar());
         wireSidebar();
         renderDrawerAuth();
-        paintClock();
 
         // Transparent-at-top / glass-on-scroll behaviour for the bar just built.
         wireHeaderScroll(header);
