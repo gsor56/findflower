@@ -44,6 +44,13 @@
     /** Route exit: hand the hardware back. */
     function unmount() {
         stopCamera();
+        // The coach layer's own node is tagged [data-ff-page], so the router
+        // removes it on the swap; this is what disconnects its observers and
+        // window listeners. stop() rather than dismiss(): leaving the page is
+        // not the user saying they have finished with the tips.
+        if (window.ffTryCoach) {
+            try { ffTryCoach.stop(); } catch (e) { /* never started */ }
+        }
     }
 
     // Real navigations away from try.html (the normal case, since the router
