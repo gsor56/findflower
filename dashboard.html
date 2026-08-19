@@ -19,7 +19,11 @@
     <meta name="robots" content="noindex">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=7">
+    <link rel="stylesheet" href="app.css?v=8">
+    <!-- Not deferred, and next to the stylesheet on purpose: prefs.js puts the
+         ff-reduce-motion class on <html> as it parses, so a reader who asked for
+         less motion never sees a frame of the animation they turned off. -->
+    <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=3" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
@@ -35,6 +39,9 @@
          modules give each route a mount/unmount so observers and the Discover
          feed are torn down on the way out. router.js loads last — it mounts the
          current route on DOMContentLoaded and needs ffViews populated. -->
+    <!-- The four panels under the badge shelf. Deferred, so it is executed
+         before DOMContentLoaded fires the inline init() that mounts it. -->
+    <script src="scripts/dashboard-panels.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/views/dashboard.js" defer></script>
     <script src="scripts/views/directory.js" defer></script>
@@ -260,6 +267,37 @@
                 <div id="badgeGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"></div>
             </section>
 
+            <!-- === Preferences, Places, Model & data, Storage ===
+                 Four empty hosts. scripts/dashboard-panels.js fills each one it
+                 finds and skips the rest, so this markup carries no copy that
+                 could drift from the behaviour it describes. The panels are the
+                 answer to three questions the dashboard could not answer
+                 before: what can I change, where have I been, and what is
+                 actually stored about me. -->
+            <section id="prefsSection" class="mt-14 scroll-mt-24">
+                <h2 class="font-serif text-2xl text-neutral-900">Preferences</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">Four switches. Each one changes what the scanner does on this device — none of them is decoration.</p>
+                <div id="panelPrefs" class="bg-white border border-neutral-200 rounded-2xl p-5 sm:p-6 shadow-subtle"></div>
+            </section>
+
+            <section id="placesSection" class="mt-14 scroll-mt-24">
+                <h2 class="font-serif text-2xl text-neutral-900">Places</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">Where you found them, grouped to about 110 metres.</p>
+                <div id="panelPlaces"></div>
+            </section>
+
+            <section id="modelSection" class="mt-14 scroll-mt-24">
+                <h2 class="font-serif text-2xl text-neutral-900">Model &amp; data</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">What identifies a flower, and what leaves this device.</p>
+                <div id="panelModel"></div>
+            </section>
+
+            <section id="storageSection" class="mt-14 scroll-mt-24">
+                <h2 class="font-serif text-2xl text-neutral-900">Storage on this device</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">Your whole history is in this browser and nowhere else. Take a copy of it, or erase it.</p>
+                <div id="panelStorage"></div>
+            </section>
+
         </div>
     </main>
 
@@ -393,6 +431,16 @@
                 return;
             }
 
+            paintSummary(data);
+            return data;
+        }
+
+        /* Tiles, streak note, history grid and badge shelf from one summary.
+           Split out of renderStats() because the Storage panel can erase the
+           history under it: everything on this page that describes the store
+           has to be redrawn from the same object, or the tiles keep reporting a
+           streak for scans that no longer exist. */
+        function paintSummary(data) {
             $('mStreak').textContent = data.streak;
             $('mTotal').textContent = data.totalScans;
             $('mUnique').textContent = data.uniqueSpecies;
@@ -404,7 +452,21 @@
 
             renderRecent(data.scans);
             renderBadges(data.badges);
-            return data;
+        }
+
+        /* === Preferences / Places / Model & data / Storage ==================
+           The panels themselves are scripts/dashboard-panels.js. Two reasons
+           they are not in this file: everything here is unreachable for a guest
+           (dashMain is hidden and init() returns early), which makes it
+           untestable without an Auth0 session; and this inline script is
+           already the longest thing on the page. */
+        function mountPanels(session, data) {
+            if (!window.ffPanels) return;
+            window.ffPanels.mount({
+                session: session,
+                summary: data,
+                onDataChanged: paintSummary
+            });
         }
 
         // === discover feed (signed-in users with an empty collection) ========
@@ -469,6 +531,7 @@
             $('dashMain').classList.remove('hidden');
             renderProfile(session);
             const data = await renderStats();
+            mountPanels(session, data);
             // A signed-in botanist with no scans yet gets the Discover feed
             // instead of an empty page.
             if (data && (!data.scans || !data.scans.length)) mountDiscover();

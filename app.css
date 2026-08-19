@@ -1432,3 +1432,56 @@ html.ff-reveal .reveal-up.delay-400 { transition-delay: 400ms; }
     .ff-lb-hero { transform: translate3d(-50%, -50%, 0) scale(1); }
 }
 
+
+/* ============================================================================
+   REDUCED MOTION, CHOSEN IN THE APP — html.ff-reduce-motion
+   ----------------------------------------------------------------------------
+   prefs.js sets this class from the Motion switch on /dashboard, for a reader
+   whose OS has no such setting (or who wants the site still without making
+   every site still). The eleven `prefers-reduced-motion` blocks above stay
+   exactly as they are: they answer the OS, this answers the app.
+
+   Deliberately NOT eleven duplicated blocks. Two reasons it collapses
+   durations instead of writing `animation: none`:
+
+     - one selector list cannot drift out of step with eleven others as new
+       animations arrive;
+     - `animation: none` reverts an element to its BASE style, which for
+       anything animated in with `both`/`forwards` fill (.fade-in, .ff-fade-in)
+       means opacity: 0 — invisible, not still. A 1ms run with the fill mode
+       intact lands on the final keyframe and stays there.
+
+   1ms rather than 0s because a zero-duration animation is not guaranteed to
+   fire `animationend`, and delays are zeroed too — a 400ms transition-delay on
+   a stagger helper would otherwise still hold the element back.
+   ========================================================================== */
+html.ff-reduce-motion,
+html.ff-reduce-motion *,
+html.ff-reduce-motion *::before,
+html.ff-reduce-motion *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+}
+
+/* html.scroll-smooth is a Tailwind utility on every page here, and the CDN's
+   sheet order relative to this file is not ours to rely on. */
+html.ff-reduce-motion { scroll-behavior: auto !important; }
+
+/* The two rest states a duration collapse cannot infer, mirrored from the
+   media blocks at lines 1270 and 1426.
+
+   .reveal-up is revealed by a JS class, so collapsing the transition would
+   only make it snap in when the observer fires; with motion off it should
+   simply be there. .ff-lb-hero carries no transform of its own -- the keyframes
+   supply it -- so reverting to base would drop the login hero half out of
+   frame at top: 50%; left: 50% with no centring translate. */
+html.ff-reduce-motion .reveal-up {
+    opacity: 1;
+    transform: none;
+}
+html.ff-reduce-motion .ff-lb-hero {
+    transform: translate3d(-50%, -50%, 0) scale(1);
+}

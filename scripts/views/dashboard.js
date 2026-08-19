@@ -157,6 +157,13 @@
         if (grid && !grid.innerHTML.trim() && !grid.classList.contains('hidden')) {
             await renderDiscoveries({ limit: 6 });
         }
+        // The panel hosts arrive empty inside the swapped-in <main>, and the
+        // inline init() that filled them on the first load does not run again.
+        // No session is passed: with no id, storage.js resolves the active user
+        // itself, which is the same answer init() would have handed over.
+        if (window.ffPanels && document.getElementById('panelPrefs')) {
+            window.ffPanels.mount();
+        }
     }
 
     function unmount() {
@@ -166,6 +173,10 @@
         if (window.ffDiscoverHandle && typeof ffDiscoverHandle.stop === 'function') {
             try { ffDiscoverHandle.stop(); } catch (e) { /* already stopped */ }
             window.ffDiscoverHandle = null;
+        }
+        // The Preferences panel keeps a delegated click handler on its host.
+        if (window.ffPanels) {
+            try { ffPanels.unmount(); } catch (e) { /* nothing mounted */ }
         }
     }
 
