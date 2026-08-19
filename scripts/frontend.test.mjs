@@ -106,7 +106,7 @@ section('ui.js — card markup');
     const trefle = {
         qid: null, name: 'Common poppy', family: 'Papaveraceae',
         img: 'https://bs.plantnet.org/image/o/abc.jpg',
-        link: 'species.html?name=Common%20poppy',
+        link: '/species?name=Common%20poppy',
     };
     const wikidata = {
         qid: 'Q157419', name: 'Rosa canina', family: 'Rosaceae',
@@ -117,7 +117,7 @@ section('ui.js — card markup');
     const t = plantCardHTML(trefle);
     const w = plantCardHTML(wikidata);
 
-    ok(t.includes('species.html?name=Common%20poppy'), 'Trefle card links to the species page');
+    ok(t.includes('/species?name=Common%20poppy'), 'Trefle card links to the species page');
     ok(!/target="_blank"/.test(t), '...and stays in the tab (internal link)');
     ok(w.includes('target="_blank"') && w.includes('rel="noopener noreferrer"'),
         'Wikidata card opens externally with rel=noopener');
@@ -165,7 +165,7 @@ section('ui.js — hostile field values');
         name: '<img src=x onerror=alert(1)>',
         family: '</p><script>alert(2)</script>',
         img: 'https://x/y.jpg" onload="alert(3)',
-        link: 'species.html?name=x',
+        link: '/species?name=x',
     });
     ok(!/<script>/.test(xss), 'no <script> tag survives any field');
     ok(!/<img src=x/.test(xss), 'markup in the name is escaped, not parsed');
@@ -176,7 +176,7 @@ section('ui.js — hostile field values');
 
     const js = plantCardHTML({ qid: null, name: 'Evil', family: null, img: null, link: 'javascript:alert(1)' });
     ok(!/javascript:/i.test(js), 'a javascript: link is refused outright');
-    ok(js.includes('species.html?name=Evil'), '...and replaced with the species page');
+    ok(js.includes('/species?name=Evil'), '...and replaced with the species page');
 
     const data = plantCardHTML({ qid: null, name: 'Evil', family: null, img: null, link: 'data:text/html,<script>' });
     ok(!/href="data:/i.test(data), 'a data: link is refused outright');
@@ -277,7 +277,7 @@ const jsonRes = (body, status = 200) => ({
     ok(res.items[0].img === 'https://img/1.jpg', 'image_url is carried through (list records do have it)');
     ok(res.items[1].img === null, '...and reported as null when absent, not faked');
     ok(res.items[0].qid === null, 'Trefle items carry no QID');
-    ok(res.items[0].link === 'species.html?name=Common%20poppy', 'the link is an encoded species-page URL');
+    ok(res.items[0].link === '/species?name=Common%20poppy', 'the link is an encoded species-page URL');
     ok(res.hasMore === true, 'links.next means there is more');
 
     const u = decodeURIComponent(win._lastUrl);
@@ -675,7 +675,7 @@ function treflePage(page, total) {
     // assertion is on cards rendered, not on requests made.
     const html = grid._html.join('');
     ok((html.match(/<article/g) || []).length === 40, 'a fixed grid fills to exactly its max');
-    ok(html.includes('species.html?name=Plant%200'), '...through ffUi, linking to the species page');
+    ok(html.includes('/species?name=Plant%200'), '...through ffUi, linking to the species page');
     ok(pages >= 2, '...pulling as many Trefle pages as it took');
 }
 

@@ -32,7 +32,7 @@
 //             decision to the engine/ui layer. Wikidata images are always
 //             Commons THUMBNAILS — the P18 originals are 5–20 MB each.
 //     link  — the source link, and it differs by catalogue on purpose:
-//             Trefle has no article, so it is species.html?name=…, while
+//             Trefle has no article, so it is /species?name=…, while
 //             Wikidata carries the real Wikipedia article URL. Callers that
 //             want every card to point inward (the encyclopedia) rewrite it;
 //             callers that want to send people to Wikipedia (the dashboard
