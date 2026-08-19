@@ -59,6 +59,10 @@
          breaks quietly. views/scanner.js only adds camera teardown, so the
          capture LED and sensor are released the moment the page is hidden. -->
     <script src="scripts/views/scanner.js" defer></script>
+    <!-- First-run coach marks over the capture card, phones only. Deferred:
+         it reads the page state it points at, and it must not delay the
+         inference script above it. -->
+    <script src="scripts/try-coach.js?v=1" defer></script>
     <script src="scripts/router.js" defer></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -252,6 +256,131 @@
         /* Spinner */
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin .9s linear infinite; }
+
+        /* ====================================================================
+           FIRST-RUN COACH MARKS — phones only (scripts/try-coach.js)
+           --------------------------------------------------------------------
+           A ring drawn just OUTSIDE the control it is pointing at, a "Tap here"
+           pill on the ring, and a sheet above the mobile tab bar.
+
+           Two things this block has to get right:
+
+           Taps. Every part of the layer is pointer-events: none except the Hide
+           button. The ring sits directly over a live control, and the tap the
+           coach is asking for has to reach the page, not the coach.
+
+           Stillness. The blanket reduced-motion rule at the end of this sheet
+           is `animation: none`, which reverts an element to its BASE style — so
+           the resting frame of every keyframe here is also the base style. The
+           ripple rests at spread 0, tucked behind the ring's own border; the
+           pill rests at its centring translate, not at translate(0), which
+           would drop it half a width to the right. The sheet fades in from a
+           CLASS instead of a fill mode, so it arrives whether or not
+           animations run.
+           ==================================================================== */
+        .ff-coach { position: absolute; top: 0; left: 0; width: 0; height: 0; }
+
+        .ff-coach__ring {
+            position: absolute;         /* document coordinates: scrolls for free */
+            z-index: 40;                /* over the card, under the tab bar (50) */
+            pointer-events: none;
+            border: 3px solid #5F7A63;  /* sage-500 — the site accent */
+            opacity: 0;
+            transition: opacity .3s ease,
+                        top .32s cubic-bezier(0.16, 1, 0.3, 1),
+                        left .32s cubic-bezier(0.16, 1, 0.3, 1),
+                        width .32s cubic-bezier(0.16, 1, 0.3, 1),
+                        height .32s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .ff-coach__ring[hidden] { display: none; }
+        .ff-coach.is-on .ff-coach__ring { opacity: 1; }
+
+        /* The pulse: a ripple spreading out of the ring's own edge.
+           Deliberately a box-shadow and not a scaled pseudo-element, which is
+           the cheaper thing to composite but the wrong thing here -- a ring
+           310px wide (the upload dropzone) grown to scale(1.22) reaches 34px
+           past a 360px viewport, and the page collects a horizontal scrollbar
+           for a decoration. A shadow is ink: it cannot extend the document.
+           The rest frame is spread 0, which is a shadow hidden exactly behind
+           the border it belongs to -- so with animations off the ring is a
+           plain ring, and with them collapsed to 1ms it lands on the
+           fully-faded frame instead. Both read as still. */
+        .ff-coach__ring {
+            box-shadow: 0 0 0 0 rgba(95, 122, 99, 0.5);
+            animation: ff-coach-halo 1.9s ease-out infinite;
+        }
+        @keyframes ff-coach-halo {
+            from { box-shadow: 0 0 0 0 rgba(95, 122, 99, 0.5); }
+            to   { box-shadow: 0 0 0 13px rgba(95, 122, 99, 0); }
+        }
+
+        .ff-coach__here {
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 11px);
+            transform: translateX(-50%);
+            white-space: nowrap;
+            background-color: #3D5341;   /* sage-700 */
+            color: #FFFFFF;
+            font-size: 0.75rem;         /* text-xs */
+            font-weight: 500;
+            line-height: 1;
+            padding: 8px 12px;
+            border-radius: 9999px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+            animation: ff-coach-nudge 1.9s ease-in-out infinite;
+        }
+        /* The caret is what ties the words to the ring. */
+        .ff-coach__here::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border: 5px solid transparent;
+            border-top-color: #3D5341;
+        }
+        /* Flipped under the ring when the control sits too close to the fixed
+           header for a pill to fit above it. */
+        .ff-coach__ring.is-below .ff-coach__here { bottom: auto; top: calc(100% + 11px); }
+        .ff-coach__ring.is-below .ff-coach__here::after {
+            top: auto;
+            bottom: 100%;
+            border-top-color: transparent;
+            border-bottom-color: #3D5341;
+        }
+        @keyframes ff-coach-nudge {
+            0%, 100% { transform: translateX(-50%) translateY(0); }
+            50%      { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        .ff-coach__sheet {
+            position: fixed;
+            z-index: 60;                /* over the tab bar (50), under the drawer (90) */
+            left: 12px;
+            right: 12px;
+            /* Clear the mobile tab bar: 56px of control plus the home
+               indicator, the same reservation app.css makes on <body>. */
+            bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 10px);
+            padding: 14px 14px 15px 16px;
+            background-color: #FFFFFF;
+            border: 1px solid #E5E5E5;
+            border-radius: 20px;
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.13);
+            pointer-events: auto;       /* Hide has to be tappable */
+            opacity: 0;
+            transform: translateY(14px);
+            transition: opacity .4s ease, transform .4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        /* nav.js only adds the tab bar on phones; without it there is nothing
+           to clear and the sheet should sit at the bottom edge. */
+        body:not(.has-tabbar) .ff-coach__sheet {
+            bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        }
+        .ff-coach.is-on .ff-coach__sheet { opacity: 1; transform: none; }
+        /* Bold inside the copy names an on-screen control. 600, not the UA's
+           `bolder`, which would land on 700 against the 500 around it. */
+        .ff-coach__sheet b { font-weight: 600; color: #171717; }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -885,5 +885,88 @@ section('each preference is enforced somewhere real');
     }
 }
 
+// ---------------------------------------------------------------------------
+// The /try coach's wiring
+// ---------------------------------------------------------------------------
+// The coach reads the page instead of counting taps, so it stays correct only
+// for as long as the things it reads still exist. Every id in its step table,
+// the mode tabs it derives the path length from, the attributes it observes: if
+// a future edit renames one of those, the coach does not throw -- it silently
+// points at nothing. That is what these guard. The browser side (geometry, one
+// showing, reduced motion) is coach.qa.mjs; this is the part the text can
+// answer on its own.
+section('/try coach -- the page contract it depends on');
+{
+    const root = join(HERE, '..');
+    const { readdirSync } = await import('node:fs');
+    const tryHtml = readFileSync(join(root, 'try.html'), 'utf8');
+    const coach = readFileSync(join(root, 'scripts', 'try-coach.js'), 'utf8');
+    const scanner = readFileSync(join(root, 'scripts', 'views', 'scanner.js'), 'utf8');
+    const router = readFileSync(join(root, 'scripts', 'router.js'), 'utf8');
+    const appCss = readFileSync(join(root, 'app.css'), 'utf8');
+
+    const at = tryHtml.indexOf('try-coach.js');
+    const tag = at === -1 ? '' : tryHtml.slice(tryHtml.lastIndexOf('<script', at), tryHtml.indexOf('>', at) + 1);
+    ok(tag !== '', 'try.html loads scripts/try-coach.js');
+    ok(tag.includes(' defer'), 'deferred: it must not delay the inference script above it');
+    // Order matters twice over: scanner.js owns the state the coach reads, and
+    // the layer has to exist before the router can sweep it away again.
+    const tagAt = (src) => tryHtml.indexOf('<script src="' + src);
+    ok(tagAt('scripts/views/scanner.js') < at, 'after scanner.js, which drives the state it reads');
+    ok(at < tagAt('scripts/router.js'), 'and before router.js');
+
+    const others = readdirSync(root).filter((f) => f.endsWith('.html') && f !== 'try.html')
+        .filter((f) => readFileSync(join(root, f), 'utf8').includes('try-coach.js'));
+    ok(others.length === 0, 'and no other page carries it: ' + (others.join(', ') || 'none'));
+
+    // Its CSS deliberately lives in try.html. Moving it to app.css would cost a
+    // ?v= bump on all 17 pages for a layer only one of them can ever show.
+    ok(tryHtml.includes('.ff-coach__ring'), 'the coach CSS is inline in try.html');
+    ok(!appCss.includes('ff-coach'), 'and app.css is untouched, so no site-wide ?v= bump');
+
+    // Every control the step table points at.
+    const ids = [...coach.matchAll(/id: '([A-Za-z]+)'/g)].map((m) => m[1]);
+    ok(ids.length === 5, 'five steps in the table: ' + ids.join(', '));
+    const gone = ids.filter((id) => !tryHtml.includes('id="' + id + '"'));
+    ok(gone.length === 0, 'each is an id try.html really has: ' + (gone.join(', ') || 'all five'));
+
+    // "Step n of 3" versus "of 2" comes off the mode tabs: aria-selected is
+    // both the tab's own state and the coach's input.
+    for (const m of ['camera', 'upload', 'url']) {
+        ok(tryHtml.includes('data-mode="' + m + '"'), 'the ' + m + ' tab is still a .seg-btn[data-mode]');
+    }
+    ok(tryHtml.includes('seg-btn') && tryHtml.includes('aria-selected'),
+        'and the tabs still carry aria-selected, which mode() reads');
+    ok(coach.includes("attributeFilter: ['disabled', 'class', 'aria-selected']"),
+        'the observers watch exactly those three attributes');
+    const capture = tryHtml.slice(tryHtml.indexOf('id="camCapture"'));
+    ok(capture.slice(0, capture.indexOf('>')).includes('disabled'),
+        'Capture starts disabled, which is what puts step 1 on Start camera');
+
+    // Teardown, both halves: the node goes with the router's sweep, the
+    // observers go with stop(). dismiss() here would spend the one showing on
+    // a reader who merely tapped Home.
+    ok(coach.includes("setAttribute('data-ff-page'"), 'the layer tags itself [data-ff-page]');
+    ok(router.includes("var EXTRA = '[data-ff-page]'"), 'which is the selector router.js sweeps');
+    ok(scanner.includes('ffTryCoach.stop()'), 'scanner.js unmount() stops the coach');
+    ok(!scanner.includes('ffTryCoach.dismiss'), 'and does not mark it seen on the way out');
+
+    // Phones only, and remembered per rebuilt flow rather than for ever.
+    ok(coach.includes('(max-width: 767px)'), 'it gates on md, the same breakpoint as the tab bar');
+    ok(coach.includes("SEEN_KEY = 'ff_coach_try'"), 'the one-showing flag is ff_coach_try');
+    ok(/VERSION = '[0-9]+'/.test(coach), 'and it is versioned, so a rebuilt flow can teach again');
+
+    // Type scale. The sheet's text is Tailwind utilities; the pill is the only
+    // hand-written size in the layer, and it still has to be a step.
+    const css = tryHtml.slice(tryHtml.indexOf('.ff-coach {'), tryHtml.indexOf('@media (prefers-reduced-motion'));
+    const STEP = ['0.75rem', '0.875rem', '1rem', '1.125rem', '1.25rem', '1.5rem', '1.875rem', '2.25rem'];
+    const sizes = [...css.matchAll(/font-size:[ ]*([^;]+);/g)].map((m) => m[1].trim());
+    ok(sizes.length > 0 && sizes.every((v) => STEP.includes(v)),
+        'every hand-written font-size is a scale step: ' + sizes.join(', '));
+    const weights = [...css.matchAll(/font-weight:[ ]*([^;]+);/g)].map((m) => m[1].trim());
+    ok(weights.every((v) => ['400', '500', '600', '700'].includes(v)),
+        'and every weight is a real one: ' + weights.join(', '));
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
