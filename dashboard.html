@@ -377,7 +377,7 @@
                      title="${esc(b.description)}">
                     <div class="text-2xl ${b.earned ? '' : 'opacity-25 grayscale'}" aria-hidden="true">${b.icon}</div>
                     <p class="mt-2 text-xs font-medium ${b.earned ? 'text-neutral-900' : 'text-neutral-400'}">${esc(b.name)}</p>
-                    <p class="mt-0.5 text-[10px] ${b.earned ? 'text-sage-700' : 'text-neutral-400'}">${b.earned ? 'Earned' : 'Locked'}</p>
+                    <p class="mt-0.5 text-xs ${b.earned ? 'text-sage-700' : 'text-neutral-400'}">${b.earned ? 'Earned' : 'Locked'}</p>
                 </div>`).join('');
         }
 
