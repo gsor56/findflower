@@ -67,14 +67,21 @@
         { label: 'How it works',  href: '/how',       key: 'how.html' },
         { label: 'Pricing',       href: '/pricing',   key: 'pricing.html' },
         { label: 'API',           href: '/api',       key: 'api.html' },
-        { label: 'Release Notes', href: '/releases',  key: 'releases.html' }
+        { label: 'Release Notes', href: '/releases',  key: 'releases.html' },
+        // Blogs and Community are the two placeholders, and they sit either
+        // side of the Product/Project boundary in the same order the drawer
+        // lists them (nav.js: ...API, Blogs, Community, About...). Blogs ends
+        // Product because the journal is about the model; Community follows
+        // About because it is about the people around it.
+        { label: 'Blogs',         href: '/blogs',     key: 'blogs.html' }
     ];
 
     var PROJECT = [
-        { label: 'About',            href: '#about',   key: 'index.html', hash: true },
-        { label: 'Contact',          href: '/contact', key: 'contact.html' },
-        { label: 'Privacy Policy',   href: '/privacy', key: 'privacy.html' },
-        { label: 'Terms of Service', href: '/terms',   key: 'terms.html' }
+        { label: 'About',            href: '#about',     key: 'index.html', hash: true },
+        { label: 'Community',        href: '/community', key: 'community.html' },
+        { label: 'Contact',          href: '/contact',   key: 'contact.html' },
+        { label: 'Privacy Policy',   href: '/privacy',   key: 'privacy.html' },
+        { label: 'Terms of Service', href: '/terms',     key: 'terms.html' }
     ];
 
     // Pages that render live species data fetched from Wikidata and Wikipedia.
