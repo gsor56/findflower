@@ -18,7 +18,7 @@
     <meta name="twitter:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=7">
+    <link rel="stylesheet" href="app.css?v=8">
     <script src="nav.js?v=3" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
@@ -29,6 +29,7 @@
     <script src="scripts/api.js?v=1"></script>
     <script src="scripts/ui.js?v=1"></script>
     <script src="species.js?v=2"></script>
+    <script src="prefs.js?v=1"></script>
     <script src="storage.js"></script>
     <script src="blur.js?v=1"></script>
     <!-- Auth0 is NOT loaded on this page (temporary, 2026-08-08, pre-production).
@@ -1454,15 +1455,35 @@
             await saveScan(ranked[0]);
         }
 
-        /** Persist a confirmed identification and roll the streak forward. */
+        /* One preference read, with prefs.js's own default as the fallback so a
+           page that somehow loads without it behaves as the dashboard promises
+           rather than as this file used to. */
+        function pref(key, dflt) {
+            return window.ffPrefs ? window.ffPrefs.get(key) : dflt;
+        }
+
+        /** Persist a confirmed identification and roll the streak forward.
+         *
+         *  Three of the four switches on /dashboard are enforced right here,
+         *  which is the reason they are switches and not decoration:
+         *    recordHistory  off -> nothing is written at all
+         *    attachLocation off -> no permission prompt, no coordinates
+         *    keepPhotos     off -> the row is stored without its thumbnail
+         *
+         *  attachLocation is why the geolocation call moved behind a condition:
+         *  every single identification used to open a permission dialog nobody
+         *  had asked for. */
         async function saveScan(pick) {
             if (!window.ffStore) return;
+            if (!pref('recordHistory', true)) return;
             try {
-                const geolocation = await ffGeolocate(4000);
+                const geolocation = pref('attachLocation', false)
+                    ? await ffGeolocate(4000)
+                    : null;
                 const { newBadges } = await ffStore.addScan({
                     species: cleanName(pick.name),
                     confidence: pick.p,
-                    image: currentBlob,
+                    image: pref('keepPhotos', true) ? currentBlob : null,
                     geolocation,
                 });
                 if (newBadges && newBadges.length) announceBadges(newBadges);
@@ -1843,7 +1864,11 @@
                     predicted: lastPrediction ? cleanName(lastPrediction.name) : null,
                     confidence: lastPrediction ? lastPrediction.p : null,
                     correct: correct,
-                    correction: correction || null
+                    correction: correction || null,
+                    // feedback.html has always stamped `at`; the dashboard's
+                    // Model & data panel reports when you last corrected the
+                    // model, and rows written here had no date to report.
+                    at: new Date().toISOString()
                 });
                 localStorage.setItem('ff_feedback', JSON.stringify(log));
             } catch (e) { /* storage unavailable — ignore */ }

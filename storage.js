@@ -671,6 +671,42 @@
     await tx(STORE_STATS, "readwrite", (s) => wrap(s.clear()));
   }
 
+  /**
+   * Erase ONE user's history: their scan rows and their stats row, nothing
+   * else. Returns the number of scans deleted.
+   *
+   * The dashboard's Clear button calls this rather than clearAll(), and that is
+   * the whole reason it exists. Two accounts sharing a browser -- a shared
+   * laptop, a phone handed over, an account switch -- both have rows in this
+   * one database, and store.clear() would take the other person's history and
+   * badges with it. Deleting by cursor over [userId, timestamp] cannot reach
+   * outside the range, so the blast radius is a property of the range and not
+   * of the caller remembering to filter.
+   *
+   * One transaction across both stores: a half-cleared user (rows gone, streak
+   * and badges intact) would show a dashboard describing a history that no
+   * longer exists.
+   */
+  async function clearUser(userId) {
+    const uid = userId ? String(userId) : await owner();
+    return tx2("readwrite", (stores) => {
+      const counted = { n: 0 };
+      const range = IDBKeyRange.bound([uid, ""], [uid, MAX_KEY_CHAR]);
+      // A delete cursor over an index: cur.delete() removes the row the key
+      // points at, so no id list has to be collected first.
+      const req = stores.scans.index(IDX_USER_TIME).openCursor(range);
+      req.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        cur.delete();
+        counted.n += 1;
+        cur.continue();
+      };
+      stores.stats.delete(uid);
+      return counted;
+    }).then((c) => c.n);
+  }
+
   /** Does this user have anything stored in this browser? (dashboard hint) */
   async function hasHistory(userId) {
     const uid = userId ? String(userId) : await owner();
@@ -690,6 +726,7 @@
     getSummary,
     hasHistory,
     clearAll,
+    clearUser,
     adopt,
     refreshUser,
     // exported for the dashboard + tests

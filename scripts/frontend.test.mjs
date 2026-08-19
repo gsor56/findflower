@@ -809,5 +809,81 @@ function treflePage(page, total) {
     ok(/width=400/.test(grid2._html.join('')), 'thumbWidth reaches the rendered card');
 }
 
+// ---------------------------------------------------------------------------
+// The head-order contract for prefs.js
+// ---------------------------------------------------------------------------
+// prefs.js applies the reduce-motion class to <html>. If it is deferred, or
+// missing from a page, the reader who asked for no animation sees exactly one
+// -- the first one that page runs -- before the class lands. Every page has to
+// carry it, and none of them may defer it. String ops rather than a regex:
+// this is markup order, and the assertions should read like the thing they
+// guard.
+section('every page loads prefs.js blocking in <head>');
+{
+    const { readdirSync } = await import('node:fs');
+    const root = join(HERE, '..');
+    const pages = readdirSync(root).filter((f) => f.endsWith('.html')).sort();
+    ok(pages.length >= 17, 'found the page set (' + pages.length + ' files)');
+
+    const openTag = (html, needle) => {
+        const i = html.indexOf(needle);
+        if (i === -1) return null;
+        return html.slice(i, html.indexOf('>', i) + 1);
+    };
+
+    const missing = [], deferred = [], late = [], stale = [];
+    for (const f of pages) {
+        const html = readFileSync(join(root, f), 'utf8');
+        const tag = openTag(html, '<script src="prefs.js');
+        if (!tag) { missing.push(f); continue; }
+        if (tag.includes(' defer') || tag.includes(' async')) deferred.push(f);
+        const head = html.indexOf('</head>');
+        if (head === -1 || html.indexOf(tag) > head) late.push(f);
+        // A page left on an older app.css would serve cached CSS with no
+        // reduce-motion block: the switch would look broken on that page only.
+        for (const part of html.split('app.css?v=').slice(1)) {
+            if (!part.startsWith('8"')) stale.push(f + ' -> app.css?v=' + part.slice(0, 2));
+        }
+    }
+    ok(missing.length === 0, 'no page is without prefs.js: ' + (missing.join(', ') || 'none'));
+    ok(deferred.length === 0, 'no page defers it: ' + (deferred.join(', ') || 'none'));
+    ok(late.length === 0, 'and none of them load it after </head>: ' + (late.join(', ') || 'none'));
+    ok(stale.length === 0, 'every page is on the same app.css: ' + (stale.join(', ') || 'v=8 everywhere'));
+}
+
+// ---------------------------------------------------------------------------
+// Every preference changes something
+// ---------------------------------------------------------------------------
+// The rule the four switches were written under: no toggle that only remembers
+// its own position. Each key has to be read at the place it governs, and this
+// is what fails if a future edit removes the read but leaves the switch.
+section('each preference is enforced somewhere real');
+{
+    const root = join(HERE, '..');
+    const prefs = readFileSync(join(root, 'prefs.js'), 'utf8');
+    const tryHtml = readFileSync(join(root, 'try.html'), 'utf8');
+    const css = readFileSync(join(root, 'app.css'), 'utf8');
+
+    const keys = prefs.slice(prefs.indexOf('var DEFAULTS'), prefs.indexOf('var MOTION_CLASS'))
+        .split(':').slice(0, -1).map((s) => s.trim().split(/[^A-Za-z]/).pop()).filter(Boolean);
+    ok(keys.length === 4 && keys.join(',') === 'attachLocation,keepPhotos,recordHistory,reduceMotion',
+        'four preferences: ' + keys.join(', '));
+
+    // The three the capture path reads before it writes a scan.
+    for (const k of ['attachLocation', 'keepPhotos', 'recordHistory']) {
+        ok(tryHtml.includes("pref('" + k + "'"), k + ' gates something in try.html');
+    }
+    // The fourth is a class app.css keys its rest state off.
+    ok(prefs.includes('MOTION_CLASS') && prefs.includes("'ff-reduce-motion'"),
+        'reduceMotion resolves to a class name in prefs.js');
+    ok(css.includes('html.ff-reduce-motion'), 'and app.css acts on that class');
+    ok(css.includes('animation-duration: 1ms'),
+        'by collapsing durations, not by animation: none, which hides fill-mode elements');
+    for (const sel of ['.reveal-up', '.ff-lb-hero']) {
+        ok(css.slice(css.indexOf('html.ff-reduce-motion')).includes('html.ff-reduce-motion ' + sel),
+            'and it restores the rest state of ' + sel + ', which has none of its own');
+    }
+}
+
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);
