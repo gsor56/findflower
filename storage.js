@@ -39,7 +39,7 @@
   "use strict";
 
   const DB_NAME = "findflower";
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const STORE_SCANS = "scans";
   const STORE_STATS = "stats";
   const STATS_KEY = "global"; // v1's single shared row; migrated away on upgrade
@@ -56,13 +56,23 @@
 
   const IDX_USER = "userId";
   const IDX_USER_TIME = "user_time"; // [userId, timestamp] -- per-user, newest-first
+  // [userId, species] -- how many DIFFERENT species one user has logged,
+  // answered from index keys so no row (and no thumbnail) is deserialized.
+  const IDX_USER_SPECIES = "user_species";
 
   // Thumbnails are stored as base64 inside IndexedDB. Browsers cap origin
   // storage, so keep each frame small rather than banking a full camera frame.
   const THUMB_MAX_EDGE = 320;
   const THUMB_QUALITY = 0.7;
 
-  /** Badge catalogue. `test` gets ({stats, scans}) and returns true when earned. */
+  /**
+   * Badge catalogue. `test` gets a facts object and returns true when earned.
+   *
+   * The facts are `{ stats, uniqueSpecies, nightSeen }` and never the rows.
+   * Two of these tests used to walk `scans`, which is why addScan had to read
+   * the whole history on every single write; both questions are now answered
+   * from the [userId, species] and [userId, timestamp] index keys instead.
+   */
   const BADGES = [
     {
       id: "first-discovery",
@@ -83,18 +93,14 @@
       name: "Night Explorer",
       icon: "🌙",
       description: "Identify a flower after 9pm.",
-      test: (s) =>
-        s.scans.some((x) => {
-          const h = new Date(x.timestamp).getHours();
-          return h >= 21 || h < 5;
-        }),
+      test: (s) => s.nightSeen === true,
     },
     {
       id: "collector-10",
       name: "Collector",
       icon: "🧺",
       description: "Identify 10 different species.",
-      test: (s) => uniqueSpecies(s.scans) >= 10,
+      test: (s) => s.uniqueSpecies >= 10,
     },
     {
       id: "botanist-25",
@@ -183,6 +189,18 @@
             s.createIndex(IDX_USER_TIME, [IDX_USER, "timestamp"]);
           }
           migrateToV2(req.transaction);
+        }
+        // v3: one more index and nothing else. Every scan write used to read
+        // the user's ENTIRE history back -- every row, every base64 thumbnail
+        // -- to answer two badge questions, and both turn out to be answerable
+        // from index KEYS. Purely additive: IndexedDB builds this from the
+        // `species` field the rows already carry, so no row is rewritten and
+        // no row is even read here.
+        if (e.oldVersion < 3) {
+          const s3 = req.transaction.objectStore(STORE_SCANS);
+          if (!s3.indexNames.contains(IDX_USER_SPECIES)) {
+            s3.createIndex(IDX_USER_SPECIES, [IDX_USER, "species"]);
+          }
         }
       };
       req.onsuccess = () => resolve(req.result);
@@ -345,6 +363,14 @@
     return Math.round((b - a) / 86400000);
   }
 
+  /** The badge's own definition of night, kept in one place because the key
+   *  walk below and the badge test have to agree on it. Local hours, matching
+   *  what the row-walking version did with `new Date(x.timestamp).getHours()`. */
+  function isNightHour(when) {
+    const h = new Date(when).getHours();
+    return h >= 21 || h < 5;
+  }
+
   function uniqueSpecies(scans) {
     const set = new Set();
     for (const s of scans) {
@@ -397,14 +423,14 @@
   }
 
   /** Re-evaluate the badge catalogue; returns the ids newly earned. */
-  function evaluateBadges(stats, scans) {
+  function evaluateBadges(stats, facts) {
     const have = new Set(stats.unlockedBadges || []);
     const fresh = [];
     for (const b of BADGES) {
       if (have.has(b.id)) continue;
       let earned = false;
       try {
-        earned = !!b.test({ stats, scans });
+        earned = !!b.test(facts);
       } catch {
         earned = false;
       }
@@ -415,6 +441,64 @@
     }
     stats.unlockedBadges = Array.from(have);
     return fresh;
+  }
+
+  /**
+   * How many DIFFERENT species this user has logged.
+   *
+   * `nextunique` visits each distinct [userId, species] key once and a KEY
+   * cursor never loads the record, so this reads a handful of short strings
+   * where the old path deserialized every row and every base64 thumbnail.
+   *
+   * The folding is done here rather than in the index because the index sees
+   * the raw field: "Rose", "rose" and "Rose " are three keys and one species.
+   * uniqueSpecies() normalises the same way, so the two agree exactly -- and a
+   * stored name could only be normalised in the index by rewriting rows, which
+   * this upgrade deliberately does not do.
+   */
+  function countUniqueSpecies(uid) {
+    return tx(STORE_SCANS, "readonly", (store) => {
+      const seen = new Set();
+      const idx = store.index(IDX_USER_SPECIES);
+      const range = IDBKeyRange.bound([uid, ""], [uid, MAX_KEY_CHAR]);
+      const req = idx.openKeyCursor(range, "nextunique");
+      req.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        // cur.key is the INDEX key, so [userId, species]; [1] is the name.
+        const name = cur.key && cur.key[1];
+        if (name) seen.add(String(name).trim().toLowerCase());
+        cur.continue();
+      };
+      // Mutated in place while the cursor runs; tx() resolves with it once the
+      // transaction commits, the same contract getScans() relies on.
+      return seen;
+    }).then((seen) => seen.size);
+  }
+
+  /**
+   * Has this user ever logged a scan between 21:00 and 05:00?
+   *
+   * The timestamp is half of the [userId, timestamp] key, so the hour is
+   * readable without touching a row. Walks newest-first and stops at the first
+   * match by simply not calling continue(). Only ever called while the badge is
+   * unearned -- evaluateBadges() skips anything already in unlockedBadges, so
+   * the steady state for a user who has it is zero reads.
+   */
+  function anyNightScan(uid) {
+    return tx(STORE_SCANS, "readonly", (store) => {
+      const hit = { found: false };
+      const idx = store.index(IDX_USER_TIME);
+      const range = IDBKeyRange.bound([uid, ""], [uid, MAX_KEY_CHAR]);
+      const req = idx.openKeyCursor(range, "prev");
+      req.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        if (isNightHour(cur.key && cur.key[1])) { hit.found = true; return; }
+        cur.continue();
+      };
+      return hit;
+    }).then((hit) => hit.found);
   }
 
   /**
@@ -498,8 +582,20 @@
     stats.lastScanDate = today;
     stats.totalScans = (stats.totalScans || 0) + 1;
 
-    const scans = await getScans(null, uid);
-    const newBadges = evaluateBadges(stats, scans);
+    // Badge inputs, read from index keys and only for badges still unearned.
+    // This line used to be `getScans(null, uid)`: the whole history, every
+    // base64 thumbnail with it, on every single identification. Three of the
+    // five badges read stats alone, so once a user holds the other two this
+    // touches no scan data at all.
+    const have = new Set(stats.unlockedBadges || []);
+    const facts = { stats, uniqueSpecies: 0, nightSeen: false };
+    if (!have.has("collector-10")) facts.uniqueSpecies = await countUniqueSpecies(uid);
+    if (!have.has("night-explorer")) {
+      // The row above is already written, so the walk would find it anyway --
+      // testing `when` first just skips the walk in the obvious case.
+      facts.nightSeen = isNightHour(when) || (await anyNightScan(uid));
+    }
+    const newBadges = evaluateBadges(stats, facts);
     await putStats(stats, uid);
 
     return { scan, stats, newBadges };
@@ -543,7 +639,11 @@
     return getScans(null, userId);
   }
 
-  /** Everything dashboard.html needs, in one round trip. Per-user. */
+  /** Everything dashboard.html needs, in one round trip. Per-user.
+   *
+   * This one still reads every row on purpose: the dashboard renders the
+   * history list, so the rows are the point rather than a means to a count.
+   * uniqueSpecies() over rows already in memory costs nothing extra here. */
   async function getSummary() {
     const uid = await owner();
     const [scans, rawStats] = await Promise.all([getScans(null, uid), getStats(uid)]);
@@ -597,6 +697,7 @@
     UNCLAIMED,
     dayKey,
     dayDiff,
+    countUniqueSpecies,
     advanceStreak,
     effectiveStreak,
     uniqueSpecies,

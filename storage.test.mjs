@@ -91,6 +91,10 @@ class FakeIndex {
             this.entries().filter(([k]) => !r || r.includes(k)).length);
     }
     openCursor(range, dir) { return this.store._cursor(this.entries(), range, dir); }
+    // A key cursor yields no record. storage.js counts distinct species and
+    // looks for a night timestamp through these, so a fake that quietly handed
+    // back values would let a row-reading regression pass.
+    openKeyCursor(range, dir) { return this.store._cursor(this.entries(), range, dir, true); }
 }
 // Requests settle on a microtask queue that the transaction drains before it
 // commits — the property migrateToV2() depends on.
@@ -141,9 +145,21 @@ class FakeStore {
         return this._cursor(rows, range, dir);
     }
     /** rows: [key, primaryKey, value][] */
-    _cursor(rows, range, dir) {
+    _cursor(rows, range, dir, keysOnly) {
         let list = rows.filter(([k]) => !range || range.includes(k));
-        if (dir === 'prev') list = list.reverse();
+        // `nextunique` keeps the first row of each distinct INDEX key. rows are
+        // already sorted by (index key, primary key), so first == lowest pk,
+        // which is what a real cursor visits.
+        if (dir === 'nextunique' || dir === 'prevunique') {
+            const seen = new Set();
+            list = list.filter(([k]) => {
+                const t = JSON.stringify(k);
+                if (seen.has(t)) return false;
+                seen.add(t);
+                return true;
+            });
+        }
+        if (dir === 'prev' || dir === 'prevunique') list = list.reverse();
         const req = { onsuccess: null, onerror: null, result: null };
         let i = 0;
         const step = () => {
@@ -152,13 +168,21 @@ class FakeStore {
                 if (i >= list.length) {
                     req.result = null;
                 } else {
-                    const [, pk, value] = list[i++];
+                    const [k, pk, value] = list[i++];
+                    // `key` is the INDEX key on an index cursor (the store's own
+                    // cursor passes pk in both slots). It used to be pk here in
+                    // both cases, which nothing read -- and which would have made
+                    // [userId, species] arrive as a bare id string.
                     req.result = {
-                        key: pk, primaryKey: pk, value,
+                        key: k, primaryKey: pk,
                         continue: () => step(),
-                        update: (nv) => this.put(nv),
                         delete: () => this.delete(pk),
                     };
+                    if (!keysOnly) {
+                        req.result.value = value;
+                        req.result.update = (nv) => this.put(nv);
+                        if (this.name === 'scans') this.db._valueReads++;
+                    }
                 }
                 if (req.onsuccess) req.onsuccess({ target: req });
                 this.db._pending--;
@@ -172,6 +196,9 @@ class FakeStore {
 class FakeDB {
     constructor(name) {
         this.name = name; this.version = 0;
+        // How many scan ROWS were handed out through a value cursor. The point
+        // of DB v3 is that a write no longer needs any, so this is asserted.
+        this._valueReads = 0;
         this.stores = new Map();
         this._pending = 0;
     }
@@ -289,6 +316,27 @@ async function seedV1(rows, stats) {
     return db;
 }
 
+// ---- seed a REAL v2 database ------------------------------------------------
+// A fresh DB proves nothing about an upgrade: createObjectStore takes the v3
+// path on the way past and every index exists before the branch under test is
+// reached. This builds the v2 schema with v2-shaped rows so the v3 branch is
+// entered with oldVersion === 2, the way an existing visitor's browser will.
+async function seedV2(rows, statsRows) {
+    reset();
+    const db = new FakeDB(DB);
+    db.version = 2;
+    const s = db.createObjectStore('scans', { keyPath: 'id' });
+    s.createIndex('timestamp', 'timestamp');
+    s.createIndex('species', 'species');
+    s.createIndex('userId', 'userId');
+    s.createIndex('user_time', ['userId', 'timestamp']);
+    const st = db.createObjectStore('stats', { keyPath: 'key' });
+    for (const r of rows) s.records.set(r.id, r);
+    for (const row of statsRows || []) st.records.set(row.key, row);
+    DBS.set(DB, db);
+    return db;
+}
+
 console.log('--- v1 -> v2 migration ---');
 {
     const db = await seedV1(
@@ -399,6 +447,88 @@ console.log('\n--- getScans(limit) still honours the cap ---');
     for (const n of ['a', 'b', 'c']) await st.addScan({ species: n, confidence: 0.5 });
     check('limit caps the result', (await st.getScans(2)).length, 2);
     check('unlimited returns all', (await st.getScans()).length, 3);
+}
+
+console.log('\n--- v2 -> v3 is additive: one index, no rewritten rows ---');
+{
+    const rows = [
+        { id: 'r1', userId: 'auth0|alice', species: 'Rose',  confidence: 0.9, timestamp: '2026-08-01T10:00:00.000Z', imageBase64: 'AAAA', geolocation: null },
+        { id: 'r2', userId: 'auth0|alice', species: 'rose ', confidence: 0.7, timestamp: '2026-08-02T10:00:00.000Z', imageBase64: 'BBBB', geolocation: null },
+        { id: 'r3', userId: 'auth0|alice', species: 'Tulip', confidence: 0.8, timestamp: '2026-08-03T10:00:00.000Z', imageBase64: 'CCCC', geolocation: null },
+    ];
+    const db = await seedV2(rows, [{ key: 'auth0|alice', totalScans: 3, currentStreak: 3, lastScanDate: '2026-08-03', unlockedBadges: ['first-discovery'] }]);
+    const before = JSON.stringify(db.dump('scans'));
+
+    const st = loadStore({ user: { sub: 'auth0|alice' } });
+    await st.getStats();            // first use is what triggers the upgrade
+
+    check('the database is at v3', db.version, 3);
+    check('  ...user_species exists', db.objectStore('scans').indexNames.contains('user_species'), true);
+    check('  ...and every row is byte-identical', JSON.stringify(db.dump('scans')), before);
+    check('  ...the upgrade read no rows at all', db._valueReads, 0);
+
+    // Three rows, two species: the index sees "Rose", "rose " and "Tulip" as
+    // three separate keys, so the fold has to happen after the cursor.
+    check('distinct species counts through the index', await st.countUniqueSpecies('auth0|alice'), 2);
+    check('  ...and agrees with uniqueSpecies() over rows',
+        await st.countUniqueSpecies('auth0|alice'), st.uniqueSpecies(db.dump('scans')));
+}
+
+console.log('\n--- a write no longer reads the history back ---');
+{
+    reset();
+    const st = loadStore({ user: { sub: 'auth0|frank' } });
+    for (const n of ['a', 'b', 'c']) await st.addScan({ species: n, confidence: 0.5 });
+    const db = DBS.get(DB);
+    db._valueReads = 0;
+
+    const { stats } = await st.addScan({ species: 'd', confidence: 0.5 });
+    check('the fourth scan deserialized no rows', db._valueReads, 0);
+    check('  ...and still counted', stats.totalScans, 4);
+    check('  ...and still advanced the streak', stats.currentStreak >= 1, true);
+    check('  ...while getSummary does read them, because it renders them',
+        (await st.getSummary()).scans.length, 4);
+}
+
+console.log('\n--- collector-10 counts species, not scans ---');
+{
+    reset();
+    const st = loadStore({ user: { sub: 'auth0|gwen' } });
+    for (let i = 0; i < 10; i++) await st.addScan({ species: 'rose', confidence: 0.5 });
+    let s = await st.getSummary();
+    check('ten scans of one species do not earn it',
+        s.badges.find((b) => b.id === 'collector-10').earned, false);
+
+    for (let i = 0; i < 9; i++) await st.addScan({ species: 'species-' + i, confidence: 0.5 });
+    s = await st.getSummary();
+    check('  ...ten distinct species do', s.badges.find((b) => b.id === 'collector-10').earned, true);
+    check('  ...and uniqueSpecies agrees', s.uniqueSpecies, 10);
+}
+
+console.log('\n--- night-explorer still reads history, now from index keys ---');
+{
+    // Built from local components on purpose: the badge asks getHours(), so a
+    // hardcoded Z timestamp would be night in some time zones and noon in others.
+    const night = new Date(2026, 7, 1, 23, 30, 0).toISOString();
+    const noon = new Date(2026, 7, 2, 12, 0, 0).toISOString();
+
+    await seedV2(
+        [{ id: 'n1', userId: 'auth0|hana', species: 'moonflower', confidence: 0.9, timestamp: night, imageBase64: null, geolocation: null }],
+        [{ key: 'auth0|hana', totalScans: 1, currentStreak: 1, lastScanDate: '2026-08-01', unlockedBadges: ['first-discovery'] }]
+    );
+    const st = loadStore({ user: { sub: 'auth0|hana' } });
+    const res = await st.addScan({ species: 'daisy', confidence: 0.5, timestamp: noon });
+    check('a daytime scan still finds the night row behind it',
+        res.newBadges.includes('night-explorer'), true);
+
+    reset();
+    const day = loadStore({ user: { sub: 'auth0|ivan' } });
+    const only = await day.addScan({ species: 'daisy', confidence: 0.5, timestamp: noon });
+    check('  ...and a history with no night scan does not earn it',
+        only.newBadges.includes('night-explorer'), false);
+    const late = await day.addScan({ species: 'daisy', confidence: 0.5, timestamp: night });
+    check('  ...while the scan being written counts itself',
+        late.newBadges.includes('night-explorer'), true);
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
