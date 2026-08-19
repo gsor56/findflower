@@ -103,7 +103,7 @@
             if (linkMode === 'wiki') {
                 return { href: s.link, attrs: ' target="_blank" rel="noopener noreferrer"' };
             }
-            return { href: 'species.html?name=' + encodeURIComponent(s.name), attrs: '' };
+            return { href: '/species?name=' + encodeURIComponent(s.name), attrs: '' };
         }
 
         /** Drop anything already rendered. Keyed on QID where there is one,

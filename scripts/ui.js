@@ -39,10 +39,14 @@
         if (/^https?:\/\//i.test(link)) {
             return { href: link, attrs: ' target="_blank" rel="noopener noreferrer"' };
         }
-        if (/^species\.html\?/.test(link)) return { href: link, attrs: '' };
+        // The clean path api.js now emits. Kept as an explicit allow rather
+        // than falling through: the fallback below rebuilds the href from
+        // plant.name, which is the same string today and silently would not be
+        // if a caller ever passes a link for a name it has already resolved.
+        if (/^\/species\?/.test(link)) return { href: link, attrs: '' };
         // No usable link (or a suspicious scheme) — fall back to the species
         // page keyed by name rather than emitting an attacker-controlled href.
-        return { href: 'species.html?name=' + encodeURIComponent(plant.name || ''), attrs: '' };
+        return { href: '/species?name=' + encodeURIComponent(plant.name || ''), attrs: '' };
     }
 
     /** Neutral tile for a record with no image. Trefle has ~437k plants and
