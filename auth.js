@@ -11,10 +11,18 @@
    Then, in that same Settings page, add these URLs (comma-separated) while
    testing locally on http://localhost:8000 :
      • Allowed Callback URLs : http://localhost:8000/login.html
-     • Allowed Logout URLs   : http://localhost:8000/index.html
+     • Allowed Logout URLs   : http://localhost:8000/
      • Allowed Web Origins   : http://localhost:8000
 
-   (Add your production URLs alongside these when you deploy.)
+   Production needs https://findflower.me/login.html and https://findflower.me/
+   in those first two lists respectively.
+
+   Both of those are matched by Auth0 as exact strings, which is why they are the
+   two URLs on the site that did NOT move to clean paths when everything else
+   did. AUTH0_CALLBACK stays "/login.html": rewriting it to "/login" without
+   editing the dashboard first returns callback URL mismatch and no one can log
+   in. The logout returnTo did move, to "/", so that entry has to be the bare
+   origin with its trailing slash.
    Until both values are filled in, the site runs in "setup required" mode and
    nothing breaks — the login button simply explains what to configure.
    ========================================================================== */
@@ -102,7 +110,7 @@ async function ffLogout() {
     const client = await ffGetClient();
     if (!client) return;
     await client.logout({
-        logoutParams: { returnTo: window.location.origin + "/index.html" },
+        logoutParams: { returnTo: window.location.origin + "/" },
     });
 }
 
@@ -133,13 +141,13 @@ async function ffRenderHeader() {
         // login.html, which bounces an already-authenticated user straight back.
         // Sign out lives where it belongs: the dashboard's own Sign out button
         // and login.html's logout control.
-        link.href = "dashboard.html";
+        link.href = "/dashboard";
         // Must clear: ffRenderHeader can run again after nav.js rebuilds the
         // header, and a surviving handler would swallow the navigation.
         link.onclick = null;
     } else {
         link.textContent = "Sign In";
-        link.href = "login.html";
+        link.href = "/login";
         link.onclick = null;
     }
 }

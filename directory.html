@@ -7,10 +7,10 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>Flower Directory | Browse Flowering Plant Species — FindFlower</title>
     <meta name="description" content="Browse an open encyclopedia of flowering plant species with photographs and botanical names, sourced live from Wikidata and Wikipedia.">
-    <link rel="canonical" href="https://findflower.me/directory.html">
+    <link rel="canonical" href="https://findflower.me/directory">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
-    <meta property="og:url" content="https://findflower.me/directory.html">
+    <meta property="og:url" content="https://findflower.me/directory">
     <meta property="og:title" content="Flower Directory | Browse Flowering Plant Species — FindFlower">
     <meta property="og:description" content="Browse an open encyclopedia of flowering plant species with photographs and botanical names, sourced live from Wikidata and Wikipedia.">
     <meta name="twitter:card" content="summary">
@@ -20,6 +20,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=7">
     <script src="nav.js?v=3" defer></script>
+    <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <!-- The three halves of a grid, split so every surface shares them:
          api.js fetches (Trefle, Wikidata fallback), ui.js draws the card, and
@@ -108,7 +109,7 @@
 
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-200/60">
         <div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
-            <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+            <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
                     <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
@@ -117,16 +118,16 @@
             <!-- Canonical fallback link set (nav.js swaps this for the real
                  header on load). Directory is the active page. -->
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
-                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
-                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
-                <a href="dashboard.html" class="hover:text-neutral-900 transition-colors">Dashboard</a>
-                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
-                <a href="directory.html" class="text-neutral-900 transition-colors">Directory</a>
-                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+                <a href="/how" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="/pricing" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="/dashboard" class="hover:text-neutral-900 transition-colors">Dashboard</a>
+                <a href="/api" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="/directory" class="text-neutral-900 transition-colors">Directory</a>
+                <a href="/#about" class="hover:text-neutral-900 transition-colors">About</a>
             </nav>
             <div class="flex items-center gap-3">
-                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
                     Try Now
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
@@ -150,7 +151,7 @@
 
             <div class="flex items-center justify-between mb-5 text-sm">
                 <p id="dirCount" class="text-neutral-500">Loading species…</p>
-                <a href="try.html" class="font-medium text-sage-700 hover:text-sage-600 transition-colors">Identify a flower &rarr;</a>
+                <a href="/try" class="font-medium text-sage-700 hover:text-sage-600 transition-colors">Identify a flower &rarr;</a>
             </div>
 
             <div id="dirGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"></div>
@@ -171,51 +172,18 @@
         </div>
     </main>
 
-    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-                <div class="col-span-2">
-                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        FindFlower
-                    </span>
-                    <p class="text-sm text-neutral-500 font-light max-w-xs">
-                        Flower identification from a single photo, running a Vision Transformer trained on 116 species.
-                    </p>
-                </div>
-                <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
-                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
-                        <li><a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a></li>
-                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
-                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
-                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
-                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Project</h5>
-                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a></li>
-                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
-                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
-                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
-                <!-- Attribution stays: this page renders live Wikidata/Wikipedia
-                     species data, and CC BY-SA requires the credit. Same <p>, same
-                     classes as every other page — one extra line, no design change. -->
-                <p>&copy; 2026 FindFlower · Engineered by gsor56<br>Species data from Wikidata &amp; Wikipedia, CC0 / CC BY-SA</p>
-                <div class="flex gap-4 mt-4 md:mt-0">
-                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>Vision Transformer &middot; 116 classes</span>
-                    <span>ONNX Runtime &middot; fp32 weights</span>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <div id="ff-footer"><noscript>
+        <footer class="border-t border-neutral-200 bg-[#FCFCFC] py-10 text-center text-xs text-neutral-400 font-light">
+            <a href="/" class="hover:text-neutral-900">Home</a> &middot;
+            <a href="/try" class="hover:text-neutral-900">Try Now</a> &middot;
+            <a href="/directory" class="hover:text-neutral-900">Directory</a> &middot;
+            <a href="/how" class="hover:text-neutral-900">How it works</a> &middot;
+            <a href="/api" class="hover:text-neutral-900">API</a> &middot;
+            <a href="/privacy" class="hover:text-neutral-900">Privacy</a> &middot;
+            <a href="/terms" class="hover:text-neutral-900">Terms</a>
+            <p class="mt-3">&copy; 2026 FindFlower &middot; Open botanical reference</p>
+        </footer>
+    </noscript></div>
 
     <!-- The encyclopedia grid.
 

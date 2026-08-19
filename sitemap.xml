@@ -8,57 +8,57 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://findflower.me/try.html</loc>
+    <loc>https://findflower.me/try</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://findflower.me/directory.html</loc>
+    <loc>https://findflower.me/directory</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://findflower.me/how.html</loc>
+    <loc>https://findflower.me/how</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://findflower.me/api.html</loc>
+    <loc>https://findflower.me/api</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://findflower.me/pricing.html</loc>
+    <loc>https://findflower.me/pricing</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://findflower.me/releases.html</loc>
+    <loc>https://findflower.me/releases</loc>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://findflower.me/feedback.html</loc>
+    <loc>https://findflower.me/feedback</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://findflower.me/contact.html</loc>
+    <loc>https://findflower.me/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
-    <loc>https://findflower.me/login.html</loc>
+    <loc>https://findflower.me/login</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
-    <loc>https://findflower.me/privacy.html</loc>
+    <loc>https://findflower.me/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
   <url>
-    <loc>https://findflower.me/terms.html</loc>
+    <loc>https://findflower.me/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>

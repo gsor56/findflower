@@ -67,7 +67,7 @@
 
         var name = titleCase(scan.species);
         return '<article class="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-subtle">' +
-            '<a href="species.html?name=' + encodeURIComponent(name) + '" class="block">' +
+            '<a href="/species?name=' + encodeURIComponent(name) + '" class="block">' +
                 '<div class="aspect-square bg-neutral-100">' + thumb + '</div>' +
             '</a>' +
             '<div class="p-3">' +
@@ -88,7 +88,7 @@
                 'stroke-width="1.3" class="text-neutral-300 mx-auto mb-3">' +
                 '<path d="' + FLOWER_PATH + '"/></svg>' +
             '<p class="text-neutral-500 font-light">Your herbarium is empty.</p>' +
-            '<a href="try.html" class="inline-flex items-center justify-center mt-4 min-h-[44px] px-6 ' +
+            '<a href="/try" class="inline-flex items-center justify-center mt-4 min-h-[44px] px-6 ' +
                 'rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 ' +
                 'transition-colors">Start scanning</a>' +
         '</div>';

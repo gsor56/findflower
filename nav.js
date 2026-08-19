@@ -29,14 +29,8 @@
     'use strict';
 
     // Which nav entry is "current" — resolved from the file being viewed.
-    // Pretty URLs ("/", "/dashboard") and ".html" URLs both map cleanly.
-    function currentPage() {
-        var path = location.pathname.replace(/\/+$/, '');
-        var file = path.substring(path.lastIndexOf('/') + 1).toLowerCase();
-        if (!file) return 'index.html';
-        if (file.indexOf('.') === -1) return file + '.html';
-        return file;
-    }
+    // Same normalisation as any href, so see routeKey() below for the rules.
+    function currentPage() { return routeKey(location.pathname); }
 
     // Mutable: the router repaints this on every client-side navigation.
     var PAGE = currentPage();
@@ -51,10 +45,10 @@
     // Directory intentionally do NOT live in the top bar; they sit in the
     // slide-out sidebar (see buildSidebar) opened by the hamburger button.
     var LINKS = [
-        { label: 'How it works', href: 'how.html' },
-        { label: 'Pricing',      href: 'pricing.html' },
-        { label: 'API',          href: 'api.html' },
-        { label: 'About',        href: 'index.html#about' }
+        { label: 'How it works', href: '/how' },
+        { label: 'Pricing',      href: '/pricing' },
+        { label: 'API',          href: '/api' },
+        { label: 'About',        href: '/#about' }
     ];
 
     // Every icon is a 24x24 SVG with EXPLICIT width/height so it can never
@@ -110,16 +104,44 @@
         return /^(https:\/\/|data:image\/)/i.test(url) ? escapeHTML(url) : '';
     }
 
-    function drawerLinkIsActive(href) {
-        var parts = href.split('#');
-        if ((parts[0] || 'index.html').toLowerCase() !== PAGE) return false;
-        if (parts[1]) return location.hash.toLowerCase() === ('#' + parts[1]).toLowerCase();
+    /**
+     * The filename key a link points at, whatever shape the link is written in.
+     *
+     * Every href on the site is now a clean path ("/", "/how", "/#about") while
+     * PAGE is always a filename, because that is what the router and TABS[].match
+     * key off. So the two can no longer be compared directly and everything that
+     * asks "is this link the page I am on" has to come through here.
+     *
+     * Returns '' for an href with no page part of its own. That case is the
+     * Community placeholder in the drawer, href="#", and the empty key is what
+     * stops it matching: the old code read the missing filename as index.html and
+     * lit "Community · Coming Soon" as the current page every time the home page
+     * loaded without a hash.
+     */
+    function routeKey(href) {
+        var s = String(href || '').split('#')[0].split('?')[0];
+        if (!s) return '';
+        s = s.replace(/\/+$/, '');
+        var file = s.substring(s.lastIndexOf('/') + 1).toLowerCase();
+        if (!file) return 'index.html';
+        if (file.indexOf('.') === -1) return file + '.html';
+        return file;
+    }
+
+    /** One active rule for both nav surfaces. The page has to match, and if the
+     *  href carries a fragment then the location's fragment has to match too, so
+     *  "/#about" is current at /#about and not merely anywhere on the home page. */
+    function linkIsActive(href) {
+        var key = routeKey(href);
+        if (!key || key !== PAGE) return false;
+        var frag = String(href || '').split('#')[1];
+        if (frag) return location.hash.toLowerCase() === ('#' + frag).toLowerCase();
         return !location.hash;
     }
 
     function navLinksHTML() {
         return LINKS.map(function (l) {
-            var active = (l.href === PAGE);
+            var active = linkIsActive(l.href);
             var cls = active
                 ? 'text-neutral-900'
                 : 'text-neutral-500 hover:text-neutral-900 transition-colors';
@@ -142,7 +164,7 @@
                 // yields when 360px runs out of room: without it the flex line
                 // squeezed the Try Now button until its label wrapped onto two.
                 '<div class="flex items-center gap-2 min-w-0">' +
-                    '<a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 min-w-0">' +
+                    '<a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 min-w-0">' +
                         LOGO + '<span class="truncate">FindFlower</span>' +
                     '</a>' +
                     // The pill is decorative; the wordmark is not. Below 360px
@@ -156,9 +178,9 @@
                 '</nav>' +
                 // RIGHT — Sign In, Try Now, and the sidebar hamburger
                 '<div class="flex items-center gap-2 sm:gap-3 shrink-0">' +
-                    '<a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 ' +
+                    '<a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
-                    '<a id="ffTryNow" href="try.html" class="soft-click text-sm font-medium bg-neutral-900 text-white ' +
+                    '<a id="ffTryNow" href="/try" class="soft-click text-sm font-medium bg-neutral-900 text-white ' +
                         // `transition`, not `transition-colors`: this button carries
                         // .soft-click, whose press scale needs `transform` in the
                         // transition list. The utility lands after app.css, so
@@ -223,7 +245,7 @@
     }
 
     function drawerLink(label, href, icon) {
-        var active = drawerLinkIsActive(href);
+        var active = linkIsActive(href);
         return '<a href="' + href + '" class="ff-drawer-link' + (active ? ' is-active' : '') + '"' +
             (active ? ' aria-current="page"' : '') + '>' + icon + '<span>' + label + '</span></a>';
     }
@@ -240,13 +262,13 @@
                 '<div class="ff-sidebar__scroll">' +
                     '<section id="ffDrawerAuth" class="ff-drawer-auth" aria-live="polite"></section>' +
                     '<nav class="ff-drawer-nav" aria-label="All pages">' +
-                        drawerLink('Home', 'index.html', ICON_HOME) +
-                        drawerLink('Dashboard', 'dashboard.html', ICON_DASH) +
-                        drawerLink('Directory', 'directory.html', ICON_DIR) +
-                        drawerLink('How it works', 'how.html', ICON_HOW) +
-                        drawerLink('Pricing', 'pricing.html', ICON_PRICE) +
-                        drawerLink('API', 'api.html', ICON_API) +
-                        drawerLink('About', 'index.html#about', ICON_ABOUT) +
+                        drawerLink('Home', '/', ICON_HOME) +
+                        drawerLink('Dashboard', '/dashboard', ICON_DASH) +
+                        drawerLink('Directory', '/directory', ICON_DIR) +
+                        drawerLink('How it works', '/how', ICON_HOW) +
+                        drawerLink('Pricing', '/pricing', ICON_PRICE) +
+                        drawerLink('API', '/api', ICON_API) +
+                        drawerLink('About', '/#about', ICON_ABOUT) +
                     '</nav>' +
                     '<div class="ff-drawer-community">' +
                         '<a href="#" class="ff-drawer-link ff-drawer-link--community" data-coming-soon="true" aria-label="Community, coming soon">' +
@@ -273,7 +295,7 @@
         var host = document.getElementById('ffDrawerAuth');
         if (!host) return;
         var guest = '<div class="ff-drawer-auth__guest"><span class="ff-drawer-auth__mark">FF</span><div><strong>Welcome to FindFlower</strong><span>Sign in to keep your field notes together.</span></div></div>' +
-            '<div class="ff-drawer-auth__actions"><a href="login.html" class="ff-drawer-button ff-drawer-button--quiet">Sign In</a><a href="try.html" class="ff-drawer-button ff-drawer-button--solid">Try Now</a></div>';
+            '<div class="ff-drawer-auth__actions"><a href="/login" class="ff-drawer-button ff-drawer-button--quiet">Sign In</a><a href="/try" class="ff-drawer-button ff-drawer-button--solid">Try Now</a></div>';
         host.innerHTML = guest;
         function paintProfile(session) {
             if (!session || !session.authenticated) return;
@@ -281,7 +303,7 @@
             var email = escapeHTML(session.email || 'Signed in');
             var picture = safeImageURL(session.picture);
             var avatar = picture ? '<img src="' + picture + '" alt="" class="ff-drawer-profile__avatar">' : '<span class="ff-drawer-profile__initial">' + escapeHTML((session.name || 'B')[0].toUpperCase()) + '</span>';
-            host.innerHTML = '<a href="dashboard.html" class="ff-drawer-profile">' + avatar + '<span><strong>' + name + '</strong><small>' + email + '</small></span><span class="ff-drawer-profile__arrow">&rarr;</span></a>';
+            host.innerHTML = '<a href="/dashboard" class="ff-drawer-profile">' + avatar + '<span><strong>' + name + '</strong><small>' + email + '</small></span><span class="ff-drawer-profile__arrow">&rarr;</span></a>';
             var image = host.querySelector('img');
             if (image) image.addEventListener('error', function () {
                 var initial = document.createElement('span');
@@ -404,19 +426,19 @@
     // (see app.css).
     var TABS = [
         {
-            label: 'Home', href: 'index.html', match: ['index.html', ''],
+            label: 'Home', href: '/', match: ['index.html', ''],
             icon: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>'
         },
         {
-            label: 'Scan', href: 'try.html', match: ['try.html'],
+            label: 'Scan', href: '/try', match: ['try.html'],
             icon: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'
         },
         {
-            label: 'Directory', href: 'directory.html', match: ['directory.html'],
+            label: 'Directory', href: '/directory', match: ['directory.html'],
             icon: '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/>'
         },
         {
-            label: 'Dashboard', href: 'dashboard.html', match: ['dashboard.html'],
+            label: 'Dashboard', href: '/dashboard', match: ['dashboard.html'],
             icon: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'
         }
     ];
@@ -481,8 +503,7 @@
         var links = document.querySelectorAll('header nav a[href], #ffSidebar a[href]');
         for (var i = 0; i < links.length; i++) {
             var a = links[i];
-            var href = (a.getAttribute('href') || '').toLowerCase();
-            var on = a.classList.contains('ff-drawer-link') ? drawerLinkIsActive(href) : (href === PAGE);
+            var on = linkIsActive(a.getAttribute('href'));
             if (on) a.setAttribute('aria-current', 'page');
             else a.removeAttribute('aria-current');
             if (a.classList.contains('ff-drawer-link')) a.classList.toggle('is-active', on);

@@ -363,15 +363,32 @@
                 next.parentNode.insertBefore(document.importNode(extras[x], true), next);
             }
 
-            window.scrollTo(0, 0);
+            // A fragment in the destination is a request for a position, not for
+            // the top of the document. "/#about" is the case that matters: both
+            // nav.js and footer.js emit exactly that link from every route other
+            // than the home page, and without this the reader landed on the hero
+            // and had to hunt for the section they had just asked for.
+            // getElementById rather than querySelector(url.hash) because an id
+            // that is not a valid selector makes querySelector throw, and this
+            // sits in the try block that falls back to a full page load.
+            var anchor = url.hash ? document.getElementById(url.hash.slice(1)) : null;
+            // scroll-mt-24 on the target (index.html:923) is what keeps the
+            // fixed 64px header off it; scrollIntoView honours scroll-margin.
+            if (anchor) anchor.scrollIntoView();
+            else window.scrollTo(0, 0);
 
             // The whole document, not just `next`: every page keeps its scripts
             // in <head> and at the end of <body>, never inside <main>.
             await runScripts(doc);
             if (seq !== navSeq) return;
 
+            // The chrome lives outside <main>, so it survives the swap and has to
+            // be told the route changed. Both builders take the same filename key.
             if (typeof window.ffNavSetActive === 'function') {
                 try { window.ffNavSetActive(key); } catch (e) { /* chrome only */ }
+            }
+            if (typeof window.ffFooterSetActive === 'function') {
+                try { window.ffFooterSetActive(key); } catch (e) { /* chrome only */ }
             }
             await mountFor(key);
         } catch (e) {
@@ -414,9 +431,14 @@
         var u = internalUrl(a.getAttribute('href'));
         if (!u) return;
 
-        // A pure #fragment on this page is the browser's job (and must keep
-        // working for index.html#about, which nav.js links to).
-        if (u.pathname === location.pathname && u.hash && u.search === location.search) return;
+        // A pure #fragment on the page we are already on is the browser's job,
+        // and "/#about" from nav.js and footer.js has to keep working. Compared
+        // by route key rather than by raw pathname: those links say "/", while a
+        // reader who typed /index.html has that as their pathname, and a string
+        // compare would have refetched and swapped the very page they were
+        // looking at just to reach a fragment inside it.
+        if (u.hash && u.search === location.search &&
+            pageKey(u.pathname) === pageKey(location.pathname)) return;
 
         var key = pageKey(u.pathname);
         if (mustReload(u.pathname)) return;    // try.html / login.html: real load

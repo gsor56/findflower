@@ -209,7 +209,7 @@
                 // image_url (PlantNet-hosted) when one exists. Reported as
                 // null when absent so the engine can skip or placeholder.
                 img: r.image_url || null,
-                link: 'species.html?name=' + encodeURIComponent(name),
+                link: '/species?name=' + encodeURIComponent(name),
             };
         }).filter(Boolean);
 

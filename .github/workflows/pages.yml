@@ -50,7 +50,13 @@ jobs:
           ls -la _site/scripts _site/scripts/views
           # Fail loudly rather than deploying a broken site again. Each of these
           # has already been shipped missing at least once.
-          for f in app.css scripts/api.js scripts/ui.js scripts/router.js \
+          # nav.js and footer.js are here for a different reason than the rest:
+          # they are not enhancements of markup that already exists, they ARE the
+          # header and the footer. Every page ships a bare <div id="ff-footer">
+          # hook, so a missing footer.js publishes 15 pages with no footer at all
+          # rather than 15 pages with a slightly worse one.
+          for f in app.css nav.js footer.js \
+                   scripts/api.js scripts/ui.js scripts/router.js \
                    scripts/ux.js \
                    scripts/views/home.js scripts/views/directory.js \
                    scripts/views/dashboard.js scripts/views/scanner.js; do
@@ -68,6 +74,40 @@ jobs:
           done > /tmp/missing.txt
           cat /tmp/missing.txt
           test ! -s /tmp/missing.txt || { echo "FATAL: published HTML references files that were not deployed"; exit 1; }
+          # The check above deliberately skips any ref starting with "/", because
+          # it cannot know the server's rewrite rules. Every internal link on the
+          # site is now exactly that shape, so that skip had grown to cover almost
+          # all of them and a typo like "/directoy" would deploy in silence.
+          # Resolve them the way Pages does: /name is served from name.html.
+          for html in _site/*.html; do
+            grep -oE 'href="/[^"]*"' "$html" \
+              | sed -E 's/^href="//; s/"$//; s/[#?].*$//' \
+              | while read -r ref; do
+                  case "$ref" in
+                    ""|/) continue ;;   # the site root, which is index.html
+                    /*.*) continue ;;   # has an extension: an asset, checked above
+                  esac
+                  test -f "_site/${ref#/}.html" \
+                    || echo "DEAD: $ref needs ${ref#/}.html (in $(basename "$html"))"
+                done
+          done > /tmp/deadpaths.txt
+          # nav.js and footer.js are the other half of that surface. The top
+          # bar, the sidebar, the mobile tab bar and the entire footer are
+          # built in JS, so the links a reader actually clicks are in no HTML
+          # file for the loop above to read. Scoped to these two on purpose:
+          # scripts/api.js holds proxy paths (/trefle/plants) that are not
+          # pages and would every one of them read as dead here.
+          for js in _site/nav.js _site/footer.js; do
+            { grep -oE 'href="/[^"]*"' "$js" | sed -E 's/^href="//; s/"$//'; grep -oE "'/[^']*'" "$js" | tr -d "'"; } | sed -E 's/[#?].*$//' | sort -u | while read -r ref; do
+                  case "$ref" in
+                    ""|/) continue ;;
+                    /*.*) continue ;;
+                  esac
+                  test -f "_site/${ref#/}.html" || echo "DEAD: $ref needs ${ref#/}.html (in $(basename "$js"))"
+                done
+          done >> /tmp/deadpaths.txt
+          cat /tmp/deadpaths.txt
+          test ! -s /tmp/deadpaths.txt || { echo "FATAL: the published site links to clean paths with no page behind them"; exit 1; }
 
       - uses: actions/configure-pages@v5
 

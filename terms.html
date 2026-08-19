@@ -7,10 +7,10 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>Terms of Service | Using FindFlower Responsibly — FindFlower</title>
     <meta name="description" content="The terms covering FindFlower use, including the critical limit: identifications are probabilistic and must never be relied on to judge edibility or toxicity.">
-    <link rel="canonical" href="https://findflower.me/terms.html">
+    <link rel="canonical" href="https://findflower.me/terms">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
-    <meta property="og:url" content="https://findflower.me/terms.html">
+    <meta property="og:url" content="https://findflower.me/terms">
     <meta property="og:title" content="Terms of Service | Using FindFlower Responsibly — FindFlower">
     <meta property="og:description" content="The terms covering FindFlower use, including the critical limit: identifications are probabilistic and must never be relied on to judge edibility or toxicity.">
     <meta name="twitter:card" content="summary">
@@ -20,6 +20,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=7">
     <script src="nav.js?v=3" defer></script>
+    <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
          scroll-reveal observer on arrival. The page stays a full document. -->
@@ -71,23 +72,23 @@
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <a href="index.html" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     FindFlower
                 </a>
                 <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
             </div>
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
-                <a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a>
-                <a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a>
-                <a href="dashboard.html" class="hover:text-neutral-900 transition-colors">Dashboard</a>
-                <a href="api.html" class="hover:text-neutral-900 transition-colors">API</a>
-                <a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a>
-                <a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a>
+                <a href="/how" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="/pricing" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="/dashboard" class="hover:text-neutral-900 transition-colors">Dashboard</a>
+                <a href="/api" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="/directory" class="hover:text-neutral-900 transition-colors">Directory</a>
+                <a href="/#about" class="hover:text-neutral-900 transition-colors">About</a>
             </nav>
             <div class="flex items-center gap-4">
-                <a id="signInLink" href="login.html" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="try.html" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
                     Try Now
                     <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
@@ -180,16 +181,16 @@
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Changes to these terms</h2>
                     <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
                         <p>As FindFlower evolves, these terms may be updated. Material changes will be reflected here with a revised date. Continued use after an update means you accept the revised terms.</p>
-                        <p>Questions about anything here? The <a href="contact.html" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> reaches a real person.</p>
+                        <p>Questions about anything here? The <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> reaches a real person.</p>
                     </div>
                 </section>
 
                 <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-4">
-                    <a href="privacy.html" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors">
+                    <a href="/privacy" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors">
                         Read the Privacy Policy
                         <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
-                    <a href="contact.html" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Ask a question</a>
+                    <a href="/contact" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Ask a question</a>
                 </div>
 
             </div>
@@ -198,46 +199,18 @@
     </main>
 
     <!-- FOOTER -->
-    <footer class="border-t border-neutral-200 bg-[#FCFCFC] pt-16 pb-8 mt-24">
-        <div class="max-w-7xl mx-auto px-6">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
-                <div class="col-span-2">
-                    <span class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900 mb-3">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        FindFlower
-                    </span>
-                    <p class="text-sm text-neutral-500 font-light max-w-xs">Flower identification from a single photo, running a Vision Transformer trained on 116 species.</p>
-                </div>
-                <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Product</h5>
-                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="try.html" class="hover:text-neutral-900 transition-colors">Try Now</a></li>
-                        <li><a href="directory.html" class="hover:text-neutral-900 transition-colors">Directory</a></li>
-                        <li><a href="how.html" class="hover:text-neutral-900 transition-colors">How it works</a></li>
-                        <li><a href="pricing.html" class="hover:text-neutral-900 transition-colors">Pricing</a></li>
-                        <li><a href="api.html" class="hover:text-neutral-900 transition-colors">API</a></li>
-                        <li><a href="releases.html" class="hover:text-neutral-900 transition-colors">Release Notes</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h5 class="text-sm font-medium text-neutral-900 mb-4">Project</h5>
-                    <ul class="space-y-3 text-sm text-neutral-500 font-light">
-                        <li><a href="index.html#about" class="hover:text-neutral-900 transition-colors">About</a></li>
-                        <li><a href="contact.html" class="hover:text-neutral-900 transition-colors">Contact</a></li>
-                        <li><a href="privacy.html" class="hover:text-neutral-900 transition-colors">Privacy Policy</a></li>
-                        <li><a href="terms.html" class="hover:text-neutral-900 transition-colors">Terms of Service</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="flex flex-col md:flex-row items-center justify-between pt-8 border-t border-neutral-100 text-xs text-neutral-400 font-light">
-                <p>&copy; 2026 FindFlower · Engineered by gsor56</p>
-                <div class="flex gap-4 mt-4 md:mt-0">
-                    <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>Vision Transformer &middot; 116 classes</span>
-                    <span>ONNX Runtime &middot; fp32 weights</span>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <div id="ff-footer"><noscript>
+        <footer class="border-t border-neutral-200 bg-[#FCFCFC] py-10 text-center text-xs text-neutral-400 font-light">
+            <a href="/" class="hover:text-neutral-900">Home</a> &middot;
+            <a href="/try" class="hover:text-neutral-900">Try Now</a> &middot;
+            <a href="/directory" class="hover:text-neutral-900">Directory</a> &middot;
+            <a href="/how" class="hover:text-neutral-900">How it works</a> &middot;
+            <a href="/api" class="hover:text-neutral-900">API</a> &middot;
+            <a href="/privacy" class="hover:text-neutral-900">Privacy</a> &middot;
+            <a href="/terms" class="hover:text-neutral-900">Terms</a>
+            <p class="mt-3">&copy; 2026 FindFlower &middot; Open botanical reference</p>
+        </footer>
+    </noscript></div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
