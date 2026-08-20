@@ -44,9 +44,10 @@
         'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     // Fixed desktop nav — the primary marketing/product links. Dashboard,
-    // Directory, Blogs and Community intentionally do NOT live in the top bar;
-    // they sit in the slide-out sidebar (see buildSidebar) opened by the
-    // hamburger button. Four links is what fits at 768px without wrapping.
+    // Directory, Data, Research, Blogs and Community intentionally do NOT live
+    // in the top bar; they sit in the slide-out sidebar (see buildSidebar)
+    // opened by the hamburger button. Four links is what fits at 768px without
+    // wrapping.
     var LINKS = [
         { label: 'How it works', href: '/how' },
         { label: 'Pricing',      href: '/pricing' },
@@ -87,6 +88,12 @@
     var ICON_BLOGS = SVG_OPEN +
         '<path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H6.5A1.5 1.5 0 0 1 5 19.5Z"/>' +
         '<path d="M8.5 8h7M8.5 12h7M8.5 16h4"/></svg>';
+    var ICON_RESEARCH = SVG_OPEN +
+        '<path d="M9 3h6M10 3v6.2L5.6 17.4A2 2 0 0 0 7.4 20.5h9.2a2 2 0 0 0 1.8-3.1L14 9.2V3"/>' +
+        '<path d="M7.5 15h9"/></svg>';
+    var ICON_DATA  = SVG_OPEN +
+        '<ellipse cx="12" cy="6" rx="7.5" ry="3"/>' +
+        '<path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/></svg>';
     var ICON_COMMUNITY = SVG_OPEN +
         '<circle cx="9.5" cy="8" r="3.2"/><path d="M3.5 20v-1.4A4.1 4.1 0 0 1 7.6 14.5h3.8a4.1 4.1 0 0 1 4.1 4.1V20"/>' +
         '<path d="M16.2 5.2a3.2 3.2 0 0 1 0 5.6M17.4 14.7A4.1 4.1 0 0 1 20.5 18.6V20"/></svg>';
@@ -275,6 +282,8 @@
                         drawerLink('How it works', '/how', ICON_HOW) +
                         drawerLink('Pricing', '/pricing', ICON_PRICE) +
                         drawerLink('API', '/api', ICON_API) +
+                        drawerLink('Data', '/data', ICON_DATA) +
+                        drawerLink('Research', '/research', ICON_RESEARCH) +
                         drawerLink('Blogs', '/blogs', ICON_BLOGS) +
                         drawerLink('Community', '/community', ICON_COMMUNITY) +
                         drawerLink('About', '/#about', ICON_ABOUT) +

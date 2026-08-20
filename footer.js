@@ -8,8 +8,9 @@
      • the bottom-left line read "Engineered by gsor56" on 13 pages and
        "Open botanical reference" on the other 2
      • the About link was "#about" on the home page and "index.html#about"
-       everywhere else, which is right per page and so has to be derived
-       rather than copied
+       everywhere else, which was right per page and so had to be derived
+       rather than copied (About is its own page now, so the footer links
+       /about flat; the header still points at the home-page section)
      • "mt-24" sat on the <footer> of 11 pages and was absent from 4
      • directory.html carried a Wikidata/Wikipedia credit line no other page had
 
@@ -34,11 +35,10 @@
    had been built on index.html and nothing ever revisited its class.
 
    SPA note. The chrome lives outside <main>, so the router never replaces this
-   and it is built exactly once per document load. Four things do change per
-   route: the About link (a bare "#about" while you are on the home page,
-   "/#about" from anywhere else), the aria-current marker, the species-data
-   credit, and the top margin. router.js calls window.ffFooterSetActive(key)
-   after each swap, the same way it already calls window.ffNavSetActive.
+   and it is built exactly once per document load. Three things do change per
+   route: the aria-current marker, the species-data credit, and the top margin.
+   router.js calls window.ffFooterSetActive(key) after each swap, the same way
+   it already calls window.ffNavSetActive.
    ========================================================================== */
 (function () {
     'use strict';
@@ -67,17 +67,19 @@
         { label: 'How it works',  href: '/how',       key: 'how.html' },
         { label: 'Pricing',       href: '/pricing',   key: 'pricing.html' },
         { label: 'API',           href: '/api',       key: 'api.html' },
+        { label: 'Data',          href: '/data',      key: 'data.html' },
         { label: 'Release Notes', href: '/releases',  key: 'releases.html' },
-        // Blogs and Community are the two placeholders, and they sit either
-        // side of the Product/Project boundary in the same order the drawer
-        // lists them (nav.js: ...API, Blogs, Community, About...). Blogs ends
-        // Product because the journal is about the model; Community follows
-        // About because it is about the people around it.
+        // Product and Project are split by what the page is about, not by
+        // where it sits in the drawer. Blogs ends Product because the journal
+        // is about the model; Research opens the second column with the same
+        // reasoning inverted -- it is about how the thing was made. Community
+        // follows About because it is about the people around it.
         { label: 'Blogs',         href: '/blogs',     key: 'blogs.html' }
     ];
 
     var PROJECT = [
-        { label: 'About',            href: '#about',     key: 'index.html', hash: true },
+        { label: 'About',            href: '/about',     key: 'about.html' },
+        { label: 'Research',         href: '/research',  key: 'research.html' },
         { label: 'Community',        href: '/community', key: 'community.html' },
         { label: 'Contact',          href: '/contact',   key: 'contact.html' },
         { label: 'Privacy Policy',   href: '/privacy',   key: 'privacy.html' },
@@ -91,13 +93,13 @@
 
     // Routes that must NOT get the mt-24 top margin: each of these ends in a
     // section carrying its own bottom padding, and stacking 6rem on top of it
-    // opens a visible gap. The other eleven pages end flush against their last
-    // element and need the margin or the footer crowds it.
+    // opens a visible gap. Every other page ends flush against its last
+    // element and needs the margin or the footer crowds it.
     var FLUSH = {
         'index.html': 1, 'how.html': 1, 'login.html': 1, '404.html': 1,
-        // Both placeholders centre one short block in a min-h-[58vh] section
+        // community.html centres one short block in a min-h-[58vh] section
         // that already carries pb-28, so mt-24 on top of it opens a gap.
-        'blogs.html': 1, 'community.html': 1,
+        'community.html': 1,
     };
 
     var LOGO =
@@ -107,16 +109,7 @@
 
     var LINK_CLS = 'hover:text-neutral-900 transition-colors';
 
-    /** An #about link should point at the current document while the reader is
-     *  already on the home page, so the browser scrolls rather than the router
-     *  swapping. From any other route it needs the home path in front of it. */
-    function resolve(item) {
-        if (!item.hash) return item.href;
-        return PAGE === 'index.html' ? '#about' : '/' + item.href;
-    }
-
     function isActive(item) {
-        if (item.hash) return false;   // a fragment is a position, not a page
         return item.key === PAGE;
     }
 
@@ -129,7 +122,7 @@
                 // data-ff-key is what setActive() repaints against. Pairing the
                 // anchors to the tables by DOM index would work today and break
                 // the first time a column gains a row.
-                return '<li><a href="' + resolve(i) + '" data-ff-key="' + i.key + '" class="' +
+                return '<li><a href="' + i.href + '" data-ff-key="' + i.key + '" class="' +
                     (on ? 'text-neutral-900' : LINK_CLS) + '"' +
                     (on ? ' aria-current="page"' : '') + '>' + i.label + '</a></li>';
             }).join('') +
@@ -186,16 +179,20 @@
         return el;
     }
 
-    /** The page footer, never the sidebar one. nav.js used to build a
-     *  <footer class="ff-drawer-utility"> inside #ffSidebar for the clock and
-     *  location panel, and a bare querySelector('footer') reached it -- which
-     *  put the page footer inside the drawer. The panel is gone, so today this
-     *  loop always returns on i=0; the skip stays because the drawer is markup
-     *  nav.js owns and this file must not assume what is in it. */
+    /** The page footer: not the sidebar's, not an article's. nav.js used to
+     *  build a <footer class="ff-drawer-utility"> inside #ffSidebar for the
+     *  clock and location panel, and a bare querySelector('footer') reached it
+     *  -- which put the page footer inside the drawer. That panel is gone, but
+     *  a second case arrived with blogs.html, whose entry closes with an
+     *  <article><footer> holding its own links. Both are markup this file does
+     *  not own, and neither is the footer OF the document; the one that is
+     *  cannot be inside <main>, since the router swaps <main> and the footer
+     *  has to survive that. */
     function pageFooter() {
         var all = document.querySelectorAll('footer');
         for (var i = 0; i < all.length; i++) {
-            if (!all[i].closest('#ffSidebar')) return all[i];
+            if (all[i].closest('#ffSidebar') || all[i].closest('main')) continue;
+            return all[i];
         }
         return null;
     }
@@ -240,7 +237,7 @@
             var a = links[i];
             var item = byKey[a.getAttribute('data-ff-key')];
             if (!item) continue;
-            a.setAttribute('href', resolve(item));
+            a.setAttribute('href', item.href);
             if (isActive(item)) {
                 a.setAttribute('aria-current', 'page');
                 a.className = 'text-neutral-900';

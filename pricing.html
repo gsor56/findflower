@@ -116,7 +116,7 @@
 
         <!-- TIERS -->
         <section class="max-w-7xl mx-auto px-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start max-w-4xl mx-auto">
 
                 <!-- FREE -->
                 <div class="reveal-up hover-lift bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-8 flex flex-col">
@@ -146,10 +146,7 @@
                     <div class="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(95,122,99,0.35),transparent_70%)]"></div>
                     <div class="relative flex flex-col h-full">
                         <div class="mb-6">
-                            <div class="flex items-center gap-2 mb-1">
-                                <h2 class="text-xl font-medium tracking-tight text-white">Developer</h2>
-                                <span class="text-xs font-medium text-neutral-900 bg-sage-400 px-2.5 py-0.5 rounded-full">Most popular</span>
-                            </div>
+                            <h2 class="text-xl font-medium tracking-tight text-white mb-1">Developer</h2>
                             <p class="text-sm text-neutral-400 font-light">For builders integrating FindFlower into their own apps.</p>
                         </div>
                         <div class="mb-6 pb-6 border-b border-neutral-700">
@@ -174,30 +171,6 @@
                     </div>
                 </div>
 
-                <!-- BUSINESS -->
-                <div class="reveal-up delay-200 hover-lift bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-8 flex flex-col">
-                    <div class="mb-6">
-                        <h2 class="text-xl font-medium tracking-tight text-neutral-900 mb-1">Business</h2>
-                        <p class="text-sm text-neutral-500 font-light">For teams and products operating at scale.</p>
-                    </div>
-                    <div class="mb-6 pb-6 border-b border-neutral-100">
-                        <div class="flex items-baseline gap-2">
-                            <span class="text-4xl font-medium tracking-tight text-neutral-900">TBD</span>
-                            <span class="text-sm text-neutral-400 font-light">custom pricing</span>
-                        </div>
-                        <span class="inline-block mt-3 text-xs font-medium text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-full">Let’s talk</span>
-                    </div>
-                    <ul class="space-y-3 flex-1 mb-8">
-                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Everything in Developer</li>
-                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>High-volume &amp; custom rate limits</li>
-                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Custom species &amp; model tuning</li>
-                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>SLA &amp; priority support</li>
-                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Dedicated onboarding</li>
-                        <li class="flex items-start gap-2.5 text-sm text-neutral-600 font-light"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sage-500 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>Invoicing &amp; account management</li>
-                    </ul>
-                    <a href="/contact" class="text-sm font-medium border border-neutral-200 text-neutral-800 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors text-center">Contact sales</a>
-                </div>
-
             </div>
 
             <!-- Assurance line -->
@@ -220,7 +193,7 @@
                 </div>
                 <div class="reveal-up bg-white border border-neutral-200/70 rounded-2xl p-6 md:p-8">
                     <h3 class="text-base font-medium text-neutral-900 mb-2">Do I need a plan to use the direct endpoint?</h3>
-                    <p class="text-neutral-500 font-light leading-relaxed">No. During Beta the direct endpoint is open with no key required — POST a photo and get a result. Paid plans will apply to the full hosted REST API and team features as they launch. See the <a href="/api" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">API page</a>.</p>
+                    <p class="text-neutral-500 font-light leading-relaxed">No plan, but you do need to sign in. The direct endpoint requires a bearer token, so requests without one are refused — there is no anonymous access to it. Paid plans will apply to the full hosted REST API and its keys as they launch. See the <a href="/api" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">API page</a>.</p>
                 </div>
             </div>
         </section>

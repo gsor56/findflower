@@ -432,11 +432,12 @@
         if (!u) return;
 
         // A pure #fragment on the page we are already on is the browser's job,
-        // and "/#about" from nav.js and footer.js has to keep working. Compared
-        // by route key rather than by raw pathname: those links say "/", while a
-        // reader who typed /index.html has that as their pathname, and a string
-        // compare would have refetched and swapped the very page they were
-        // looking at just to reach a fragment inside it.
+        // and "/#about" from the nav drawer has to keep working -- the footer
+        // links /about flat, the drawer still points at the home-page section.
+        // Compared by route key rather than by raw pathname: that link says "/",
+        // while a reader who typed /index.html has that as their pathname, and a
+        // string compare would have refetched and swapped the very page they
+        // were looking at just to reach a fragment inside it.
         if (u.hash && u.search === location.search &&
             pageKey(u.pathname) === pageKey(location.pathname)) return;
 
