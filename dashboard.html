@@ -42,6 +42,10 @@
     <!-- The four panels under the badge shelf. Deferred, so it is executed
          before DOMContentLoaded fires the inline init() that mounts it. -->
     <script src="scripts/dashboard-panels.js?v=1" defer></script>
+    <!-- The search palette. Body-level, built on first open, and it reads
+         ffStore, ffApi and ffUi only when someone opens it — so load order
+         against them does not matter. -->
+    <script src="scripts/search.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/views/dashboard.js" defer></script>
     <script src="scripts/views/directory.js" defer></script>
@@ -111,6 +115,98 @@
             button, select, summary,
             input[type="submit"], input[type="button"] { min-width: 44px; }
         }
+
+        /* Search palette (scripts/search.js). Page-local because the palette
+           is: /dashboard is the only route that offers it, and the router
+           adopts this <style> along with the <main> it swaps in.
+
+           Hidden by visibility rather than display so the panel can fade, and
+           .active drops the visibility delay so that input.focus(), called in
+           the same task as the class flip, is not thrown away on a node the
+           browser still considers hidden. Same trick as .ff-sidebar.active. */
+        .ff-cmd {
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 4.5rem 1rem 1rem;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity .16s ease, visibility 0s linear .16s;
+        }
+        .ff-cmd.active { visibility: visible; opacity: 1; transition: opacity .16s ease; }
+        /* Flat, not blurred: backdrop-filter is banned on basic UI here, and
+           there is nothing worth seeing through it. */
+        .ff-cmd__scrim { position: absolute; inset: 0; background: rgba(23, 23, 23, .18); }
+        .ff-cmd__panel {
+            position: relative;
+            width: 100%;
+            max-width: 34rem;
+            display: flex;
+            flex-direction: column;
+            background: #FFFFFF;
+            border: 1px solid #E5E5E5;
+            border-radius: 4px;
+            box-shadow: 0 20px 60px -18px rgba(23, 23, 23, 0.15);
+            overflow: hidden;
+        }
+        .ff-cmd__head {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0 0.75rem;
+            border-bottom: 1px solid #F5F5F5;
+        }
+        .ff-cmd__input {
+            flex: 1;
+            min-width: 0;
+            /* 1rem exactly: anything smaller and iOS zooms the viewport on focus. */
+            font-size: 1rem;
+            line-height: 1.5;
+            padding: 0.875rem 0;
+            border: 0;
+            background: transparent;
+            color: #171717;
+        }
+        .ff-cmd__input::placeholder { color: #A3A3A3; }
+        .ff-cmd__input:focus { outline: none; }
+        .ff-cmd__close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            color: #A3A3A3;
+            background: transparent;
+        }
+        .ff-cmd__close:hover { color: #171717; background: #F5F5F5; }
+        .ff-cmd__list { max-height: min(60vh, 26rem); overflow-y: auto; overscroll-behavior: contain; }
+        .ff-cmd__row {
+            display: flex;
+            align-items: baseline;
+            gap: 0.625rem;
+            min-height: 44px;
+            padding: 0.5rem 1rem;
+            border-left: 2px solid transparent;
+        }
+        .ff-cmd__row > span { min-width: 0; }
+        .ff-cmd__row > span:first-child { flex: 0 0 auto; max-width: 60%; }
+        .ff-cmd__row > span:last-child { flex: 1 1 auto; text-align: right; }
+        .ff-cmd__row[aria-selected="true"] { background: #F2F5F2; border-left-color: #5F7A63; }
+        .ff-cmd__foot {
+            display: none;
+            padding: 0.625rem 1rem;
+            border-top: 1px solid #F5F5F5;
+            font-size: 0.75rem;
+            color: #A3A3A3;
+        }
+        @media (min-width: 640px) { .ff-cmd__foot { display: block; } }
+        @media (prefers-reduced-motion: reduce) {
+            .ff-cmd, .ff-cmd.active { transition: none; }
+        }
     </style>
 </head>
 <body class="font-sans antialiased">
@@ -168,6 +264,19 @@
 
     <main id="dashMain" class="pt-28 sm:pt-32 pb-24">
         <div class="max-w-6xl mx-auto px-5 sm:px-8">
+
+            <!-- Opens the palette built by scripts/search.js. A button and not
+                 an input: the real field is inside the palette, and two search
+                 boxes on one screen is one too many. Ctrl+K is true on every
+                 platform here — the handler takes the Command key as well. -->
+            <button type="button" id="ffSearchOpen" data-haptic aria-haspopup="dialog" aria-expanded="false"
+                    class="soft-click tap w-full flex items-center gap-2.5 mb-8 px-3.5 text-left bg-white border border-neutral-200 rounded hover:border-neutral-300 transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="text-neutral-400 shrink-0" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/>
+                </svg>
+                <span class="flex-1 min-w-0 text-sm text-neutral-400 truncate">Search species, your scans and pages</span>
+                <span class="hidden sm:inline text-xs font-medium text-neutral-400 shrink-0">Ctrl K</span>
+            </button>
 
             <!-- === Profile header === -->
             <section class="flex flex-col sm:flex-row sm:items-center gap-5 pb-8 border-b border-neutral-200">
@@ -415,7 +524,7 @@
                      title="${esc(b.description)}">
                     <div class="text-2xl ${b.earned ? '' : 'opacity-25 grayscale'}" aria-hidden="true">${b.icon}</div>
                     <p class="mt-2 text-xs font-medium ${b.earned ? 'text-neutral-900' : 'text-neutral-400'}">${esc(b.name)}</p>
-                    <p class="mt-0.5 text-xs ${b.earned ? 'text-sage-700' : 'text-neutral-400'}">${b.earned ? 'Earned' : 'Locked'}</p>
+                    <p class="mt-0.5 text-xs ${b.earned ? 'text-sage-700' : 'text-neutral-400'}">${b.earned ? 'Earned' : esc(b.description)}</p>
                 </div>`).join('');
         }
 

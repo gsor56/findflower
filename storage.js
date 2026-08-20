@@ -68,10 +68,17 @@
   /**
    * Badge catalogue. `test` gets a facts object and returns true when earned.
    *
-   * The facts are `{ stats, uniqueSpecies, nightSeen }` and never the rows.
-   * Two of these tests used to walk `scans`, which is why addScan had to read
-   * the whole history on every single write; both questions are now answered
-   * from the [userId, species] and [userId, timestamp] index keys instead.
+   * The facts are `{ stats, uniqueSpecies, nightSeen, dawnSeen, daysLogged }`
+   * and never the rows. Every one of those used to mean walking `scans`, which
+   * is why addScan once read the whole history -- every base64 thumbnail with
+   * it -- on a single write; they all come from the [userId, species] and
+   * [userId, timestamp] index keys now.
+   *
+   * `needs` names the one fact a test reads beyond `stats`. addScan computes a
+   * fact only while some badge that needs it is still unearned, and it reads
+   * that from here rather than from a list of ids of its own: the species walk
+   * was gated on collector-10 by name, and a second species tier added behind
+   * that gate would have been quietly unreachable.
    */
   const BADGES = [
     {
@@ -93,6 +100,7 @@
       name: "Night Explorer",
       icon: "🌙",
       description: "Identify a flower after 9pm.",
+      needs: "nightSeen",
       test: (s) => s.nightSeen === true,
     },
     {
@@ -100,6 +108,7 @@
       name: "Collector",
       icon: "🧺",
       description: "Identify 10 different species.",
+      needs: "uniqueSpecies",
       test: (s) => s.uniqueSpecies >= 10,
     },
     {
@@ -108,6 +117,42 @@
       icon: "🔬",
       description: "Log 25 identifications.",
       test: (s) => s.stats.totalScans >= 25,
+    },
+    // Appended rather than slotted in by difficulty: the ids are what persist
+    // in stats.unlockedBadges, but the ORDER is what the badge shelf renders,
+    // and moving a tile someone has already earned is a change to a page they
+    // have read. The window in the description is the window isDawnHour tests,
+    // stated in full because "morning" is not a threshold.
+    {
+      id: "dawn-patrol",
+      name: "Dawn Patrol",
+      icon: "🌅",
+      description: "Identify a flower between 5 and 8 in the morning.",
+      needs: "dawnSeen",
+      test: (s) => s.dawnSeen === true,
+    },
+    {
+      id: "season-10",
+      name: "Ten Days Out",
+      icon: "🗓️",
+      description: "Log a flower on ten different days.",
+      needs: "daysLogged",
+      test: (s) => s.daysLogged >= 10,
+    },
+    {
+      id: "collector-50",
+      name: "Herbarium",
+      icon: "📗",
+      description: "Identify 50 different species.",
+      needs: "uniqueSpecies",
+      test: (s) => s.uniqueSpecies >= 50,
+    },
+    {
+      id: "botanist-100",
+      name: "Hundred Finds",
+      icon: "📔",
+      description: "Log 100 identifications.",
+      test: (s) => s.stats.totalScans >= 100,
     },
   ];
 
@@ -371,6 +416,13 @@
     return h >= 21 || h < 5;
   }
 
+  /** And dawn, which starts exactly where night ends so that no single scan can
+   *  earn both badges. Local hours, for the same reason as above. */
+  function isDawnHour(when) {
+    const h = new Date(when).getHours();
+    return h >= 5 && h < 8;
+  }
+
   function uniqueSpecies(scans) {
     const set = new Set();
     for (const s of scans) {
@@ -477,15 +529,54 @@
   }
 
   /**
-   * Has this user ever logged a scan between 21:00 and 05:00?
+   * The distinct species one user has logged, as display strings.
+   *
+   * The same `nextunique` key-cursor walk as countUniqueSpecies, for the same
+   * reason: the search palette needs the names, not the rows, and a key cursor
+   * never deserializes a base64 thumbnail. A history of 3,000 scans costs a few
+   * hundred short strings here instead of every stored frame.
+   *
+   * Folded with the identical rule so the two can never disagree about what
+   * counts as one species, but a raw spelling is what comes back -- "rose" is
+   * the right key to dedupe on and the wrong thing to show someone. Which
+   * spelling, when a history holds "rose" and "Rose", is whichever the index
+   * reaches first, and IDB orders keys by UTF-16 code unit, so that is "Rose"
+   * rather than the one stored first. Callers title-case for display anyway;
+   * the guarantee here is one row per species, not a particular capitalisation.
+   */
+  async function listSpecies(userId) {
+    const uid = userId ? String(userId) : await owner();
+    return tx(STORE_SCANS, "readonly", (store) => {
+      const byFolded = new Map();
+      const idx = store.index(IDX_USER_SPECIES);
+      const range = IDBKeyRange.bound([uid, ""], [uid, MAX_KEY_CHAR]);
+      const req = idx.openKeyCursor(range, "nextunique");
+      req.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        const raw = cur.key && cur.key[1];
+        const folded = raw ? String(raw).trim().toLowerCase() : "";
+        if (folded && !byFolded.has(folded)) byFolded.set(folded, String(raw).trim());
+        cur.continue();
+      };
+      return byFolded;
+    }).then((byFolded) => Array.from(byFolded.values()));
+  }
+
+  /**
+   * Has this user ever logged a scan at an hour `hourTest` accepts?
    *
    * The timestamp is half of the [userId, timestamp] key, so the hour is
    * readable without touching a row. Walks newest-first and stops at the first
-   * match by simply not calling continue(). Only ever called while the badge is
-   * unearned -- evaluateBadges() skips anything already in unlockedBadges, so
-   * the steady state for a user who has it is zero reads.
+   * match by simply not calling continue(). Only ever called while a badge that
+   * needs the answer is still unearned -- evaluateBadges() skips anything
+   * already in unlockedBadges, so the steady state for a user who holds it is
+   * zero reads.
+   *
+   * Takes the hour test rather than hardcoding night: dawn is the same walk over
+   * the same keys, and a second copy of it would be a second place to fix.
    */
-  function anyNightScan(uid) {
+  function anyScanAtHour(uid, hourTest) {
     return tx(STORE_SCANS, "readonly", (store) => {
       const hit = { found: false };
       const idx = store.index(IDX_USER_TIME);
@@ -494,11 +585,42 @@
       req.onsuccess = (e) => {
         const cur = e.target.result;
         if (!cur) return;
-        if (isNightHour(cur.key && cur.key[1])) { hit.found = true; return; }
+        if (hourTest(cur.key && cur.key[1])) { hit.found = true; return; }
         cur.continue();
       };
       return hit;
     }).then((hit) => hit.found);
+  }
+
+  /**
+   * How many different local days this user has logged a scan on.
+   *
+   * Not a streak: a gap resets advanceStreak and means nothing here, which is
+   * the point of having both -- one rewards not missing a day, this one rewards
+   * coming back at all.
+   *
+   * Counted by transition instead of into a Set. The index is ordered by
+   * timestamp and local day is monotonic in real time, so every key from one
+   * day is contiguous and one string compare per key is enough.
+   */
+  function countDaysLogged(uid) {
+    return tx(STORE_SCANS, "readonly", (store) => {
+      const acc = { n: 0, last: null };
+      const idx = store.index(IDX_USER_TIME);
+      const range = IDBKeyRange.bound([uid, ""], [uid, MAX_KEY_CHAR]);
+      const req = idx.openKeyCursor(range);
+      req.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        const iso = cur.key && cur.key[1];
+        if (iso) {
+          const k = dayKey(iso);
+          if (k !== acc.last) { acc.n++; acc.last = k; }
+        }
+        cur.continue();
+      };
+      return acc;
+    }).then((acc) => acc.n);
   }
 
   /**
@@ -583,18 +705,27 @@
     stats.totalScans = (stats.totalScans || 0) + 1;
 
     // Badge inputs, read from index keys and only for badges still unearned.
-    // This line used to be `getScans(null, uid)`: the whole history, every
-    // base64 thumbnail with it, on every single identification. Three of the
-    // five badges read stats alone, so once a user holds the other two this
-    // touches no scan data at all.
+    // This block used to be `getScans(null, uid)`: the whole history, every
+    // base64 thumbnail with it, on every single identification. Four of the nine
+    // badges read stats alone, and each of the other facts is skipped once
+    // every badge that needs it is held -- so a long-standing user pays nothing
+    // here, and nobody ever pays for a fact no unearned badge reads.
     const have = new Set(stats.unlockedBadges || []);
-    const facts = { stats, uniqueSpecies: 0, nightSeen: false };
-    if (!have.has("collector-10")) facts.uniqueSpecies = await countUniqueSpecies(uid);
-    if (!have.has("night-explorer")) {
-      // The row above is already written, so the walk would find it anyway --
-      // testing `when` first just skips the walk in the obvious case.
-      facts.nightSeen = isNightHour(when) || (await anyNightScan(uid));
+    const wanted = new Set();
+    for (const b of BADGES) if (b.needs && !have.has(b.id)) wanted.add(b.needs);
+
+    const facts = { stats, uniqueSpecies: 0, nightSeen: false, dawnSeen: false, daysLogged: 0 };
+    if (wanted.has("uniqueSpecies")) facts.uniqueSpecies = await countUniqueSpecies(uid);
+    // The row above is already written, so either walk would find it anyway --
+    // testing `when` first just skips the walk in the obvious case.
+    if (wanted.has("nightSeen")) {
+      facts.nightSeen = isNightHour(when) || (await anyScanAtHour(uid, isNightHour));
     }
+    if (wanted.has("dawnSeen")) {
+      facts.dawnSeen = isDawnHour(when) || (await anyScanAtHour(uid, isDawnHour));
+    }
+    if (wanted.has("daysLogged")) facts.daysLogged = await countDaysLogged(uid);
+
     const newBadges = evaluateBadges(stats, facts);
     await putStats(stats, uid);
 
@@ -735,6 +866,7 @@
     dayKey,
     dayDiff,
     countUniqueSpecies,
+    listSpecies,
     advanceStreak,
     effectiveStreak,
     uniqueSpecies,
