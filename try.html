@@ -50,9 +50,11 @@
          exist and every scan would go out unauthenticated. inferenceAuthHeaders
          logs a loud console error if it ever finds itself in that state.
 
-         Side effect while they are gone: nav.js cannot call ffRenderHeader, so
-         this page's header shows "Sign In" even to a signed-in visitor. Every
-         other page still personalises normally. -->
+         While they are gone there is no live session on this page, so nav.js
+         paints the header from the profile auth.js cached in localStorage on
+         whichever page the visitor signed in from. It greets them by name and
+         points at /dashboard, same as everywhere else; it just cannot notice a
+         session that expired since. -->
     <script src="main.js?v=2"></script>
     <!-- SPA: try.html is deliberately NOT router-swapped (see RELOAD in
          scripts/router.js) -- re-executing the inline ViT block is how inference
