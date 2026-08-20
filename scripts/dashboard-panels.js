@@ -485,10 +485,16 @@
                 '<div class="flex flex-wrap gap-2 mt-4">' +
                     '<button type="button" id="dataExport" data-haptic class="soft-click tap px-4 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-full hover:bg-neutral-50 transition">Export everything (JSON)</button>' +
                     '<button type="button" id="dataClear" data-haptic class="soft-click tap px-4 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-full hover:bg-neutral-50 transition disabled:opacity-40 disabled:hover:bg-transparent"' + (scans.length ? '' : ' disabled') + '>Erase my history</button>' +
+                    '<button type="button" id="dataWipe" data-haptic class="soft-click tap px-4 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-full hover:bg-neutral-50 transition">Delete everything and sign out</button>' +
                 '</div>' +
                 '<p class="text-xs text-neutral-400 leading-relaxed mt-3">' +
                     'Erasing removes your identifications, streak and badges from this device. ' +
-                    'Another account signed in on this browser keeps its own history — the delete is scoped to you.' +
+                    'Another account signed in on this browser keeps its own history — nothing in this card reaches it.' +
+                '</p>' +
+                '<p class="text-xs text-neutral-400 leading-relaxed mt-2">' +
+                    'Deleting everything does that and also restores the four preferences to their defaults, ' +
+                    'clears the correction log, and signs you out. Your sign-in account is held by Auth0 and is not ' +
+                    'removed here — ask through the <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> for that.' +
                 '</p>' +
                 '<p id="dataNote" class="hidden text-xs text-sage-700 mt-2"></p>' +
             '</div>' +
@@ -510,11 +516,25 @@
         var exportBtn = $('dataExport');
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
+                // stats.unlockedBadges is a list of ids, which tells the
+                // reader of the file nothing. The catalogue is resolved into
+                // the export so it explains itself years from now, locked
+                // entries included -- otherwise the absence of "collector-50"
+                // could mean unearned or could mean the badge did not exist.
+                var held = (state.stats && state.stats.unlockedBadges) || [];
                 var payload = {
                     exported: new Date().toISOString(),
                     schema: 'findflower/v3',
                     userId: state.uid,
                     stats: state.stats,
+                    badges: (window.ffStore.BADGES || []).map(function (b) {
+                        return {
+                            id: b.id,
+                            name: b.name,
+                            requirement: b.description,
+                            earned: held.indexOf(b.id) !== -1
+                        };
+                    }),
                     preferences: window.ffPrefs ? window.ffPrefs.all() : null,
                     feedback: readFeedback(),
                     scans: state.scans
@@ -544,6 +564,47 @@
                     var note = $('dataNote');
                     if (note) {
                         note.textContent = 'Could not erase: ' + (err && err.message ? err.message : 'storage error') + '.';
+                        note.className = 'text-xs text-red-700 mt-2';
+                    }
+                });
+            });
+        }
+
+        // Everything, not just the history: the scans and stats in IndexedDB,
+        // the four device preferences, the correction log, and the cached
+        // session profile that ffLogout removes on its way out. Deliberately
+        // still clearUser rather than clearAll -- "everything" means everything
+        // of YOURS, and another account's rows sit in the same database.
+        var wipeBtn = $('dataWipe');
+        if (wipeBtn) {
+            arm(wipeBtn, 'Delete everything — tap again', function () {
+                var target = state.uid;
+                window.ffStore.clearUser(target).then(function () {
+                    if (window.ffPrefs) window.ffPrefs.reset();
+                    try { localStorage.removeItem(FEEDBACK_KEY); } catch (e) { /* nothing to remove */ }
+                    // Hands off to Auth0, which returns to "/". Anything below
+                    // therefore runs only when Auth0 is unreachable -- and the
+                    // data is already gone by then either way, which is why a
+                    // failed sign-out must not be reported as a failed delete.
+                    if (typeof ffLogout === 'function') {
+                        return ffLogout().catch(function () { /* still deleted */ });
+                    }
+                }).then(function () {
+                    return refresh();
+                }).then(function () {
+                    var note = $('dataNote');
+                    if (note) {
+                        // Conditional on purpose: reaching this line means the
+                        // redirect did not happen, and whether the Auth0 session
+                        // itself survived is not something this page can see.
+                        note.textContent = 'Deleted. If you are still signed in, use Sign out at the top of this page.';
+                        note.classList.remove('hidden');
+                    }
+                    repaintPrefs();
+                }).catch(function (err) {
+                    var note = $('dataNote');
+                    if (note) {
+                        note.textContent = 'Could not delete: ' + (err && err.message ? err.message : 'storage error') + '.';
                         note.className = 'text-xs text-red-700 mt-2';
                     }
                 });
