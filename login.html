@@ -6,16 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>Sign In | Save Your Flower Identification History — FindFlower</title>
-    <meta name="description" content="Sign in to sync your botanist streak, scan history, and field badges. The scanner itself stays free and works without an account.">
+    <meta name="description" content="Sign in to keep your botanist streak, scan history, and field badges under your own account. The scanner itself stays free and works without an account.">
     <link rel="canonical" href="https://findflower.me/login">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/login">
     <meta property="og:title" content="Sign In | Save Your Flower Identification History — FindFlower">
-    <meta property="og:description" content="Sign in to sync your botanist streak, scan history, and field badges. The scanner itself stays free and works without an account.">
+    <meta property="og:description" content="Sign in to keep your botanist streak, scan history, and field badges under your own account. The scanner itself stays free and works without an account.">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Sign In | Save Your Flower Identification History — FindFlower">
-    <meta name="twitter:description" content="Sign in to sync your botanist streak, scan history, and field badges. The scanner itself stays free and works without an account.">
+    <meta name="twitter:description" content="Sign in to keep your botanist streak, scan history, and field badges under your own account. The scanner itself stays free and works without an account.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=8">
@@ -203,26 +203,26 @@
                 </div>
 
                 <blockquote class="border-l-2 border-sage-200 pl-4 text-lg text-neutral-600 font-light leading-relaxed mb-9 max-w-md">
-                    Sign in to sync your botanist streak, scan history and field badges across every device. The scanner itself stays free and works without an account.
+                    Every scan you keep, the streak you build and the badges you earn stay in this browser, attached to your account the moment you sign in.
                 </blockquote>
                 <ul class="space-y-4 text-sm text-neutral-600 font-light">
                     <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                        <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
                         </span>
                         A living history of every species you identify
                     </li>
                     <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                        <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2-6.3-4.6-6.3 4.6L8 13.8 2 9.4h7.6z"/></svg>
                         </span>
                         Streaks and field badges that grow as you explore
                     </li>
                     <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-white/70 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
+                        <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                         </span>
-                        Private by default — the scan runs, nothing is shared
+                        Your photo is sent to be identified, and no copy is kept
                     </li>
                 </ul>
             </div>
@@ -233,7 +233,7 @@
              perfectly legible. All auth IDs and the script below are unchanged. -->
         <div class="relative w-full lg:w-2/5 flex items-center justify-center px-6 pt-14 lg:pt-24 pb-16 bg-[#FCFCFC]">
             <div class="w-full max-w-md">
-                <div class="bg-white/90 backdrop-blur-sm border border-neutral-200/70 rounded-[2rem] shadow-lift p-8 md:p-10">
+                <div class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-lift p-8 md:p-10">
                 <!-- Brand mark -->
                 <div class="flex justify-center mb-7">
                     <div class="w-12 h-12 rounded-2xl bg-sage-50 flex items-center justify-center">
@@ -241,9 +241,9 @@
                     </div>
                 </div>
 
-                <h1 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 text-center mb-2">Sign in to FindFlower</h1>
-                <p class="text-neutral-500 font-light text-center mb-8 leading-relaxed">
-                    Developer access to the FindFlower API. Sign in once to generate your key and manage integration.
+                <h1 id="authTitle" class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 text-center mb-2">Sign in to FindFlower</h1>
+                <p id="authBlurb" class="text-neutral-500 font-light text-center mb-8 leading-relaxed">
+                    Keep your scans, streaks, and botanical collection under your own account. The scanner stays free and works without an account.
                 </p>
 
                 <!-- Loading -->
@@ -281,7 +281,7 @@
                         Go to Dashboard
                         <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
-                    <a href="/api" class="block w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-full hover:text-neutral-900 transition-colors">API keys &amp; docs</a>
+                    <a href="/api" class="block w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-full hover:text-neutral-900 transition-colors">View API docs</a>
                     <button id="logoutBtn" data-haptic class="soft-click w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-full hover:text-neutral-900 transition">Sign out</button>
                 </div>
 
@@ -343,8 +343,12 @@
 
             const user = await ffUser();
             if (user) {
-                document.getElementById('userName').textContent = user.name || user.nickname || 'Developer';
+                document.getElementById('userName').textContent = user.name || user.nickname || 'Botanist';
                 document.getElementById('userEmail').textContent = user.email || '';
+                // The card kept asking a signed-in visitor to sign in: the heading
+                // and blurb sit above all four states, so they have to move too.
+                document.getElementById('authTitle').textContent = 'Signed in';
+                document.getElementById('authBlurb').textContent = 'Your scans, streaks and badges are kept under this account.';
                 show(signedIn);
                 // If a destination was stored before login, honor it.
                 const dest = localStorage.getItem('ff_return_to');
