@@ -17,7 +17,9 @@
    The page's original <header> is kept in the HTML as a no-JS fallback; this
    just swaps it for the canonical one once the DOM is parsed. When auth.js is
    present (dashboard/login) we hand the rebuilt sign-in link back to
-   ffRenderHeader() so the live session state still drives it.
+   ffRenderHeader() so the live session state still drives it. When it is not
+   (try.html), the link is painted from the profile auth.js cached in
+   localStorage, so the bar matches the drawer underneath it.
 
    SPA note. scripts/router.js swaps <main> without reloading, so the active-tab
    highlight can no longer be a one-time read of location.pathname at load. PAGE
@@ -285,6 +287,25 @@
     var sidebarFocus = null;
     var sidebarOverflow = '';
 
+    function cachedProfile() {
+        try { return JSON.parse(localStorage.getItem('ff_session_profile') || 'null'); } catch (e) { return null; }
+    }
+
+    // try.html ships without auth.js on purpose (see the comment in its head),
+    // so ffRenderHeader is undefined there and the top bar kept offering
+    // "Sign In" to someone who is already signed in -- while the drawer right
+    // below it greeted them by name, because renderDrawerAuth already falls
+    // back to this cache. Painting the link from the same cached profile keeps
+    // both halves of one header telling the same story.
+    function paintCachedHeader() {
+        var link = document.getElementById('signInLink');
+        if (!link) return;
+        var session = cachedProfile();
+        if (!session || !session.authenticated) return;
+        link.textContent = session.name || 'Account';
+        link.href = '/dashboard';
+    }
+
     function renderDrawerAuth() {
         var host = document.getElementById('ffDrawerAuth');
         if (!host) return;
@@ -315,7 +336,7 @@
             }, { once: true });
         }
         if (typeof window.getUserSession !== 'function') {
-            try { paintProfile(JSON.parse(localStorage.getItem('ff_session_profile') || 'null')); } catch (e) {}
+            paintProfile(cachedProfile());
             return;
         }
         window.getUserSession().then(paintProfile).catch(function () {});
@@ -453,6 +474,8 @@
         // If auth.js is on the page, let it drive the (rebuilt) sign-in link.
         if (typeof window.ffRenderHeader === 'function') {
             try { window.ffRenderHeader(); } catch (e) { /* non-fatal */ }
+        } else {
+            paintCachedHeader();
         }
     }
 
@@ -488,6 +511,8 @@
         // auth.js have another pass if it is present.
         if (typeof window.ffRenderHeader === 'function') {
             try { window.ffRenderHeader(); } catch (e) { /* non-fatal */ }
+        } else {
+            paintCachedHeader();
         }
         renderDrawerAuth();
     }
