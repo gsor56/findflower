@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Research | Architecture &amp; Dataset &mdash; FindFlower</title>
+    <meta name="description" content="How the FindFlower dataset is curated and how the model is served: a 1,500-species target at 100 images per class, six image gates, five parallel CPU workers, and a Vision Transformer on ONNX Runtime.">
+    <link rel="canonical" href="https://findflower.me/research">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="FindFlower">
+    <meta property="og:url" content="https://findflower.me/research">
+    <meta property="og:title" content="Research | Architecture &amp; Dataset &mdash; FindFlower">
+    <meta property="og:description" content="How the FindFlower dataset is curated and how the model is served: a 1,500-species target at 100 images per class, six image gates, five parallel CPU workers, and a Vision Transformer on ONNX Runtime.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Research | Architecture &amp; Dataset &mdash; FindFlower">
+    <meta name="twitter:description" content="How the FindFlower dataset is curated and how the model is served: a 1,500-species target at 100 images per class, six image gates, five parallel CPU workers, and a Vision Transformer on ONNX Runtime.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="app.css?v=8">
+    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
+    <script src="prefs.js?v=1"></script>
+    <script src="nav.js?v=3" defer></script>
+    <script src="footer.js?v=1" defer></script>
+    <script src="scripts/ux.js?v=1" defer></script>
+    <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
+         scroll-reveal observer on arrival. The page stays a full document. -->
+    <script src="scripts/views/home.js" defer></script>
+    <script src="scripts/router.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Fraunces', 'serif'] },
+                    colors: {
+                        neutral: { 50:'#FAFAFA',100:'#F5F5F5',200:'#E5E5E5',300:'#D4D4D4',400:'#A3A3A3',500:'#737373',600:'#525252',700:'#404040',800:'#262626',900:'#171717' },
+                        sage: { 50:'#F2F5F2',100:'#E4EBE5',200:'#C9D6CB',400:'#7C9781',500:'#5F7A63',600:'#4C6650',700:'#3D5341' }
+                    },
+                    boxShadow: { 'subtle':'0 4px 40px -2px rgba(0,0,0,0.04)','float':'0 10px 40px -10px rgba(0,0,0,0.12)','lift':'0 20px 60px -18px rgba(23,23,23,0.15)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color:#FCFCFC; color:#171717; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        .reveal-up { opacity:0; transform:translateY(24px); transition:opacity .9s cubic-bezier(0.16,1,0.3,1), transform .9s cubic-bezier(0.16,1,0.3,1); }
+        .reveal-up.active { opacity:1; transform:translateY(0); }
+        .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
+        .group:hover .cta-arrow { transform:translateX(4px); }
+        .toc-link.active { color:#171717; font-weight:500; }
+        .prose p { line-height:1.75; }
+
+        /* The section numeral belongs in the left margin at reading widths and
+           above the heading on a phone. It is a pseudo-element on the heading
+           rather than a second element because a float or an absolutely placed
+           box would have to be unwound again at the breakpoint. */
+        .ff-num::before { content:attr(data-num); display:block; font-size:0.75rem; font-weight:500; letter-spacing:0.14em; color:#A3A3A3; margin-bottom:0.5rem; }
+        @media (min-width:1024px) {
+            .ff-num { position:relative; }
+            .ff-num::before { position:absolute; left:-5rem; top:0.6rem; margin:0; }
+        }
+
+        /* Rules only, the way a paper prints a table: no vertical borders, no
+           zebra fill, and figures aligned on the digit so two columns of counts
+           can be compared by eye. */
+        .ff-table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+        .ff-table caption { caption-side:top; text-align:left; padding-bottom:0.875rem; }
+        .ff-table th, .ff-table td { padding:0.625rem 0.75rem; text-align:left; vertical-align:baseline; }
+        .ff-table th:not(:first-child), .ff-table td:not(:first-child) { text-align:right; }
+        .ff-table thead th { border-top:1px solid #D4D4D4; border-bottom:1px solid #D4D4D4; font-weight:500; }
+        .ff-table tbody td { border-bottom:1px solid #F5F5F5; }
+        .ff-table tbody tr:last-child td { border-bottom:1px solid #D4D4D4; }
+        .ff-table th:first-child, .ff-table td:first-child { padding-left:0; }
+        .ff-table th:last-child, .ff-table td:last-child { padding-right:0; }
+
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
+
+        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
+           on a phone. Every control clears the 44px minimum. min-height is
+           ignored on inline non-replaced boxes, so links inside body copy are
+           untouched -- only laid-out controls grow. */
+        @media (pointer: coarse) {
+            a, button, select, summary, label[for],
+            input[type="submit"], input[type="button"] { min-height: 44px; }
+            button, select, summary,
+            input[type="submit"], input[type="button"] { min-width: 44px; }
+        }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- Kept as the no-JS fallback. nav.js replaces this whole element with the
+         canonical header once the DOM is parsed. -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    FindFlower
+                </a>
+                <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="/how" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="/pricing" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="/dashboard" class="hover:text-neutral-900 transition-colors">Dashboard</a>
+                <a href="/api" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="/directory" class="hover:text-neutral-900 transition-colors">Directory</a>
+                <a href="/#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24">
+      <article>
+
+        <header class="max-w-7xl mx-auto px-6 mb-20">
+            <div class="max-w-3xl">
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Research</span>
+                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-4">Architecture and dataset</h1>
+                <p class="reveal-up font-serif italic text-xl md:text-2xl font-normal text-sage-700 mb-8">How FindFlower decides what a flower is</p>
+                <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
+                    Two halves make the product work, and they are built and measured separately: a
+                    dataset assembled from open-licensed field observations, and a classifier served
+                    from a machine that is not your phone. What follows describes both as they stand
+                    today, including the parts that are unfinished.
+                </p>
+                <p class="reveal-up text-sm text-neutral-400 font-light mt-6">
+                    Revised 20 August 2026 &middot; Beta 0.9.8 &middot; Every figure below was read out of the repository it describes
+                </p>
+            </div>
+        </header>
+
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
+
+            <aside class="hidden lg:block lg:col-span-3">
+                <nav class="sticky top-24 text-sm" aria-label="Sections">
+                    <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-4">Contents</p>
+                    <a href="#target" class="toc-link block py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors">01 &nbsp;The target list</a>
+                    <a href="#funnel" class="toc-link block py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors">02 &nbsp;One hundred per class</a>
+                    <a href="#workers" class="toc-link block py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors">03 &nbsp;Five workers, one repo</a>
+                    <a href="#status" class="toc-link block py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors">04 &nbsp;Where it stands</a>
+                    <a href="#engine" class="toc-link block py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors">05 &nbsp;The inference engine</a>
+                    <a href="#limits" class="toc-link block py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors">06 &nbsp;What it does not do</a>
+                </nav>
+            </aside>
+
+            <div class="lg:col-span-8 lg:col-start-5 space-y-16">
+
+                <p class="reveal-up border-l-2 border-sage-400 pl-6 text-lg text-neutral-600 font-light leading-relaxed">
+                    The short version: 1,500 flowering species were chosen by how often people
+                    actually photograph them, each one is being filled to exactly 100 checked
+                    images, and the classifier that answers a scan today still knows 116 of them.
+                    The gap between those two numbers is the honest state of the project.
+                </p>
+
+                <section id="target" class="reveal-up scroll-mt-24 prose">
+                    <h2 data-num="01" class="ff-num text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">The target list</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>
+                            The class list is not botanical judgement. It comes from iNaturalist&rsquo;s
+                            species-counts endpoint, restricted to flowering plants
+                            (<span class="text-neutral-900 font-normal">Angiospermae</span>, taxon 47125,
+                            inside kingdom Plantae, 47126) and ordered by observation count, descending.
+                            5,458 valid species came back. The first 1,500 became the target.
+                        </p>
+                        <p>
+                            Ordering by observation count is a deliberate bias and worth naming as one:
+                            it selects the species people meet, not the species that matter botanically.
+                            A rare orchid two valleys over is absent by construction, and coverage
+                            follows where amateur naturalists photograph &mdash; heavily Europe and North
+                            America. What the ordering buys is the only thing that makes the rest
+                            possible: for a common species, 100 usable photographs exist.
+                        </p>
+                        <p>
+                            The list is frozen in a manifest &mdash; version 5, generated 16 August 2026 &mdash;
+                            so that a worker starting tomorrow and a worker starting last week are
+                            filling the same 1,500 slots in the same order.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="funnel" class="reveal-up scroll-mt-24 prose">
+                    <h2 data-num="02" class="ff-num text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">One hundred images per class, no exceptions</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>
+                            Every class gets exactly 100 images. Not a minimum, not an average &mdash; a
+                            count, enforced when the folder is written. The reason is class imbalance:
+                            if a common daisy arrives with 400 photographs and its neighbour with 30,
+                            a classifier learns the prior rather than the plant, and its confidence
+                            becomes a report on the dataset instead of the flower. Fixing the count
+                            removes the question rather than correcting for it later.
+                        </p>
+                        <p>
+                            Up to 250 raw candidates are fetched per class, 200 observations per page,
+                            with licences restricted to <span class="text-neutral-900 font-normal">CC0</span>,
+                            <span class="text-neutral-900 font-normal">CC&nbsp;BY</span> and
+                            <span class="text-neutral-900 font-normal">CC&nbsp;BY-NC</span>. Roughly three
+                            in five of those are then thrown away. Table 1 lists the gates an individual
+                            image has to clear, in the order they run; a whole-folder audit follows.
+                        </p>
+                    </div>
+
+                    <table class="ff-table mt-8 text-sm text-neutral-600 font-light">
+                        <caption class="text-sm text-neutral-400 font-light">Table 1 &mdash; the per-image gates, and the threshold each one enforces</caption>
+                        <thead>
+                            <tr><th scope="col" class="text-neutral-900">Gate</th><th scope="col" class="text-neutral-900">Threshold</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Shortest edge</td><td>&ge; 256 px</td></tr>
+                            <tr><td>Laplacian variance (blur)</td><td>&ge; 65</td></tr>
+                            <tr><td>Greyscale standard deviation</td><td>&ge; 18</td></tr>
+                            <tr><td>Dynamic range</td><td>&ge; 55</td></tr>
+                            <tr><td>Clipped pixel fraction</td><td>&le; 0.78</td></tr>
+                            <tr><td>Histogram variance (flat frames)</td><td>&le; 0.0016</td></tr>
+                            <tr><td>Perceptual-hash distance to any kept image</td><td>&gt; 6</td></tr>
+                            <tr><td>Cosine similarity to the class centroid</td><td>&ge; 0.30</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="space-y-4 text-neutral-600 font-light text-lg mt-8">
+                        <p>
+                            The first six are cheap arithmetic on the decoded pixels, and they remove the
+                            failure that dominates citizen-science archives: photographs of nothing in
+                            particular. A hand over the lens, a lawn, a white sky, a screenshot of a field
+                            guide. None of those need a model to reject.
+                        </p>
+                        <p>
+                            The seventh is a perceptual hash. Observations frequently carry the same
+                            flower photographed twice a second apart, and near-duplicates inflate a class
+                            without adding anything to learn from &mdash; worse, they leak between train and
+                            validation splits and quietly flatter the accuracy figure. Any candidate within
+                            a Hamming distance of 6 of an image already kept is dropped.
+                        </p>
+                        <p>
+                            The eighth is the only learned step. Every surviving image is embedded with
+                            <span class="font-mono text-sm text-neutral-900">mobilenetv3_small_100.lamb_in1k</span>,
+                            a class centroid is computed, and images whose cosine similarity to that
+                            centroid falls below 0.30 &mdash; or more than three median-absolute-deviations
+                            below the class median &mdash; are rejected as outliers. This is what catches
+                            the mislabelled observation and the photograph of the whole hillside.
+                        </p>
+                        <p>
+                            A final audit pass runs a larger MaxViT classifier over the folder and flags
+                            an image only when the evidence is unambiguous: another class predicted above
+                            0.92 confidence, a margin over the expected class above 0.25, and the expected
+                            class itself scoring under 0.10. Those three conditions together are a
+                            deliberately narrow net. A weaker rule would have the audit model overwrite
+                            the taxonomy with its own opinion, which is the wrong direction of trust.
+                        </p>
+                        <p>
+                            A class folder is written only when it holds exactly 100 survivors. Fewer, and
+                            the class is not published at all &mdash; it goes back on the queue instead of
+                            shipping thin. That is the whole reason the collected count climbs slowly.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="workers" class="reveal-up scroll-mt-24 prose">
+                    <h2 data-num="03" class="ff-num text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Five CPUs that don't talk to each other</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>
+                            Fetching, decoding and filtering 250 candidates for 1,500 classes does not fit
+                            in one session. The work runs as five Kaggle CPU notebooks, each given the same
+                            script and a different shard index. A class belongs to a worker when its
+                            position in the frequency-ranked manifest, minus one, is congruent to that
+                            worker's index modulo five. Worker 0 takes classes 1, 6, 11; worker 1 takes
+                            2, 7, 12; and so on.
+                        </p>
+                        <p>
+                            Interleaving rather than splitting into contiguous blocks matters more than it
+                            looks. The manifest is sorted by observation count, so a contiguous split would
+                            hand worker 0 every abundant, easily-filled species and worker 4 nothing but
+                            rarities that fail the 100 floor. Round-robin gives all five the same mix of
+                            easy and hard, and their throughput stays comparable.
+                        </p>
+                        <p>
+                            There is no coordinator. Each worker writes
+                            <span class="font-mono text-sm text-neutral-900">progress/shard-XX-of-05.json</span>
+                            to the dataset repository as it finishes classes, and reads the other four files
+                            when it starts so it can skip anything already done. Progress is a set of files
+                            in the artifact store rather than a service, which means a worker dying costs
+                            one class in flight and nothing else. Each run stops at 10&nbsp;hours 45&nbsp;minutes,
+                            inside Kaggle's session ceiling, so it always exits by finishing an upload
+                            rather than by being killed mid-write.
+                        </p>
+                        <p>
+                            The 1,500-class manifest travels inside the notebook rather than beside it:
+                            gzipped, base64-encoded and substituted into the script as a literal. A
+                            notebook that carries its own input has no attach step to get wrong and no
+                            path to break when it is cloned for the sixth time.
+                        </p>
+                        <p>
+                            One pass has no counterpart in the original design. Sessions that uploaded a
+                            folder and then died before writing progress left classes that were complete
+                            in the repository but unrecorded, and the next worker would have refetched all
+                            250 candidates for them. A recovery step now lists the remote repository,
+                            counts images per folder, and marks any folder holding 100 or more as complete
+                            with the marker <span class="font-mono text-sm text-neutral-900">remote-folder-recovery</span>
+                            in place of a timestamp. It is bookkeeping, not curation, and the marker is
+                            there so the two can never be confused later.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="status" class="reveal-up scroll-mt-24 prose">
+                    <h2 data-num="04" class="ff-num text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Where the dataset actually stands</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>
+                            These are counts taken from the progress files and a listing of the dataset
+                            repository, not estimates.
+                        </p>
+                    </div>
+
+                    <table class="ff-table mt-8 text-sm text-neutral-600 font-light">
+                        <caption class="text-sm text-neutral-400 font-light">Table 2 &mdash; collection status, 20 August 2026</caption>
+                        <thead>
+                            <tr><th scope="col" class="text-neutral-900">&nbsp;</th><th scope="col" class="text-neutral-900">Classes</th><th scope="col" class="text-neutral-900">Images</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>Target</td><td>1,500</td><td>150,000</td></tr>
+                            <tr><td class="text-neutral-900">Collected and verified</td><td class="text-neutral-900">831</td><td class="text-neutral-900">87,520</td></tr>
+                            <tr><td class="pl-6">&mdash; at exactly the 100 floor</td><td>771</td><td>77,100</td></tr>
+                            <tr><td class="pl-6">&mdash; from an earlier pass, 148&ndash;200 each</td><td>60</td><td>10,420</td></tr>
+                            <tr><td>Still in the recovery queue</td><td>669</td><td>&mdash;</td></tr>
+                            <tr><td>Stale folders from a superseded list</td><td>172</td><td>17,200</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="space-y-4 text-neutral-600 font-light text-lg mt-8">
+                        <p>
+                            831 and 669 add to 1,500, which is the only arithmetic on this page that has to
+                            hold. The last row is the one worth explaining. An earlier version of the target
+                            list was drawn from Plantae as a whole rather than from flowering plants, and it
+                            produced 172 class folders &mdash; ferns, conifers, mosses &mdash; that are complete,
+                            correctly filtered, and not part of this dataset. They still sit in the
+                            repository because deleting them is a destructive operation on the only copy.
+                            Counting them would give 1,003 classes and 104,720 images, and that number is
+                            wrong in a way that is easy to miss, so it is not the number quoted anywhere.
+                        </p>
+                        <p>
+                            The 60 classes carrying 148 to 200 images are the same kind of residue and the
+                            same kind of honesty problem. They were filled before the exactly-100 rule
+                            existed. Left as they are, they are the largest classes in the set by roughly
+                            two to one, which is precisely the imbalance the floor was introduced to
+                            prevent. They will be trimmed to 100 before training rather than kept as a
+                            bonus.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="engine" class="reveal-up scroll-mt-24 prose">
+                    <h2 data-num="05" class="ff-num text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">The inference engine</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>
+                            The served model is a Vision Transformer. An image arrives, is rescaled to the
+                            unit interval, resized bilinearly to 224&nbsp;&times;&nbsp;224, normalised with a
+                            mean and standard deviation of 0.5 on every channel, and passed through a
+                            single ONNX Runtime session on the CPU execution provider. The logits go
+                            through a softmax and the top five come back with their probabilities.
+                        </p>
+                        <p>
+                            It runs on a server, and the first version did not. Running the network in the
+                            browser is attractive on paper &mdash; the photograph never leaves the phone &mdash;
+                            and it fails on the two things that actually matter on a phone. A transformer
+                            of this size is a multi-hundred-megabyte download before the first
+                            identification, on a connection that is frequently a field with one bar. And
+                            the arithmetic runs on the handset, which means the battery pays for it and a
+                            mid-range Android takes long enough that people assume the page has hung.
+                            Server-side, the phone uploads one JPEG and holds a request open.
+                        </p>
+                        <p>
+                            Being straightforward about the trade: this means your photograph is sent to a
+                            server to be classified. It is held only for the moment it takes to run the
+                            model, it is not stored, and it is not attached to an account. What is stored
+                            about a scan &mdash; the prediction, the confidence, the image itself &mdash; lives in
+                            your own browser's IndexedDB and is never uploaded. In-browser inference would
+                            have been the stronger privacy claim, and it is not the one being made.
+                        </p>
+                    </div>
+
+                    <h3 class="text-lg font-medium text-neutral-900 mt-10 mb-3">Why the weights are fp32</h3>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>
+                            The host has 512&nbsp;MB of memory, which turns the obvious optimisation upside
+                            down. Half-precision weights make a 165&nbsp;MB file and a 228&nbsp;MB resident
+                            process &mdash; and a <span class="text-neutral-900 font-normal">511&nbsp;MB</span> peak
+                            while loading, because the runtime converts fp16 to fp32 to execute on CPU and
+                            briefly holds both. That is one megabyte of headroom. Full-precision weights
+                            make a 329&nbsp;MB file, a 389&nbsp;MB resident process, and a
+                            <span class="text-neutral-900 font-normal">409&nbsp;MB</span> peak. The larger
+                            file is the one that fits.
+                        </p>
+                        <p>
+                            The weights are also stored beside the graph as external data rather than
+                            inside a single protobuf. Loading one self-contained file peaked at roughly
+                            670&nbsp;MB &mdash; about twice the file size, since the parser holds the serialised
+                            copy and the deserialised tensors at once &mdash; against roughly 395&nbsp;MB when
+                            the tensors are memory-mapped from a separate file. Top-1 and top-5 outputs
+                            were checked as identical across all four combinations before any of this was
+                            deployed.
+                        </p>
+                    </div>
+                </section>
+
+                <section id="limits" class="reveal-up scroll-mt-24 prose">
+                    <h2 data-num="06" class="ff-num text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">What this does not do yet</h2>
+                    <div class="space-y-4 text-neutral-600 font-light text-lg">
+                        <p>
+                            The model in production recognises <span class="text-neutral-900 font-normal">116</span>
+                            species. The dataset described above targets 1,500. Those are two separate
+                            things, and nothing has been trained on the new one &mdash; its manifest records
+                            zero epochs and no validation accuracy, which is accurate. Collection has to
+                            finish first.
+                        </p>
+                        <p>
+                            No accuracy figure is published for the 116-class model either. One will be,
+                            measured on a held-out split, once there is a split worth quoting. A number
+                            without a stated test set is decoration.
+                        </p>
+                        <p>
+                            The target list is ranked by observation count, which is a bias and a chosen
+                            one. It means the 1,500 species are the ones people photograph, which
+                            correlates with northern-hemisphere temperate flora, roadsides, gardens and
+                            wherever iNaturalist has the most users. A rare endemic that six people have
+                            ever recorded is absent, and will stay absent, because there is no way to
+                            reach 100 filtered images of it. The alternative &mdash; a taxonomically balanced
+                            list &mdash; would produce a model that fails on the flower in front of you and
+                            succeeds on the one you will never see.
+                        </p>
+                        <p>
+                            Three known defects, stated plainly: 60 collected classes are still
+                            over-filled and will be trimmed; 172 folders from a superseded list are still
+                            in the repository and need removing; and the dataset repository is private
+                            while the licence attribution per image is assembled, so it cannot yet be
+                            linked from <a href="/data" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Data &amp; integrations</a>.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="reveal-up border-t border-neutral-200 pt-8">
+                    <h2 class="text-sm font-medium tracking-widest text-neutral-400 mb-5">SOURCES</h2>
+                    <ol class="space-y-3 text-sm text-neutral-600 font-light list-none">
+                        <li><span class="text-neutral-400 mr-2">1.</span>iNaturalist API, <span class="font-mono text-neutral-900">/v1/observations/species_counts</span> and <span class="font-mono text-neutral-900">/v1/observations</span>, filtered to Angiospermae (taxon 47125) within Plantae (47126). Research-grade records, open licences only.</li>
+                        <li><span class="text-neutral-400 mr-2">2.</span>Target manifest version 5, generated 16 August 2026 from 5,458 valid species and frozen since.</li>
+                        <li><span class="text-neutral-400 mr-2">3.</span>Embedding and audit models: <span class="font-mono text-neutral-900">mobilenetv3_small_100.lamb_in1k</span> for outlier rejection, MaxViT for the label audit.</li>
+                        <li><span class="text-neutral-400 mr-2">4.</span>Memory figures measured on the deployment host, 512&nbsp;MB tier, ONNX Runtime CPU execution provider.</li>
+                    </ol>
+                    <p class="text-sm text-neutral-400 font-light mt-6 leading-relaxed">
+                        Photographs on iNaturalist are the work of the observers who took them and remain
+                        under the licences they chose. FindFlower filters and counts them; it does not own them.
+                    </p>
+                </section>
+
+                <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-2">
+                    <a href="/data" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 transition-colors">
+                        Data &amp; integrations
+                        <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </a>
+                    <a href="/how" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-md hover:text-neutral-900 transition-colors">How a scan works, step by step</a>
+                </div>
+
+            </div>
+        </div>
+
+        </article>
+    </main>
+
+    <div id="ff-footer"><noscript>
+        <footer class="border-t border-neutral-200 bg-[#FCFCFC] py-10 text-center text-xs text-neutral-400 font-light">
+            <a href="/" class="hover:text-neutral-900">Home</a> &middot;
+            <a href="/try" class="hover:text-neutral-900">Try Now</a> &middot;
+            <a href="/directory" class="hover:text-neutral-900">Directory</a> &middot;
+            <a href="/how" class="hover:text-neutral-900">How it works</a> &middot;
+            <a href="/data" class="hover:text-neutral-900">Data</a> &middot;
+            <a href="/api" class="hover:text-neutral-900">API</a> &middot;
+            <a href="/privacy" class="hover:text-neutral-900">Privacy</a> &middot;
+            <a href="/terms" class="hover:text-neutral-900">Terms</a>
+            <p class="mt-3">&copy; 2026 FindFlower &middot; Open botanical reference</p>
+        </footer>
+    </noscript></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
+            document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
+
+            const links = [...document.querySelectorAll('.toc-link')];
+            const map = new Map(links.map(l => [l.getAttribute('href').slice(1), l]));
+            const secObs = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); const l = map.get(e.target.id); if (l) l.classList.add('active'); } });
+            }, { rootMargin: '-20% 0px -70% 0px' });
+            map.forEach((_, id) => { const el = document.getElementById(id); if (el) secObs.observe(el); });
+        });
+    </script>
+</body>
+</html>

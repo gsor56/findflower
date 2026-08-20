@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title>Data &amp; Integrations | Dataset, taxonomy and API &mdash; FindFlower</title>
+    <meta name="description" content="The FindFlower dataset and API in one place: the ImageFolder layout, the class index and taxonomy files, per-image licence metadata, and how to call the identification endpoint.">
+    <link rel="canonical" href="https://findflower.me/data">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="FindFlower">
+    <meta property="og:url" content="https://findflower.me/data">
+    <meta property="og:title" content="Data &amp; Integrations | Dataset, taxonomy and API &mdash; FindFlower">
+    <meta property="og:description" content="The FindFlower dataset and API in one place: the ImageFolder layout, the class index and taxonomy files, per-image licence metadata, and how to call the identification endpoint.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Data &amp; Integrations | Dataset, taxonomy and API &mdash; FindFlower">
+    <meta name="twitter:description" content="The FindFlower dataset and API in one place: the ImageFolder layout, the class index and taxonomy files, per-image licence metadata, and how to call the identification endpoint.">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="app.css?v=8">
+    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
+    <script src="prefs.js?v=1"></script>
+    <script src="nav.js?v=3" defer></script>
+    <script src="footer.js?v=1" defer></script>
+    <script src="scripts/ux.js?v=1" defer></script>
+    <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
+         scroll-reveal observer on arrival. The page stays a full document. -->
+    <script src="scripts/views/home.js" defer></script>
+    <script src="scripts/router.js" defer></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Fraunces', 'serif'], mono: ['JetBrains Mono', 'monospace'] },
+                    colors: {
+                        neutral: { 50:'#FAFAFA',100:'#F5F5F5',200:'#E5E5E5',300:'#D4D4D4',400:'#A3A3A3',500:'#737373',600:'#525252',700:'#404040',800:'#262626',900:'#171717' },
+                        sage: { 50:'#F2F5F2',100:'#E4EBE5',200:'#C9D6CB',400:'#7C9781',500:'#5F7A63',600:'#4C6650',700:'#3D5341' }
+                    },
+                    boxShadow: { 'subtle':'0 4px 40px -2px rgba(0,0,0,0.04)','float':'0 10px 40px -10px rgba(0,0,0,0.12)','lift':'0 20px 60px -18px rgba(23,23,23,0.15)' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color:#FCFCFC; color:#171717; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        .reveal-up { opacity:0; transform:translateY(24px); transition:opacity .9s cubic-bezier(0.16,1,0.3,1), transform .9s cubic-bezier(0.16,1,0.3,1); }
+        .reveal-up.active { opacity:1; transform:translateY(0); }
+        .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
+        .group:hover .cta-arrow { transform:translateX(4px); }
+        .toc-link.active { color:#171717; font-weight:500; }
+        .prose p { line-height:1.75; }
+
+        /* Snippets are a light surface with a hairline border rather than a dark
+           block: this page is read next to the prose, not inside an editor.
+           tab-size is set because the JSON below is indented with two spaces in
+           the repository and copies out the same way. */
+        .snip { background:#FAFAFA; border:1px solid #E5E5E5; border-radius:0.375rem; padding:1rem 1.125rem; overflow-x:auto; font-size:0.875rem; line-height:1.7; tab-size:2; white-space:pre; }
+        .snip .k { color:#4C6650; }
+        .snip .s { color:#525252; }
+        .snip .c { color:#A3A3A3; }
+        .snip::-webkit-scrollbar { height:8px; }
+        .snip::-webkit-scrollbar-thumb { background:#D4D4D4; border-radius:8px; }
+
+        .field { border-top:1px solid #F5F5F5; }
+        .field:first-child { border-top:0; }
+
+        @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
+
+        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
+           on a phone. Every control clears the 44px minimum. min-height is
+           ignored on inline non-replaced boxes, so links inside body copy are
+           untouched -- only laid-out controls grow. */
+        @media (pointer: coarse) {
+            a, button, select, summary, label[for],
+            input[type="submit"], input[type="button"] { min-height: 44px; }
+            button, select, summary,
+            input[type="submit"], input[type="button"] { min-width: 44px; }
+        }
+    </style>
+</head>
+<body class="selection:bg-sage-100 selection:text-sage-700">
+
+    <!-- Kept as the no-JS fallback. nav.js replaces this whole element with the
+         canonical header once the DOM is parsed. -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    FindFlower
+                </a>
+                <span class="text-xs font-medium text-sage-700 bg-sage-100 px-2 py-0.5 rounded-full">Beta</span>
+            </div>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
+                <a href="/how" class="hover:text-neutral-900 transition-colors">How it works</a>
+                <a href="/pricing" class="hover:text-neutral-900 transition-colors">Pricing</a>
+                <a href="/dashboard" class="hover:text-neutral-900 transition-colors">Dashboard</a>
+                <a href="/api" class="hover:text-neutral-900 transition-colors">API</a>
+                <a href="/directory" class="hover:text-neutral-900 transition-colors">Directory</a>
+                <a href="/#about" class="hover:text-neutral-900 transition-colors">About</a>
+            </nav>
+            <div class="flex items-center gap-4">
+                <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
+                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                    Try Now
+                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="pt-32 pb-24">
+
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="mb-16">
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Data &amp; integrations</span>
+                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-4">The dataset, the taxonomy, the endpoint</h1>
+                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 mb-8">What is available to build on, and what is not yet</p>
+                <p class="reveal-up text-lg text-neutral-500 font-light leading-relaxed max-w-2xl">
+                    The application code is closed. The data is not meant to be. This page documents
+                    the file layout, the class index, the licence metadata and the identification
+                    endpoint, so that a researcher can work out whether any of it is useful before
+                    asking for access.
+                </p>
+            </div>
+
+            <div class="reveal-up border border-neutral-200 rounded-lg p-6 mb-16">
+                <p class="text-sm font-medium text-neutral-900 mb-2">Access, honestly</p>
+                <p class="text-base text-neutral-600 font-light leading-relaxed">
+                    The image dataset is on a private repository while per-image licence attribution
+                    is assembled and the last classes are collected. There is no public download link
+                    yet, and a link to a repository you cannot open is worse than no link, so there
+                    isn&rsquo;t one. Everything below describes what the repository contains and how it is
+                    structured; if you need access before it opens,
+                    <a href="/contact" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">write and say what for</a>.
+                </p>
+            </div>
+
+            <section class="mb-16">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">The dataset</h2>
+                <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                    A plain ImageFolder tree. One directory per species, 100 JPEGs inside, filenames
+                    prefixed with their rank in the class so ordering is stable across clones. No
+                    parquet, no shards, no loader script &mdash; it opens with anything that can read a
+                    folder of images.
+                </p>
+                <div class="reveal-up snip font-mono text-neutral-700 mb-6">Achillea_millefolium/
+  001_&lt;photo id&gt;.jpg
+  002_&lt;photo id&gt;.jpg
+  &hellip;
+  100_&lt;photo id&gt;.jpg
+Achillea_millefolium.metadata.json
+Taraxacum_officinale/
+  &hellip;
+classes.json
+curation_manifest.json
+progress/shard-00-of-05.json
+README.md</div>
+                <div class="reveal-up grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div class="border border-neutral-200 rounded-lg p-5">
+                        <p class="text-sm font-medium text-neutral-900 mb-1">Images per class</p>
+                        <p class="text-base text-neutral-600 font-light">Exactly 100. A directory holding any other number is not a finished class and should be treated as absent.</p>
+                    </div>
+                    <div class="border border-neutral-200 rounded-lg p-5">
+                        <p class="text-sm font-medium text-neutral-900 mb-1">Folder names</p>
+                        <p class="text-base text-neutral-600 font-light">The scientific name with every character outside <span class="font-mono text-neutral-900">A&ndash;Z a&ndash;z 0&ndash;9 . _ -</span> replaced by an underscore, truncated at 180 characters.</p>
+                    </div>
+                    <div class="border border-neutral-200 rounded-lg p-5">
+                        <p class="text-sm font-medium text-neutral-900 mb-1">File names</p>
+                        <p class="text-base text-neutral-600 font-light"><span class="font-mono text-neutral-900">NNN_&lt;photo id&gt;.jpg</span> &mdash; a three-digit rank by the composite selection score, then the iNaturalist photo id it came from.</p>
+                    </div>
+                    <div class="border border-neutral-200 rounded-lg p-5">
+                        <p class="text-sm font-medium text-neutral-900 mb-1">Licences</p>
+                        <p class="text-base text-neutral-600 font-light">CC0, CC&nbsp;BY and CC&nbsp;BY-NC only, recorded per image. Mixed, so the set as a whole is non-commercial.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">classes.json &mdash; index to species</h2>
+                <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                    A model outputs an integer. This file is what turns it back into a plant. Keys are
+                    the class index as a string, in the order the folders are enumerated, so the map is
+                    stable as long as the file travels with the weights.
+                </p>
+                <div class="reveal-up snip font-mono text-neutral-700 mb-6">{
+  <span class="k">"0"</span>: {
+    <span class="k">"folder"</span>: <span class="s">"Achillea_millefolium"</span>,
+    <span class="k">"name"</span>: <span class="s">"Achillea millefolium"</span>,
+    <span class="k">"scientific_name"</span>: <span class="s">"Achillea millefolium"</span>
+  },
+  <span class="k">"1"</span>: {
+    <span class="k">"folder"</span>: <span class="s">"Taraxacum_officinale"</span>,
+    <span class="k">"name"</span>: <span class="s">"Taraxacum officinale"</span>,
+    <span class="k">"scientific_name"</span>: <span class="s">"Taraxacum officinale"</span>
+  }
+}</div>
+                <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed mb-8 max-w-2xl">
+                    <span class="font-mono text-neutral-900">folder</span> is the directory on disk,
+                    <span class="font-mono text-neutral-900">scientific_name</span> is the binomial to cite.
+                    Read the index as an integer if you sort the keys &mdash; JSON object keys are strings,
+                    and string ordering puts class 10 before class 2.
+                </p>
+
+                <h3 class="reveal-up text-lg font-medium text-neutral-900 mb-3">The richer taxonomy file</h3>
+                <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                    The class list is generated separately from an iNaturalist taxonomy pull, and that
+                    generation keeps far more per species than the index needs. One entry, verbatim:
+                </p>
+                <div class="reveal-up snip font-mono text-neutral-700 mb-6">{
+  <span class="k">"generated_at"</span>: <span class="s">"2026-08-16T12:16:56+00:00"</span>,
+  <span class="k">"id2label"</span>: {
+    <span class="k">"0"</span>: {
+      <span class="k">"index"</span>: 0,
+      <span class="k">"scientific"</span>: <span class="s">"Achillea millefolium"</span>,
+      <span class="k">"common_name"</span>: <span class="s">"common yarrow"</span>,
+      <span class="k">"inat_taxon_id"</span>: 52821,
+      <span class="k">"observation_count"</span>: 335840,
+      <span class="k">"frequency_rank"</span>: 1,
+      <span class="k">"frequency_band"</span>: <span class="s">"very_common"</span>,
+      <span class="k">"rank"</span>: <span class="s">"species"</span>,
+      <span class="k">"kingdom"</span>: <span class="s">"Plantae"</span>,
+      <span class="k">"ancestry"</span>: <span class="s">"48460/47126/211194/47125/&hellip;"</span>,
+      <span class="k">"conservation_status"</span>: null
+    }
+  }
+}</div>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Fields worth knowing</h2>
+                <div class="reveal-up border-t border-b border-neutral-200 mb-8">
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="font-mono text-sm text-neutral-900 mb-1 sm:mb-0">inat_taxon_id</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">The iNaturalist taxon. Join on this rather than on a name string; synonyms and authority changes move the names around, and the id survives them.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="font-mono text-sm text-neutral-900 mb-1 sm:mb-0">observation_count</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Observations at the time the list was generated, 16 August 2026. It is a snapshot and it only ever grows, so treat it as a rank, not a current figure.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="font-mono text-sm text-neutral-900 mb-1 sm:mb-0">frequency_rank</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Position in the ranking, 1 to 1,500. This <em class="font-serif italic">is</em> the class index plus one, since the list was cut from the ranking directly.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="font-mono text-sm text-neutral-900 mb-1 sm:mb-0">ancestry</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Slash-separated iNaturalist taxon ids from the root down. Family- or order-level grouping comes out of splitting this, with no second API call.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="font-mono text-sm text-neutral-900 mb-1 sm:mb-0">common_name</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">English, lowercase, one per species, and sometimes missing or regional. The binomial is the reliable key; the common name is for display.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="font-mono text-sm text-neutral-900 mb-1 sm:mb-0">conservation_status</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Present when iNaturalist has one, <span class="font-mono text-neutral-900">null</span> otherwise &mdash; which is most of the list, because abundant species rarely carry a status.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Per-image licences and attribution</h2>
+                <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                    Every class directory has a sibling metadata file holding one record per image, in
+                    the same order as the filenames. This is the part that matters for reuse: the
+                    photographs are other people&rsquo;s work, and the licence and attribution string for
+                    each one is recorded rather than summarised.
+                </p>
+                <div class="reveal-up snip font-mono text-neutral-700 mb-6">[
+  {
+    <span class="k">"photo_id"</span>: &lt;int&gt;,
+    <span class="k">"observation_id"</span>: &lt;int&gt;,
+    <span class="k">"url"</span>: <span class="s">"&lt;iNaturalist image url&gt;"</span>,
+    <span class="k">"license_code"</span>: <span class="s">"cc-by-nc"</span>,
+    <span class="k">"attribution"</span>: <span class="s">"&lt;photographer, as iNaturalist reports it&gt;"</span>,
+    <span class="k">"source_page"</span>: <span class="s">"&lt;observation url&gt;"</span>,
+    <span class="k">"path"</span>: <span class="s">"Achillea_millefolium/001_&lt;photo id&gt;.jpg"</span>,
+    <span class="k">"sharpness"</span>: &lt;float&gt;,          <span class="c">// Laplacian variance</span>
+    <span class="k">"gray_mean"</span>: &lt;float&gt;,
+    <span class="k">"gray_std"</span>: &lt;float&gt;,
+    <span class="k">"dynamic_range"</span>: &lt;float&gt;,
+    <span class="k">"histogram_variance"</span>: &lt;float&gt;,
+    <span class="k">"quality_score"</span>: &lt;float&gt;,      <span class="c">// the six gates, combined</span>
+    <span class="k">"phash"</span>: <span class="s">"&lt;16 hex characters&gt;"</span>,
+    <span class="k">"cosine_similarity"</span>: &lt;float&gt;, <span class="c">// to the class centroid</span>
+    <span class="k">"expected_probability"</span>: &lt;float&gt;,
+    <span class="k">"predicted_label"</span>: <span class="s">"&lt;audit model top-1&gt;"</span>,
+    <span class="k">"predicted_probability"</span>: &lt;float&gt;,
+    <span class="k">"audit_rejected"</span>: false,
+    <span class="k">"final_score"</span>: &lt;float&gt;,       <span class="c">// what the 100 were ranked by</span>
+    <span class="k">"label"</span>: <span class="s">"Achillea millefolium"</span>,
+    <span class="k">"scientific_name"</span>: <span class="s">"Achillea millefolium"</span>
+  }
+]</div>
+                <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed max-w-2xl">
+                    The measurement fields are kept deliberately. They let you re-derive why an image
+                    was selected, or filter harder than the curation did &mdash; a stricter blur threshold,
+                    say &mdash; without refetching anything.
+                </p>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">The served model is a different, smaller thing</h2>
+                <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                    Worth being unambiguous about, because the two class lists are easy to confuse. The
+                    dataset above targets 1,500 species and nothing has been trained on it yet. The
+                    model behind the identification endpoint today recognises
+                    <span class="text-neutral-900 font-normal">116</span> species, and its class list is
+                    a flat array of English common names in output order &mdash; not the binomials above.
+                </p>
+                <div class="reveal-up snip font-mono text-neutral-700 mb-6">[
+  <span class="s">"common dandelion"</span>,
+  <span class="s">"oxeye daisy"</span>,
+  <span class="s">"common sunflower"</span>,
+  <span class="s">"california poppy"</span>,
+  <span class="s">"common poppy"</span>,
+  &hellip;
+]</div>
+                <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed max-w-2xl">
+                    A response naming a species outside those 116 is impossible; a photograph of one is
+                    not. Anything unknown comes back as the nearest of the 116 with a confidence that
+                    should be treated as a warning rather than an answer, which is the honest limit of
+                    a closed-set classifier.
+                </p>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Calling the endpoint</h2>
+                <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                    One POST, one image, one JSON body back. The full reference &mdash; keys, limits,
+                    errors, the Wikipedia and plant-detail helpers &mdash; is on the
+                    <a href="/api" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">API page</a>.
+                    The shape, so you can judge it from here:
+                </p>
+                <div class="reveal-up snip font-mono text-neutral-700 mb-4"><span class="c"># A bearer token is required. Sign in and pass your access token;</span>
+<span class="c"># requests without one are rejected with 401.</span>
+curl -X POST https://findflower-proxy.fofi.workers.dev \
+  -H <span class="s">"Authorization: Bearer &lt;access token&gt;"</span> \
+  -F <span class="s">"file=@flower.jpg"</span></div>
+                <div class="reveal-up snip font-mono text-neutral-700 mb-6">{
+  <span class="k">"flower"</span>: <span class="s">"common dandelion"</span>,
+  <span class="k">"confidence"</span>: 0.94,
+  <span class="k">"top_k"</span>: [
+    { <span class="k">"name"</span>: <span class="s">"common dandelion"</span>, <span class="k">"confidence"</span>: 0.94 },
+    { <span class="k">"name"</span>: <span class="s">"catsear"</span>,          <span class="k">"confidence"</span>: 0.03 }
+  ]
+}</div>
+                <div class="reveal-up grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="border border-neutral-200 rounded-lg p-5">
+                        <p class="text-sm font-medium text-neutral-900 mb-1">Five results, always</p>
+                        <p class="text-base text-neutral-600 font-light"><span class="font-mono text-neutral-900">top_k</span> holds five entries, softmax probabilities over the 116 classes, descending. <span class="font-mono text-neutral-900">flower</span> and <span class="font-mono text-neutral-900">confidence</span> are the first of them, repeated for convenience.</p>
+                    </div>
+                    <div class="border border-neutral-200 rounded-lg p-5">
+                        <p class="text-sm font-medium text-neutral-900 mb-1">Liveness without a token</p>
+                        <p class="text-base text-neutral-600 font-light">A <span class="font-mono text-neutral-900">GET</span> on the same URL returns <span class="font-mono text-neutral-900">{ status: "ok" }</span> and needs no credentials. Use it to check the service is up; it tells you nothing else.</p>
+                    </div>
+                </div>
+                <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed mt-6 max-w-2xl">
+                    One integration detail that will otherwise cost you an afternoon: browser requests
+                    are also checked against an origin allowlist, so a <span class="font-mono text-neutral-900">fetch</span>
+                    from your own site&rsquo;s front end is refused with 403 even with a valid token.
+                    Server-side calls, which send no <span class="font-mono text-neutral-900">Origin</span>,
+                    are unaffected.
+                </p>
+            </section>
+
+            <section class="mb-16">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Reuse terms</h2>
+                <div class="reveal-up border-t border-b border-neutral-200">
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">The photographs</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Belong to the naturalists who took them, under the licence each one chose. FindFlower selected and measured them; it holds no rights over them and cannot relicense them. Honour the per-image <span class="font-mono text-neutral-900">license_code</span> and <span class="font-mono text-neutral-900">attribution</span> &mdash; that is why both are shipped beside every class.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">Commercial use</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">The set includes CC&nbsp;BY-NC images, so the set as a whole is not usable commercially. Filtering the metadata down to CC0 and CC&nbsp;BY records gives a smaller, commercially usable subset, and doing that filtering is your responsibility, not the dataset&rsquo;s.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">The taxonomy and counts</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Derived from iNaturalist&rsquo;s public API. Cite iNaturalist as the source of the observation data, and the date the snapshot was taken &mdash; 16 August 2026 &mdash; because the counts move.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">The application code</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Closed, and not part of what this page offers. The curation method is described in full on <a href="/research" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Research</a>, with every threshold, so it can be reimplemented independently.</p>
+                    </div>
+                    <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
+                        <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">No warranty</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">A filtered dataset still contains mislabelled images, and a classifier trained on it will still be wrong sometimes. Do not build anything where a misidentified plant causes harm. The <a href="/terms" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Terms of Service</a> apply.</p>
+                    </div>
+                </div>
+            </section>
+
+            <div class="reveal-up flex flex-col sm:flex-row gap-3">
+                <a href="/api" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 transition-colors">
+                    Full API reference
+                    <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+                <a href="/research" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-md hover:text-neutral-900 transition-colors">How the data was curated</a>
+            </div>
+
+        </div>
+
+    </main>
+
+    <div id="ff-footer"><noscript>
+        <footer class="border-t border-neutral-200 bg-[#FCFCFC] py-10 text-center text-xs text-neutral-400 font-light">
+            <a href="/" class="hover:text-neutral-900">Home</a> &middot;
+            <a href="/try" class="hover:text-neutral-900">Try Now</a> &middot;
+            <a href="/directory" class="hover:text-neutral-900">Directory</a> &middot;
+            <a href="/api" class="hover:text-neutral-900">API</a> &middot;
+            <a href="/research" class="hover:text-neutral-900">Research</a> &middot;
+            <a href="/contact" class="hover:text-neutral-900">Contact</a> &middot;
+            <a href="/privacy" class="hover:text-neutral-900">Privacy</a> &middot;
+            <a href="/terms" class="hover:text-neutral-900">Terms</a>
+            <p class="mt-3">&copy; 2026 FindFlower &middot; Open botanical reference</p>
+        </footer>
+    </noscript></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
+            document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
+        });
+    </script>
+</body>
+</html>

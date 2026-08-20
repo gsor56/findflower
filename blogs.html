@@ -5,17 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Blogs | Field Notes in Progress &mdash; FindFlower</title>
-    <meta name="description" content="Longer write-ups on how FindFlower identifies plants, what it gets wrong, and what changed between releases. Not published yet.">
+    <title>Blogs | Field Logs &amp; Engineering &mdash; FindFlower</title>
+    <meta name="description" content="Field logs and engineering notes from building FindFlower: how the training set is filtered, what the model gets wrong, and what changed between releases.">
     <link rel="canonical" href="https://findflower.me/blogs">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/blogs">
-    <meta property="og:title" content="Blogs | Field Notes in Progress &mdash; FindFlower">
-    <meta property="og:description" content="Longer write-ups on how FindFlower identifies plants, what it gets wrong, and what changed between releases. Not published yet.">
+    <meta property="og:title" content="Blogs | Field Logs &amp; Engineering &mdash; FindFlower">
+    <meta property="og:description" content="Field logs and engineering notes from building FindFlower: how the training set is filtered, what the model gets wrong, and what changed between releases.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Blogs | Field Notes in Progress &mdash; FindFlower">
-    <meta name="twitter:description" content="Longer write-ups on how FindFlower identifies plants, what it gets wrong, and what changed between releases. Not published yet.">
+    <meta name="twitter:title" content="Blogs | Field Logs &amp; Engineering &mdash; FindFlower">
+    <meta name="twitter:description" content="Field logs and engineering notes from building FindFlower: how the training set is filtered, what the model gets wrong, and what changed between releases.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=8">
@@ -53,51 +53,25 @@
         .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
         .group:hover .cta-arrow { transform:translateX(4px); }
 
-        /* ---- the unopened bud -------------------------------------------------
-           The stem and leaves draw themselves, the petals fade in, and then the
-           bud only breathes: it never opens. That is the page's one honest
-           claim, since there is nothing published behind it yet.
-           Motion is stroke-dashoffset, opacity and transform only, which is the
-           project rule and what keeps this off the compositor's slow path. */
-        .ff-soon-art { width:min(58vw, 184px); margin:0 auto 2.25rem; }
-        .ff-soon-art svg { display:block; width:100%; height:auto; }
+        /* An index, not a card grid. Each row is a dotted rule and a hanging
+           number; the only hover affordance is the title darkening, because a
+           list of four things does not need lift, shadow or a border box. */
+        .ff-index { border-top:1px dotted #D4D4D4; }
+        .ff-entry { border-bottom:1px dotted #D4D4D4; }
+        .ff-entry a:hover .ff-entry-title { color:#171717; }
+        .ff-entry-no { font-variant-numeric:tabular-nums; }
 
-        .ff-bud-stem { stroke-dasharray:240; stroke-dashoffset:240; animation:ffBudDraw 1.7s cubic-bezier(0.16,1,0.3,1) forwards; }
-        .ff-bud-leaf { stroke-dasharray:150; stroke-dashoffset:150; animation:ffBudDraw 1.5s cubic-bezier(0.16,1,0.3,1) .35s forwards; }
-        .ff-bud-leaf--right { animation-delay:.55s; }
+        /* Small caps by weight and tracking rather than by font-variant, since
+           Inter's real small caps are not in the loaded subset. */
+        .ff-meta { font-size:0.75rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:#A3A3A3; }
 
-        /* Nested on purpose: the entry scale and the loop both animate
-           transform, so they cannot share an element without one overwriting
-           the other. transform-box:fill-box makes the origin the shape's own
-           box rather than the SVG viewport, so the pivot is the stem join. */
-        .ff-bud-breathe { transform-box:fill-box; transform-origin:50% 100%; animation:ffBudBreathe 6.5s ease-in-out 2.2s infinite; }
-        .ff-bud-petals { opacity:0; transform-box:fill-box; transform-origin:50% 100%; animation:ffBudIn 1.2s cubic-bezier(0.16,1,0.3,1) .9s forwards; }
-        .ff-bud-halo { transform-box:fill-box; transform-origin:50% 50%; animation:ffHalo 6.5s ease-in-out 2.2s infinite; }
+        .ff-body p { line-height:1.75; }
+        .ff-body h3 { font-size:1.125rem; font-weight:500; color:#171717; margin-top:2.5rem; margin-bottom:0.75rem; }
+        .ff-body p + p { margin-top:1rem; }
 
-        @keyframes ffBudDraw { to { stroke-dashoffset:0; } }
-        @keyframes ffBudIn { from { opacity:0; transform:scale(.92); } to { opacity:1; transform:scale(1); } }
-        @keyframes ffBudBreathe { 0%,100% { transform:scale(1); } 50% { transform:scale(1.035); } }
-        @keyframes ffHalo { 0%,100% { opacity:.5; transform:scale(1); } 50% { opacity:.85; transform:scale(1.06); } }
-
-        /* ---- the coming-soon pill ---------------------------------------- */
-        .ff-soon-pill { display:inline-flex; align-items:center; gap:.55rem; padding:.4rem .95rem .4rem .8rem; border:1px solid #C9D6CB; border-radius:9999px; background:#F2F5F2; color:#3D5341; font-size:.75rem; font-weight:500; letter-spacing:.01em; }
-        .ff-soon-dot { width:7px; height:7px; flex:0 0 7px; border-radius:50%; background:#5F7A63; animation:ffSoonPulse 2.4s cubic-bezier(0.4,0,0.6,1) infinite; }
-        .ff-soon-dots { display:inline-flex; align-items:center; gap:3px; }
-        .ff-soon-dots i { width:3px; height:3px; border-radius:50%; background:#7C9781; animation:ffSoonDot 1.4s ease-in-out infinite; }
-        .ff-soon-dots i:nth-child(2) { animation-delay:.18s; }
-        .ff-soon-dots i:nth-child(3) { animation-delay:.36s; }
-
-        @keyframes ffSoonPulse { 0%,100% { opacity:.35; transform:scale(.82); } 50% { opacity:1; transform:scale(1); } }
-        @keyframes ffSoonDot { 0%,100% { opacity:.25; transform:translateY(0); } 50% { opacity:1; transform:translateY(-2px); } }
-
-        /* Rest state, not merely a stopped loop: the blanket animation:none
-           below would otherwise freeze the stem mid-draw and the petals at
-           opacity 0, leaving a page with an invisible illustration on it. */
         @media (prefers-reduced-motion: reduce) {
             *,*::before,*::after { animation:none!important; transition:none!important; }
             .reveal-up { opacity:1; transform:none; }
-            .ff-bud-stem, .ff-bud-leaf { stroke-dashoffset:0; }
-            .ff-bud-petals { opacity:1; transform:none; }
         }
 
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
@@ -143,64 +117,230 @@
         </div>
     </header>
 
-    <main class="pt-32 pb-28">
-        <section class="max-w-3xl mx-auto px-6 min-h-[58vh] flex flex-col items-center justify-center text-center">
+    <main class="pt-32 pb-24">
 
-            <div class="ff-soon-art" aria-hidden="true">
-                <svg viewBox="0 0 200 260" fill="none" role="presentation">
-                    <defs>
-                        <radialGradient id="ffBudHalo" cx="50%" cy="50%" r="50%">
-                            <stop offset="0%" stop-color="#C9D6CB" stop-opacity=".55"/>
-                            <stop offset="60%" stop-color="#E4EBE5" stop-opacity=".28"/>
-                            <stop offset="100%" stop-color="#E4EBE5" stop-opacity="0"/>
-                        </radialGradient>
-                    </defs>
+        <div class="max-w-3xl mx-auto px-6">
 
-                    <circle class="ff-bud-halo" cx="100" cy="96" r="62" fill="url(#ffBudHalo)"/>
-
-                    <path class="ff-bud-stem" d="M100 240C100 206 100 176 100 142" stroke="#5F7A63" stroke-width="2.2" stroke-linecap="round"/>
-                    <path class="ff-bud-leaf" d="M100 198C74 196 58 180 56 158c24-4 42 10 44 40Z" fill="#E4EBE5" stroke="#5F7A63" stroke-width="1.8" stroke-linejoin="round"/>
-                    <path class="ff-bud-leaf ff-bud-leaf--right" d="M100 178c24-2 40-18 42-40-24-4-40 10-42 38Z" fill="#E4EBE5" stroke="#5F7A63" stroke-width="1.8" stroke-linejoin="round"/>
-
-                    <g class="ff-bud-breathe">
-                        <g class="ff-bud-petals">
-                            <path d="M100 140C84 134 72 118 72 100c14 2 26 16 28 40Z" fill="#C9D6CB" fill-opacity=".5" stroke="#4C6650" stroke-width="1.6" stroke-linejoin="round"/>
-                            <path d="M100 140c16-6 28-22 28-40-14 2-26 16-28 40Z" fill="#C9D6CB" fill-opacity=".5" stroke="#4C6650" stroke-width="1.6" stroke-linejoin="round"/>
-                            <path d="M100 142c-14-13-18-33-10-53 6-14 10-22 10-28 0 6 4 14 10 28 8 20 4 40-10 53Z" fill="#F2F5F2" stroke="#3D5341" stroke-width="1.8" stroke-linejoin="round"/>
-                            <circle cx="100" cy="96" r="5" fill="#D5A84B" stroke="#3D5341" stroke-width="1.3"/>
-                        </g>
-                    </g>
-                </svg>
-            </div>
-
-            <div class="reveal-up">
-                <p class="text-xs font-medium uppercase tracking-[0.14em] text-sage-600">Journal</p>
-                <h1 class="mt-3 font-serif text-4xl sm:text-5xl font-normal tracking-tight text-neutral-900">Field notes are on the way.</h1>
-                <p class="mx-auto mt-5 max-w-xl text-neutral-500 font-light leading-relaxed">
-                    This is where the longer write-ups will go: how a Vision Transformer decides what
-                    it is looking at, which species pairs it still confuses, and what actually changed
-                    between one release and the next. Nothing is published here yet, so rather than
-                    collect an email address, the page points at the two things that already exist.
+            <header class="mb-16">
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Field logs</span>
+                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-4">Notes from building this</h1>
+                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 mb-8">Engineering write-ups and things seen in the field</p>
+                <p class="reveal-up text-lg text-neutral-500 font-light leading-relaxed">
+                    Not announcements. What broke, what it cost, and what the fix turned out to be
+                    &mdash; plus the occasional plant that refuses to be classified. Written when there
+                    is something to say rather than on a schedule, which is why the index below is
+                    short.
                 </p>
-                <p class="mt-7">
-                    <span class="ff-soon-pill" role="status">
-                        <span class="ff-soon-dot" aria-hidden="true"></span>
-                        Coming soon
-                        <span class="ff-soon-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-                    </span>
-                </p>
-                <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <a href="/releases" class="group inline-flex items-center justify-center gap-1.5 rounded-full bg-neutral-900 px-6 text-sm font-medium text-white transition-colors hover:bg-neutral-800" style="min-height:44px">
-                        Read the release log
-                        <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </header>
+
+            <ol class="reveal-up ff-index list-none mb-24">
+                <li class="ff-entry">
+                    <a href="#shards" class="group block py-6">
+                        <p class="ff-meta mb-2">20 August 2026 &middot; Engineering &middot; 7 min read</p>
+                        <div class="flex gap-4 sm:gap-6">
+                            <span class="ff-entry-no text-sm font-medium text-neutral-300 pt-1">01</span>
+                            <div>
+                                <h2 class="ff-entry-title text-xl md:text-2xl font-medium tracking-tight text-neutral-700 transition-colors mb-2">Five notebooks, 375,000 photographs, and no coordinator</h2>
+                                <p class="text-base text-neutral-500 font-light leading-relaxed">
+                                    Filling 1,500 species to exactly 100 checked images each means
+                                    inspecting nearly four times that many. It does not fit in one
+                                    session, so it runs as five that never speak to each other. What
+                                    that costs, and the bug that quietly refetched thousands of images.
+                                </p>
+                            </div>
+                        </div>
                     </a>
-                    <a href="/how" class="inline-flex items-center justify-center rounded-full border border-neutral-200 bg-white px-6 text-sm font-medium text-neutral-700 transition-colors hover:border-neutral-300 hover:text-neutral-900" style="min-height:44px">
-                        How identification works
-                    </a>
+                </li>
+            </ol>
+
+            <article id="shards" class="reveal-up scroll-mt-24">
+                <header class="mb-10 pb-8 border-b border-neutral-200">
+                    <p class="ff-meta mb-4">Entry 01 &middot; Engineering &middot; 20 August 2026</p>
+                    <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-4">Five notebooks, 375,000 photographs, and no coordinator</h2>
+                    <p class="font-serif italic text-lg md:text-xl text-sage-700 leading-snug">
+                        The dataset needs 150,000 images. Getting them means looking at closer to
+                        375,000, on free hardware that switches itself off after twelve hours.
+                    </p>
+                </header>
+
+                <div class="ff-body text-lg text-neutral-600 font-light">
+                    <p>
+                        The arithmetic is the whole problem. 1,500 flowering species, exactly 100
+                        images each, and roughly three in five candidates fail the quality filters
+                        &mdash; so the pipeline fetches up to 250 per class and expects to throw most
+                        of them away. That is 375,000 photographs to download, decode, measure,
+                        hash and embed, to keep 150,000.
+                    </p>
+                    <p>
+                        A single machine doing that end to end would run for days. The machine
+                        available is a free Kaggle CPU notebook, which stops after twelve hours
+                        whether it is finished or not.
+                    </p>
+
+                    <h3>Splitting the work the obvious way is wrong</h3>
+                    <p>
+                        Five notebooks, each handed 300 species: worker 0 takes the first 300 in the
+                        list, worker 1 the next 300, and so on. It took one run to see why that
+                        fails.
+                    </p>
+                    <p>
+                        The species list is sorted by how often people photograph the plant. Rank 1
+                        is common yarrow with 335,840 observations. By rank 1,500 a species may have
+                        a few thousand, and a good fraction of those are out of focus, or a leaf, or
+                        a herbarium sheet, or the same flower six times. Contiguous blocks meant
+                        worker 0 got the abundant end and sailed through its 300 classes, while
+                        worker 4 spent the same twelve hours fetching 250 candidates per class,
+                        watching most of them fail the gates, and finishing almost nothing &mdash;
+                        because a class that cannot reach 100 usable images is not written at all.
+                    </p>
+                    <p>
+                        The fix is one line. A class belongs to a worker when its position in the
+                        list, minus one, is congruent to that worker&rsquo;s index modulo five. Worker 0
+                        takes ranks 1, 6, 11, 16; worker 1 takes 2, 7, 12; and every worker gets the
+                        same mix of easy and impossible. Their throughput has been within a few
+                        classes of each other since.
+                    </p>
+
+                    <h3>Coordination, or the lack of it</h3>
+                    <p>
+                        Five workers filling one dataset need to know what the others have already
+                        done. The tempting answer is a small service holding a queue &mdash; and then
+                        the pipeline has an uptime requirement, a second thing to deploy, and a
+                        single point of failure that is not the notebooks.
+                    </p>
+                    <p>
+                        Instead each worker writes one file. Worker 2 owns
+                        <span class="font-mono text-base text-neutral-900">progress/shard-02-of-05.json</span>
+                        and writes nothing else; on startup it reads the other four and unions them
+                        into its view of what is finished. Two workers cannot conflict because they
+                        never write to the same path, and the coordination state lives in the same
+                        repository as the images, so there is nothing extra to keep alive. Losing a
+                        worker costs whatever class it had in flight.
+                    </p>
+                    <p>
+                        There is one deliberate compromise in that. A worker&rsquo;s view of the world is
+                        only as fresh as its last read, so two workers starting minutes apart can
+                        both decide to fill the same class. It happens rarely, wastes one class of
+                        effort, and the second upload simply overwrites the first with an equally
+                        valid folder. Preventing it would need locking, and locking would need the
+                        service this design exists to avoid.
+                    </p>
+                    <p>
+                        Each run also stops itself at ten hours forty-five minutes rather than
+                        letting Kaggle stop it at twelve. Being killed mid-upload leaves a class
+                        folder half-written in the repository, which is worse than any amount of lost
+                        time: the next worker sees a folder, counts fewer than 100 images, and has to
+                        work out whether that is corruption or a class still in progress. Exiting on
+                        purpose, after a completed commit, keeps the repository in a state where the
+                        answer is never ambiguous.
+                    </p>
+
+                    <h3>The bug that refetched everything</h3>
+                    <p>
+                        Two weeks in, the counts stopped adding up. Workers were finishing classes,
+                        the image total was climbing, and the number of classes marked complete was
+                        barely moving. Some classes were being collected two and three times.
+                    </p>
+                    <p>
+                        The order of operations was the problem. A worker uploads a batch of five
+                        finished classes and then writes its progress file. Between those two commits
+                        there is a window &mdash; a few seconds, sometimes a minute for a large batch
+                        &mdash; and a session that hits its deadline, loses its network, or gets
+                        evicted inside that window leaves the images in the repository and no record
+                        that they exist. The next worker reads the progress files, sees nothing for
+                        that class, and starts again from 250 raw candidates.
+                    </p>
+                    <p>
+                        The obvious fix, writing progress first, is worse: then a failed upload
+                        leaves a class marked complete that has no images behind it, and the gap only
+                        surfaces at training time. Given a choice between wasted work and silent data
+                        loss, wasted work wins.
+                    </p>
+                    <p>
+                        What actually fixed it was to stop treating the progress files as the truth.
+                        Before doing anything else, a worker now lists the remote repository, counts
+                        the JPEGs in every folder, and marks any folder holding 100 or more as
+                        complete. The images are the record; the progress file is a cache of it. Those
+                        recovered entries carry the string
+                        <span class="font-mono text-base text-neutral-900">remote-folder-recovery</span>
+                        where a timestamp would normally go, so a folder that was recorded properly
+                        and a folder that was recovered can always be told apart later.
+                    </p>
+                    <p>
+                        That one pass recovered several hundred classes that were already sitting in
+                        the repository, finished, unrecorded and being refetched.
+                    </p>
+
+                    <h3>The notebook carries its own input</h3>
+                    <p>
+                        A smaller thing that saved more time than it should have. The 1,500-species
+                        manifest started life as a Kaggle dataset attached to each notebook. Five
+                        notebooks, cloned and re-cloned as shards were rebuilt, and eventually one of
+                        them was running against an older attached copy &mdash; same script, same shard
+                        index, different species list. Nothing errored. The output was just subtly
+                        wrong.
+                    </p>
+                    <p>
+                        The manifest is now gzipped, base64-encoded, and substituted into the script
+                        itself as a literal string before the notebook is pushed. It is not elegant.
+                        It also cannot drift: the script and its input are one artefact, and a shard
+                        either has the right list or does not run.
+                    </p>
+
+                    <h3>Where it stands, and the 172 folders</h3>
+                    <p>
+                        831 classes are collected and verified &mdash; 87,520 images. 669 are still in
+                        the queue. The last of them will be the slowest: they are the species where
+                        250 candidates do not contain 100 that pass, and some of them never will.
+                    </p>
+                    <p>
+                        There is also a row of the ledger that is nobody&rsquo;s fault but mine. An early
+                        version of the target list was drawn from Plantae as a whole instead of
+                        flowering plants, and it produced 172 complete class folders &mdash; ferns,
+                        conifers, mosses &mdash; that are correctly filtered and have no place in this
+                        dataset. They are still in the repository, because deleting 17,200 files from
+                        the only copy is not a thing to do casually at the end of a long evening.
+                    </p>
+                    <p>
+                        Counting them would report 1,003 classes and 104,720 images. That number is
+                        larger and it is wrong, and it is exactly the kind of figure that ends up in
+                        a README and then in a paper. The
+                        <a href="/research" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Research page</a>
+                        publishes 831, with the 172 broken out on its own line, for that reason.
+                    </p>
+
+                    <h3>What I would do differently</h3>
+                    <p>
+                        Almost nothing about the sharding, which has held up better than expected for
+                        five processes with no shared state. Two things, though.
+                    </p>
+                    <p>
+                        Make the images authoritative from the start, rather than arriving there via
+                        a bug. Any pipeline where the record of work and the work itself are written
+                        in separate commits has this failure mode; deriving state from the artefacts
+                        is not a recovery mechanism, it is the correct design.
+                    </p>
+                    <p>
+                        And freeze the target list before writing any collection code. The 172
+                        folders cost more than the sharding bug did, and they exist purely because
+                        the definition of the dataset changed after the first images were already on
+                        disk.
+                    </p>
                 </div>
-            </div>
 
-        </section>
+                <footer class="mt-12 pt-8 border-t border-neutral-200">
+                    <p class="text-base text-neutral-500 font-light leading-relaxed">
+                        Every threshold mentioned here &mdash; the gates, the hash distance, the
+                        outlier cutoffs &mdash; is written out on
+                        <a href="/research" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Research</a>,
+                        and the file layout it produces is documented on
+                        <a href="/data" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Data &amp; integrations</a>.
+                    </p>
+                </footer>
+            </article>
+
+        </div>
+
     </main>
 
     <div id="ff-footer"><noscript>
@@ -209,6 +349,7 @@
             <a href="/try" class="hover:text-neutral-900">Try Now</a> &middot;
             <a href="/directory" class="hover:text-neutral-900">Directory</a> &middot;
             <a href="/how" class="hover:text-neutral-900">How it works</a> &middot;
+            <a href="/research" class="hover:text-neutral-900">Research</a> &middot;
             <a href="/api" class="hover:text-neutral-900">API</a> &middot;
             <a href="/privacy" class="hover:text-neutral-900">Privacy</a> &middot;
             <a href="/terms" class="hover:text-neutral-900">Terms</a>

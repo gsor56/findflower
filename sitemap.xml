@@ -23,7 +23,22 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://findflower.me/about</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://findflower.me/api</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://findflower.me/data</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://findflower.me/research</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
