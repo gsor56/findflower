@@ -5,4 +5,9 @@ Allow: /
 # index, and the page carries <meta name="robots" content="noindex"> as well.
 Disallow: /dashboard.html
 
+# A profile row exists only in the browser that created it, so an indexed
+# /profile would be an empty card for every visitor who is not its owner. The
+# prefix covers /profile.html and the ?id= links the community feed points at.
+Disallow: /profile
+
 Sitemap: https://findflower.me/sitemap.xml

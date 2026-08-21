@@ -98,6 +98,10 @@
         '<circle cx="9.5" cy="8" r="3.2"/><path d="M3.5 20v-1.4A4.1 4.1 0 0 1 7.6 14.5h3.8a4.1 4.1 0 0 1 4.1 4.1V20"/>' +
         '<path d="M16.2 5.2a3.2 3.2 0 0 1 0 5.6M17.4 14.7A4.1 4.1 0 0 1 20.5 18.6V20"/></svg>';
 
+    var ICON_PROFILE = SVG_OPEN +
+        '<circle cx="12" cy="8" r="3.4"/>' +
+        '<path d="M5 20v-1.5A4.5 4.5 0 0 1 9.5 14h5a4.5 4.5 0 0 1 4.5 4.5V20"/></svg>';
+
     function escapeHTML(value) {
         return String(value == null ? '' : value).replace(/[&<>'"]/g, function (ch) {
             return { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch];
@@ -278,6 +282,7 @@
                     '<nav class="ff-drawer-nav" aria-label="All pages">' +
                         drawerLink('Home', '/', ICON_HOME) +
                         drawerLink('Dashboard', '/dashboard', ICON_DASH) +
+                        drawerLink('Profile', '/profile', ICON_PROFILE) +
                         drawerLink('Directory', '/directory', ICON_DIR) +
                         drawerLink('How it works', '/how', ICON_HOW) +
                         drawerLink('Pricing', '/pricing', ICON_PRICE) +

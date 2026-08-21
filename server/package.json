@@ -1,0 +1,21 @@
+{
+  "name": "findflower-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Text routing and persistence for FindFlower's social features. Photos stay in the browser.",
+  "type": "module",
+  "main": "index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "check": "node --check index.js && node --check db.js"
+  },
+  "dependencies": {
+    "dotenv": "17.4.2",
+    "express": "5.2.1",
+    "mongoose": "9.9.3"
+  }
+}
