@@ -183,8 +183,9 @@
      *  build a <footer class="ff-drawer-utility"> inside #ffSidebar for the
      *  clock and location panel, and a bare querySelector('footer') reached it
      *  -- which put the page footer inside the drawer. That panel is gone, but
-     *  a second case arrived with blogs.html, whose entry closes with an
-     *  <article><footer> holding its own links. Both are markup this file does
+     *  a second case arrived with the field logs: an entry closes with an
+     *  <article><footer> of its own links, inlined on blogs.html when it was
+     *  written and now on article.html. Both are markup this file does
      *  not own, and neither is the footer OF the document; the one that is
      *  cannot be inside <main>, since the router swaps <main> and the footer
      *  has to survive that. */
