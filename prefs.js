@@ -1,7 +1,7 @@
 /* ============================================================================
    FindFlower — device preferences (prefs.js)
    ----------------------------------------------------------------------------
-   Four settings the dashboard exposes and the rest of the site obeys. Every one
+   Five settings the dashboard exposes and the rest of the site obeys. Every one
    of them changes real behaviour somewhere; there is no toggle here that only
    remembers its own position.
 
@@ -9,6 +9,7 @@
      keepPhotos      the thumbnail addScan stores with a scan
      recordHistory   whether a scan is written to IndexedDB at all
      reduceMotion    the <html> class app.css keys its rest state off
+     modelTier       which identification engine the scanner asks for
 
    localStorage, not IndexedDB, and that is a decision rather than laziness.
    try.html reads attachLocation on the capture path, where an await on an
@@ -33,7 +34,15 @@
         attachLocation: false,
         keepPhotos: true,
         recordHistory: true,
-        reduceMotion: false
+        reduceMotion: false,
+        modelTier: 'standard'
+    };
+
+    // Keys that hold one of a fixed set of strings instead of a flag. Both read()
+    // and set() check against this list, so neither a hand-edited localStorage
+    // value nor a caller can name an engine the scanner has no branch for.
+    var CHOICES = {
+        modelTier: ['lite', 'standard', 'pro']
     };
 
     var MOTION_CLASS = 'ff-reduce-motion';
@@ -48,11 +57,15 @@
             var raw = localStorage.getItem(KEY);
             if (raw) {
                 var saved = JSON.parse(raw);
-                // Only known keys, and only booleans. A hand-edited localStorage
-                // value must not be able to put a string where try.html expects
-                // a flag, and a key we have since removed must not come back.
+                // Only known keys, and only a value of the right shape. A
+                // hand-edited localStorage value must not be able to put a
+                // string where try.html expects a flag, and a key we have since
+                // removed must not come back.
                 for (var j in DEFAULTS) {
-                    if (DEFAULTS.hasOwnProperty(j) && typeof saved[j] === 'boolean') {
+                    if (!DEFAULTS.hasOwnProperty(j)) continue;
+                    if (CHOICES[j]) {
+                        if (CHOICES[j].indexOf(saved[j]) !== -1) out[j] = saved[j];
+                    } else if (typeof saved[j] === 'boolean') {
                         out[j] = saved[j];
                     }
                 }
@@ -100,7 +113,12 @@
     function set(key, value) {
         if (!DEFAULTS.hasOwnProperty(key)) return false;
         if (!cache) cache = read();
-        cache[key] = !!value;
+        if (CHOICES[key]) {
+            if (CHOICES[key].indexOf(value) === -1) return false;
+            cache[key] = value;
+        } else {
+            cache[key] = !!value;
+        }
         var stored = write();
         if (key === 'reduceMotion') apply();
         for (var i = 0; i < listeners.length; i++) {
@@ -132,6 +150,7 @@
 
     window.ffPrefs = {
         DEFAULTS: DEFAULTS,
+        CHOICES: CHOICES,
         KEY: KEY,
         MOTION_CLASS: MOTION_CLASS,
         all: all,
