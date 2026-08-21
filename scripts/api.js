@@ -178,6 +178,28 @@
         return body;
     }
 
+    /** One Trefle plant record -> the card contract at the top of this file.
+     *
+     *  Shared by the list route and the search route because they serve the
+     *  same `plants` record shape. Named rather than inlined twice: the img
+     *  and link rules below are the sort of thing that gets fixed in one copy.
+     *  Returns null for a record with neither name -- useless for the species
+     *  page, and the same skip-if-unusable rule directory.js applies. */
+    function trefleCard(r) {
+        var name = (r && (r.common_name || r.scientific_name)) || '';
+        if (!name) return null;
+        return {
+            qid: null,
+            name: name,
+            family: r.family || null,
+            // Verified against the live API: list records do carry an
+            // image_url (PlantNet-hosted) when one exists. Reported as
+            // null when absent so the engine can skip or placeholder.
+            img: r.image_url || null,
+            link: '/species?name=' + encodeURIComponent(name),
+        };
+    }
+
     /** Encyclopedia list page. Returns { items, hasMore }.
      *  page is 1-based; Trefle serves 20 records per page on this route.
      *  opts.families overrides the curated family filter; pass null for the
@@ -196,22 +218,7 @@
         // and start the catalogue over from a different source.
         if (!body) return { items: [], hasMore: false };
 
-        var items = (body.data || []).map(function (r) {
-            var name = r.common_name || r.scientific_name || '';
-            // A record with neither name is useless for the species page —
-            // mirror directory.js's skip-if-unusable rule.
-            if (!name) return null;
-            return {
-                qid: null,
-                name: name,
-                family: r.family || null,
-                // Verified against the live API: list records do carry an
-                // image_url (PlantNet-hosted) when one exists. Reported as
-                // null when absent so the engine can skip or placeholder.
-                img: r.image_url || null,
-                link: '/species?name=' + encodeURIComponent(name),
-            };
-        }).filter(Boolean);
+        var items = (body.data || []).map(trefleCard).filter(Boolean);
 
         // "Is there a next page?" — links.next is what Trefle v1 actually
         // sends (meta carries only { total }, no total_pages). Derive the
@@ -275,6 +282,27 @@
             image: first.image_url || rec.image_url || null,
             source: 'Trefle (trefle.io)',
         };
+    }
+
+    /** Species name search. Returns { items } in the card contract above,
+     *  Trefle's own relevance order, capped at opts.limit (default 8).
+     *
+     *  Separate from fetchTrefleDetails, which answers "tell me about THIS
+     *  flower" and throws away everything but the first hit. A palette needs
+     *  the list: someone typing "wild" has not decided yet.
+     *
+     *  Throws TrefleUnavailableError when the proxy or Trefle is unreachable,
+     *  like the other two fetchers. Callers must not render that as an empty
+     *  result -- "no such flower" and "we could not look" are different
+     *  answers, and only one of them is the user's fault. */
+    async function searchSpecies(query, opts) {
+        var o = opts || {};
+        var q = String(query || '').trim();
+        if (!q) return { items: [] };
+        var body = await apiFetch('/trefle/plants/search?q=' + encodeURIComponent(q) + '&page=1');
+        var items = (body.data || []).map(trefleCard).filter(Boolean);
+        var limit = (typeof o.limit === 'number') ? o.limit : 8;
+        return { items: limit > 0 ? items.slice(0, limit) : items };
     }
 
     // ====================================================================
@@ -413,6 +441,7 @@
         TrefleUnavailableError: TrefleUnavailableError,
         fetchTrefleBatch: fetchTrefleBatch,
         fetchTrefleDetails: fetchTrefleDetails,
+        searchSpecies: searchSpecies,
         fetchWikidataBatch: fetchWikidataBatch,
     };
 })();
