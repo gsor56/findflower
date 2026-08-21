@@ -65,10 +65,6 @@
            Inter's real small caps are not in the loaded subset. */
         .ff-meta { font-size:0.75rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:#A3A3A3; }
 
-        .ff-body p { line-height:1.75; }
-        .ff-body h3 { font-size:1.125rem; font-weight:500; color:#171717; margin-top:2.5rem; margin-bottom:0.75rem; }
-        .ff-body p + p { margin-top:1rem; }
-
         @media (prefers-reduced-motion: reduce) {
             *,*::before,*::after { animation:none!important; transition:none!important; }
             .reveal-up { opacity:1; transform:none; }
@@ -133,9 +129,9 @@
                 </p>
             </header>
 
-            <ol class="reveal-up ff-index list-none mb-24">
+            <ol class="reveal-up ff-index list-none">
                 <li class="ff-entry">
-                    <a href="#shards" class="group block py-6">
+                    <a href="/article?id=shards" class="group block py-6">
                         <p class="ff-meta mb-2">20 August 2026 &middot; Engineering &middot; 7 min read</p>
                         <div class="flex gap-4 sm:gap-6">
                             <span class="ff-entry-no text-sm font-medium text-neutral-300 pt-1">01</span>
@@ -152,192 +148,6 @@
                     </a>
                 </li>
             </ol>
-
-            <article id="shards" class="reveal-up scroll-mt-24">
-                <header class="mb-10 pb-8 border-b border-neutral-200">
-                    <p class="ff-meta mb-4">Entry 01 &middot; Engineering &middot; 20 August 2026</p>
-                    <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-4">Five notebooks, 375,000 photographs, and no coordinator</h2>
-                    <p class="font-serif italic text-lg md:text-xl text-sage-700 leading-snug">
-                        The dataset needs 150,000 images. Getting them means looking at closer to
-                        375,000, on free hardware that switches itself off after twelve hours.
-                    </p>
-                </header>
-
-                <div class="ff-body text-lg text-neutral-600 font-light">
-                    <p>
-                        The arithmetic is the whole problem. 1,500 flowering species, exactly 100
-                        images each, and roughly three in five candidates fail the quality filters
-                        &mdash; so the pipeline fetches up to 250 per class and expects to throw most
-                        of them away. That is 375,000 photographs to download, decode, measure,
-                        hash and embed, to keep 150,000.
-                    </p>
-                    <p>
-                        A single machine doing that end to end would run for days. The machine
-                        available is a free Kaggle CPU notebook, which stops after twelve hours
-                        whether it is finished or not.
-                    </p>
-
-                    <h3>Splitting the work the obvious way is wrong</h3>
-                    <p>
-                        Five notebooks, each handed 300 species: worker 0 takes the first 300 in the
-                        list, worker 1 the next 300, and so on. It took one run to see why that
-                        fails.
-                    </p>
-                    <p>
-                        The species list is sorted by how often people photograph the plant. Rank 1
-                        is common yarrow with 335,840 observations. By rank 1,500 a species may have
-                        a few thousand, and a good fraction of those are out of focus, or a leaf, or
-                        a herbarium sheet, or the same flower six times. Contiguous blocks meant
-                        worker 0 got the abundant end and sailed through its 300 classes, while
-                        worker 4 spent the same twelve hours fetching 250 candidates per class,
-                        watching most of them fail the gates, and finishing almost nothing &mdash;
-                        because a class that cannot reach 100 usable images is not written at all.
-                    </p>
-                    <p>
-                        The fix is one line. A class belongs to a worker when its position in the
-                        list, minus one, is congruent to that worker&rsquo;s index modulo five. Worker 0
-                        takes ranks 1, 6, 11, 16; worker 1 takes 2, 7, 12; and every worker gets the
-                        same mix of easy and impossible. Their throughput has been within a few
-                        classes of each other since.
-                    </p>
-
-                    <h3>Coordination, or the lack of it</h3>
-                    <p>
-                        Five workers filling one dataset need to know what the others have already
-                        done. The tempting answer is a small service holding a queue &mdash; and then
-                        the pipeline has an uptime requirement, a second thing to deploy, and a
-                        single point of failure that is not the notebooks.
-                    </p>
-                    <p>
-                        Instead each worker writes one file. Worker 2 owns
-                        <span class="font-mono text-base text-neutral-900">progress/shard-02-of-05.json</span>
-                        and writes nothing else; on startup it reads the other four and unions them
-                        into its view of what is finished. Two workers cannot conflict because they
-                        never write to the same path, and the coordination state lives in the same
-                        repository as the images, so there is nothing extra to keep alive. Losing a
-                        worker costs whatever class it had in flight.
-                    </p>
-                    <p>
-                        There is one deliberate compromise in that. A worker&rsquo;s view of the world is
-                        only as fresh as its last read, so two workers starting minutes apart can
-                        both decide to fill the same class. It happens rarely, wastes one class of
-                        effort, and the second upload simply overwrites the first with an equally
-                        valid folder. Preventing it would need locking, and locking would need the
-                        service this design exists to avoid.
-                    </p>
-                    <p>
-                        Each run also stops itself at ten hours forty-five minutes rather than
-                        letting Kaggle stop it at twelve. Being killed mid-upload leaves a class
-                        folder half-written in the repository, which is worse than any amount of lost
-                        time: the next worker sees a folder, counts fewer than 100 images, and has to
-                        work out whether that is corruption or a class still in progress. Exiting on
-                        purpose, after a completed commit, keeps the repository in a state where the
-                        answer is never ambiguous.
-                    </p>
-
-                    <h3>The bug that refetched everything</h3>
-                    <p>
-                        Two weeks in, the counts stopped adding up. Workers were finishing classes,
-                        the image total was climbing, and the number of classes marked complete was
-                        barely moving. Some classes were being collected two and three times.
-                    </p>
-                    <p>
-                        The order of operations was the problem. A worker uploads a batch of five
-                        finished classes and then writes its progress file. Between those two commits
-                        there is a window &mdash; a few seconds, sometimes a minute for a large batch
-                        &mdash; and a session that hits its deadline, loses its network, or gets
-                        evicted inside that window leaves the images in the repository and no record
-                        that they exist. The next worker reads the progress files, sees nothing for
-                        that class, and starts again from 250 raw candidates.
-                    </p>
-                    <p>
-                        The obvious fix, writing progress first, is worse: then a failed upload
-                        leaves a class marked complete that has no images behind it, and the gap only
-                        surfaces at training time. Given a choice between wasted work and silent data
-                        loss, wasted work wins.
-                    </p>
-                    <p>
-                        What actually fixed it was to stop treating the progress files as the truth.
-                        Before doing anything else, a worker now lists the remote repository, counts
-                        the JPEGs in every folder, and marks any folder holding 100 or more as
-                        complete. The images are the record; the progress file is a cache of it. Those
-                        recovered entries carry the string
-                        <span class="font-mono text-base text-neutral-900">remote-folder-recovery</span>
-                        where a timestamp would normally go, so a folder that was recorded properly
-                        and a folder that was recovered can always be told apart later.
-                    </p>
-                    <p>
-                        That one pass recovered several hundred classes that were already sitting in
-                        the repository, finished, unrecorded and being refetched.
-                    </p>
-
-                    <h3>The notebook carries its own input</h3>
-                    <p>
-                        A smaller thing that saved more time than it should have. The 1,500-species
-                        manifest started life as a Kaggle dataset attached to each notebook. Five
-                        notebooks, cloned and re-cloned as shards were rebuilt, and eventually one of
-                        them was running against an older attached copy &mdash; same script, same shard
-                        index, different species list. Nothing errored. The output was just subtly
-                        wrong.
-                    </p>
-                    <p>
-                        The manifest is now gzipped, base64-encoded, and substituted into the script
-                        itself as a literal string before the notebook is pushed. It is not elegant.
-                        It also cannot drift: the script and its input are one artefact, and a shard
-                        either has the right list or does not run.
-                    </p>
-
-                    <h3>Where it stands, and the 172 folders</h3>
-                    <p>
-                        831 classes are collected and verified &mdash; 87,520 images. 669 are still in
-                        the queue. The last of them will be the slowest: they are the species where
-                        250 candidates do not contain 100 that pass, and some of them never will.
-                    </p>
-                    <p>
-                        There is also a row of the ledger that is nobody&rsquo;s fault but mine. An early
-                        version of the target list was drawn from Plantae as a whole instead of
-                        flowering plants, and it produced 172 complete class folders &mdash; ferns,
-                        conifers, mosses &mdash; that are correctly filtered and have no place in this
-                        dataset. They are still in the repository, because deleting 17,200 files from
-                        the only copy is not a thing to do casually at the end of a long evening.
-                    </p>
-                    <p>
-                        Counting them would report 1,003 classes and 104,720 images. That number is
-                        larger and it is wrong, and it is exactly the kind of figure that ends up in
-                        a README and then in a paper. The
-                        <a href="/research" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Research page</a>
-                        publishes 831, with the 172 broken out on its own line, for that reason.
-                    </p>
-
-                    <h3>What I would do differently</h3>
-                    <p>
-                        Almost nothing about the sharding, which has held up better than expected for
-                        five processes with no shared state. Two things, though.
-                    </p>
-                    <p>
-                        Make the images authoritative from the start, rather than arriving there via
-                        a bug. Any pipeline where the record of work and the work itself are written
-                        in separate commits has this failure mode; deriving state from the artefacts
-                        is not a recovery mechanism, it is the correct design.
-                    </p>
-                    <p>
-                        And freeze the target list before writing any collection code. The 172
-                        folders cost more than the sharding bug did, and they exist purely because
-                        the definition of the dataset changed after the first images were already on
-                        disk.
-                    </p>
-                </div>
-
-                <footer class="mt-12 pt-8 border-t border-neutral-200">
-                    <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        Every threshold mentioned here &mdash; the gates, the hash distance, the
-                        outlier cutoffs &mdash; is written out on
-                        <a href="/research" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Research</a>,
-                        and the file layout it produces is documented on
-                        <a href="/data" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Data &amp; integrations</a>.
-                    </p>
-                </footer>
-            </article>
 
         </div>
 
