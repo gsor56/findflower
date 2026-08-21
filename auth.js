@@ -220,6 +220,26 @@ async function ffAuthHeader(audience) {
     return token ? { Authorization: "Bearer " + token } : {};
 }
 
+/* The raw ID token, or null.
+
+   The FindFlower API verifies RS256 signatures against this tenant's JWKS and
+   accepts the client id as the audience, which is the ID token's audience --
+   there is no registered Auth0 API yet, so an access token asked for without one
+   is opaque and no resource server can check it. Once an API does exist, set
+   window.FF_SOCIAL_AUDIENCE and scripts/social.js asks ffGetToken() for a real
+   access token instead. */
+async function ffIdToken() {
+    const client = await ffGetClient();
+    if (!client) return null;
+    try {
+        if (!(await client.isAuthenticated())) return null;
+        const claims = await client.getIdTokenClaims();
+        return (claims && claims.__raw) || null;
+    } catch {
+        return null;
+    }
+}
+
 /* Derive a stable, shareable preview key from the user's Auth0 id.
    NOTE: real secret keys will be issued by the hosted API backend at launch;
    this deterministic key identifies a developer during the preview program. */

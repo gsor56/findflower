@@ -17,6 +17,7 @@ exclude:
   # Backend + inference server
   - space/
   - proxy/
+  - server/
   # Model training and ONNX conversion
   - training/
   # Build tooling

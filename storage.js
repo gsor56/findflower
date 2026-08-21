@@ -11,6 +11,18 @@
  *   stats  keyPath "key"  ONE ROW PER USER, key === userId: { totalScans,
  *                           currentStreak, lastScanDate, unlockedBadges }
  *
+ * And four more since v4, the local half of the social prototype:
+ *   ff_users     keyPath "id"  key === the Auth0 sub: { name, email, avatar,
+ *                              isPublic, created }
+ *   ff_posts     keyPath "id"  { id, userId, name, space, body, ref, timestamp }
+ *   ff_friends   keyPath "id"  id === "<owner>|<other>": { ownerId, otherId,
+ *                              status, created }
+ *   ff_messages  keyPath "id"  { id, channel, userId, name, body, timestamp }
+ *
+ * Those four are a local prototype and not a network: a friend request is a row
+ * in this browser, and nobody on another device can see it. The pages that read
+ * them say so rather than implying an audience that does not exist yet.
+ *
  * === Why every row carries a userId (schema v2) ===========================
  *
  * v1 kept a single stats row under the literal key "global" and read scans
@@ -39,10 +51,39 @@
   "use strict";
 
   const DB_NAME = "findflower";
-  const DB_VERSION = 3;
+  const DB_VERSION = 4;
   const STORE_SCANS = "scans";
   const STORE_STATS = "stats";
   const STATS_KEY = "global"; // v1's single shared row; migrated away on upgrade
+
+  // The four social stores (v4). Prefixed where the original two are not,
+  // because the blueprint names them this way and a rename of `scans` would
+  // rewrite every existing row for a cosmetic gain.
+  const STORE_USERS = "ff_users";
+  const STORE_POSTS = "ff_posts";
+  const STORE_FRIENDS = "ff_friends";
+  const STORE_MESSAGES = "ff_messages";
+
+  // What a feed READ hands back before anyone asks for more. The blueprint caps
+  // the local cache at 100 and pages the rest from the server; there is no
+  // server yet, so the cap is applied to reads and never to writes -- trimming
+  // the store would destroy the only copy of a post its author wrote here.
+  const CACHE_LIMIT = 100;
+
+  // Avatars are base64 inside a row that gets read on every profile paint, so
+  // they are downscaled harder than scan thumbnails.
+  const AVATAR_MAX_EDGE = 160;
+  const AVATAR_QUALITY = 0.72;
+
+  // Every space a post can belong to. A post carries one of these ids, the
+  // community page's left column is built from this list, and a row with an id
+  // that is not here is shown under the fallback rather than hidden.
+  const SPACES = [
+    { id: "field-notes", label: "Field notes", blurb: "What you found, and where." },
+    { id: "id-help", label: "Identification help", blurb: "Ask what a plant is." },
+    { id: "corrections", label: "Corrections", blurb: "When the model got it wrong." },
+    { id: "engineering", label: "Engineering", blurb: "The site, the model, the data." },
+  ];
 
   // Owner of rows written before we knew who was signed in. Deliberately not a
   // plausible Auth0 `sub` (those look like "auth0|abc123" or "google-oauth2|…")
@@ -60,6 +101,15 @@
   // answered from index keys so no row (and no thumbnail) is deserialized.
   const IDX_USER_SPECIES = "user_species";
 
+  // v4. Posts are read three ways -- the whole feed newest-first, one space
+  // newest-first, and one author's own -- and each is a keyed cursor rather than
+  // a scan-and-filter, for the same reason the scan indexes exist.
+  const IDX_POST_TIME = "timestamp";
+  const IDX_POST_SPACE_TIME = "space_time";
+  const IDX_POST_USER_TIME = "post_user_time";
+  const IDX_FRIEND_OWNER = "ownerId";
+  const IDX_MSG_CHANNEL_TIME = "channel_time";
+
   // Thumbnails are stored as base64 inside IndexedDB. Browsers cap origin
   // storage, so keep each frame small rather than banking a full camera frame.
   const THUMB_MAX_EDGE = 320;
@@ -68,22 +118,27 @@
   /**
    * Badge catalogue. `test` gets a facts object and returns true when earned.
    *
-   * The facts are `{ stats, uniqueSpecies, nightSeen, dawnSeen, daysLogged }`
-   * and never the rows. Every one of those used to mean walking `scans`, which
-   * is why addScan once read the whole history -- every base64 thumbnail with
-   * it -- on a single write; they all come from the [userId, species] and
-   * [userId, timestamp] index keys now.
+   * The facts are `{ stats, uniqueSpecies, nightSeen, dawnSeen, daysLogged,
+   * postCount }` and never the rows. Every one of those used to mean walking
+   * `scans`, which is why addScan once read the whole history -- every base64
+   * thumbnail with it -- on a single write; they all come from the
+   * [userId, species] and [userId, timestamp] index keys now.
    *
    * `needs` names the one fact a test reads beyond `stats`. addScan computes a
    * fact only while some badge that needs it is still unearned, and it reads
    * that from here rather than from a list of ids of its own: the species walk
    * was gated on collector-10 by name, and a second species tier added behind
    * that gate would have been quietly unreachable.
+   *
+   * An id is permanent and a name is not. `first-discovery` reads "First Bloom"
+   * and `night-explorer` reads "Nightshade" because those are the names the
+   * blueprint uses; renaming the ids would orphan every id already sitting in
+   * somebody's stats.unlockedBadges, which is a migration for a caption.
    */
   const BADGES = [
     {
       id: "first-discovery",
-      name: "First Discovery",
+      name: "First Bloom",
       icon: "🌱",
       description: "Identify your first flower.",
       test: (s) => s.stats.totalScans >= 1,
@@ -97,9 +152,9 @@
     },
     {
       id: "night-explorer",
-      name: "Night Explorer",
+      name: "Nightshade",
       icon: "🌙",
-      description: "Identify a flower after 9pm.",
+      description: "Identify a flower between 10 at night and 4 in the morning.",
       needs: "nightSeen",
       test: (s) => s.nightSeen === true,
     },
@@ -153,6 +208,16 @@
       icon: "📔",
       description: "Log 100 identifications.",
       test: (s) => s.stats.totalScans >= 100,
+    },
+    // The first badge that is not about scanning. Same shelf on purpose: a
+    // separate "social achievements" grid would be two half-empty walls.
+    {
+      id: "archivist",
+      name: "Archivist",
+      icon: "🗃️",
+      description: "Write your first community post.",
+      needs: "postCount",
+      test: (s) => s.postCount >= 1,
     },
   ];
 
@@ -245,6 +310,33 @@
           const s3 = req.transaction.objectStore(STORE_SCANS);
           if (!s3.indexNames.contains(IDX_USER_SPECIES)) {
             s3.createIndex(IDX_USER_SPECIES, [IDX_USER, "species"]);
+          }
+        }
+        // v4: the four social stores. Additive in the strongest sense -- no
+        // existing store is opened, no row is read and nothing is rewritten, so
+        // an upgrade cannot cost anyone a scan. A browser that never opens a
+        // social page simply carries four empty stores.
+        if (e.oldVersion < 4) {
+          if (!db.objectStoreNames.contains(STORE_USERS)) {
+            // Keyed by the Auth0 sub, which is what a scan row already carries,
+            // so a profile joins to a history without a second id to keep.
+            db.createObjectStore(STORE_USERS, { keyPath: "id" });
+          }
+          if (!db.objectStoreNames.contains(STORE_POSTS)) {
+            const p = db.createObjectStore(STORE_POSTS, { keyPath: "id" });
+            p.createIndex(IDX_POST_TIME, "timestamp");
+            p.createIndex(IDX_POST_SPACE_TIME, ["space", "timestamp"]);
+            p.createIndex(IDX_POST_USER_TIME, ["userId", "timestamp"]);
+          }
+          if (!db.objectStoreNames.contains(STORE_FRIENDS)) {
+            // keyPath "id" is "<owner>|<other>", so requesting the same person
+            // twice updates one row instead of growing a duplicate.
+            const f = db.createObjectStore(STORE_FRIENDS, { keyPath: "id" });
+            f.createIndex(IDX_FRIEND_OWNER, "ownerId");
+          }
+          if (!db.objectStoreNames.contains(STORE_MESSAGES)) {
+            const m = db.createObjectStore(STORE_MESSAGES, { keyPath: "id" });
+            m.createIndex(IDX_MSG_CHANNEL_TIME, ["channel", "timestamp"]);
           }
         }
       };
@@ -410,14 +502,20 @@
 
   /** The badge's own definition of night, kept in one place because the key
    *  walk below and the badge test have to agree on it. Local hours, matching
-   *  what the row-walking version did with `new Date(x.timestamp).getHours()`. */
+   *  what the row-walking version did with `new Date(x.timestamp).getHours()`.
+   *
+   *  22:00-04:00 is the window the blueprint states for Nightshade. It used to
+   *  be 21:00-05:00, which is why the hour either side of it now belongs to no
+   *  badge at all: dawn still starts at 5, so no single scan can earn both, and
+   *  widening dawn to close the gap would change a badge nobody asked about. */
   function isNightHour(when) {
     const h = new Date(when).getHours();
-    return h >= 21 || h < 5;
+    return h >= 22 || h < 4;
   }
 
-  /** And dawn, which starts exactly where night ends so that no single scan can
-   *  earn both badges. Local hours, for the same reason as above. */
+  /** And dawn, which no longer starts exactly where night ends -- see the note
+   *  on isNightHour. What still holds is that the two windows cannot overlap, so
+   *  no single scan earns both badges. Local hours, for the same reason. */
   function isDawnHour(when) {
     const h = new Date(when).getHours();
     return h >= 5 && h < 8;
@@ -642,22 +740,25 @@
     return "s_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
   }
 
-  /** Downscale any blob/dataURL to a small JPEG data URL for storage. */
-  function toThumbnail(source) {
+  /** Downscale any blob/dataURL to a small JPEG data URL for storage. Avatars
+   *  pass a smaller edge: a profile row is read on every paint of the card. */
+  function toThumbnail(source, maxEdge, quality) {
+    const edge = maxEdge || THUMB_MAX_EDGE;
+    const q = quality || THUMB_QUALITY;
     return new Promise((resolve) => {
       try {
         const img = new Image();
         const url = typeof source === "string" ? source : URL.createObjectURL(source);
         img.onload = () => {
           try {
-            const scale = Math.min(1, THUMB_MAX_EDGE / Math.max(img.width, img.height));
+            const scale = Math.min(1, edge / Math.max(img.width, img.height));
             const w = Math.max(1, Math.round(img.width * scale));
             const h = Math.max(1, Math.round(img.height * scale));
             const c = document.createElement("canvas");
             c.width = w;
             c.height = h;
             c.getContext("2d").drawImage(img, 0, 0, w, h);
-            resolve(c.toDataURL("image/jpeg", THUMB_QUALITY));
+            resolve(c.toDataURL("image/jpeg", q));
           } catch {
             resolve(null); // tainted canvas (cross-origin URL) -- skip the thumb
           } finally {
@@ -706,7 +807,7 @@
 
     // Badge inputs, read from index keys and only for badges still unearned.
     // This block used to be `getScans(null, uid)`: the whole history, every
-    // base64 thumbnail with it, on every single identification. Four of the nine
+    // base64 thumbnail with it, on every single identification. Four of the ten
     // badges read stats alone, and each of the other facts is skipped once
     // every badge that needs it is held -- so a long-standing user pays nothing
     // here, and nobody ever pays for a fact no unearned badge reads.
@@ -714,7 +815,7 @@
     const wanted = new Set();
     for (const b of BADGES) if (b.needs && !have.has(b.id)) wanted.add(b.needs);
 
-    const facts = { stats, uniqueSpecies: 0, nightSeen: false, dawnSeen: false, daysLogged: 0 };
+    const facts = { stats, uniqueSpecies: 0, nightSeen: false, dawnSeen: false, daysLogged: 0, postCount: 0 };
     if (wanted.has("uniqueSpecies")) facts.uniqueSpecies = await countUniqueSpecies(uid);
     // The row above is already written, so either walk would find it anyway --
     // testing `when` first just skips the walk in the obvious case.
@@ -725,6 +826,10 @@
       facts.dawnSeen = isDawnHour(when) || (await anyScanAtHour(uid, isDawnHour));
     }
     if (wanted.has("daysLogged")) facts.daysLogged = await countDaysLogged(uid);
+    // postCount is deliberately left at 0 here even when Archivist is unearned:
+    // no identification can earn a posting badge, so counting posts on a scan
+    // write would be a round trip whose answer cannot change the outcome.
+    // addPost() is where that fact is real, and it evaluates the same catalogue.
 
     const newBadges = evaluateBadges(stats, facts);
     await putStats(stats, uid);
@@ -848,6 +953,394 @@
     return n > 0 || (s.totalScans || 0) > 0;
   }
 
+  // === social: users ========================================================
+
+  /**
+   * One transaction over every store, for the two operations that genuinely
+   * span all of them: the export bundle (which must not read a half-deleted
+   * database) and account deletion (which must not leave a profile row behind
+   * after the scans are gone). tx2 stays SCANS+STATS on purpose -- widening it
+   * would make every adoption lock four stores it never touches.
+   */
+  function txAll(mode, fn) {
+    const names = [STORE_SCANS, STORE_STATS, STORE_USERS, STORE_POSTS, STORE_FRIENDS, STORE_MESSAGES];
+    return openDB().then(
+      (db) =>
+        new Promise((resolve, reject) => {
+          const t = db.transaction(names, mode);
+          const stores = {};
+          names.forEach((n) => {
+            stores[n] = t.objectStore(n);
+          });
+          let out;
+          try {
+            out = fn(stores, t);
+          } catch (err) {
+            reject(err);
+            return;
+          }
+          t.oncomplete = () => resolve(out);
+          t.onerror = () => reject(t.error);
+          t.onabort = () => reject(t.error || new Error("transaction aborted"));
+        })
+    );
+  }
+
+  // `avatar` is an uploaded Base64 JPEG and takes precedence; `picture` is the
+  // URL Auth0 hands back, kept so another account signed into this browser sees
+  // a face before anyone uploads one. No email: nothing on a profile card shows
+  // one, and a field nobody reads is a field that can only leak.
+  const USER_SHAPE = { name: "", picture: null, avatar: null, isPublic: true, created: null };
+
+  /** A stored row plus the fields a caller may be missing. Legacy rows written
+   *  before a field existed read as the default, never as undefined. */
+  function normUser(row, id) {
+    return Object.assign({}, USER_SHAPE, row || {}, { id: String(id) });
+  }
+
+  async function getUser(userId) {
+    const uid = userId ? String(userId) : await owner();
+    if (!uid) return null;
+    const row = await tx(STORE_USERS, "readonly", (s) => wrap(s.get(uid)));
+    return row ? normUser(row, uid) : null;
+  }
+  /**
+   * Create or update the signed-in user's row. Only fields that were actually
+   * supplied are written: the social pages know a name and an Auth0 picture, the
+   * profile page knows an uploaded avatar, the settings toggle knows a
+   * visibility, and none of them should erase what the others stored. `created`
+   * is written once and never moved -- it is the only join date this device can
+   * honestly claim, since Auth0 does not hand us the account's real one.
+   */
+  async function upsertUser(profile) {
+    const p = profile || {};
+    const uid = p.id ? String(p.id) : await owner();
+    if (!uid || uid === UNCLAIMED) return null;
+    const prev = await tx(STORE_USERS, "readonly", (s) => wrap(s.get(uid)));
+    const next = normUser(prev, uid);
+    ["name", "picture", "avatar"].forEach((k) => {
+      if (p[k]) next[k] = p[k];
+    });
+    if (typeof p.isPublic === "boolean") next.isPublic = p.isPublic;
+    if (!next.created) next.created = new Date().toISOString();
+    await tx(STORE_USERS, "readwrite", (s) => wrap(s.put(next)));
+    return next;
+  }
+
+  /** Every profile this browser knows about. There is no directory service --
+   *  a row exists because that person signed in on this device. */
+  async function listUsers() {
+    const rows = await tx(STORE_USERS, "readonly", (s) => wrap(s.getAll()));
+    return (rows || [])
+      .map((r) => normUser(r, r.id))
+      .sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)));
+  }
+
+  async function setVisibility(isPublic, userId) {
+    const uid = userId ? String(userId) : await owner();
+    return upsertUser({ id: uid, isPublic: !!isPublic });
+  }
+
+  /** Store an avatar as a small JPEG data URL. 160px is the largest the card
+   *  ever draws it, and a profile row is read on every paint of that card. */
+  async function saveAvatar(source, userId) {
+    const data = await toThumbnail(source, AVATAR_MAX_EDGE, AVATAR_QUALITY);
+    if (!data) return null;
+    const row = await upsertUser({ id: userId ? String(userId) : undefined, avatar: data });
+    return row ? row.avatar : null;
+  }
+  // === social: posts ========================================================
+
+  const POST_MAX_CHARS = 2000;
+
+  /** Rows for one user, newest first, from a compound [userId, timestamp] index. */
+  function userRange(uid) {
+    return IDBKeyRange.bound([String(uid), ""], [String(uid), MAX_KEY_CHAR]);
+  }
+
+  async function countPosts(userId) {
+    const uid = userId ? String(userId) : await owner();
+    return tx(STORE_POSTS, "readonly", (s) =>
+      wrap(s.index(IDX_POST_USER_TIME).count(userRange(uid)))
+    );
+  }
+
+  /**
+   * Write one post, then re-run the badge catalogue with a real postCount so
+   * Archivist fires on the write that earned it rather than on the next scan.
+   *
+   * The other facts stay at their neutral values for the same reason addScan
+   * leaves postCount at 0: a post cannot earn a species or streak badge, so
+   * counting species here would be a round trip whose answer changes nothing.
+   * A stats-derived badge can still land, because stats is real either way.
+   *
+   * authorName is stored on the row, not joined at read time. The feed has to
+   * render from the local cache alone (blueprint 2), and a forum post naming
+   * whoever wrote it is what a forum post does.
+   */
+  async function addPost({ body, space, userId, authorName, articleRef, timestamp }) {
+    const text = String(body == null ? "" : body).trim();
+    if (!text) return null;
+    const uid = userId ? String(userId) : await owner();
+    const when = timestamp ? new Date(timestamp) : new Date();
+    const post = {
+      id: newId(),
+      userId: uid,
+      authorName: authorName ? String(authorName) : "",
+      space: SPACES.some((s) => s.id === space) ? space : SPACES[0].id,
+      body: text.slice(0, POST_MAX_CHARS),
+      articleRef: articleRef ? String(articleRef) : null,
+      timestamp: when.toISOString(),
+    };
+    await tx(STORE_POSTS, "readwrite", (s) => wrap(s.put(post)));
+
+    const stats = await getStats(uid);
+    const have = new Set(stats.unlockedBadges || []);
+    const facts = { stats, uniqueSpecies: 0, nightSeen: false, dawnSeen: false, daysLogged: 0, postCount: 0 };
+    if (BADGES.some((b) => b.needs === "postCount" && !have.has(b.id))) {
+      facts.postCount = await countPosts(uid);
+    }
+    const newBadges = evaluateBadges(stats, facts);
+    if (newBadges.length) await putStats(stats, uid);
+    return { post, newBadges };
+  }
+  /**
+   * A page of the feed, newest first. The cap is CACHE_LIMIT and it is a READ
+   * cap: this browser holds the only copy of a post written on it, so trimming
+   * the store on write would destroy somebody's own words. What the blueprint
+   * asks for -- never hand the DOM thousands of rows -- is satisfied by not
+   * reading them.
+   *
+   * `before` is the timestamp of the oldest row already on screen, so paging is
+   * a shrinking key range rather than an offset that shifts when a post lands.
+   */
+  async function listPosts(opts) {
+    const o = opts || {};
+    const limit = Math.min(Math.max(1, o.limit || CACHE_LIMIT), CACHE_LIMIT);
+    const upper = o.before ? String(o.before) : MAX_KEY_CHAR;
+    const rows = await tx(STORE_POSTS, "readonly", (store) => {
+      const out = [];
+      const idx = o.space ? store.index(IDX_POST_SPACE_TIME) : store.index(IDX_POST_TIME);
+      const range = o.space
+        ? IDBKeyRange.bound([o.space, ""], [o.space, upper], false, !!o.before)
+        : IDBKeyRange.bound("", upper, false, !!o.before);
+      const req = idx.openCursor(range, "prev");
+      req.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur || out.length >= limit) return;
+        out.push(cur.value);
+        cur.continue();
+      };
+      return out;
+    });
+    return rows;
+  }
+
+  // === social: friends + messages ===========================================
+
+  const FRIEND_STATES = ["pending", "accepted", "blocked"];
+
+  /** One row per direction, keyed "<owner>|<other>". Two rows describe a
+   *  mutual friendship, which is what lets a request sit half-answered. */
+  function friendKey(ownerId, otherId) {
+    return String(ownerId) + "|" + String(otherId);
+  }
+  /** Record a request from the signed-in user to another profile. Only the
+   *  requester's direction is written: accepting is the other person's action,
+   *  and this device cannot speak for them. */
+  async function addFriend(otherId, ownerId, status) {
+    const own = ownerId ? String(ownerId) : await owner();
+    const other = String(otherId || "");
+    if (!own || !other || own === other) return null;
+    const row = {
+      id: friendKey(own, other),
+      ownerId: own,
+      otherId: other,
+      status: FRIEND_STATES.includes(status) ? status : "pending",
+      created: new Date().toISOString(),
+    };
+    await tx(STORE_FRIENDS, "readwrite", (s) => wrap(s.put(row)));
+    return row;
+  }
+
+  async function friendStatus(otherId, ownerId) {
+    const own = ownerId ? String(ownerId) : await owner();
+    if (!own || !otherId) return null;
+    const row = await tx(STORE_FRIENDS, "readonly", (s) =>
+      wrap(s.get(friendKey(own, otherId)))
+    );
+    return row ? row.status : null;
+  }
+
+  async function removeFriend(otherId, ownerId) {
+    const own = ownerId ? String(ownerId) : await owner();
+    if (!own || !otherId) return false;
+    await tx(STORE_FRIENDS, "readwrite", (s) => wrap(s.delete(friendKey(own, otherId))));
+    return true;
+  }
+
+  async function listFriends(ownerId) {
+    const own = ownerId ? String(ownerId) : await owner();
+    if (!own) return [];
+    const rows = await tx(STORE_FRIENDS, "readonly", (s) =>
+      wrap(s.index(IDX_FRIEND_OWNER).getAll(own))
+    );
+    return (rows || []).sort((a, b) => String(b.created).localeCompare(String(a.created)));
+  }
+
+  /**
+   * Read the message cache. There is deliberately no writer in this phase:
+   * chat is the two-tier feature in blueprint 5 and it needs the WebSocket
+   * server that does not exist yet. The store and this reader exist so the
+   * export bundle can say `messages: []` truthfully instead of omitting a
+   * schema the blueprint names -- an addMessage() with no chat UI behind it
+   * would be dead code pretending to be a feature.
+   */
+  async function listMessages(opts) {
+    const o = opts || {};
+    const limit = Math.min(Math.max(1, o.limit || CACHE_LIMIT), CACHE_LIMIT);
+    const channel = o.channel ? String(o.channel) : null;
+    const rows = await tx(STORE_MESSAGES, "readonly", (store) => {
+      const out = [];
+      const range = channel
+        ? IDBKeyRange.bound([channel, ""], [channel, MAX_KEY_CHAR])
+        : null;
+      const req = store.index(IDX_MSG_CHANNEL_TIME).openCursor(range, "prev");
+      req.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur || out.length >= limit) return;
+        out.push(cur.value);
+        cur.continue();
+      };
+      return out;
+    });
+    return rows;
+  }
+  // === export + erase =======================================================
+
+  /**
+   * The species one user has logged most often, most first.
+   *
+   * A full key cursor rather than listSpecies' `nextunique` one, because the
+   * count IS the answer here -- skipping duplicates would throw away the very
+   * thing being ranked. Still a KEY cursor, so a 3,000-scan history costs a few
+   * thousand short strings and not one base64 frame.
+   *
+   * Ties keep index order, which is alphabetical within a user. Arbitrary, but
+   * stable: the card must not reshuffle its top three between two paints.
+   */
+  function topSpecies(userId, n) {
+    const want = Math.max(1, n || 3);
+    return Promise.resolve(userId ? String(userId) : owner()).then((uid) =>
+      tx(STORE_SCANS, "readonly", (store) => {
+        const tally = new Map();
+        const idx = store.index(IDX_USER_SPECIES);
+        const req = idx.openKeyCursor(IDBKeyRange.bound([uid, ""], [uid, MAX_KEY_CHAR]));
+        req.onsuccess = (e) => {
+          const cur = e.target.result;
+          if (!cur) return;
+          const raw = cur.key && cur.key[1];
+          const folded = raw ? String(raw).trim().toLowerCase() : "";
+          if (folded) {
+            const seen = tally.get(folded);
+            if (seen) seen.count += 1;
+            else tally.set(folded, { name: String(raw).trim(), count: 1 });
+          }
+          cur.continue();
+        };
+        return tally;
+      }).then((tally) =>
+        Array.from(tally.values())
+          .sort((a, b) => b.count - a.count)
+          .slice(0, want)
+      )
+    );
+  }
+  /**
+   * The social half of the export: profile, posts, friend rows, cached
+   * messages. Scans, stats, preferences and the correction log stay where they
+   * already are -- the dashboard builds those, and moving that here would
+   * rewrite a working export to add four keys to it.
+   *
+   * One snapshot across the four stores, so a post cannot appear in the file
+   * without the profile row that wrote it.
+   */
+  async function exportBundle(userId) {
+    const uid = userId ? String(userId) : await owner();
+    const got = await txAll("readonly", (s) => {
+      const out = { profile: null, posts: [], friends: [], messages: [] };
+      s[STORE_USERS].get(uid).onsuccess = (e) => {
+        out.profile = e.target.result || null;
+      };
+      s[STORE_POSTS].index(IDX_POST_USER_TIME).getAll(userRange(uid)).onsuccess = (e) => {
+        out.posts = e.target.result || [];
+      };
+      s[STORE_FRIENDS].index(IDX_FRIEND_OWNER).getAll(uid).onsuccess = (e) => {
+        out.friends = e.target.result || [];
+      };
+      s[STORE_MESSAGES].getAll().onsuccess = (e) => {
+        out.messages = (e.target.result || []).filter((m) => String(m.userId) === uid);
+      };
+      return out;
+    });
+    return got;
+  }
+
+  /**
+   * Delete one account from every store: scans, stats, profile, posts, friend
+   * rows in BOTH directions, and any cached message of theirs.
+   *
+   * Still scoped to one user rather than clearing the stores outright, for the
+   * reason clearUser() exists: a shared browser holds another account's rows in
+   * the same database and "delete my account" is not permission to take theirs.
+   * One transaction, because a profile row surviving its own scans would leave a
+   * card describing a history that is gone.
+   *
+   * The friends walk is a full cursor because there is no otherId index: an
+   * incoming request from someone whose account is being deleted has to go too,
+   * and a four-row store does not need an index to find it.
+   */
+  async function deleteAccount(userId) {
+    const uid = userId ? String(userId) : await owner();
+    const counted = await txAll("readwrite", (s) => {
+      const n = { scans: 0, posts: 0, friends: 0, messages: 0 };
+      const del = (req, key) => {
+        req.onsuccess = (e) => {
+          const cur = e.target.result;
+          if (!cur) return;
+          cur.delete();
+          n[key] += 1;
+          cur.continue();
+        };
+      };
+      del(s[STORE_SCANS].index(IDX_USER_TIME).openCursor(userRange(uid)), "scans");
+      del(s[STORE_POSTS].index(IDX_POST_USER_TIME).openCursor(userRange(uid)), "posts");
+      s[STORE_FRIENDS].openCursor().onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        const row = cur.value || {};
+        if (String(row.ownerId) === uid || String(row.otherId) === uid) {
+          cur.delete();
+          n.friends += 1;
+        }
+        cur.continue();
+      };
+      s[STORE_MESSAGES].openCursor().onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        if (String((cur.value || {}).userId) === uid) {
+          cur.delete();
+          n.messages += 1;
+        }
+        cur.continue();
+      };
+      s[STORE_STATS].delete(uid);
+      s[STORE_USERS].delete(uid);
+      return n;
+    });
+    return counted;
+  }
+
   window.ffStore = {
     addScan,
     saveDiscovery,
@@ -870,5 +1363,25 @@
     advanceStreak,
     effectiveStreak,
     uniqueSpecies,
+    // social prototype -- one browser's IndexedDB, no network behind any of it
+    getUser,
+    upsertUser,
+    listUsers,
+    setVisibility,
+    saveAvatar,
+    addPost,
+    listPosts,
+    countPosts,
+    addFriend,
+    listFriends,
+    friendStatus,
+    removeFriend,
+    listMessages,
+    topSpecies,
+    exportBundle,
+    deleteAccount,
+    SPACES,
+    CACHE_LIMIT,
+    POST_MAX_CHARS,
   };
 })();

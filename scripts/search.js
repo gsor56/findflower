@@ -15,9 +15,10 @@
 //   pages        the routes this site serves, plus the four panels on this
 //                page. Those are real ids on real <section>s.
 //
-// There is deliberately no People section. Profiles, friends and messages need
-// a server that does not exist yet, and a heading with nothing behind it is the
-// fake UI the guidelines ban.
+//   botanists   ffStore.listUsers() — the ff_users rows this browser holds.
+//               That is every account that has signed in on this device and
+//               nobody else: there is no server to ask about anyone further.
+//               The section is absent when nothing matches, like the others.
 //
 // Rows are <a href>. router.js already owns a delegated click handler that
 // knows a same-page fragment from a clean path; a palette that navigated by
@@ -53,10 +54,11 @@
     var MAX_LOCAL = 6;
     var MAX_LIVE = 8;
     var MAX_PAGES = 8;
+    var MAX_USERS = 5;
 
     // Routes that exist. Every one of these answers 200 — the harness checks
     // that separately, and nothing gets added here without a page behind it.
-    // The last four are anchors on this page: each <section> already carries
+    // The last five are anchors on this page: each <section> already carries
     // the id and its own scroll-mt.
     var PAGES = [
         { label: 'Try Now', href: '/try', hint: 'Identify a flower from a photo' },
@@ -70,13 +72,15 @@
         { label: 'Release notes', href: '/releases' },
         { label: 'Blogs', href: '/blogs', hint: 'Field logs and engineering notes' },
         { label: 'About', href: '/about' },
-        { label: 'Community', href: '/community' },
+        { label: 'Community', href: '/community', hint: 'Field notes and corrections' },
+        { label: 'Your profile', href: '/profile', hint: 'Your public card' },
         { label: 'Contact', href: '/contact' },
         { label: 'Send feedback', href: '/feedback' },
         { label: 'Privacy Policy', href: '/privacy' },
         { label: 'Terms of Service', href: '/terms' },
         { label: 'Preferences', href: '/dashboard#prefsSection', hint: 'Location, thumbnails, history, motion' },
         { label: 'Places', href: '/dashboard#placesSection', hint: 'Where you found them' },
+        { label: 'Profile & privacy', href: '/dashboard#privacySection', hint: 'Who can read your card' },
         { label: 'Model & data', href: '/dashboard#modelSection', hint: 'What identifies a flower' },
         { label: 'Storage on this device', href: '/dashboard#storageSection', hint: 'Export everything, or erase it' }
     ];
@@ -119,6 +123,43 @@
             // sections; losing it is not losing the palette.
             return [];
         }
+    }
+
+    /** The ff_users rows. Read once per open for the same reason as the scans:
+     *  an IndexedDB round trip per keystroke buys nothing when the list cannot
+     *  change while the palette is up. */
+    async function loadUsers() {
+        if (!window.ffStore || typeof ffStore.listUsers !== 'function') return [];
+        try {
+            return await ffStore.listUsers() || [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    /** An Auth0 sub is "auth0|68a…"; the tail is what tells two accounts on one
+     *  device apart, and it is what /profile prints on the card. */
+    function shortId(sub) {
+        var str = String(sub || '');
+        var bar = str.indexOf('|');
+        var tail = bar === -1 ? str : str.slice(bar + 1);
+        return tail.length > 10 ? tail.slice(0, 10) : tail;
+    }
+
+    function matchUsers(list, q) {
+        var out = [];
+        for (var i = 0; i < list.length && out.length < MAX_USERS; i++) {
+            var u = list[i] || {};
+            var tail = shortId(u.id);
+            var name = u.name || tail;
+            if (q && fold(name).indexOf(q) === -1 && fold(tail).indexOf(q) === -1) continue;
+            out.push({
+                label: name,
+                hint: u.isPublic === false ? 'Private card' : (name === tail ? '' : tail),
+                href: '/profile?id=' + encodeURIComponent(u.id)
+            });
+        }
+        return out;
     }
 
     function matchPages(q) {
@@ -167,7 +208,7 @@
     var el = null, input = null, list = null;
     var isOpen = false;
     var savedFocus = null, savedOverflow = '';
-    var scanNames = [], localMap = {};
+    var scanNames = [], localMap = {}, userRows = [];
     var liveItems = [], liveQuery = '', liveState = 'idle';
     var seq = 0, timer = null;
     var rows = [], sel = -1;
@@ -249,6 +290,9 @@
         }
         var note = liveNote(q);
         if (species.length || note) out.push({ title: 'Species', items: species, note: note });
+
+        var people = matchUsers(userRows, q);
+        if (people.length) out.push({ title: 'Botanists', items: people });
 
         var pages = matchPages(q);
         if (pages.length) out.push({ title: 'Pages', items: pages });
@@ -397,6 +441,9 @@
         if (!isOpen) return;
         render();
         scanNames = await loadScans();
+        if (!isOpen) return;
+        render();
+        userRows = await loadUsers();
         if (isOpen) render();
     }
 

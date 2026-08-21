@@ -106,7 +106,7 @@
                 <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Release notes</span>
                 <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">What’s new in <span class="font-serif italic font-normal text-sage-600">FindFlower</span>.</h1>
                 <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
-                    FindFlower is an actively evolving product. Every release brings better identification, a calmer interface, and more of the natural world within reach. Here’s the trail so far.
+                    What changed in the model, the interface and the data the app keeps, newest first. Removals are listed alongside the additions.
                 </p>
             </div>
         </section>
@@ -115,12 +115,52 @@
         <section class="max-w-3xl mx-auto px-6">
             <div class="relative border-l border-neutral-200 pl-8 md:pl-12 space-y-16">
 
-                <!-- v0.9.4 -->
+                <!-- v0.9.8 -->
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-sage-500 ring-4 ring-[#FCFCFC]"></span>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.9.4</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.9.8</h2>
                         <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Current</span>
+                        <span class="text-sm text-neutral-400 font-light">20 August 2026</span>
+                    </div>
+                    <div class="bg-white border border-neutral-200/70 rounded-2xl shadow-subtle p-6 md:p-8 space-y-6">
+                        <div>
+                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Dataset &amp; model infrastructure</p>
+                            <ul class="space-y-2 text-neutral-600 font-light">
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>The species list for the next model is settled: 1,500 flowering plants, ranked by observation count out of 5,458 candidates. Collection is well along — 1,003 species and 104,720 verified photos so far, no class under 100 images.</li>
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Collection runs as five Kaggle shard workers in parallel. Deduplication, quality filtering and the 100-image floor per class happen in the pipeline, so one shard can be re-run without disturbing the other four.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Interface &amp; de-AI refactor</p>
+                            <ul class="space-y-2 text-neutral-600 font-light">
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Rebuilt the sidebar drawer. The credential badge, the clock and the location panel are gone: the badge showed nothing real, and the location panel asked the browser for your position every time the drawer opened. What is left is navigation, on the standard type scale.</li>
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Added Blogs and Community as real routes, listed in the drawer and the footer. Both are placeholders for now; Blogs opens with a small botanical drawing animated in CSS.</li>
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Removed the decorative toggles from the dashboard. Every control left on it reads and writes something real.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Storage &amp; data control</p>
+                            <ul class="space-y-2 text-neutral-600 font-light">
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>The local database moves to v3. The upgrade is additive, so existing rows are not rewritten, and it makes room for deleting a single scan, correcting a wrong identification, and exporting your history as JSON.</li>
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Streaks and totals are recomputed from the day keys of the records that are still there, so deleting a scan changes the numbers instead of leaving a stale counter behind.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">Fixes &amp; code health</p>
+                            <ul class="space-y-2 text-neutral-600 font-light">
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Router swaps and first page loads now run through one mount path. The dashboard had two ways to start up and could run its setup twice.</li>
+                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Dropped the leftover !important overrides and the one-off font sizes; every size on the site is a step on the type scale.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </article>
+
+                <!-- v0.9.4 -->
+                <article class="reveal-up relative">
+                    <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-neutral-300 ring-4 ring-[#FCFCFC]"></span>
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.9.4</h2>
                         <span class="text-sm text-neutral-400 font-light">8 July 2026</span>
                     </div>
                     <div class="bg-white border border-neutral-200/70 rounded-2xl shadow-subtle p-6 md:p-8 space-y-6">
@@ -213,11 +253,11 @@
                     </div>
                     <div class="border border-dashed border-neutral-200 rounded-2xl p-6 md:p-8">
                         <ul class="space-y-2 text-neutral-500 font-light">
-                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>A hosted REST API, moving from preview to general availability.</li>
-                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>Broader species coverage, informed by your feedback.</li>
-                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>Saved history for signed-in users.</li>
+                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>An end-to-end training run and model export for the 1,500-class model.</li>
+                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>Deleting a scan, correcting an identification by hand, and exporting the full history from the dashboard.</li>
+                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>Field guides and engineering writeups on the Blogs route.</li>
                         </ul>
-                        <p class="text-sm text-neutral-400 font-light mt-5">Want to shape what comes next? <a href="/feedback" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Send feedback</a> or <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">get in touch</a>.</p>
+                        <p class="text-sm text-neutral-400 font-light mt-5">Something missing or broken? <a href="/feedback" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Send feedback</a> or <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">get in touch</a>.</p>
                     </div>
                 </article>
 
