@@ -110,7 +110,7 @@ HF_REPO_ID = "gsor56/findflower-maxvit"       # private model repo on the Hub
 # whatever images previous collector runs uploaded. Renaming it here would not
 # move them, it would silently create an empty second repo and report "restored
 # 0 images". Change it only after confirming which spelling actually exists.
-HF_DATA_REPO = "gsor56/findflower-ViT-data"   # dataset repo holding the images
+HF_DATA_REPO = "gsor56/FindFlower-Premium-100-flowering"  # balanced 1,500-class dataset
 HF_PRIVATE = True                             # keep both repos private
 
 _api = HfApi(token=HF_TOKEN)
@@ -239,7 +239,7 @@ BASE_MODEL = "timm/maxvit_base_tf_384.in1k"
 #   "local" an ImageFolder-style tree: <root>/<species_name>/*.jpg
 #   "hub"   snapshot HF_DATA_REPO (fine to a few hundred species; not to 5,000)
 #   "inat"  scrape iNaturalist per SPECIES_LIST (a collector for future runs)
-DATA_SOURCE = "auto"
+DATA_SOURCE = "hub"
 LOCAL_DATA_ROOTS = ["/kaggle/input"]   # searched for the deepest image tree
 
 # ---- Clade filter for taxonomy-named attached datasets ------------------------
@@ -267,9 +267,9 @@ CLASS_FILTER = ("Plantae",)
 # image count before the cap is applied), so this is a density filter as much as a
 # ceiling.
 MAX_SPECIES = 1500         # hard ceiling on classes admitted this run
-MIN_IMAGES = 400           # a species is trainable at >= this many images
-TARGET_IMAGES = 500        # stop collecting a species once it reaches this many
-MIN_IMAGES_LARGE = 400     # floor used once >1000 species are present (see below)
+MIN_IMAGES = 100           # Premium-100 is strictly balanced at 100 images/class
+TARGET_IMAGES = 100        # do not collect beyond the finalized dataset contract
+MIN_IMAGES_LARGE = 100     # retain every one of the 1,500 balanced classes
 
 # ---- Training budget ----------------------------------------------------------
 # 50 is a cumulative CEILING that spans sessions, not a plan for one booking.
@@ -733,6 +733,7 @@ def load_species_registry():
     return {}
 
 _extra_species = load_species_registry()
+_canonical_species_order = list(_extra_species)
 if _extra_species:
     # The file wins on scientific names — it is the maintained artefact — but the
     # built-in list is never dropped, so a malformed upload cannot empty the run.
@@ -1373,6 +1374,15 @@ if len(eligible) > MAX_SPECIES:
     eligible = eligible[:MAX_SPECIES]
 
 collected = [lbl for lbl, _ in eligible]
+
+# A fresh MaxViT head follows the finalized species_list.json order. Resumed
+# runs retain manifest["classes"] below so existing checkpoint indices never move.
+if not manifest["classes"] and _canonical_species_order:
+    eligible_labels = set(collected)
+    ordered = [lbl for lbl in _canonical_species_order if lbl in eligible_labels]
+    ordered_set = set(ordered)
+    ordered.extend(lbl for lbl in collected if lbl not in ordered_set)
+    collected = ordered
 
 # Never shrink the head: a class the deployed model already predicts must keep its
 # index even if this session's tree happens not to contain it.
