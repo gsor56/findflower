@@ -468,17 +468,17 @@
                     </div>
 
                     <!-- Segmented control -->
-                    <div class="relative bg-neutral-100 rounded-full p-1 flex mb-6 text-sm font-medium">
-                        <div id="segIndicator" class="seg-indicator absolute top-1 bottom-1 left-1 rounded-full bg-white shadow-sm" style="width: calc((100% - 0.5rem) / 3);"></div>
-                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="camera" aria-selected="true">
+                    <div class="relative bg-neutral-100 rounded-sm p-1 flex mb-6 text-sm font-medium">
+                        <div id="segIndicator" class="seg-indicator absolute top-1 bottom-1 left-1 rounded-sm bg-white shadow-sm" style="width: calc((100% - 0.5rem) / 3);"></div>
+                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-sm flex items-center justify-center gap-2" data-mode="camera" aria-selected="true">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                             Camera
                         </button>
-                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="upload" aria-selected="false">
+                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-sm flex items-center justify-center gap-2" data-mode="upload" aria-selected="false">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                             Upload
                         </button>
-                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-full flex items-center justify-center gap-2" data-mode="url" aria-selected="false">
+                        <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-sm flex items-center justify-center gap-2" data-mode="url" aria-selected="false">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             Link
                         </button>
@@ -544,9 +544,9 @@
                                  so the row's height never changes between states and
                                  nothing below it moves. -->
                             <div class="flex gap-3 mt-4">
-                                <button id="camStart" class="soft-click flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:bg-neutral-50 transition">Start camera</button>
-                                <button id="camCapture" data-haptic class="soft-click flex-1 min-h-[44px] text-sm font-medium bg-neutral-900 text-white px-4 py-2.5 rounded-full hover:bg-neutral-800 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>Capture</button>
-                                <button id="camRetake" type="button" data-haptic class="soft-click hidden flex flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-neutral-400 hover:text-neutral-900 transition items-center justify-center gap-2">
+                                <button id="camStart" class="soft-click flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-sm hover:bg-neutral-50 transition">Start camera</button>
+                                <button id="camCapture" data-haptic class="soft-click flex-1 min-h-[44px] text-sm font-medium bg-neutral-900 text-white px-4 py-2.5 rounded-sm border border-neutral-200 hover:bg-neutral-800 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>Capture</button>
+                                <button id="camRetake" type="button" data-haptic class="soft-click hidden flex flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-sm hover:border-neutral-400 hover:text-neutral-900 transition items-center justify-center gap-2">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                                     Retake photo
                                 </button>
@@ -568,8 +568,8 @@
                             <div class="aspect-[3/4] sm:aspect-[4/3] rounded-2xl border border-neutral-200 bg-neutral-50 flex flex-col justify-center px-6 md:px-8">
                                 <label class="text-sm font-medium text-neutral-700 mb-2 block">Image or YouTube link</label>
                                 <div class="flex gap-2">
-                                    <input id="urlInput" type="url" placeholder="https://…" class="flex-1 text-sm bg-white border border-neutral-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
-                                    <button id="urlLoad" class="soft-click text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-full hover:bg-neutral-800 transition">Load</button>
+                                    <input id="urlInput" type="url" placeholder="https://…" class="flex-1 text-sm bg-white border border-neutral-200 rounded-sm px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                                    <button id="urlLoad" class="soft-click text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-sm border border-neutral-200 hover:bg-neutral-800 transition">Load</button>
                                 </div>
                                 <p class="text-xs text-neutral-400 font-light mt-3 leading-relaxed">
                                     Direct image links and YouTube URLs (thumbnail) are supported. Some sources block in-browser reading; if a link can’t be read, download and upload it instead.
@@ -594,7 +594,7 @@
                                 <p class="text-sm text-neutral-500 font-light leading-snug" id="previewHint">Select an image to begin. Your photo is sent securely for identification and not stored.</p>
                             </div>
                         </div>
-                        <button id="identifyBtn" data-haptic class="soft-click group w-full mt-5 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
+                        <button id="identifyBtn" data-haptic class="soft-click group w-full mt-5 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-sm border border-neutral-200 hover:bg-neutral-800 transition shadow-float disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
                             <span id="identifyLabel">Identify flower</span>
                             <svg id="identifyArrow" class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                         </button>
@@ -679,7 +679,7 @@
                         <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-2.5">Other possibilities</p>
                         <div id="resUncertainList" class="ff-candidates"></div>
 
-                        <button id="resUncertainRetake" type="button" data-haptic class="soft-click mt-5 min-h-[46px] w-full sm:w-auto sm:self-start px-6 rounded-full border border-neutral-200 text-sm font-medium text-neutral-700 hover:border-neutral-400 hover:text-neutral-900 transition">
+                        <button id="resUncertainRetake" type="button" data-haptic class="soft-click mt-5 min-h-[46px] w-full sm:w-auto sm:self-start px-6 rounded-sm border border-neutral-200 text-sm font-medium text-neutral-700 hover:border-neutral-400 hover:text-neutral-900 transition">
                             Retake photo
                         </button>
                         <p class="text-xs text-neutral-400 font-light mt-4 leading-relaxed">
@@ -694,7 +694,7 @@
                         </div>
                         <h3 class="text-lg font-medium tracking-tight text-neutral-900 mb-2">Could not detect a clear flower</h3>
                         <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Please move closer and ensure good lighting.</p>
-                        <button id="resLowRetake" type="button" data-haptic class="soft-click mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition flex items-center justify-center gap-2">
+                        <button id="resLowRetake" type="button" data-haptic class="soft-click mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-sm border border-neutral-200 bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition flex items-center justify-center gap-2">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                             Retake Photo
                         </button>
@@ -846,15 +846,15 @@
                             <div id="fbPrompt">
                                 <p class="text-sm font-medium text-neutral-700 mb-3">Was this identification correct?</p>
                                 <div class="flex gap-3">
-                                    <button id="fbYes" data-haptic class="soft-click flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-sage-400 hover:text-sage-700 transition">Yes, correct</button>
-                                    <button id="fbNo" class="soft-click flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-full hover:border-neutral-400 transition">No, incorrect</button>
+                                    <button id="fbYes" data-haptic class="soft-click flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-sm hover:border-sage-400 hover:text-sage-700 transition">Yes, correct</button>
+                                    <button id="fbNo" class="soft-click flex-1 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-sm hover:border-neutral-400 transition">No, incorrect</button>
                                 </div>
                             </div>
                             <div id="fbCorrection" class="hidden">
                                 <p class="text-sm font-medium text-neutral-700 mb-2">Thank you. What is it, if you know?</p>
                                 <div class="flex gap-2">
-                                    <input id="fbInput" type="text" placeholder="Correct flower name (optional)" class="flex-1 text-sm bg-white border border-neutral-200 rounded-full px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
-                                    <button id="fbSubmit" data-haptic class="soft-click text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-full hover:bg-neutral-800 transition">Send</button>
+                                    <input id="fbInput" type="text" placeholder="Correct flower name (optional)" class="flex-1 text-sm bg-white border border-neutral-200 rounded-sm px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                                    <button id="fbSubmit" data-haptic class="soft-click text-sm font-medium bg-neutral-900 text-white px-5 py-2.5 rounded-sm border border-neutral-200 hover:bg-neutral-800 transition">Send</button>
                                 </div>
                             </div>
                             <div id="fbThanks" class="hidden flex items-center gap-2 text-sm text-sage-700">
@@ -872,7 +872,7 @@
                         <p id="resErrorText" class="text-neutral-500 font-light max-w-xs leading-relaxed"></p>
                         <!-- Shown only for the signed-out case, so the fix is one
                              tap away instead of a dead end. -->
-                        <a id="resErrorAction" href="/login" class="hidden mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2">
+                        <a id="resErrorAction" href="/login" class="hidden mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-sm border border-neutral-200 bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2">
                             Sign in to continue
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                         </a>
@@ -961,6 +961,18 @@
         // Inference runs server-side: browser -> Cloudflare Worker -> private
         // model server. Swap in your deployed Worker URL.
         const API_URL = 'https://findflower-proxy.fofi.workers.dev';
+
+        // Which engine answers a capture. The Settings picker stores a tier name
+        // in prefs (`modelTier`); identification runs on the server, so a tier
+        // is an endpoint rather than a file to map into memory, and only the ViT
+        // has one today. An unknown tier falls back here instead of failing the
+        // scan: the picker will not offer a tier with no endpoint, but a value
+        // hand-edited into localStorage must not break identifying.
+        const ENGINES = { standard: API_URL };
+
+        function engineUrl() {
+            return ENGINES[pref('modelTier', 'standard')] || API_URL;
+        }
 
         // ---- Zero-trust inference auth ----
         //
@@ -1478,11 +1490,6 @@
             previewScan.classList.remove('hidden');
             identifyBtn.disabled = true;
             identifyLabel.textContent = 'Analyzing…';
-            // Pulse the label, not the button. animate-pulse drives opacity only,
-            // so it composites; on the button it would also fade the shadow and
-            // the disabled state underneath it, and a whole control breathing at
-            // full width is the kind of restlessness this pass is removing.
-            identifyLabel.classList.add('animate-pulse');
             identifyArrow.classList.add('hidden');
 
             const controller = new AbortController();
@@ -1491,7 +1498,7 @@
             try {
                 const form = new FormData();
                 form.append('file', currentBlob, 'flower.jpg');
-                const res = await fetch(API_URL, {
+                const res = await fetch(engineUrl(), {
                     method: 'POST',
                     // Bearer token when the session can mint one, resolved by
                     // inferencePreflight() before the upload started.
@@ -1544,7 +1551,6 @@
                 stopLoadingMessages();
                 previewScan.classList.add('hidden');
                 identifyLabel.textContent = 'Identify flower';
-                identifyLabel.classList.remove('animate-pulse');
                 identifyArrow.classList.remove('hidden');
                 identifyBtn.disabled = false;
 

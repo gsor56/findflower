@@ -1,11 +1,12 @@
 /* ============================================================================
    FindFlower — dashboard panels (scripts/dashboard-panels.js)
    ----------------------------------------------------------------------------
-   The four sections below the badge shelf on /dashboard:
+   The five sections below the badge shelf on /dashboard:
 
      Preferences        the four switches prefs.js stores and try.html obeys
      Places             where the located scans were taken
      Model & data       what identifies a flower, and what leaves this device
+     Profile & privacy  whether your card is readable by another account here
      Storage            what IndexedDB holds here, exportable and erasable
 
    In its own file rather than dashboard.html's inline IIFE for one concrete
@@ -15,7 +16,7 @@
    calls mount(), and drives the switches with no session at all.
 
    Every panel renders into a host element by id and skips itself when that id
-   is absent, so a page can adopt one panel without taking all four.
+   is absent, so a page can adopt one panel without taking all five.
    ========================================================================== */
 (function () {
     'use strict';
@@ -31,7 +32,7 @@
     var FEEDBACK_KEY = 'ff_feedback';
 
     var teardown = [];
-    var state = { uid: null, scans: [], stats: null };
+    var state = { uid: null, scans: [], stats: null, profile: null, posts: 0, friends: 0 };
 
     function $(id) { return document.getElementById(id); }
 
@@ -154,14 +155,88 @@
         }
     ];
 
-    function switchRow(p, on) {
+    // The identification engines the scanner can be asked for. `ready` is not a
+    // label -- it is whether an engine exists to answer a capture. A tier
+    // without one is listed and cannot be picked, and `why` is the reason shown
+    // in its place, because a control that changes nothing is worse than a
+    // sentence saying so.
+    var TIERS = [
+        {
+            id: 'lite',
+            name: 'Lite (CNN)',
+            note: 'Would identify on this device, with no photo leaving the browser.',
+            ready: false,
+            why: 'The browser weights are not published with the site, so there is nothing to load.'
+        },
+        {
+            id: 'standard',
+            name: 'Standard (ViT-116)',
+            note: '116 species. The scanner sends the photo to the FindFlower server and gets the top five back.',
+            ready: true
+        },
+        {
+            id: 'pro',
+            name: 'Pro (MaxViT-1500)',
+            note: 'A wider vocabulary, on the same server path as Standard.',
+            ready: false,
+            why: 'Not trained yet.'
+        }
+    ];
+
+    function tierRow(t, active) {
+        var head = '<span class="text-sm font-medium text-neutral-900">' + esc(t.name) + '</span>';
+        var body = '<span class="block text-xs text-neutral-500 leading-relaxed mt-1">' +
+            esc(t.ready ? t.note : t.why) + '</span>';
+        if (!t.ready) {
+            return '' +
+            '<div class="px-4 py-3 border-b border-neutral-100 last:border-b-0 opacity-60">' +
+                '<p>' + head + '<span class="text-xs text-neutral-400 ml-2">unavailable</span></p>' +
+                body +
+            '</div>';
+        }
+        return '' +
+        '<button type="button" role="radio" data-tier="' + t.id + '" data-haptic' +
+                ' aria-checked="' + (active ? 'true' : 'false') + '"' +
+                ' class="tap w-full text-left px-4 py-3 border-b border-neutral-100 last:border-b-0 ' +
+                (active ? 'bg-sage-50' : 'hover:bg-neutral-50') + ' transition-colors' +
+                ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-inset">' +
+            '<span class="flex items-baseline justify-between gap-3">' + head +
+                '<span class="text-xs ' + (active ? 'text-sage-700' : 'text-neutral-400') + '">' +
+                    (active ? 'in use' : 'use this') + '</span>' +
+            '</span>' +
+            body +
+        '</button>';
+    }
+
+    /** The engine picker. Separate from the switches above because its value is
+     *  a name rather than a flag, and because two of the three names have no
+     *  engine behind them yet. */
+    function tierBlock(current) {
+        return '' +
+        '<div class="mt-2 mb-6">' +
+            '<p id="tierLabel" class="text-sm font-medium text-neutral-900">Identification engine</p>' +
+            '<p class="text-xs text-neutral-500 leading-relaxed mt-1 mb-3">' +
+                'Which model answers a capture. Stored on this device, and read by the scanner on every identification.' +
+            '</p>' +
+            '<div id="modelTiers" role="radiogroup" aria-labelledby="tierLabel" ' +
+                    'class="border border-neutral-200 rounded-md overflow-hidden bg-white">' +
+                TIERS.map(function (t) { return tierRow(t, t.id === current); }).join('') +
+            '</div>' +
+        '</div>';
+    }
+
+    /** attr is the data- attribute the delegated handler keys off. It defaults
+     *  to data-pref because that is what the four preference switches use; the
+     *  privacy switch below is stored in IndexedDB, not prefs.js, so it needs
+     *  its own. */
+    function switchRow(p, on, attr) {
         return '' +
         '<div class="flex items-start justify-between gap-4 py-4 border-b border-neutral-100 last:border-b-0">' +
             '<div class="min-w-0">' +
                 '<p id="' + p.key + 'Label" class="text-sm font-medium text-neutral-900">' + esc(p.label) + '</p>' +
                 '<p class="text-xs text-neutral-500 leading-relaxed mt-1">' + esc(on ? p.on : p.off) + '</p>' +
             '</div>' +
-            '<button type="button" role="switch" data-pref="' + p.key + '" data-haptic' +
+            '<button type="button" role="switch" ' + (attr || 'data-pref') + '="' + p.key + '" data-haptic' +
                     ' aria-checked="' + (on ? 'true' : 'false') + '" aria-labelledby="' + p.key + 'Label"' +
                     ' class="tap shrink-0 flex items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-offset-2">' +
                 '<span aria-hidden="true" class="relative block w-11 h-6 rounded-full border transition-colors ' +
@@ -182,6 +257,7 @@
         var values = window.ffPrefs.all();
         var rows = PREFS.map(function (p) { return switchRow(p, !!values[p.key]); }).join('');
         host.innerHTML =
+            tierBlock(values.modelTier) +
             '<div id="prefRows">' + rows + '</div>' +
             '<p id="prefWarn" class="hidden text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mt-4">' +
                 'This browser refused to store the setting. It applies for now but will be forgotten on reload — ' +
@@ -217,7 +293,15 @@
         paintPrefs(host);
 
         function onClick(e) {
-            var btn = e.target.closest ? e.target.closest('[data-pref]') : null;
+            if (!e.target.closest) return;
+            var tier = e.target.closest('[data-tier]');
+            if (tier && host.contains(tier)) {
+                var stored = window.ffPrefs.set('modelTier', tier.getAttribute('data-tier'));
+                paintPrefs(host);
+                if (!stored) $('prefWarn').classList.remove('hidden');
+                return;
+            }
+            var btn = e.target.closest('[data-pref]');
             if (!btn || !host.contains(btn)) return;
             var key = btn.getAttribute('data-pref');
             var next = btn.getAttribute('aria-checked') !== 'true';
@@ -228,6 +312,71 @@
             // reports what keepPhotos will do to the next write.
             if (key === 'attachLocation') renderPlaces($('panelPlaces'));
             if (key === 'keepPhotos' || key === 'recordHistory') renderStorage($('panelStorage'));
+        }
+
+        host.addEventListener('click', onClick);
+        teardown.push(function () { host.removeEventListener('click', onClick); });
+    }
+
+    // === Profile & privacy ===============================================
+
+    // Stored as ff_users.isPublic, not as a device preference: it describes an
+    // account, and two accounts on one browser must be able to disagree about
+    // it. That is also why it cannot live in PREFS above.
+    var VISIBILITY = {
+        key: 'profileVisible',
+        label: 'Public profile card',
+        on: 'Another account signed in on this browser can open your card and read your streak, species, badges and friends.',
+        off: 'Your card shows your name and nothing else. What you see when you open it yourself does not change.'
+    };
+
+    function paintPrivacy(host) {
+        if (!state.uid) {
+            host.innerHTML =
+            '<div class="bg-white border border-neutral-200 rounded-2xl p-5 shadow-subtle">' +
+                '<h3 class="text-sm font-medium text-neutral-900">Your public card</h3>' +
+                '<p class="text-xs text-neutral-500 leading-relaxed mt-2">' +
+                    'A card belongs to an account, so this needs a sign-in. ' +
+                    '<a href="/login" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Sign in</a>' +
+                    ' and it appears here.' +
+                '</p>' +
+            '</div>';
+            return;
+        }
+
+        var open = !state.profile || state.profile.isPublic !== false;
+        host.innerHTML =
+        '<div class="bg-white border border-neutral-200 rounded-2xl p-5 shadow-subtle">' +
+            '<h3 class="text-sm font-medium text-neutral-900">Your public card</h3>' +
+            '<div class="mt-1">' + switchRow(VISIBILITY, open, 'data-visibility') + '</div>' +
+            '<p id="privacyWarn" class="hidden text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mt-4">' +
+                'This browser refused to store that. The card is unchanged.' +
+            '</p>' +
+            '<div class="flex flex-wrap items-center justify-between gap-3 pt-4 mt-2 border-t border-neutral-100">' +
+                '<p class="text-xs text-neutral-400 leading-relaxed">' +
+                    'Profiles have no server behind them yet, so the only readers are other accounts signed in on this browser.' +
+                '</p>' +
+                '<a href="/profile" class="shrink-0 px-4 py-2 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-full hover:bg-neutral-50 transition">Open your card</a>' +
+            '</div>' +
+        '</div>';
+    }
+
+    function renderPrivacy(host) {
+        if (!host) return;
+        paintPrivacy(host);
+
+        function onClick(e) {
+            var btn = e.target.closest ? e.target.closest('[data-visibility]') : null;
+            if (!btn || !host.contains(btn)) return;
+            var next = btn.getAttribute('aria-checked') !== 'true';
+            window.ffStore.setVisibility(next, state.uid).then(function (row) {
+                state.profile = row;
+                paintPrivacy(host);
+            }).catch(function () {
+                paintPrivacy(host);
+                var warn = $('privacyWarn');
+                if (warn) warn.classList.remove('hidden');
+            });
         }
 
         host.addEventListener('click', onClick);
@@ -460,6 +609,8 @@
                     countRow('Identifications', String(scans.length), record ? null : 'History recording is off, so this number is frozen.') +
                     countRow('Thumbnails kept', String(thumbs), keep ? 'About ' + fmtBytes(thumbBytes(scans)) + ' of the total below.' : 'Thumbnails are off for new scans.') +
                     countRow('Scans with coordinates', String(located), null) +
+                    countRow('Community posts', String(state.posts), state.posts ? 'Written on this device and readable only here.' : null) +
+                    countRow('Friend rows', String(state.friends), null) +
                     countRow('Feedback entries', String(log.length), null) +
                 '</div>' +
                 '<div id="quotaWrap" class="hidden mt-4 pt-4 border-t border-neutral-100">' +
@@ -492,8 +643,9 @@
                     'Another account signed in on this browser keeps its own history — nothing in this card reaches it.' +
                 '</p>' +
                 '<p class="text-xs text-neutral-400 leading-relaxed mt-2">' +
-                    'Deleting everything does that and also restores the four preferences to their defaults, ' +
-                    'clears the correction log, and signs you out. Your sign-in account is held by Auth0 and is not ' +
+                    'Deleting everything removes your profile card, posts and friend rows as well, restores the four ' +
+                    'preferences to their defaults, clears the correction log, and signs you out. ' +
+                    'Your sign-in account is held by Auth0 and is not ' +
                     'removed here — ask through the <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> for that.' +
                 '</p>' +
                 '<p id="dataNote" class="hidden text-xs text-sage-700 mt-2"></p>' +
@@ -524,7 +676,7 @@
                 var held = (state.stats && state.stats.unlockedBadges) || [];
                 var payload = {
                     exported: new Date().toISOString(),
-                    schema: 'findflower/v3',
+                    schema: 'findflower/v4',
                     userId: state.uid,
                     stats: state.stats,
                     badges: (window.ffStore.BADGES || []).map(function (b) {
@@ -539,10 +691,28 @@
                     feedback: readFeedback(),
                     scans: state.scans
                 };
-                download('findflower-export-' + stamp() + '.json', JSON.stringify(payload, null, 2));
                 var n = $('dataNote');
-                n.textContent = 'Downloaded ' + state.scans.length + ' identifications, thumbnails included.';
-                n.classList.remove('hidden');
+                // The four social stores are read here rather than held in
+                // state: an export is the only thing that wants the message
+                // and friend rows in full, and they can be large.
+                var bundle = window.ffStore.exportBundle
+                    ? window.ffStore.exportBundle(state.uid)
+                    : Promise.resolve(null);
+                bundle.catch(function () { return null; }).then(function (extra) {
+                    if (extra) {
+                        payload.profile = extra.profile;
+                        payload.posts = extra.posts;
+                        payload.friends = extra.friends;
+                        payload.messages = extra.messages;
+                    }
+                    download('findflower-export-' + stamp() + '.json', JSON.stringify(payload, null, 2));
+                    var counted = extra
+                        ? ' Posts, friends and messages are in the same file.'
+                        : '';
+                    n.textContent = 'Downloaded ' + state.scans.length +
+                        ' identifications, thumbnails included.' + counted;
+                    n.classList.remove('hidden');
+                });
             });
         }
 
@@ -570,16 +740,17 @@
             });
         }
 
-        // Everything, not just the history: the scans and stats in IndexedDB,
-        // the four device preferences, the correction log, and the cached
-        // session profile that ffLogout removes on its way out. Deliberately
-        // still clearUser rather than clearAll -- "everything" means everything
-        // of YOURS, and another account's rows sit in the same database.
+        // Everything, not just the history: the scans, stats, profile row, posts,
+        // friend rows and messages in IndexedDB, the four device preferences,
+        // the correction log, and the cached session profile that ffLogout
+        // removes on its way out. deleteAccount rather than clearAll --
+        // "everything" means everything of YOURS, and another account's rows sit
+        // in the same database.
         var wipeBtn = $('dataWipe');
         if (wipeBtn) {
             arm(wipeBtn, 'Delete everything — tap again', function () {
                 var target = state.uid;
-                window.ffStore.clearUser(target).then(function () {
+                window.ffStore.deleteAccount(target).then(function () {
                     if (window.ffPrefs) window.ffPrefs.reset();
                     try { localStorage.removeItem(FEEDBACK_KEY); } catch (e) { /* nothing to remove */ }
                     // Hands off to Auth0, which returns to "/". Anything below
@@ -614,6 +785,37 @@
 
     // === lifecycle =======================================================
 
+    /** The three social reads the privacy card and the counts need.
+     *
+     *  state.uid is passed through even when it is null: every reader in
+     *  storage.js falls back to its own owner() -- the unclaimed id when nobody
+     *  is signed in -- which is the same scope getSummary() used for the scans
+     *  in the panel above. Guarding on a session here instead would report
+     *  zero posts on a browser that has some. A blocked store must not take the
+     *  other panels down, hence the catch. */
+    function social() {
+        if (!window.ffStore || typeof window.ffStore.getUser !== 'function') {
+            state.profile = null;
+            state.posts = 0;
+            state.friends = 0;
+            return Promise.resolve();
+        }
+        var uid = state.uid;
+        return Promise.all([
+            window.ffStore.getUser(uid),
+            window.ffStore.countPosts(uid),
+            window.ffStore.listFriends(uid)
+        ]).then(function (out) {
+            state.profile = out[0];
+            state.posts = out[1] || 0;
+            state.friends = (out[2] || []).length;
+        }).catch(function () {
+            state.profile = null;
+            state.posts = 0;
+            state.friends = 0;
+        });
+    }
+
     /** Re-read the store into `state` and repaint every data-driven panel.
      *  Returns a promise so a caller can post a message after the repaint --
      *  which is also why the panels look their nodes up by id afterwards
@@ -623,7 +825,10 @@
         return window.ffStore.getSummary().then(function (summary) {
             state.scans = summary.scans || [];
             state.stats = summary.stats || null;
+            return social().then(function () { return summary; });
+        }).then(function (summary) {
             renderModel($('panelModel'));
+            renderPrivacy($('panelPrivacy'));
             renderPlaces($('panelPlaces'));
             renderStorage($('panelStorage'));
             // dashboard.html passes a callback so the metric tiles, recent grid
@@ -636,10 +841,11 @@
     }
 
     /**
-     * Draw the panels into whichever of the four hosts the page has.
+     * Draw the panels into whichever of the five hosts the page has.
      *
      * opts: { session, summary, onDataChanged }
-     *   session         from getUserSession(); only `sub` is used, to scope the erase
+     *   session         from getUserSession(); only `sub` is used, to scope the
+     *                   erase and to read the one ff_users row that is yours
      *   summary         an ffStore.getSummary() the caller already awaited
      *   onDataChanged   called with a fresh summary after an erase
      *
@@ -659,11 +865,18 @@
         renderPrefs($('panelPrefs'));
         renderModel($('panelModel'));
         renderPlaces($('panelPlaces'));
+        renderPrivacy($('panelPrivacy'));
         renderStorage($('panelStorage'));
 
         // A caller holding a summary already paid for the read (dashboard.html
         // drew its metric tiles from it), so draw from that and skip the trip.
-        if (o.summary) return Promise.resolve(o.summary);
+        if (o.summary) {
+            return social().then(function () {
+                renderPrivacy($('panelPrivacy'));
+                renderStorage($('panelStorage'));
+                return o.summary;
+            });
+        }
         return refresh().catch(function () {
             // Private mode or a blocked database: the switches are still live.
             var s = $('panelStorage');
@@ -677,7 +890,7 @@
             try { teardown[i](); } catch (e) { /* ignore */ }
         }
         teardown = [];
-        state = { uid: null, scans: [], stats: null, onChange: null };
+        state = { uid: null, scans: [], stats: null, profile: null, posts: 0, friends: 0, onChange: null };
     }
 
     window.ffPanels = {

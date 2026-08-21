@@ -270,7 +270,7 @@
                  boxes on one screen is one too many. Ctrl+K is true on every
                  platform here — the handler takes the Command key as well. -->
             <button type="button" id="ffSearchOpen" data-haptic aria-haspopup="dialog" aria-expanded="false"
-                    class="soft-click tap w-full flex items-center gap-2.5 mb-8 px-3.5 text-left bg-white border border-neutral-200 rounded hover:border-neutral-300 transition-colors">
+                    class="soft-click tap w-full flex items-center gap-2.5 mb-8 px-3.5 text-left bg-white border border-neutral-200 rounded hover:border-neutral-300 transition">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="text-neutral-400 shrink-0" aria-hidden="true">
                     <circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/>
                 </svg>
@@ -376,8 +376,8 @@
                 <div id="badgeGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"></div>
             </section>
 
-            <!-- === Preferences, Places, Model & data, Storage ===
-                 Four empty hosts. scripts/dashboard-panels.js fills each one it
+            <!-- === Preferences, Places, Profile & privacy, Model & data, Storage ===
+                 Five empty hosts. scripts/dashboard-panels.js fills each one it
                  finds and skips the rest, so this markup carries no copy that
                  could drift from the behaviour it describes. The panels are the
                  answer to three questions the dashboard could not answer
@@ -393,6 +393,12 @@
                 <h2 class="font-serif text-2xl text-neutral-900">Places</h2>
                 <p class="text-sm text-neutral-500 mt-1 mb-5">Where you found them, grouped to about 110 metres.</p>
                 <div id="panelPlaces"></div>
+            </section>
+
+            <section id="privacySection" class="mt-14 scroll-mt-24">
+                <h2 class="font-serif text-2xl text-neutral-900">Profile &amp; privacy</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">Who can read your card, and where it goes.</p>
+                <div id="panelPrivacy"></div>
             </section>
 
             <section id="modelSection" class="mt-14 scroll-mt-24">
