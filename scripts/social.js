@@ -9,10 +9,10 @@
      http://127.0.0.1:4000  when the page itself is on localhost
      nothing                any other origin
 
-   That last case is deliberate. There is no backend published for findflower.me
-   yet, and inventing a hostname here would make every social control on the site
-   fail silently. ready() answers false instead, and the views fall back to the
-   local IndexedDB feed they have always had.
+   The published pages set FF_SOCIAL_API themselves, so that last case is what a
+   page that forgot to looks like. No hostname is invented here: ready() answers
+   false, and the views fall back to the local IndexedDB feed they have always
+   had -- which is also what a deployed backend that is asleep or down looks like.
 
    Photos are not this file's business. Scan thumbnails and avatars live in the
    browser (storage.js); what crosses the wire is text and ids. */

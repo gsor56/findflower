@@ -471,8 +471,6 @@
         paintWindow(true);
     }
 
-    var whereLocal = null;
-
     /* The indicator under the page title and the aside that says where posts
        live, both written from one state so they cannot contradict each other.
        Photos are named in the server case on purpose: the thing people assume
@@ -493,14 +491,17 @@
         }
         if (text) text.textContent = msg;
         if (where) {
-            if (whereLocal === null) whereLocal = where.innerHTML;
             where.innerHTML = state.remote
                 ? '<p class="mt-3">Post text is stored on the FindFlower server, so it reaches ' +
                   'other people and other devices. Photos are not sent: your identifications and ' +
                   'their thumbnails stay in this browser.</p>' +
                   '<p class="mt-3">The feed reads twenty posts at a time and keeps only the rows ' +
                   'near your scroll position in the page.</p>'
-                : whereLocal;
+                : '<p class="mt-3">The server is not answering, so this is the copy in this ' +
+                  'browser&rsquo;s IndexedDB. Clearing site data deletes it, and no other device ' +
+                  'can see it.</p>' +
+                  '<p class="mt-3">The feed reads at most 100 posts at a time and keeps only the ' +
+                  'rows near your scroll position in the page.</p>';
         }
     }
 

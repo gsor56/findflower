@@ -23,6 +23,14 @@
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <script src="auth.js?v=3"></script>
     <script src="storage.js"></script>
+    <!-- The deployed backend. Left unset on a local origin, where social.js
+         already points at 127.0.0.1:4000: the local server process and the QA
+         stub both listen there. -->
+    <script>
+        if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            window.FF_SOCIAL_API = 'https://findflower-social.onrender.com';
+        }
+    </script>
     <!-- Listed ahead of the view that uses it: deferred scripts run in document
          order, so window.ffSocial exists before the card asks whether there is
          a server to read ?handle= from. -->
