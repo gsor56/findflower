@@ -37,6 +37,14 @@
     var OVERSCAN = 3;        // rows kept above and below the viewport
     var PAGE = 20;           // the server's own ceiling for /api/posts
 
+    /* A sleeping free-tier instance answers its first request in 30-60s, so the
+       fast probe that keeps the first paint honest cannot be the only one. These
+       are the retry: two tries with a long abort, which covers that window
+       without leaving a page that has no server at all waiting on it forever. */
+    var WAKE_TRIES = 2;
+    var WAKE_TIMEOUT_MS = 25000;
+    var WAKE_GAP_MS = 2000;
+
     var state = {
         space: null,         // null = every space
         posts: [],
@@ -52,6 +60,7 @@
         // The server half. remote is false until /health has answered, so the
         // first paint is always the local feed and never waits on a network.
         remote: false,
+        waking: false,       // configured, but the first probe found it asleep
         handle: null,        // the viewer's server handle, once claimed
         needsHandle: false,
         spaces: [],          // server rows: { id, label, blurb, posts }
@@ -480,28 +489,40 @@
         var text = $('cmSyncText');
         var where = $('cmWhere');
         var msg;
-        if (!state.remote) msg = 'Posts stay in this browser’s own storage.';
+        if (state.waking) msg = 'The server is starting up. Showing this browser’s copy meanwhile.';
+        else if (!state.remote) msg = 'Posts stay in this browser’s own storage.';
         else if (state.handle) msg = 'Posting as @' + state.handle + ' on the FindFlower server.';
         else if (state.viewer) msg = 'Reading the FindFlower server. Pick a handle to post.';
         else msg = 'Reading the FindFlower server. Sign in to post.';
 
         if (dot) {
-            dot.className = 'w-1.5 h-1.5 shrink-0 rounded-full ' +
-                (state.remote ? 'bg-sage-500' : 'bg-neutral-300');
+            var tone = 'bg-neutral-300';
+            if (state.remote) tone = 'bg-sage-500';
+            else if (state.waking) tone = 'bg-neutral-400 animate-pulse';
+            dot.className = 'w-1.5 h-1.5 shrink-0 rounded-full ' + tone;
         }
         if (text) text.textContent = msg;
         if (where) {
-            where.innerHTML = state.remote
-                ? '<p class="mt-3">Post text is stored on the FindFlower server, so it reaches ' +
-                  'other people and other devices. Photos are not sent: your identifications and ' +
-                  'their thumbnails stay in this browser.</p>' +
-                  '<p class="mt-3">The feed reads twenty posts at a time and keeps only the rows ' +
-                  'near your scroll position in the page.</p>'
-                : '<p class="mt-3">The server is not answering, so this is the copy in this ' +
-                  'browser&rsquo;s IndexedDB. Clearing site data deletes it, and no other device ' +
-                  'can see it.</p>' +
-                  '<p class="mt-3">The feed reads at most 100 posts at a time and keeps only the ' +
-                  'rows near your scroll position in the page.</p>';
+            var localPaging = '<p class="mt-3">The feed reads at most 100 posts at a time and ' +
+                'keeps only the rows near your scroll position in the page.</p>';
+            if (state.remote) {
+                where.innerHTML =
+                    '<p class="mt-3">Post text is stored on the FindFlower server, so it reaches ' +
+                    'other people and other devices. Photos are not sent: your identifications and ' +
+                    'their thumbnails stay in this browser.</p>' +
+                    '<p class="mt-3">The feed reads twenty posts at a time and keeps only the rows ' +
+                    'near your scroll position in the page.</p>';
+            } else if (state.waking) {
+                where.innerHTML =
+                    '<p class="mt-3">The server is starting up, which takes up to a minute when it ' +
+                    'has been idle. Until it answers, this is the copy in this browser&rsquo;s ' +
+                    'IndexedDB.</p>' + localPaging;
+            } else {
+                where.innerHTML =
+                    '<p class="mt-3">The server is not answering, so this is the copy in this ' +
+                    'browser&rsquo;s IndexedDB. Clearing site data deletes it, and no other device ' +
+                    'can see it.</p>' + localPaging;
+            }
         }
     }
 
@@ -974,21 +995,55 @@
         for (var i = 0; i < els.length; i++) els[i].classList.add('active');
     }
 
+    async function probeOnce(force, timeout) {
+        try {
+            return await window.ffSocial.probe(force, timeout);
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /* Fire-and-forget: router.js awaits mount(), so awaiting this would hold a
+       navigation open for the length of a cold start. It re-checks the feed
+       node and the flag on every pass because the reader may have swapped to
+       another page in the meantime, and unmount() clears the flag. */
+    async function wakeServer() {
+        for (var i = 0; i < WAKE_TRIES; i++) {
+            if (i) await new Promise(function (r) { setTimeout(r, WAKE_GAP_MS); });
+            if (!state.waking || !$('cmFeed')) return;
+            if (await probeOnce(true, WAKE_TIMEOUT_MS)) {
+                state.waking = false;
+                if ($('cmFeed')) await goRemote();
+                return;
+            }
+        }
+        state.waking = false;
+        syncNote();
+    }
+
     /* Everything that needs the network, run after the local feed is already on
        screen. Nothing above it awaits a request, so a page opened with the
        server down behaves exactly as it did before this view could talk to one. */
     async function syncUp() {
         if (!window.ffSocial) return;
-        var live = false;
-        try {
-            live = await window.ffSocial.probe();
-        } catch (e) {
-            live = false;
-        }
-        if (!live) {
-            syncNote();
+        if (await probeOnce()) {
+            await goRemote();
             return;
         }
+        // A configured backend that missed the fast probe is asleep, not absent.
+        if (window.ffSocial.base()) {
+            state.waking = true;
+            syncNote();
+            wakeServer().catch(function () {
+                state.waking = false;
+                syncNote();
+            });
+            return;
+        }
+        syncNote();
+    }
+
+    async function goRemote() {
         state.remote = true;
 
         if (state.viewer) {
@@ -1060,6 +1115,8 @@
             state.single = false;
             state.focus = null;
             state.hasMore = false;
+            // Stops a wake retry that outlived the page it was painting into.
+            state.waking = false;
             // The composer's own nodes leave with the <main> the router replaces.
             composer = null;
             if (window.ffHomeView && typeof window.ffHomeView.teardown === 'function') {

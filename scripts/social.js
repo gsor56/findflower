@@ -102,13 +102,17 @@
     }
 
     /* Is there a server, and is it answering? Cached for 30s, and one probe is
-       shared by however many views ask at once during a page load. */
-    async function probe(force) {
+       shared by however many views ask at once during a page load.
+
+       timeout is for a caller that knows the backend may be asleep rather than
+       absent: a free Render instance takes most of a minute to start, which is
+       not a wait a first paint can afford but is one a retry can. */
+    async function probe(force, timeout) {
         if (!baseUrl()) { health.ok = false; return false; }
         if (!force && health.at && Date.now() - health.at < HEALTH_TTL_MS) return health.ok;
         if (health.inflight) return health.inflight;
         health.inflight = (async function () {
-            var r = await request('/health', { timeout: 4000 });
+            var r = await request('/health', { timeout: timeout || 4000 });
             health.ok = !!(r.ok && r.data && r.data.status === 'ok');
             health.at = Date.now();
             health.inflight = null;
