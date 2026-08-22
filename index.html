@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>FindFlower | Instant Botanical Scanner — Identify Any Flower</title>
-    <meta name="description" content="Identify wild flowers instantly using your device camera. Fast, private plant identification across 116 species, with confidence scores and no sign-up required.">
+    <title>FindFlower — Identify a flower from a photograph</title>
+    <meta name="description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
     <link rel="canonical" href="https://findflower.me/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/">
-    <meta property="og:title" content="FindFlower | Instant Botanical Scanner — Identify Any Flower">
-    <meta property="og:description" content="Identify wild flowers instantly using your device camera. Fast, private plant identification across 116 species, with confidence scores and no sign-up required.">
+    <meta property="og:title" content="FindFlower — Identify a flower from a photograph">
+    <meta property="og:description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="FindFlower | Instant Botanical Scanner — Identify Any Flower">
-    <meta name="twitter:description" content="Identify wild flowers instantly using your device camera. Fast, private plant identification across 116 species, with confidence scores and no sign-up required.">
+    <meta name="twitter:title" content="FindFlower — Identify a flower from a photograph">
+    <meta name="twitter:description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=8">
@@ -140,56 +140,17 @@
         }
 
         .ff-vglass {
-            position: relative;
-            isolation: isolate;
-            border: 1px solid rgba(201, 214, 203, 0.7);
-            background: linear-gradient(158deg, rgba(255, 255, 255, 0.82), rgba(242, 245, 242, 0.5));
-            -webkit-backdrop-filter: blur(6px) saturate(1.05);
-            backdrop-filter: blur(6px) saturate(1.05);
-            box-shadow: 0 4px 40px -2px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.55);
-            overflow: hidden;
+            border: 1px solid #E5E5E5;
+            background-color: #FFFFFF;
             transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                        box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
                         border-color 0.5s ease;
-        }
-        /* The petal accent unfurls when the tile is REVEALED, not when it is
-           hovered. These three tiles are plain <div>s with nothing to click, so
-           :active does not fire on them on iOS and a hover-only accent is simply
-           invisible on a phone. Hover deepens it where hover exists. */
-        .ff-vglass::after {
-            content: '';
-            position: absolute;
-            top: -14px;
-            right: -14px;
-            width: 78px;
-            height: 78px;
-            z-index: 0;
-            pointer-events: none;
-            background: no-repeat center / contain
-                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z' stroke='%235F7A63' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-            opacity: 0;
-            transform: scale(0.4) rotate(-24deg);
-            transform-origin: top right;
-            transition: opacity 0.5s ease, transform 0.6s cubic-bezier(0.34, 1.3, 0.5, 1);
-        }
-        .ff-vglass.active::after {
-            opacity: 0.42;
-            transform: scale(1) rotate(0deg);
-            transition-delay: 260ms;
         }
         @media (hover: hover) {
             .ff-vglass:hover {
                 transform: translateY(-6px);
-                box-shadow: 0 22px 52px -22px rgba(61, 83, 65, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-                border-color: rgba(95, 122, 99, 0.42);
-            }
-            .ff-vglass:hover::after {
-                opacity: 0.62;
-                transform: scale(1.04) rotate(0deg);
-                transition-delay: 0ms;
+                border-color: #C9D6CB;
             }
         }
-        .ff-vglass > * { position: relative; z-index: 1; }
 
         /* The tabs are real <button>s: nothing navigates, the card re-renders
            from a different record in trefle-data.json. Selected state is read
@@ -203,7 +164,7 @@
             font-size: 0.875rem;
             font-weight: 500;
             padding: 0.375rem 0.875rem;
-            border-radius: 9999px;
+            border-radius: 0.375rem;
             border: 1px solid #E5E5E5;
             background-color: #FFFFFF;
             color: #737373;
@@ -262,13 +223,6 @@
             line-height: 1.45;
         }
 
-        .cta-arrow { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-        @media (hover: hover) {
-            .group:hover .cta-arrow { transform: translateX(4px); }
-        }
-        .group:active .cta-arrow,
-        .group:focus-visible .cta-arrow { transform: translateX(4px); }
-
         /* Shimmer while a directory-preview card hydrates from Wikipedia. */
         @keyframes shimmer {
             0% { background-position: -400px 0; }
@@ -307,12 +261,10 @@
         .lift-btn.soft-click:active { transform: scale(0.98); }
 
         /* The hero: headline in the wide left rail, one run of the pipeline in
-           a frosted panel on the right, pollen full-bleed behind both.
+           a panel on the right, pollen full-bleed behind both.
 
            Motion here is transform, opacity or stroke-dashoffset and nothing
-           else, so the band composites on the GPU and never touches layout.
-           The panel sits over the pollen canvas on purpose, so the grains blur
-           behind the glass instead of being masked out of it. */
+           else, so the band composites on the GPU and never touches layout. */
         .ff-hero {
             position: relative;
             isolation: isolate;
@@ -330,24 +282,6 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-        }
-
-        /* One soft sage bloom of light, low and to the right, seating the
-           specimen on the white page without a hard edge. Never animated. */
-        .ff-hero-glow {
-            position: absolute;
-            z-index: 0;
-            top: 46%;
-            right: -8%;
-            width: min(64vw, 42rem);
-            height: min(64vw, 42rem);
-            transform: translateY(-50%);
-            pointer-events: none;
-            background: radial-gradient(ellipse at center,
-                rgba(201, 228, 207, 0.60) 0%,
-                rgba(196, 222, 202, 0.34) 34%,
-                rgba(252, 252, 252, 0) 72%);
-            filter: blur(30px);
         }
 
         .ff-hero-inner {
@@ -384,7 +318,7 @@
             text-wrap: balance;
         }
 
-        /* ---- the living-glass panel ------------------------------------- */
+        /* The stage is the fixed 5:6 box; the panel fills it. */
         .ff-glass-stage {
             position: relative;
             width: min(100%, 30rem);
@@ -397,26 +331,13 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 1.75rem;
-            border: 1px solid rgba(201, 214, 203, 0.7);
-            background: linear-gradient(155deg, rgba(255, 255, 255, 0.66), rgba(242, 245, 242, 0.42));
-            -webkit-backdrop-filter: blur(8px) saturate(1.08);
-            backdrop-filter: blur(8px) saturate(1.08);
-            box-shadow: 0 24px 60px -26px rgba(61, 83, 65, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            border-radius: 0.5rem;
+            border: 1px solid #E5E5E5;
+            background-color: #FFFFFF;
             overflow: hidden;
         }
-        /* A faint inner light so the specimen sits IN light rather than ON a
-           flat card. Decorative, static. */
-        .ff-glass-panel::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            background: radial-gradient(ellipse 76% 62% at 50% 40%,
-                rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 70%);
-        }
-        
-        /* A small frosted chip, lower-left, tying the illustration back to the
+
+        /* A small chip, lower-left, tying the illustration back to the
            product without claiming a specific result. */
         .ff-glass-chip {
             position: absolute;
@@ -428,15 +349,12 @@
             gap: 0.5rem;
             padding: 0.4rem 0.75rem;
             border-radius: 9999px;
-            border: 1px solid rgba(201, 214, 203, 0.8);
-            background: rgba(255, 255, 255, 0.72);
-            -webkit-backdrop-filter: blur(6px);
-            backdrop-filter: blur(6px);
+            border: 1px solid #C9D6CB;
+            background-color: #FFFFFF;
             font-size: 0.75rem;
             font-weight: 500;
             letter-spacing: 0.02em;
             color: #3D5341;
-            box-shadow: 0 6px 20px -10px rgba(61, 83, 65, 0.4);
         }
         .ff-glass-chip__dot {
             width: 0.4rem;
@@ -445,7 +363,7 @@
             background: #5F7A63;
         }
 
-        /* ---- the identification pass ------------------------------------
+        /* The identification pass.
            The rest state below is the FINISHED state, not an empty one: with JS
            off nothing ever adds .is-running, and a visitor should still see a
            complete illustration rather than a blank frame. Same reasoning as the
@@ -521,7 +439,7 @@
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -544,9 +462,8 @@
 
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
@@ -579,17 +496,16 @@
 
         <section class="ff-hero mb-28 md:mb-32">
             <canvas id="pollenCanvas" class="ff-pollen" aria-hidden="true"></canvas>
-            <div class="ff-hero-glow" aria-hidden="true"></div>
 
             <div class="ff-hero-inner">
 
                 <div class="ff-hero-copy">
-                    <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white/70 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-neutral-600 shadow-subtle">
+                    <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-xs font-medium text-neutral-600">
                         <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
                         116 species, no account needed
                     </div>
 
-                    <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                    <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 mb-6">
                         Name the flower <span class="font-serif italic font-normal text-sage-600">in front of you</span>.
                     </h1>
                     <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-xl leading-relaxed mb-10 font-light">
@@ -597,13 +513,11 @@
                     </p>
 
                     <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
-                        <a href="/try" class="lift-btn soft-click group w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float flex items-center justify-center gap-2">
-                            Start Identifying
-                            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        <a href="/try" class="lift-btn soft-click w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-md hover:bg-neutral-800 transition flex items-center justify-center">
+                            Identify a flower
                         </a>
-                        <a href="/directory" class="soft-click group w-full sm:w-auto text-base font-medium text-neutral-700 border border-neutral-200 bg-white/60 backdrop-blur-sm px-8 py-3.5 rounded-full hover:border-sage-200 hover:text-sage-700 transition flex items-center justify-center gap-2">
+                        <a href="/directory" class="soft-click w-full sm:w-auto text-base font-medium text-neutral-700 border border-neutral-200 bg-white px-8 py-3.5 rounded-md hover:border-sage-200 hover:text-sage-700 transition flex items-center justify-center">
                             Browse the directory
-                            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                         </a>
                     </div>
                     <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">Runs in any browser. Nothing to install, and free while it is in beta.</p>
@@ -708,9 +622,8 @@
                         A curated set of common flowering species, each enriched live from Wikipedia. Open any one for its scientific name, family, and full profile.
                     </p>
                 </div>
-                <a href="/directory" class="group hidden md:inline-flex items-center gap-2 text-sm font-medium text-neutral-900 whitespace-nowrap hover:text-sage-600 transition-colors">
+                <a href="/directory" class="hidden md:inline-flex items-center text-sm font-medium text-neutral-900 whitespace-nowrap hover:text-sage-600 transition-colors">
                     View full directory
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
 
@@ -718,9 +631,8 @@
 
             <!-- Mobile "view all" (the header link is hidden on small screens) -->
             <div class="reveal-up mt-10 flex md:hidden">
-                <a href="/directory" class="group inline-flex items-center gap-2 text-sm font-medium bg-neutral-900 text-white px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors">
+                <a href="/directory" class="inline-flex items-center text-sm font-medium bg-neutral-900 text-white px-6 py-3 rounded-md hover:bg-neutral-800 transition-colors">
                     View full directory
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </section>
@@ -764,7 +676,7 @@
             <div class="reveal-up max-w-2xl mb-16">
                 <span class="text-sm font-medium text-sage-600 mb-4 block">How it works</span>
                 <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                    Three unhurried steps, from a photograph to real understanding.
+                    From a photograph to a named species, in three steps.
                 </h2>
             </div>
 
@@ -779,12 +691,9 @@
 
                     <ol class="relative space-y-10 list-none">
                         <li class="reveal-up flex gap-5">
-                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-subtle flex items-center justify-center">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                            </span>
+                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-sm font-medium text-neutral-400">01</span>
                             <div class="min-w-0">
-                                <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 01</span>
-                                <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">Capture or upload</h4>
+                                <h4 class="text-lg font-medium text-neutral-900 mb-2">Capture or upload</h4>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
                                     Point your camera at a plant, or drop in a photo you already have. One clear frame of a bloom or a leaf is enough to begin. There is nothing to install and no account to make first.
                                 </p>
@@ -792,12 +701,9 @@
                         </li>
 
                         <li class="reveal-up delay-100 flex gap-5">
-                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-subtle flex items-center justify-center">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="3" y1="12" x2="21" y2="12"/></svg>
-                            </span>
+                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-sm font-medium text-neutral-400">02</span>
                             <div class="min-w-0">
-                                <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 02</span>
-                                <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">The model reads it</h4>
+                                <h4 class="text-lg font-medium text-neutral-900 mb-2">The model reads it</h4>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
                                     Your photo is sent to a Vision Transformer running under ONNX Runtime, which returns a species and a confidence score. The image is used for that prediction and is not stored afterwards. The <a href="/privacy" class="text-sage-600 hover:text-sage-700 underline underline-offset-2 decoration-sage-200">privacy page</a> sets out what happens to it.
                                 </p>
@@ -805,12 +711,9 @@
                         </li>
 
                         <li class="reveal-up delay-200 flex gap-5">
-                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-subtle flex items-center justify-center">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-                            </span>
+                            <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-sm font-medium text-neutral-400">03</span>
                             <div class="min-w-0">
-                                <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Step 03</span>
-                                <h4 class="text-lg font-medium text-neutral-900 mt-1.5 mb-2">Learn the species</h4>
+                                <h4 class="text-lg font-medium text-neutral-900 mb-2">Learn the species</h4>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
                                     A name on its own teaches you nothing. Wikidata supplies the binomial and family, Trefle the growth habit and light needs, Wikipedia the plate and the article. Those four requests assemble into the record shown here.
                                 </p>
@@ -841,9 +744,9 @@
                         </div>
 
                         <article id="samplePanel" role="tabpanel" tabindex="0"
-                            class="bg-white border border-neutral-200/70 rounded-2xl shadow-subtle overflow-hidden">
+                            class="bg-white border border-neutral-200 rounded-lg overflow-hidden">
                             <div class="flex items-center gap-4 p-5">
-                                <div class="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-sage-50">
+                                <div class="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-sage-50">
                                     <!-- The leaf mark is the DEFAULT state, not a failure
                                          state. With JS off nothing ever fetches a plate,
                                          and a shimmer that resolves to nothing would be a
@@ -884,12 +787,11 @@
                                 <div class="ff-sample-row"><dt>Humidity</dt><dd>7 <span class="text-neutral-300">/ 10</span></dd></div>
                             </dl>
 
-                            <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-neutral-100 bg-neutral-50/50">
+                            <div class="flex items-center justify-between gap-3 px-5 py-4 border-t border-neutral-100">
                                 <span class="text-xs text-neutral-400 font-light">Three sources, one record</span>
                                 <a id="sampleLink" href="/species?name=Rudbeckia%20hirta"
-                                    class="group text-xs font-medium text-sage-600 hover:text-sage-700 inline-flex items-center gap-1 flex-shrink-0">
+                                    class="text-xs font-medium text-sage-600 hover:text-sage-700 inline-flex items-center flex-shrink-0">
                                     Full profile
-                                    <svg class="cta-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                                 </a>
                             </div>
                         </article>
@@ -937,10 +839,10 @@
                         FindFlower exists to close a small, ordinary gap: you can see a plant perfectly clearly and still have no way to name it. Give it one photograph and it returns a species, a confidence score, and the botanical record standing behind them.
                     </p>
                     <p>
-                        Software should enhance our connection to the physical world, not abstract it. The identification engine is designed to be unobtrusive, highly responsive, and strictly focused on delivering precise information when you need it.
+                        It is one screen and one answer. The confidence figure and the next-best guesses are shown alongside the name, because a name on its own gives you no way to tell a good identification from a poor one.
                     </p>
                     <p>
-                        FindFlower is built slowly and deliberately, with every detail considered from the moment you upload an image to the clarity of the result you read. What reaches you should always feel calm, considered, and genuinely useful.
+                        The record is assembled from Wikidata, Trefle and Wikipedia at the moment you ask for it. Where a source has nothing for a field, the row is left out rather than filled with a guess.
                     </p>
                 </div>
             </div>
@@ -962,44 +864,22 @@
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                <div class="reveal-up ff-vglass flex flex-col rounded-2xl p-8">
-                    <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
-                        <!-- Four patches: a Vision Transformer cuts the image into a
-                             grid before it attends across them. -->
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
-                            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
-                            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
-                            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
-                            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
-                        </svg>
-                    </div>
+                <div class="reveal-up ff-vglass flex flex-col rounded-lg p-8">
                     <h4 class="text-lg font-medium text-neutral-900 mb-3">Vision Transformer pipeline</h4>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
                         The classifier is a Vision Transformer exported to ONNX and served through ONNX Runtime, across 116 botanical classes. Every prediction comes back with its confidence and its closest alternatives, not a single unexplained answer.
                     </p>
                 </div>
 
-                <div class="reveal-up delay-100 ff-vglass flex flex-col rounded-2xl p-8">
-                    <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
-                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-                        </svg>
-                    </div>
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Live Wikidata &amp; Trefle encyclopedia</h4>
+                <div class="reveal-up delay-100 ff-vglass flex flex-col rounded-lg p-8">
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Wikidata, Trefle and Wikipedia</h4>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
                         A name is where the work starts. Wikidata contributes the structured taxonomy, Trefle the growing data, Wikipedia the plate and the article. Each is fetched when you ask for it, not frozen into a copy that quietly ages.
                     </p>
                 </div>
 
-                <div class="reveal-up delay-200 ff-vglass flex flex-col rounded-2xl p-8">
-                    <div class="w-11 h-11 rounded-xl bg-sage-50 flex items-center justify-center mb-6">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600">
-                            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
-                        </svg>
-                    </div>
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Zero registration required</h4>
+                <div class="reveal-up delay-200 ff-vglass flex flex-col rounded-lg p-8">
+                    <h4 class="text-lg font-medium text-neutral-900 mb-3">No account needed</h4>
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
                         No account, no API key, no install. Open the scanner and identify. The only record kept is the scan history your own browser holds, and you can clear it whenever you like.
                     </p>
@@ -1018,8 +898,7 @@
         </section>
 
         <section class="max-w-7xl mx-auto px-6 mb-24">
-            <div class="reveal-up relative bg-neutral-900 rounded-[2rem] p-12 md:p-20 text-center flex flex-col items-center overflow-hidden">
-                <div class="absolute inset-x-0 top-0 h-64 bg-[radial-gradient(ellipse_50%_60%_at_50%_0%,rgba(95,122,99,0.35),transparent_70%)]"></div>
+            <div class="reveal-up relative bg-neutral-900 rounded-lg p-12 md:p-20 text-center flex flex-col items-center overflow-hidden">
                 <svg class="absolute -bottom-6 -right-6 text-white/5 float-slower" width="220" height="220" viewBox="0 0 150 200" fill="none"><path d="M75 195C75 150 75 110 75 70M75 70C75 35 105 12 145 14C142 55 108 74 75 70ZM75 70C75 35 45 12 5 14C8 55 42 74 75 70ZM75 120C75 98 92 84 120 86C118 112 98 122 75 120ZM75 120C75 98 58 84 30 86C32 112 52 122 75 120Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
 
                 <div class="relative">
@@ -1029,9 +908,8 @@
                     <p class="text-neutral-400 text-lg mb-10 max-w-xl mx-auto font-light">
                         The scanner runs in the browser. Free for the whole of the beta, with no account, no install and nothing to cancel.
                     </p>
-                    <a href="/try" class="group inline-flex items-center gap-2 text-base font-medium bg-white text-neutral-900 px-8 py-3.5 rounded-full hover:bg-neutral-100 transition-colors">
-                        Try FindFlower Now
-                        <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    <a href="/try" class="inline-flex items-center text-base font-medium bg-white text-neutral-900 px-8 py-3.5 rounded-md hover:bg-neutral-100 transition-colors">
+                        Open the scanner
                     </a>
                 </div>
             </div>
@@ -1545,11 +1423,12 @@
         const grid = document.getElementById('previewGrid');
         if (!grid) return;
 
-        // Same card recipe as directory.html so the preview is visually identical.
+        // The directory listing builds its own cards in scripts/ui.js; this is
+        // the preview's own, so the homepage needs nothing from that file.
         function buildCard(seed) {
             const a = document.createElement('a');
             a.href = '/species?name=' + encodeURIComponent(seed.q);
-            a.className = 'card-in group flex flex-col bg-white border border-neutral-200/70 rounded-2xl overflow-hidden hover-lift';
+            a.className = 'card-in group flex flex-col bg-white border border-neutral-200 rounded-lg overflow-hidden hover-lift';
             a.innerHTML =
                 '<div class="relative aspect-[4/3] bg-neutral-100 overflow-hidden">' +
                     '<div class="ph skeleton absolute inset-0"></div>' +
@@ -1557,12 +1436,11 @@
                 '</div>' +
                 '<div class="p-4 flex-1 flex flex-col">' +
                     '<h4 class="cname text-base font-medium text-neutral-900 leading-tight">' + seed.common + '</h4>' +
-                    '<p class="sname text-sm font-light text-sage-600 italic mt-1 min-h-[1.25rem]">' +
+                    '<p class="sname text-sm font-light text-sage-600 italic mt-1 min-h-5">' +
                         '<span class="inline-block w-24 h-3 rounded skeleton align-middle"></span>' +
                     '</p>' +
                     '<span class="mt-3 inline-flex items-center gap-1 text-xs font-medium text-neutral-400 group-hover:text-sage-600 transition-colors">' +
                         'View profile' +
-                        '<svg class="cta-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
                     '</span>' +
                 '</div>';
             return a;
