@@ -6,16 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <title>Community | Field Notes &amp; Corrections &mdash; FindFlower</title>
-    <meta name="description" content="Post what you found, ask what a plant is, and correct the model when it is wrong. Posts are stored in your own browser until the server exists.">
+    <meta name="description" content="Post what you found, ask what a plant is, and correct the model when it is wrong. Posts live on the FindFlower server and show up on every device; photos stay in your browser.">
     <link rel="canonical" href="https://findflower.me/community">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/community">
     <meta property="og:title" content="Community | Field Notes &amp; Corrections &mdash; FindFlower">
-    <meta property="og:description" content="Post what you found, ask what a plant is, and correct the model when it is wrong. Posts are stored in your own browser until the server exists.">
+    <meta property="og:description" content="Post what you found, ask what a plant is, and correct the model when it is wrong. Posts live on the FindFlower server and show up on every device; photos stay in your browser.">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Community | Field Notes &amp; Corrections &mdash; FindFlower">
-    <meta name="twitter:description" content="Post what you found, ask what a plant is, and correct the model when it is wrong. Posts are stored in your own browser until the server exists.">
+    <meta name="twitter:description" content="Post what you found, ask what a plant is, and correct the model when it is wrong. Posts live on the FindFlower server and show up on every device; photos stay in your browser.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=8">
@@ -27,6 +27,14 @@
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <script src="auth.js?v=3"></script>
     <script src="storage.js"></script>
+    <!-- The deployed backend. Left unset on a local origin, where social.js
+         already points at 127.0.0.1:4000: the local server process and the QA
+         stub both listen there. -->
+    <script>
+        if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            window.FF_SOCIAL_API = 'https://findflower-social.onrender.com';
+        }
+    </script>
     <!-- social.js and composer.js are listed ahead of the view that uses them:
          deferred scripts run in document order, so window.ffSocial and
          window.ffComposer exist by the time the router mounts this page. -->
@@ -125,10 +133,11 @@
                     wrong. Posts are short; the long write-ups live in the field logs.
                 </p>
                 <!-- Where this page is actually reading and writing. The static text
-                     is the no-JS truth: without scripts nothing can reach a server. -->
+                     names the deployed server; views/community.js rewrites it with the
+                     handle it posts as, or with the local store if nothing answers. -->
                 <p id="cmSync" class="reveal-up flex items-center gap-2 text-xs text-neutral-500 mt-4">
                     <span id="cmSyncDot" class="w-1.5 h-1.5 shrink-0 rounded-full bg-neutral-300"></span>
-                    <span id="cmSyncText">Posts stay in this browser&rsquo;s own storage.</span>
+                    <span id="cmSyncText">Posts are stored on the FindFlower server.</span>
                 </p>
             </header>
 
@@ -203,7 +212,7 @@
                     </form>
 
                     <p id="cmGuest" class="hidden text-sm text-neutral-500 leading-relaxed">
-                        Reading is open to anyone on this device. To post, you need an account so the
+                        Reading is open to anyone. To post, you need an account so the
                         post has an author.
                         <a href="/login" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Sign in</a>.
                     </p>
@@ -238,12 +247,12 @@
                     <h2 class="text-xs font-medium tracking-wide uppercase text-neutral-400 mt-8">Where this lives</h2>
                     <div id="cmWhere">
                         <p class="mt-3">
-                            Posts are rows in this browser&rsquo;s IndexedDB, the same database your
-                            identifications are in. Clearing site data deletes them, and no other device
-                            can see them.
+                            Post text is stored on the FindFlower server, so it reaches other people and
+                            other devices. Photos are not sent: your identifications and their thumbnails
+                            stay in this browser.
                         </p>
                         <p class="mt-3">
-                            The feed reads at most 100 posts at a time and keeps only the rows near your
+                            The feed reads twenty posts at a time and keeps only the rows near your
                             scroll position in the page, so a long history does not slow the phone down.
                         </p>
                     </div>
