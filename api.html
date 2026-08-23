@@ -82,6 +82,7 @@
             font-size: 0.875rem;
             line-height: 1.65;
             overflow-x: auto;
+            white-space: pre;
         }
         .code .tok-key { color: #C9D6CB; }
         .code .tok-str { color: #A7C4AB; }
@@ -253,8 +254,7 @@
                         All hosted endpoints are versioned and served over HTTPS. Requests and responses are JSON, except image uploads which use <span class="font-mono text-sm text-neutral-700">multipart/form-data</span>.
                     </p>
                     <div class="code p-5 mb-4">https://api.findflower.me/<span class="tok-str">v1</span></div>
-                    <div class="code p-5">
-<span class="tok-com"># Every hosted request carries your key</span>
+                    <div class="code p-5"><span class="tok-com"># Every hosted request carries your key</span>
 <span class="tok-key">Authorization:</span> Bearer ff_preview_your_key_here
 <span class="tok-key">Accept:</span> application/json</div>
                     <div class="mt-4 flex items-start gap-2 text-sm text-neutral-500 font-light">
@@ -276,15 +276,13 @@
                     </p>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · multipart/form-data</h4>
-                    <div class="code p-5 mb-6">
-<span class="tok-com"># field name: image (JPG, PNG or WEBP, up to 10 MB)</span>
+                    <div class="code p-5 mb-6"><span class="tok-com"># field name: image (JPG, PNG or WEBP, up to 10 MB)</span>
 curl -X POST https://api.findflower.me/v1/identify \
   -H <span class="tok-str">"Authorization: Bearer ff_preview_your_key_here"</span> \
   -F <span class="tok-str">"image=@sunflower.jpg"</span></div>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
-                    <div class="code p-5 mb-6">
-{
+                    <div class="code p-5 mb-6">{
   <span class="tok-key">"top"</span>: {
     <span class="tok-key">"name"</span>: <span class="tok-str">"sunflowers"</span>,
     <span class="tok-key">"confidence"</span>: <span class="tok-num">0.984</span>
@@ -315,8 +313,7 @@ curl -X POST https://api.findflower.me/v1/identify \
                     </p>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h4>
-                    <div class="code p-5 mb-6">
-<span class="tok-com">// capture a frame, then POST it as a data URL</span>
+                    <div class="code p-5 mb-6"><span class="tok-com">// capture a frame, then POST it as a data URL</span>
 <span class="tok-key">const</span> dataUrl = canvas.toDataURL(<span class="tok-str">"image/jpeg"</span>, <span class="tok-num">0.92</span>);
 
 <span class="tok-key">await</span> fetch(<span class="tok-str">"https://api.findflower.me/v1/identify"</span>, {
@@ -329,8 +326,7 @@ curl -X POST https://api.findflower.me/v1/identify \
 });</div>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
-                    <div class="code p-5 mb-6">
-{
+                    <div class="code p-5 mb-6">{
   <span class="tok-key">"top"</span>: { <span class="tok-key">"name"</span>: <span class="tok-str">"rose"</span>, <span class="tok-key">"confidence"</span>: <span class="tok-num">0.712</span> },
   <span class="tok-key">"predictions"</span>: [ <span class="tok-mut">/* ...ranked list... */</span> ],
   <span class="tok-key">"model_version"</span>: <span class="tok-str">"beta-0.9.4"</span>
@@ -353,15 +349,13 @@ curl -X POST https://api.findflower.me/v1/identify \
                     </p>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h4>
-                    <div class="code p-5 mb-6">
-curl -X POST https://api.findflower.me/v1/identify/url \
+                    <div class="code p-5 mb-6">curl -X POST https://api.findflower.me/v1/identify/url \
   -H <span class="tok-str">"Authorization: Bearer ff_preview_your_key_here"</span> \
   -H <span class="tok-str">"Content-Type: application/json"</span> \
   -d <span class="tok-str">'{ "url": "https://example.com/tulip.jpg" }'</span></div>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
-                    <div class="code p-5 mb-6">
-{
+                    <div class="code p-5 mb-6">{
   <span class="tok-key">"source"</span>: <span class="tok-str">"https://example.com/tulip.jpg"</span>,
   <span class="tok-key">"top"</span>: { <span class="tok-key">"name"</span>: <span class="tok-str">"tulips"</span>, <span class="tok-key">"confidence"</span>: <span class="tok-num">0.883</span> },
   <span class="tok-key">"predictions"</span>: [ <span class="tok-mut">/* ...ranked list... */</span> ],
@@ -385,8 +379,7 @@ curl -X POST https://api.findflower.me/v1/identify/url \
                     </p>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h4>
-                    <div class="code p-5 mb-6">
-{
+                    <div class="code p-5 mb-6">{
   <span class="tok-key">"predicted"</span>: <span class="tok-str">"rose"</span>,
   <span class="tok-key">"confidence"</span>: <span class="tok-num">0.712</span>,
   <span class="tok-key">"correct"</span>: <span class="tok-num">false</span>,
@@ -394,8 +387,7 @@ curl -X POST https://api.findflower.me/v1/identify/url \
 }</div>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 202 Accepted</h4>
-                    <div class="code p-5 mb-6">
-{
+                    <div class="code p-5 mb-6">{
   <span class="tok-key">"received"</span>: <span class="tok-num">true</span>,
   <span class="tok-key">"id"</span>: <span class="tok-str">"fb_8f21c4"</span>
 }</div>
@@ -417,13 +409,11 @@ curl -X POST https://api.findflower.me/v1/identify/url \
                     </p>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request</h4>
-                    <div class="code p-5 mb-6">
-curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower</span> \
+                    <div class="code p-5 mb-6">curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower</span> \
   -H <span class="tok-str">"Authorization: Bearer ff_preview_your_key_here"</span></div>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
-                    <div class="code p-5 mb-6">
-{
+                    <div class="code p-5 mb-6">{
   <span class="tok-key">"title"</span>: <span class="tok-str">"Common sunflower"</span>,
   <span class="tok-key">"extract"</span>: <span class="tok-str">"The common sunflower (Helianthus annuus) is..."</span>,
   <span class="tok-key">"thumbnail"</span>: <span class="tok-str">"https://upload.wikimedia.org/.../sunflower.jpg"</span>,
@@ -446,8 +436,7 @@ curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower
                     </p>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Identify an image</h4>
-                    <div class="code p-5 mb-6">
-<span class="tok-com">// send the image as multipart/form-data under the "file" field</span>
+                    <div class="code p-5 mb-6"><span class="tok-com">// send the image as multipart/form-data under the "file" field</span>
 <span class="tok-com">// the endpoint requires a signed-in session: pass the Auth0 access token</span>
 <span class="tok-key">async function</span> identify(fileOrBlob, accessToken) {
   <span class="tok-key">const</span> form = <span class="tok-key">new</span> FormData();
@@ -464,8 +453,7 @@ curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower
 }</div>
 
                     <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
-                    <div class="code p-5 mb-6">
-{
+                    <div class="code p-5 mb-6">{
   <span class="tok-key">"flower"</span>: <span class="tok-str">"sunflower"</span>,
   <span class="tok-key">"confidence"</span>: <span class="tok-num">0.9412</span>,
   <span class="tok-key">"top_k"</span>: [
