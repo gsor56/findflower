@@ -17,12 +17,12 @@
     <meta name="twitter:description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=8">
+    <link rel="stylesheet" href="app.css?v=9">
     <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js" defer></script>
     <script src="auth.js?v=3" defer></script>
-    <script src="nav.js?v=3" defer></script>
+    <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="species.js"></script>
@@ -242,13 +242,6 @@
         }
         .card-in.ready { opacity: 1; transform: translateY(0); }
 
-        /* Status badges: the Beta tag and the live dots. */
-        @keyframes breathe {
-            0%, 100% { opacity: 1; }
-            50%      { opacity: 0.55; }
-        }
-        .breathe { animation: breathe 3.2s infinite ease-in-out; }
-
         /* Buttons lift on press: scale plus shadow, 220ms. */
         .lift-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
         @media (hover: hover) {
@@ -337,30 +330,16 @@
             overflow: hidden;
         }
 
-        /* A small chip, lower-left, tying the illustration back to the
-           product without claiming a specific result. */
-        .ff-glass-chip {
+        /* Names the drawing as a drawing. The percentages in it are invented, so
+           a visitor who reads them as a live result has been misled. */
+        .ff-panel-note {
             position: absolute;
             left: 1rem;
             bottom: 1rem;
             z-index: 2;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.4rem 0.75rem;
-            border-radius: 9999px;
-            border: 1px solid #C9D6CB;
-            background-color: #FFFFFF;
             font-size: 0.75rem;
             font-weight: 500;
-            letter-spacing: 0.02em;
-            color: #3D5341;
-        }
-        .ff-glass-chip__dot {
-            width: 0.4rem;
-            height: 0.4rem;
-            border-radius: 9999px;
-            background: #5F7A63;
+            color: #737373;
         }
 
         /* The identification pass.
@@ -500,11 +479,6 @@
             <div class="ff-hero-inner">
 
                 <div class="ff-hero-copy">
-                    <div class="reveal-up inline-flex items-center gap-2 mb-8 rounded-full border border-neutral-200 bg-white px-4 py-1.5 text-xs font-medium text-neutral-600">
-                        <span class="breathe w-1.5 h-1.5 rounded-full bg-sage-500"></span>
-                        116 species, no account needed
-                    </div>
-
                     <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 mb-6">
                         Name the flower <span class="font-serif italic font-normal text-sage-600">in front of you</span>.
                     </h1>
@@ -602,10 +576,7 @@
                             <text class="ff-pass-rise" style="--d:3700ms" x="360" y="460" text-anchor="end" font-family="Inter, sans-serif" font-size="11" fill="#A3A3A3">1.8%</text>
                         </svg>
                     </div>
-                    <span class="ff-glass-chip">
-                        <span class="ff-glass-chip__dot breathe"></span>
-                        Illustrative preview
-                    </span>
+                    <span class="ff-panel-note">Illustrative preview</span>
                 </div>
 
             </div>

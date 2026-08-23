@@ -162,7 +162,7 @@
 
     function buildHeader() {
         var header = document.createElement('header');
-        // No background/border utilities here on purpose. The glass is owned by
+        // No background/border utilities here on purpose. The plate is owned by
         // .ff-header / .ff-header--solid in app.css so it can transition; a
         // Tailwind `bg-*` class would win the cascade (the Play CDN injects
         // after app.css) and pin the bar solid at every scroll position.
@@ -195,9 +195,9 @@
                         // .soft-click, whose press scale needs `transform` in the
                         // transition list. The utility lands after app.css, so
                         // whichever one is named here is the list that wins.
-                        'px-4 sm:px-5 rounded-full hover:bg-neutral-800 transition flex items-center gap-1.5 ' +
+                        'px-4 sm:px-5 rounded-md hover:bg-neutral-800 transition flex items-center ' +
                         'whitespace-nowrap" ' +
-                        'style="min-height:40px">Try Now<span aria-hidden="true">&rarr;</span></a>' +
+                        'style="min-height:40px">Try Now</a>' +
                     // Hamburger is shown at every width. The top bar carries the
                     // primary links on desktop; the slide-out holds the rest
                     // (Dashboard, Directory, Blogs, Community) and stays reachable

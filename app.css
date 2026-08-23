@@ -132,9 +132,7 @@ header.fixed.top-0 {
     bottom: 0 !important;
     z-index: 50 !important;
     display: flex !important;
-    background-color: rgba(252, 252, 252, 0.92);
-    -webkit-backdrop-filter: saturate(180%) blur(12px);
-    backdrop-filter: saturate(180%) blur(12px);
+    background-color: #FCFCFC;
     border-top: 1px solid #E5E5E5;
     /* Clear the iOS home indicator without eating the whole bar height. */
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -371,7 +369,7 @@ html.ff-routing main {
     align-items: center;
     justify-content: center;
     border: 1px solid #E5E5E5;
-    border-radius: 9999px;
+    border-radius: 0.375rem;
     font-size: 0.875rem;
     font-weight: 500;
     text-decoration: none;
@@ -935,40 +933,29 @@ html.ff-routing main {
 }
 
 /* ============================================================================
-   Smart glass header (nav.js adds/removes .ff-header--solid on scroll)
+   Header plate on scroll (nav.js adds/removes .ff-header--solid)
    ----------------------------------------------------------------------------
    At the top of a page the header is invisible chrome: no background, no
    border, so the hero composition runs edge to edge behind it. Once the page
-   scrolls, content would collide with the links, so the glass comes in.
+   scrolls, content would collide with the links, so the plate comes in.
 
-   Only background-color, backdrop-filter and border-color transition. None of
-   them trigger layout, and the header keeps a constant 4rem height in both
-   states, so nothing below it ever shifts. Deliberately NOT animating the
-   blur radius: an animated backdrop-filter re-rasterizes the layer behind it
-   every frame and is the one property here that will heat a phone.
+   Only background-color and border-color transition. Neither triggers layout,
+   and the header keeps a constant 4rem height in both states, so nothing below
+   it ever shifts.
 
    Pages ship a solid <header> in their HTML as the no-JS fallback and nav.js
    replaces it, so the transparent state only ever exists when the script that
-   restores the glass is running.
+   restores the plate is running.
    ========================================================================== */
 .ff-header {
     background-color: transparent;
     border-bottom: 1px solid transparent;
-    transition: background-color 240ms ease, border-color 240ms ease,
-                -webkit-backdrop-filter 240ms ease, backdrop-filter 240ms ease;
+    transition: background-color 240ms ease, border-color 240ms ease;
 }
 
 .ff-header--solid {
-    background-color: rgba(252, 252, 252, 0.82);
-    -webkit-backdrop-filter: saturate(180%) blur(12px);
-    backdrop-filter: saturate(180%) blur(12px);
-    border-bottom-color: rgba(229, 229, 229, 0.6);
-}
-
-/* No blur support (older Firefox, some Android WebViews): fall back to a more
-   opaque plate, because 82% over live content is not readable without it. */
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .ff-header--solid { background-color: rgba(252, 252, 252, 0.97); }
+    background-color: #FCFCFC;
+    border-bottom-color: #E5E5E5;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1276,175 +1263,17 @@ html.ff-reveal .reveal-up.delay-400 { transition-delay: 400ms; }
 }
 
 /* ============================================================================
-   Immersive sign-in — living botanical panel (login.html)
-   ----------------------------------------------------------------------------
-   The sign-in page is a split: a viewport-filling animation stage on the left
-   (lg:w-3/5) under bold editorial text, and the Auth0 card on the right
-   (lg:w-2/5). The stage is pure decoration — aria-hidden, pointer-events:none —
-   so it can never intercept a tap meant for the card, and it is clipped to its
-   own panel with overflow:hidden so the hero specimen can zoom PAST the frame
-   without ever spilling onto the card.
-
-   Every moving part animates transform/opacity ONLY, so the whole scene stays
-   on the compositor: no layout, no per-frame paint. The classes are namespaced
-   .ff-lb-* (login botanical) so they can never collide with the home page's own
-   specimen, which owns .ff-leaf / .ff-bloom in its inline <style>. The
-   prefers-reduced-motion block at the foot of this section freezes the scene
-   and pins the hero to a rested, fully-in-frame scale so it can't stall
-   mid-zoom.
-   ========================================================================== */
-
-/* A soft sage wash so the left panel reads as its own space against the clean
-   white deck — the bold contrast the composition leans on. */
-.ff-lb-panel {
-    background: linear-gradient(150deg, #F5F8F5 0%, #E9F0EA 52%, #DCE8DE 100%);
-}
-
-.ff-lb-stage {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* Two blurred sage blooms giving the scene depth; both drift on long loops. */
-.ff-lb-glow {
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(52px);
-    will-change: transform, opacity;
-}
-.ff-lb-glow--a {
-    top: -10%; left: 2%;
-    width: min(620px, 80vw); height: min(620px, 80vw);
-    background: radial-gradient(circle at center,
-        rgba(124, 151, 129, 0.34) 0%,
-        rgba(124, 151, 129, 0.12) 44%,
-        rgba(124, 151, 129, 0) 72%);
-    animation: ff-lb-glow-a 16s ease-in-out infinite;
-}
-.ff-lb-glow--b {
-    bottom: -16%; right: -6%;
-    width: min(680px, 86vw); height: min(680px, 86vw);
-    background: radial-gradient(circle at center,
-        rgba(213, 168, 75, 0.14) 0%,
-        rgba(76, 102, 80, 0.12) 46%,
-        rgba(124, 151, 129, 0) 74%);
-    animation: ff-lb-glow-b 20s ease-in-out infinite;
-}
-@keyframes ff-lb-glow-a {
-    0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
-    50%      { transform: translate3d(3%, 4%, 0) scale(1.1); opacity: 0.75; }
-}
-@keyframes ff-lb-glow-b {
-    0%, 100% { transform: translate3d(0, 0, 0) scale(1.06); opacity: 0.5; }
-    50%      { transform: translate3d(-4%, -3%, 0) scale(1); opacity: 0.66; }
-}
-
-/* HERO SPECIMEN — the continuous zoom & drift. A large line-drawn flower with
-   a big veined leaf, anchored at the panel's centre. livingFlora carries it
-   from fully in-frame (0%) out past the boundaries (100%), where the leaf
-   veins fill the panel, softly rotating throughout; `alternate` in the
-   shorthand breathes it back down rather than snapping. The -50%/-50% base
-   offset is folded into every keyframe so the scale always pivots on the
-   middle of the specimen. */
-.ff-lb-hero {
-    position: absolute;
-    top: 50%; left: 50%;
-    width: min(760px, 116%);
-    aspect-ratio: 1 / 1;
-    color: #4C6650;                 /* sage-600 stroke */
-    opacity: 0.5;
-    will-change: transform, opacity;
-    animation: ff-lb-livingFlora 18s ease-in-out infinite alternate;
-}
-.ff-lb-hero svg { width: 100%; height: 100%; display: block; }
-@keyframes ff-lb-livingFlora {
-    0%   { transform: translate3d(-50%, -50%, 0) scale(0.78) rotate(-7deg); opacity: 0.42; }
-    50%  { transform: translate3d(-47%, -53%, 0) scale(1.16) rotate(2deg);  opacity: 0.6; }
-    100% { transform: translate3d(-53%, -47%, 0) scale(1.72) rotate(9deg);  opacity: 0.5; }
-}
-
-/* DRIFTING FOLIAGE — five leaves on independent planes, each rocking and
-   drifting with parallax on its own clock (8 / 11 / 14 / 18 / 22s). Varied
-   positions, sizes and opacities give the layers depth; negative delays keep
-   them out of phase. */
-.ff-lb-leaf {
-    position: absolute;
-    color: #5F7A63;
-    will-change: transform;
-}
-.ff-lb-leaf svg { display: block; width: 100%; height: 100%; }
-.ff-lb-leaf--1 { top: 16%; left: 10%;  width: 52px; opacity: 0.34;                 animation: ff-lb-drift-a 8s  ease-in-out infinite alternate; }
-.ff-lb-leaf--2 { top: 66%; left: 16%;  width: 40px; opacity: 0.26; color: #7C9781; animation: ff-lb-drift-b 14s ease-in-out infinite alternate -3s; }
-.ff-lb-leaf--3 { top: 28%; right: 12%; width: 46px; opacity: 0.30;                 animation: ff-lb-drift-c 22s ease-in-out infinite alternate -8s; }
-.ff-lb-leaf--4 { top: 74%; right: 18%; width: 34px; opacity: 0.22; color: #7C9781; animation: ff-lb-drift-a 18s ease-in-out infinite alternate -5s; }
-.ff-lb-leaf--5 { top: 46%; left: 50%;  width: 30px; opacity: 0.20;                 animation: ff-lb-drift-b 11s ease-in-out infinite alternate -6s; }
-@keyframes ff-lb-drift-a {
-    from { transform: translate3d(0, 0, 0) rotate(-8deg); }
-    to   { transform: translate3d(20px, 32px, 0) rotate(12deg); }
-}
-@keyframes ff-lb-drift-b {
-    from { transform: translate3d(0, 0, 0) rotate(8deg); }
-    to   { transform: translate3d(-26px, 24px, 0) rotate(-12deg); }
-}
-@keyframes ff-lb-drift-c {
-    from { transform: translate3d(0, 0, 0) rotate(-5deg); }
-    to   { transform: translate3d(18px, -30px, 0) rotate(14deg); }
-}
-
-/* Mono "technical botanical markers" under the heading — a specimen-label
-   register that plays against the Fraunces display type. */
-.ff-lb-markers {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.25rem;
-}
-.ff-lb-marker {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #4C6650;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-.ff-lb-marker::before {
-    content: '';
-    width: 0.375rem;
-    height: 0.375rem;
-    border-radius: 9999px;
-    background: #7C9781;
-}
-
-/* Reduced motion: freeze the whole scene, and pin the hero fully in frame so
-   it can never rest mid-zoom. Nothing is hidden — the composition is still
-   there, just still. */
-@media (prefers-reduced-motion: reduce) {
-    .ff-lb-glow,
-    .ff-lb-hero,
-    .ff-lb-leaf {
-        animation: none !important;
-    }
-    .ff-lb-hero { transform: translate3d(-50%, -50%, 0) scale(1); }
-}
-
-
-/* ============================================================================
    REDUCED MOTION, CHOSEN IN THE APP — html.ff-reduce-motion
    ----------------------------------------------------------------------------
    prefs.js sets this class from the Motion switch on /dashboard, for a reader
    whose OS has no such setting (or who wants the site still without making
-   every site still). The eleven `prefers-reduced-motion` blocks above stay
+   every site still). The nine `prefers-reduced-motion` blocks above stay
    exactly as they are: they answer the OS, this answers the app.
 
-   Deliberately NOT eleven duplicated blocks. Two reasons it collapses
+   Deliberately NOT nine duplicated blocks. Two reasons it collapses
    durations instead of writing `animation: none`:
 
-     - one selector list cannot drift out of step with eleven others as new
+     - one selector list cannot drift out of step with nine others as new
        animations arrive;
      - `animation: none` reverts an element to its BASE style, which for
        anything animated in with `both`/`forwards` fill (.fade-in, .ff-fade-in)
@@ -1470,18 +1299,11 @@ html.ff-reduce-motion *::after {
    sheet order relative to this file is not ours to rely on. */
 html.ff-reduce-motion { scroll-behavior: auto !important; }
 
-/* The two rest states a duration collapse cannot infer, mirrored from the
-   media blocks at lines 1270 and 1426.
-
-   .reveal-up is revealed by a JS class, so collapsing the transition would
-   only make it snap in when the observer fires; with motion off it should
-   simply be there. .ff-lb-hero carries no transform of its own -- the keyframes
-   supply it -- so reverting to base would drop the login hero half out of
-   frame at top: 50%; left: 50% with no centring translate. */
+/* The one rest state a duration collapse cannot infer, mirrored from the
+   media block at line 1257: .reveal-up is revealed by a JS class, so
+   collapsing the transition would only make it snap in when the observer
+   fires; with motion off it should simply be there. */
 html.ff-reduce-motion .reveal-up {
     opacity: 1;
     transform: none;
-}
-html.ff-reduce-motion .ff-lb-hero {
-    transform: translate3d(-50%, -50%, 0) scale(1);
 }

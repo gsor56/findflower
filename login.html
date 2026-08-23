@@ -5,23 +5,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Sign In | Save Your Flower Identification History — FindFlower</title>
-    <meta name="description" content="Sign in to keep your botanist streak, scan history, and field badges under your own account. The scanner itself stays free and works without an account.">
+    <title>FindFlower — Sign in</title>
+    <meta name="description" content="Sign in to keep your scans, streak and badges under your own account. They stay in this browser, and the scanner works without an account.">
     <link rel="canonical" href="https://findflower.me/login">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/login">
-    <meta property="og:title" content="Sign In | Save Your Flower Identification History — FindFlower">
-    <meta property="og:description" content="Sign in to keep your botanist streak, scan history, and field badges under your own account. The scanner itself stays free and works without an account.">
+    <meta property="og:title" content="FindFlower — Sign in">
+    <meta property="og:description" content="Sign in to keep your scans, streak and badges under your own account. They stay in this browser, and the scanner works without an account.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Sign In | Save Your Flower Identification History — FindFlower">
-    <meta name="twitter:description" content="Sign in to keep your botanist streak, scan history, and field badges under your own account. The scanner itself stays free and works without an account.">
+    <meta name="twitter:title" content="FindFlower — Sign in">
+    <meta name="twitter:description" content="Sign in to keep your scans, streak and badges under your own account. They stay in this browser, and the scanner works without an account.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=8">
+    <link rel="stylesheet" href="app.css?v=9">
     <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
-    <script src="nav.js?v=3" defer></script>
+    <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
@@ -66,16 +66,43 @@
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
-        .grid-dots {
-            background-image: radial-gradient(rgba(23, 23, 23, 0.05) 1px, transparent 1px);
-            background-size: 28px 28px;
-            -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, black 0%, transparent 75%);
-            mask-image: radial-gradient(ellipse 60% 50% at 50% 40%, black 0%, transparent 75%);
-        }
-        .cta-arrow { transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-        .group:hover .cta-arrow { transform: translateX(4px); }
         .spin { animation: spin .9s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Sign-in background. Decoration only, so it takes no taps and carries
+           no meaning. It drifts one wave length every 80s and rests correctly
+           at either end of that shift, which is why reduced motion can simply
+           stop it instead of pinning a transform back. */
+        .ff-signin-bg {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 220px;
+            overflow: hidden;
+            pointer-events: none;
+            /* The waves fade out before they reach the copy above them, so no
+               line ever runs through a sentence. */
+            -webkit-mask-image: linear-gradient(to top, #000 32%, transparent);
+            mask-image: linear-gradient(to top, #000 32%, transparent);
+        }
+        .ff-signin-bg svg {
+            display: block;
+            width: 200%;
+            height: 100%;
+            animation: ffSigninDrift 80s linear infinite;
+        }
+        @keyframes ffSigninDrift {
+            to { transform: translate3d(-25%, 0, 0); }
+        }
+        /* A phone has far less room under the card, so the band shrinks rather
+           than sliding under the closing paragraph. */
+        @media (max-width: 640px) {
+            .ff-signin-bg { height: 160px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .ff-signin-bg svg { animation: none; }
+        }
     
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
            on a phone. Every control clears the 44px minimum. min-height is
@@ -92,7 +119,7 @@
 <body class="selection:bg-sage-100 selection:text-sage-700 min-h-screen flex flex-col">
 
     <!-- HEADER (shared) -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -113,204 +140,99 @@
             </nav>
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
     </header>
 
-    <!-- LOGIN · split composition
-         LEFT (lg:w-3/5) — a viewport-filling living botanical stage under bold
-         editorial text. RIGHT (lg:w-2/5) — the frosted Auth0 deck, structurally
-         isolated in its own column so the motion flows underneath it and never
-         obstructs readability. On mobile the panels stack, stage first. -->
-    <main class="flex-1 flex flex-col lg:flex-row relative overflow-hidden">
+    <!-- LOGIN · one centred column. The card is the only interactive thing on
+         the page, so nothing sits beside it competing for attention. The line
+         work behind it is decoration: aria-hidden, and pointer-events off in
+         the rule, so it can never swallow a tap meant for the button. -->
+    <main class="flex-1 relative overflow-hidden flex items-center justify-center px-6 pt-28 pb-20">
 
-        <!-- LEFT · living botanical panel -->
-        <section class="ff-lb-panel relative w-full lg:w-3/5 overflow-hidden flex items-center px-6 sm:px-10 lg:px-16 pt-28 lg:pt-24 pb-14 lg:pb-16 min-h-[46vh] lg:min-h-0">
+        <!-- Five hairline contour waves. Each path is one q segment followed by
+             repeated t, which mirrors the previous control point, so the curve
+             stays continuous without listing every control point by hand. The
+             wave repeats every 360 units and the drift shifts exactly two of
+             those periods, so the loop has no visible seam. -->
+        <div class="ff-signin-bg" aria-hidden="true">
+            <svg viewBox="0 0 2880 320" preserveAspectRatio="none" fill="none" stroke="#C9D6CB" stroke-width="1">
+                    <path d="M0 60 q90 -34 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
+                    <path d="M0 116 q90 -30 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
+                    <path d="M0 170 q90 -26 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
+                    <path d="M0 222 q90 -22 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
+                    <path d="M0 272 q90 -18 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
+            </svg>
+        </div>
 
-            <!-- Animation stage. Purely decorative: aria-hidden and
-                 pointer-events:none (app.css) so it can never catch a tap. A
-                 continuously zooming/drifting hero specimen, two drifting glows,
-                 and five leaves rocking on independent planes — transform/opacity
-                 only, clipped to this panel, frozen under prefers-reduced-motion. -->
-            <div class="ff-lb-stage" aria-hidden="true">
-                <span class="ff-lb-glow ff-lb-glow--a"></span>
-                <span class="ff-lb-glow ff-lb-glow--b"></span>
+        <div class="relative w-full max-w-md">
+            <h1 id="authTitle" class="font-serif text-3xl sm:text-4xl font-normal tracking-tight text-neutral-900 text-center mb-3">
+                Every bloom you find,<br>kept in one place.
+            </h1>
+            <p id="authBlurb" class="text-sm text-neutral-500 font-light text-center mb-8 leading-relaxed">
+                Sign in to keep your scans, streak and badges under your own account.
+            </p>
 
-                <!-- Hero specimen: a line-drawn flower with a large veined leaf.
-                     As livingFlora scales it past the frame, the leaf's vein work
-                     fills the panel; `alternate` breathes it back down. -->
-                <div class="ff-lb-hero">
-                    <svg viewBox="0 0 400 400" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <!-- main stem -->
-                        <path d="M232 384C230 320 226 250 236 150"/>
-
-                        <!-- large veined leaf (lower-left) — the intricate detail
-                             revealed as the specimen zooms out past the boundary -->
-                        <path d="M236 300C176 300 108 270 60 190C138 168 214 214 236 300Z"/>
-                        <path d="M78 196C132 226 196 268 234 298"/>      <!-- midrib -->
-                        <path d="M104 208C112 224 120 240 126 254"/>
-                        <path d="M132 224C142 238 152 252 158 266"/>
-                        <path d="M162 244C172 256 182 268 188 280"/>
-                        <path d="M120 200C112 214 108 226 108 240"/>
-                        <path d="M150 218C144 232 142 244 144 258"/>
-                        <path d="M182 238C178 252 178 264 182 276"/>
-
-                        <!-- secondary leaf (right) -->
-                        <path d="M236 252C278 248 322 260 350 302C306 308 262 294 236 252Z"/>
-                        <path d="M256 264C286 278 318 292 344 300"/>
-                        <path d="M280 268C278 282 280 294 286 304"/>
-
-                        <!-- flower head — eight radial petals + centre, at (236,110) -->
-                        <g>
-                            <ellipse cx="236" cy="66" rx="17" ry="44"/>
-                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(45 236 110)"/>
-                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(90 236 110)"/>
-                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(135 236 110)"/>
-                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(180 236 110)"/>
-                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(225 236 110)"/>
-                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(270 236 110)"/>
-                            <ellipse cx="236" cy="66" rx="17" ry="44" transform="rotate(315 236 110)"/>
-                            <circle cx="236" cy="110" r="16"/>
-                        </g>
-                    </svg>
-                </div>
-
-                <!-- Drifting foliage (single reusable leaf glyph; each plane's
-                     position, size and clock come from the --n variants). -->
-                <span class="ff-lb-leaf ff-lb-leaf--1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-                <span class="ff-lb-leaf ff-lb-leaf--2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-                <span class="ff-lb-leaf ff-lb-leaf--3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-                <span class="ff-lb-leaf ff-lb-leaf--4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-                <span class="ff-lb-leaf ff-lb-leaf--5"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C7 20 3 15 3 9c0-3 1-6 2-7 5 2 9 6 10 12M12 22c5-2 9-7 9-13 0-3-1-6-2-7-4 1.6-7.4 5-8.6 9.6M12 22V8"/></svg></span>
-            </div>
-
-            <!-- Editorial text, above the stage -->
-            <div class="relative z-10 max-w-xl">
-                <span class="text-sm font-medium text-sage-600 mb-5 block">Your field notebook</span>
-                <h2 class="font-serif text-4xl sm:text-5xl xl:text-6xl font-normal tracking-tight text-neutral-900 leading-[1.05] mb-7">
-                    Every bloom you find,<br><span class="italic text-sage-600">kept in one place.</span>
-                </h2>
-
-                <!-- Technical botanical markers -->
-                <div class="ff-lb-markers mb-8">
-                    <span class="ff-lb-marker">116 classes</span>
-                    <span class="ff-lb-marker">Vision Transformer</span>
-                    <span class="ff-lb-marker">No account needed</span>
-                </div>
-
-                <blockquote class="border-l-2 border-sage-200 pl-4 text-lg text-neutral-600 font-light leading-relaxed mb-9 max-w-md">
-                    Every scan you keep, the streak you build and the badges you earn stay in this browser, attached to your account the moment you sign in.
-                </blockquote>
-                <ul class="space-y-4 text-sm text-neutral-600 font-light">
-                    <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
-                        </span>
-                        A living history of every species you identify
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="m12 2 2.4 7.4H22l-6 4.4 2.3 7.2-6.3-4.6-6.3 4.6L8 13.8 2 9.4h7.6z"/></svg>
-                        </span>
-                        Streaks and field badges that grow as you explore
-                    </li>
-                    <li class="flex items-center gap-3">
-                        <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center flex-shrink-0">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                        </span>
-                        Your photo is sent to be identified, and no copy is kept
-                    </li>
-                </ul>
-            </div>
-        </section>
-
-        <!-- RIGHT · Auth0 deck. Its own column with a solid ground, so the
-             left panel's motion flows up to its edge and stops — the card stays
-             perfectly legible. All auth IDs and the script below are unchanged. -->
-        <div class="relative w-full lg:w-2/5 flex items-center justify-center px-6 pt-14 lg:pt-24 pb-16 bg-[#FCFCFC]">
-            <div class="w-full max-w-md">
-                <div class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-lift p-8 md:p-10">
-                <!-- Brand mark -->
-                <div class="flex justify-center mb-7">
-                    <div class="w-12 h-12 rounded-2xl bg-sage-50 flex items-center justify-center">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                    </div>
-                </div>
-
-                <h1 id="authTitle" class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 text-center mb-2">Sign in to FindFlower</h1>
-                <p id="authBlurb" class="text-neutral-500 font-light text-center mb-8 leading-relaxed">
-                    Keep your scans, streaks, and botanical collection under your own account. The scanner stays free and works without an account.
-                </p>
-
+            <div class="bg-white border border-neutral-200 rounded-lg p-6 sm:p-8">
                 <!-- Loading -->
-                <div id="authLoading" class="flex flex-col items-center py-6">
+                <div id="authLoading" class="flex flex-col items-center py-4">
                     <svg class="spin text-sage-500 mb-3" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
-                    <p class="text-sm text-neutral-400 font-light">Preparing secure sign-in…</p>
+                    <p class="text-sm text-neutral-400 font-light">Checking your sign-in…</p>
                 </div>
 
                 <!-- Signed-out: sign-in button -->
                 <div id="authSignedOut" class="hidden">
-                    <button id="loginBtn" data-haptic class="soft-click group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition flex items-center justify-center gap-2">
+                    <button id="loginBtn" data-haptic class="soft-click w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition flex items-center justify-center">
                         Continue with Auth0
-                        <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </button>
                     <p class="text-xs text-neutral-400 font-light text-center mt-4 leading-relaxed">
-                        Authentication is handled securely by Auth0. FindFlower never sees your password.
+                        Authentication is handled by Auth0. FindFlower never sees your password.
                     </p>
                 </div>
 
                 <!-- Signed-in -->
                 <div id="authSignedIn" class="hidden text-center">
-                    <div class="flex items-center justify-center gap-3 mb-6 p-4 rounded-2xl bg-neutral-50 border border-neutral-100">
-                        <div class="w-10 h-10 rounded-full bg-sage-100 flex items-center justify-center flex-shrink-0">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        </div>
-                        <div class="text-left min-w-0">
-                            <p class="text-sm font-medium text-neutral-900 truncate" id="userName">—</p>
-                            <p class="text-xs text-neutral-500 font-light truncate" id="userEmail">—</p>
-                        </div>
+                    <div class="text-left mb-6 p-4 rounded-md border border-neutral-200">
+                        <p class="text-sm font-medium text-neutral-900 truncate" id="userName">—</p>
+                        <p class="text-xs text-neutral-500 font-light truncate" id="userEmail">—</p>
                     </div>
                     <!-- Signed in, your own dashboard is the destination. Sending an
                          authenticated user to the API page instead stranded them on
                          developer docs they never asked for. -->
-                    <a href="/dashboard" class="group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2 mb-3">
+                    <a href="/dashboard" class="w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors flex items-center justify-center mb-3">
                         Go to Dashboard
-                        <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
-                    <a href="/api" class="block w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-full hover:text-neutral-900 transition-colors">View API docs</a>
-                    <button id="logoutBtn" data-haptic class="soft-click w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-full hover:text-neutral-900 transition">Sign out</button>
+                    <a href="/api" class="block w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-md hover:text-neutral-900 transition-colors">View API docs</a>
+                    <button id="logoutBtn" data-haptic class="soft-click w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-md hover:text-neutral-900 transition">Sign out</button>
                 </div>
 
                 <!-- Not configured notice -->
                 <div id="authSetup" class="hidden">
-                    <div class="rounded-2xl border border-neutral-200 bg-neutral-50 p-5">
-                        <div class="flex items-center gap-2 mb-3">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-600"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="10"/></svg>
-                            <p class="text-sm font-medium text-neutral-900">Auth0 setup required</p>
-                        </div>
-                        <p class="text-sm text-neutral-500 font-light leading-relaxed mb-3">
-                            Sign-in isn’t active yet. Add your Auth0 <span class="font-mono text-neutral-700">domain</span> and
-                            <span class="font-mono text-neutral-700">clientId</span> in <span class="font-mono text-neutral-700">auth.js</span>,
-                            then set the callback URLs in your Auth0 application.
-                        </p>
-                        <ul class="text-xs text-neutral-500 font-light space-y-1.5">
-                            <li>• Callback: <span class="font-mono text-neutral-700">http://localhost:8000/login.html</span></li>
-                            <li>• Logout: <span class="font-mono text-neutral-700">http://localhost:8000/index.html</span></li>
-                            <li>• Web Origin: <span class="font-mono text-neutral-700">http://localhost:8000</span></li>
-                        </ul>
-                    </div>
+                    <p class="text-sm font-medium text-neutral-900 mb-3">Auth0 setup required</p>
+                    <p class="text-sm text-neutral-500 font-light leading-relaxed mb-3">
+                        Sign-in isn’t active yet. Add your Auth0 <span class="font-mono text-neutral-700">domain</span> and
+                        <span class="font-mono text-neutral-700">clientId</span> in <span class="font-mono text-neutral-700">auth.js</span>,
+                        then set the callback URLs in your Auth0 application.
+                    </p>
+                    <ul class="text-xs text-neutral-500 font-light space-y-1.5">
+                        <li>Callback: <span class="font-mono text-neutral-700">http://localhost:8000/login.html</span></li>
+                        <li>Logout: <span class="font-mono text-neutral-700">http://localhost:8000/index.html</span></li>
+                        <li>Web Origin: <span class="font-mono text-neutral-700">http://localhost:8000</span></li>
+                    </ul>
                 </div>
             </div>
 
-                <p class="text-center text-xs text-neutral-400 font-light mt-6">
-                    By continuing you agree to the FindFlower <a href="/terms" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Terms</a> and <a href="/privacy" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Privacy Policy</a>.
-                </p>
-            </div><!-- /right column -->
-        </div><!-- /split grid -->
+            <p class="text-center text-xs text-neutral-400 font-light mt-5">
+                By continuing you agree to the FindFlower <a href="/terms" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Terms</a> and <a href="/privacy" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Privacy Policy</a>.
+            </p>
+
+            <p class="text-center text-sm text-neutral-500 font-light mt-10 leading-relaxed">
+                Your scans, streak and badges stay in this browser. The scanner works without an account, and no copy of your photo is kept.
+            </p>
+        </div>
     </main>
 
     <!-- FOOTER (shared, compact) -->
