@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -8,14 +7,10 @@
     <title>Profile — FindFlower</title>
     <meta name="description" content="A botanist's card: what they have identified, how long their streak is, and the badges they hold. Profiles are stored in this browser only.">
     <link rel="canonical" href="https://findflower.me/profile">
-    <!-- noindex, and Disallowed in robots.txt: a profile row exists only in the
-         browser it was created in, so an indexed /profile would be a page that
-         is empty for every visitor who is not the person who made it. -->
     <meta name="robots" content="noindex">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
@@ -23,22 +18,12 @@
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <script src="auth.js?v=3"></script>
     <script src="storage.js"></script>
-    <!-- The deployed backend. Left unset on a local origin, where social.js
-         already points at 127.0.0.1:4000: the local server process and the QA
-         stub both listen there. -->
     <script>
         if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
             window.FF_SOCIAL_API = 'https://findflower-social.onrender.com';
         }
     </script>
-    <!-- Listed ahead of the view that uses it: deferred scripts run in document
-         order, so window.ffSocial exists before the card asks whether there is
-         a server to read ?handle= from. -->
     <script src="scripts/social.js?v=1" defer></script>
-    <!-- The card is built entirely by its view module, on a real load and on a
-         router swap alike. There is no inline engine here to double up with, so
-         views/profile.js has no `initial` guard: the router calls mount() for
-         the first paint too. -->
     <script src="scripts/views/profile.js" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
@@ -65,8 +50,6 @@
         .reveal-up { opacity:0; transform:translateY(24px); transition:opacity .9s cubic-bezier(0.16,1,0.3,1), transform .9s cubic-bezier(0.16,1,0.3,1); }
         .reveal-up.active { opacity:1; transform:translateY(0); }
 
-        /* An identity card, not a dashboard: one surface, one border, and rules
-           between its rows instead of a stack of tinted boxes. */
         .ff-id { background:#FFFFFF; border:1px solid #E5E5E5; }
         .ff-id-row { border-top:1px solid #F5F5F5; }
         .ff-stat-n { font-variant-numeric:tabular-nums; }
@@ -77,10 +60,6 @@
             .reveal-up { opacity:1; transform:none; }
         }
 
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -91,8 +70,6 @@
 </head>
 <body class="font-sans antialiased selection:bg-sage-100 selection:text-sage-700">
 
-    <!-- Kept as the no-JS fallback. nav.js replaces this whole element with the
-         canonical header once the DOM is parsed. -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-200">
         <div class="max-w-3xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
             <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -121,10 +98,6 @@
                     works without scripting.
                 </p>
             </noscript>
-
-            <!-- Every state below ships hidden and views/profile.js unhides
-                 exactly one. Nothing here can be rendered without reading
-                 IndexedDB first, so there is no "correct" static default. -->
 
             <section id="pfGuest" class="hidden">
                 <h1 class="text-2xl sm:text-3xl font-medium tracking-tight text-neutral-900">Sign in to have a profile</h1>
@@ -157,15 +130,10 @@
                     This card is set to private. Its badges, streak and friends are not shown to
                     other accounts on this device.
                 </p>
-                <!-- A server card that is private says so in different words: what
-                     is withheld there is the posts, not this browser's rows. -->
                 <p id="pfPrivateNote" class="hidden text-neutral-500 leading-relaxed mt-3 max-w-prose"></p>
                 <a href="/community" class="inline-block text-sm font-medium text-neutral-700 border border-neutral-200 px-5 py-2.5 rounded hover:bg-neutral-50 transition mt-6">Community</a>
             </section>
 
-            <!-- ?handle= read a server card and the server had nothing under that
-                 handle, or did not answer at all. Distinct from pfMissing, which
-                 is about this browser's own storage. -->
             <section id="pfRemoteMiss" class="hidden">
                 <h1 id="pfRemoteMissTitle" class="text-2xl sm:text-3xl font-medium tracking-tight text-neutral-900"></h1>
                 <p id="pfRemoteMissNote" class="text-neutral-500 leading-relaxed mt-3 max-w-prose"></p>
@@ -183,27 +151,18 @@
                         <p id="pfJoined" class="text-xs text-neutral-400 mt-1.5"></p>
                         <p id="pfHandle" class="text-xs text-neutral-400 mt-1"></p>
                         <p id="pfBio" class="hidden text-sm text-neutral-600 leading-relaxed mt-3 break-words"></p>
-                        <!-- The two cards hold different things: this browser's
-                             identifications on one side, the posts the server
-                             holds on the other. Shown only when both exist. -->
                         <p id="pfPublicLine" class="hidden text-xs mt-2">
                             <a id="pfPublicLink" href="/profile" class="text-sage-600 hover:text-sage-700 underline underline-offset-2"></a>
                         </p>
                     </div>
                 </div>
 
-                <!-- Own card only: the file input is the control, the label is
-                     the button. No preview step -- the picture is downscaled,
-                     stored and repainted in one action, so the card itself is
-                     the confirmation. -->
                 <div id="pfAvatarRow" class="hidden px-5 sm:px-7 pb-5 sm:pb-6">
                     <input id="pfAvatarFile" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only">
                     <label for="pfAvatarFile" class="inline-flex items-center text-sm font-medium text-neutral-700 border border-neutral-200 px-4 py-2 rounded hover:bg-neutral-50 transition cursor-pointer">Choose a picture</label>
                     <p id="pfAvatarNote" class="text-xs text-neutral-400 mt-2">Stored in this browser at 160&nbsp;pixels, as part of your profile row.</p>
                 </div>
 
-                <!-- Own server card only. The bio is a field the server holds, so
-                     this is the one place in the app that can write it. -->
                 <form id="pfBioEdit" class="hidden px-5 sm:px-7 pb-5 sm:pb-6">
                     <label for="pfBioText" class="block text-xs text-neutral-500">Bio</label>
                     <textarea id="pfBioText" rows="3" maxlength="280"
@@ -231,11 +190,6 @@
                     </div>
                 </div>
 
-                <!-- The server card counts different things: a streak and a species
-                     total are built from scans this browser holds, and another
-                     person's scans are not in it. Posts are the server's own
-                     count; the identification total is whatever their browser
-                     last reported, so it stays a dash until one arrives. -->
                 <div id="pfRemoteStats" class="hidden ff-id-row grid grid-cols-2">
                     <div class="p-4 sm:p-5 text-center">
                         <p id="pfThreads" class="ff-stat-n text-2xl font-medium text-neutral-900">0</p>
@@ -262,9 +216,6 @@
                     <p id="pfBadgesEmpty" class="hidden text-sm text-neutral-400 mt-3">None earned yet.</p>
                 </section>
 
-                <!-- The tab strip is written by the view, not here: which lists a
-                     card can offer depends on where it is being read from. A
-                     server card seen by somebody else can only show posts. -->
                 <section id="pfLists" class="ff-id-row px-5 sm:px-7 py-5 sm:py-6">
                     <div id="pfTabs" class="flex flex-wrap gap-1" role="tablist" aria-label="Lists on this card"></div>
                     <div id="pfPanel" role="tabpanel" class="mt-4"></div>

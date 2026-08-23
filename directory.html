@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -19,21 +18,12 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
-    <!-- The three halves of a grid, split so every surface shares them:
-         api.js fetches (Trefle, Wikidata fallback), ui.js draws the card, and
-         directory.js is the engine that pages and renders. The block at the
-         bottom of this page is now just a mount() call. All deferred, so they
-         run in order and are ready by DOMContentLoaded, which is what that
-         block waits for. -->
     <script src="scripts/api.js?v=1" defer></script>
     <script src="scripts/ui.js?v=1" defer></script>
-    <!-- SPA: views/directory.js starts the same engine on a client-side
-         revisit, when the inline block below has already run once. -->
     <script src="directory.js" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/views/directory.js" defer></script>
@@ -79,8 +69,6 @@
             -moz-osx-font-smoothing: grayscale;
         }
         .tap { min-height: 44px; min-width: 44px; }
-        /* Cards render through ffUi (scripts/ui.js), which emits .ff-card.
-           .card-shell is kept for any markup that predates the shared engine. */
         .card-shell, .ff-card { content-visibility: auto; }
         @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
         .skeleton {
@@ -95,10 +83,6 @@
             .fade-in { animation: none; }
         }
     
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -117,8 +101,6 @@
                 </svg>
                 FindFlower
             </a>
-            <!-- Canonical fallback link set (nav.js swaps this for the real
-                 header on load). Directory is the active page. -->
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
                 <a href="/how" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="/pricing" class="hover:text-neutral-900 transition-colors">Pricing</a>
@@ -186,33 +168,13 @@
         </footer>
     </noscript></div>
 
-    <!-- The encyclopedia grid.
-
-         This used to be a ~320-line inline copy of the whole engine: the SPARQL
-         query, paging, dedupe, buffering, skeletons, culling. directory.js held
-         a second copy for the dashboard and scanner embeds, and the two were
-         free to drift -- the query's ORDER BY, which is what stops LIMIT/OFFSET
-         pages from repeating cards, existed twice.
-
-         Now there is one engine (directory.js) over one fetcher (scripts/api.js)
-         and one card renderer (scripts/ui.js), and this block just starts it.
-
-         data-ff-once still matters. On a router visit scripts/views/directory.js
-         starts that same engine, and re-running this block too would put two
-         engines on one #dirGrid, double-fetching and duplicating cards. See
-         runScripts() in scripts/router.js. -->
     <script data-ff-once>
     (function () {
         'use strict';
 
-        // directory.js is deferred, so it has not executed yet at this point in
-        // the parse. Deferred scripts all run before DOMContentLoaded, so
-        // waiting for that event is what makes ffDirectory available here.
         document.addEventListener('DOMContentLoaded', function () {
             var countEl = document.getElementById('dirCount');
             if (!window.ffDirectory || typeof ffDirectory.mount !== 'function') {
-                // No engine means no grid, ever. Say so rather than leave
-                // "Loading species..." up forever.
                 if (countEl) countEl.textContent = '';
                 var box = document.getElementById('dirError');
                 if (box) box.classList.remove('hidden');
@@ -228,26 +190,17 @@
                 retryBtn:   document.getElementById('dirRetry'),
                 infinite:   true,
                 link:       'species',
-                // 400px, not the 500 default: this grid is four columns wide on
-                // a desktop and two on a phone, so the smaller thumbnail is the
-                // one that actually gets displayed.
                 thumbWidth: 400,
                 onCount: function (n) {
                     if (countEl) countEl.textContent = n + ' species loaded';
                 },
                 onError: function (err, rendered) {
-                    // With cards already up, the error box stays hidden (it
-                    // would push the grid down); the counter carries the news
-                    // instead, and the next scroll retries.
                     if (rendered && countEl) {
                         countEl.textContent = rendered + ' species loaded · scroll to retry';
                     }
                 },
             });
 
-            // Hand the running engine to the view module. Without this, routing
-            // AWAY from a directly-loaded directory.html leaves this engine's
-            // IntersectionObserver and scroll listener alive on a detached grid.
             window.ffDirectoryInline = handle;
             handle.start();
         });

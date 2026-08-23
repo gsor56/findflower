@@ -1,36 +1,3 @@
-// scripts/search.js — the dashboard search palette (window.ffSearch).
-//
-// Ctrl+K, or the #ffSearchOpen trigger on the pages that carry one — the
-// dashboard, and /404 where a search is the fastest way out. Three sources, and
-// every one
-// of them is real data this site already has:
-//
-//   your scans   ffStore.listSpecies() — the distinct species in your history,
-//                read from the [userId, species] index keys, so a thousand
-//                scans cost a few hundred short strings instead of every
-//                base64 thumbnail.
-//   species      trefle-data.json (the ~40 prebuilt records, same-origin and
-//                instant) and then ffApi.searchSpecies() through the Worker for
-//                the long tail. The live half is debounced, and when it fails
-//                the palette says so — an empty list would read as "no such
-//                flower", which is a different answer.
-//   pages        the routes this site serves, plus the four panels on this
-//                page. Those are real ids on real <section>s.
-//
-//   botanists   ffStore.listUsers() — the ff_users rows this browser holds.
-//               That is every account that has signed in on this device and
-//               nobody else: there is no server to ask about anyone further.
-//               The section is absent when nothing matches, like the others.
-//
-// Rows are <a href>. router.js already owns a delegated click handler that
-// knows a same-page fragment from a clean path; a palette that navigated by
-// itself would be a second, worse copy of it. Enter calls .click() on the
-// highlighted row and lets that handler do its job.
-//
-// Opening is refused while the drawer or the auth wall owns the screen. Both of
-// those save and restore document.body.style.overflow, and a second overlay
-// doing the same thing unlocks the page underneath the first one — the failure
-// mode nav.js's setSidebar() documents.
 (function () {
     'use strict';
 
@@ -48,8 +15,6 @@
         return String(s || '').trim().toLowerCase();
     }
 
-    // Long enough that a two-key burst is one request, short enough that it
-    // still feels like typing. The local half answers on every keystroke.
     var LIVE_DEBOUNCE = 260;
 
     var MAX_SCANS = 6;
@@ -58,16 +23,8 @@
     var MAX_PAGES = 8;
     var MAX_USERS = 5;
 
-    // What the field claims to cover. The dashboard loads storage.js and so has
-    // scans and botanists to offer; a page that does not can name its own scope
-    // with data-placeholder on the trigger, rather than promise a section the
-    // palette will have no data for.
     var PLACEHOLDER = 'Search species, your scans and pages';
 
-    // Routes that exist. Every one of these answers 200 — the harness checks
-    // that separately, and nothing gets added here without a page behind it.
-    // The last five are anchors on this page: each <section> already carries
-    // the id and its own scroll-mt.
     var PAGES = [
         { label: 'Try Now', href: '/try', hint: 'Identify a flower from a photo' },
         { label: 'Directory', href: '/directory', hint: 'Browse the species catalogue' },
@@ -93,11 +50,6 @@
         { label: 'Storage on this device', href: '/dashboard#storageSection', hint: 'Export everything, or erase it' }
     ];
 
-    /** trefle-data.json, once per session. Shares species.js's sessionStorage
-     *  key on purpose: it is the same file, so a reader who has already opened
-     *  a species page this session pays nothing here. Missing or offline
-     *  resolves to {} — the palette loses its instant local hits and keeps
-     *  everything else. */
     var localPromise = null;
     function loadLocal() {
         if (localPromise) return localPromise;
@@ -105,12 +57,12 @@
             try {
                 var cached = sessionStorage.getItem('ff_trefle_map');
                 if (cached) return JSON.parse(cached);
-            } catch (e) { /* private window, or a corrupt entry */ }
+            } catch (e) { }
             try {
                 var res = await fetch('trefle-data.json');
                 if (!res.ok) return {};
                 var map = await res.json();
-                try { sessionStorage.setItem('ff_trefle_map', JSON.stringify(map)); } catch (e) { /* quota */ }
+                try { sessionStorage.setItem('ff_trefle_map', JSON.stringify(map)); } catch (e) { }
                 return map;
             } catch (e) {
                 return {};
@@ -119,23 +71,15 @@
         return localPromise;
     }
 
-    /** The species in this user's own history. Read once per open rather than
-     *  per keystroke: it is an IndexedDB round trip, and a history does not
-     *  change while the palette is up. */
     async function loadScans() {
         if (!window.ffStore || typeof ffStore.listSpecies !== 'function') return [];
         try {
             return await ffStore.listSpecies() || [];
         } catch (e) {
-            // Blocked or unavailable storage. Your-scans is one of three
-            // sections; losing it is not losing the palette.
             return [];
         }
     }
 
-    /** The ff_users rows. Read once per open for the same reason as the scans:
-     *  an IndexedDB round trip per keystroke buys nothing when the list cannot
-     *  change while the palette is up. */
     async function loadUsers() {
         if (!window.ffStore || typeof ffStore.listUsers !== 'function') return [];
         try {
@@ -145,8 +89,6 @@
         }
     }
 
-    /** An Auth0 sub is "auth0|68a…"; the tail is what tells two accounts on one
-     *  device apart, and it is what /profile prints on the card. */
     function shortId(sub) {
         var str = String(sub || '');
         var bar = str.indexOf('|');
@@ -192,9 +134,6 @@
         return out;
     }
 
-    /** The prebuilt records. Matched on the common name, the binomial and the
-     *  family, because all three are printed on the row and a match the reader
-     *  cannot see looks like a bug. */
     function matchLocal(map, q) {
         if (!q) return [];
         var out = [];
@@ -221,8 +160,6 @@
     var seq = 0, timer = null;
     var rows = [], sel = -1;
 
-    // The one icon in here. A magnifier on a search field reads as the control
-    // it is; a second icon on every row would be decoration.
     var SEARCH_ICON =
         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
             'stroke-width="1.8" stroke-linecap="round" class="text-neutral-400 shrink-0" aria-hidden="true">' +
@@ -267,9 +204,6 @@
         return el;
     }
 
-    /** What the live half of the species section has to say for itself, if
-     *  anything. An outage gets a line of its own, because the alternative is
-     *  a short list that looks complete. */
     function liveNote(q) {
         if (!q) return '';
         if (liveState === 'unavailable') return 'Live species search is unavailable right now.';
@@ -290,9 +224,6 @@
             liveItems.forEach(function (it) {
                 if (!it || !it.name || seen[fold(it.name)]) return;
                 seen[fold(it.name)] = 1;
-                // it.name verbatim: Trefle sends the common name when it has
-                // one and the binomial when it does not, and title-casing the
-                // second kind writes a name no botanist did.
                 species.push({ label: it.name, hint: it.family || '', href: it.link });
             });
         }
@@ -339,10 +270,6 @@
         });
 
         if (!rows.length) {
-            // "Nothing matched" is a claim about the catalogue, and it is not
-            // true yet while the request for it is still out. Which of the
-            // three it is -- still looking, could not look, looked and found
-            // nothing -- is the whole content of an empty result.
             html = '<div class="px-4 py-6">' + (liveState === 'loading'
                 ? '<p class="text-sm text-neutral-500">Searching the catalogue&hellip;</p>'
                 : '<p class="text-sm text-neutral-500">Nothing matched &ldquo;' +
@@ -358,8 +285,6 @@
         select(rows.length ? 0 : -1);
     }
 
-    /** Move the highlight. Wraps, because a list this short is quicker to walk
-     *  round than to reverse out of. */
     function select(i) {
         if (!rows.length) {
             sel = -1;
@@ -379,10 +304,6 @@
         }
     }
 
-    /** The live half, debounced, with a sequence number instead of an abort:
-     *  a response that is no longer the newest is dropped rather than allowed
-     *  to overwrite a fresher list. Under two characters is left to the local
-     *  records — "ro" would otherwise spend a request on every prefix. */
     function scheduleLive() {
         var raw = input.value.trim();
         var q = fold(raw);
@@ -410,10 +331,6 @@
 
     function trigger() { return document.getElementById('ffSearchOpen'); }
 
-    /** Another overlay already owns the screen. Both the drawer and the auth
-     *  wall save and restore document.body.style.overflow, so a second one
-     *  doing the same would unlock the page under the first — and a palette
-     *  over a sign-in wall is answering a question nobody asked. */
     function blocked() {
         var wall = document.getElementById('authWall');
         if (wall && !wall.classList.contains('hidden')) return true;
@@ -423,15 +340,9 @@
     }
 
     async function openPalette() {
-        // No trigger means this is not a page that offers search: after a
-        // client-side route away from the dashboard the button leaves with
-        // <main>, and Ctrl+K goes back to being the browser's.
         if (isOpen || !trigger() || blocked()) return;
         ensure();
         isOpen = true;
-        // Per open, not per build: the overlay is built once and outlives a
-        // client-side route, so a page with a narrower scope must not leave its
-        // placeholder behind on the next page's palette.
         input.placeholder = trigger().getAttribute('data-placeholder') || PLACEHOLDER;
         savedFocus = document.activeElement;
         savedOverflow = document.body.style.overflow;
@@ -442,13 +353,8 @@
         input.value = '';
         liveItems = []; liveQuery = ''; liveState = 'idle';
         render();
-        // Focus in the same task as the class flip. .ff-cmd.active drops the
-        // visibility delay for exactly this reason — see app.css's note on the
-        // drawer, where a focus() against a visibility:hidden node was dropped.
         input.focus();
 
-        // Both of these are awaited after the first paint: the palette opens on
-        // the routes it already has and repaints as the slower halves land.
         localMap = await loadLocal();
         if (!isOpen) return;
         render();
@@ -459,18 +365,11 @@
         if (isOpen) render();
     }
 
-    /**
-     * Close it.
-     *
-     * restoreFocus is false when a row was activated: the anchor's navigation
-     * is still in flight, the router is about to replace <main>, and pulling
-     * focus back to a button that is on its way out of the document fights it.
-     */
     function closePalette(restoreFocus) {
         if (!isOpen) return;
         isOpen = false;
         if (timer) { clearTimeout(timer); timer = null; }
-        seq++; // strands any request already in flight
+        seq++;
         el.classList.remove('active');
         el.setAttribute('aria-hidden', 'true');
         input.setAttribute('aria-activedescendant', '');
@@ -485,8 +384,6 @@
         savedFocus = null;
     }
 
-    /** Two tab stops, the input and the close button, so the trap is a pair of
-     *  edges rather than a query for everything focusable. */
     function trapTab(e) {
         var close = el.querySelector('.ff-cmd__close');
         if (!close) return;
@@ -496,16 +393,12 @@
         else if (on !== input && on !== close) { e.preventDefault(); input.focus(); }
     }
 
-    // Delegated, not bound to the button: the trigger lives inside <main>, so
-    // every client-side return to the dashboard brings a different node.
     document.addEventListener('click', function (e) {
         var t = e.target;
         if (!t || typeof t.closest !== 'function') return;
         if (t.closest('#ffSearchOpen')) { e.preventDefault(); openPalette(); return; }
         if (!isOpen) return;
         if (t.closest('[data-cmd-close]')) { e.preventDefault(); closePalette(true); return; }
-        // A row is a real link. Close and let it navigate: router.js's own
-        // document-level handler sees the same click and owns what happens next.
         if (t.closest('[data-cmd-row]')) closePalette(false);
     });
 
@@ -532,8 +425,6 @@
     window.ffSearch = {
         open: openPalette,
         close: function () { closePalette(true); },
-        // The route table, exposed so the harness can prove every row it can
-        // print resolves to a page that exists.
         PAGES: PAGES,
         get isOpen() { return isOpen; },
         get rowCount() { return rows.length; },

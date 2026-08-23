@@ -1,21 +1,3 @@
-/* FindFlower social API client.
-
-   One place that knows how to talk to server/ (Express + MongoDB Atlas), so no
-   view has to remember the base URL, the token flavour or which status code
-   means "you have no handle yet".
-
-   Where it talks to, in order:
-     window.FF_SOCIAL_API   set it to point a page at a deployed backend
-     http://127.0.0.1:4000  when the page itself is on localhost
-     nothing                any other origin
-
-   The published pages set FF_SOCIAL_API themselves, so that last case is what a
-   page that forgot to looks like. No hostname is invented here: ready() answers
-   false, and the views fall back to the local IndexedDB feed they have always
-   had -- which is also what a deployed backend that is asleep or down looks like.
-
-   Photos are not this file's business. Scan thumbnails and avatars live in the
-   browser (storage.js); what crosses the wire is text and ids. */
 (function () {
     'use strict';
 
@@ -39,9 +21,6 @@
         return null;
     }
 
-    /* The ID token by default: the server accepts the SPA client id as the
-       audience because no Auth0 API is registered yet. Set FF_SOCIAL_AUDIENCE
-       once one is, and this asks for an access token for it instead. */
     async function token() {
         var aud = typeof window.FF_SOCIAL_AUDIENCE === 'string' ? window.FF_SOCIAL_AUDIENCE : '';
         try {
@@ -53,9 +32,6 @@
         return null;
     }
 
-    /* Never throws and never returns undefined: { ok, status, data, error }.
-       A view can render an error message from this without a try/catch in its
-       own paint path. status 0 means the request never reached the server. */
     async function request(path, opts) {
         var o = opts || {};
         var base = baseUrl();
@@ -69,7 +45,6 @@
             head.Authorization = 'Bearer ' + t;
         }
 
-        // AbortSignal.timeout is not in every browser this site still supports.
         var ctrl = new AbortController();
         var timer = setTimeout(function () { ctrl.abort(); }, o.timeout || TIMEOUT_MS);
         var res;
@@ -101,12 +76,6 @@
         };
     }
 
-    /* Is there a server, and is it answering? Cached for 30s, and one probe is
-       shared by however many views ask at once during a page load.
-
-       timeout is for a caller that knows the backend may be asleep rather than
-       absent: a free Render instance takes most of a minute to start, which is
-       not a wait a first paint can afford but is one a retry can. */
     async function probe(force, timeout) {
         if (!baseUrl()) { health.ok = false; return false; }
         if (!force && health.at && Date.now() - health.at < HEALTH_TTL_MS) return health.ok;
@@ -125,9 +94,6 @@
         return !!baseUrl() && health.ok;
     }
 
-    /* A server post, in the row shape scripts/views/community.js already
-       renders, plus the fields only a server can know. userId carries the handle
-       so the existing profile link keeps working. */
     function postRow(p) {
         var a = p.author || null;
         return {
@@ -163,9 +129,6 @@
         });
     }
 
-    /* One post by id, for a link that names a thread the current page of the
-       feed may not contain. auth only changes likedByViewer and mine, so a
-       signed-out reader following a shared link still gets the post. */
     function post(id, auth) {
         return request('/api/posts/' + encodeURIComponent(id), { auth: !!auth }).then(function (r) {
             if (r.ok && r.data && r.data.post) r.data.row = postRow(r.data.post);
@@ -204,8 +167,6 @@
         });
     }
 
-    /* The caller's own row, or a 409 that means "signed in, no handle yet".
-       The id is kept so a feed can tell which posts are the viewer's. */
     function me() {
         return request('/api/users/me', { auth: true }).then(function (r) {
             if (r.ok && r.data && r.data.user) {
@@ -229,9 +190,6 @@
         });
     }
 
-    /* A public card is readable signed out, so the token is optional here: with
-       one the answer also carries isOwner, which is what tells the profile page
-       it is looking at its own row. */
     function profile(handle, auth) {
         return request('/api/users/' + encodeURIComponent(String(handle).toLowerCase()), { auth: !!auth });
     }
@@ -269,8 +227,6 @@
         return request('/api/search?q=' + encodeURIComponent(q), { timeout: 5000 });
     }
 
-    /* The handle rules from server/models/user.js, checked here so the composer
-       can say what is wrong before spending a request on it. */
     function handleError(h) {
         var s = String(h || '').trim().toLowerCase();
         if (s.length < 3) return 'A handle needs at least three characters.';

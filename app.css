@@ -1,63 +1,16 @@
-/* ============================================================================
-   FindFlower — global stylesheet (app.css)
-   ----------------------------------------------------------------------------
-   The site has no build step: every page is hand-authored HTML with Tailwind's
-   Play CDN + a per-page inline <style>. That left one thing un-unified — the
-   BODY font. Tailwind's preflight sets the document font to a generic system
-   stack, and only pages that happen to put `font-sans` on <body> ever switch to
-   Inter. Pages without it (e.g. try.html) rendered in the OS font, so moving
-   between pages visibly shifted the typeface and metrics ("font jumping").
 
-   This file is linked, render-blocking, into every page so the body font is
-   locked to Inter EVERYWHERE before first paint — the footer's own font, made
-   global. It also carries the base styles for the shared mobile bottom tab bar
-   injected by nav.js. Component look-and-feel still lives in Tailwind utilities;
-   this file only owns what must be global and flash-free.
-   ========================================================================== */
-
-/* --- Global typography: the one rule that stops the font jumping. ---------
-   `!important` on <body> so the Tailwind Play CDN — which rewrites the DOM and
-   re-applies its preflight font asynchronously as it JITs each page — can never
-   win the cascade and flip the body back to the system stack mid-load. */
 html,
 body {
     font-family: 'Inter', ui-sans-serif, system-ui, -apple-system,
         'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
 }
 
-/* Fraunces stays the display face; pages opt into it with Tailwind's
-   `font-serif`, so we never override an element that asked for the serif. */
-
-/* ============================================================================
-   Fluid scale — clamp() for display type, container padding and grid gaps
-   ----------------------------------------------------------------------------
-   Every page sizes type in fixed steps (`text-4xl md:text-6xl`). Between the
-   breakpoints the value does not move, so a 360px phone gets the same 36px
-   heading as a 760px tablet and long species names break mid-word. These
-   rules make the BASE step fluid: it interpolates from a comfortable phone
-   size up to the Tailwind default, which it reaches at 1280px.
-
-   Deliberately BASE utilities only — no `md:` / `sm:` variants. Those apply
-   from 640px and 768px up, where the layouts are not the ones breaking, and
-   they encode composition the pages were designed around (`text-4xl
-   md:text-6xl` is a chosen jump, not an accident). Overriding them would
-   redesign every desktop page under the guise of a mobile fix. The ceiling of
-   each clamp is the Tailwind default, so at desktop widths nothing moves and
-   the responsive variants still hand off exactly as authored.
-
-   !important throughout: the Tailwind Play CDN injects its utilities AFTER
-   this file, so an un-flagged rule loses the cascade. Only font-size and
-   spacing are touched — never line-height, which pages set themselves with
-   `leading-*` and which the utilities also carry.
-   ========================================================================== */
 .text-3xl { font-size: clamp(1.5rem,   1.35326rem + 0.65217vw, 1.875rem) !important; }
 .text-4xl { font-size: clamp(1.75rem,  1.55435rem + 0.86957vw, 2.25rem)  !important; }
 .text-5xl { font-size: clamp(2.125rem, 1.78261rem + 1.52174vw, 3rem)     !important; }
 .text-6xl { font-size: clamp(2.5rem,   2.01087rem + 2.17391vw, 3.75rem)  !important; }
 .text-7xl { font-size: clamp(2.75rem,  2.06522rem + 3.04348vw, 4.5rem)   !important; }
 
-/* Container gutters. px-6 alone appears ~95 times, so this is the single
-   highest-leverage spacing rule on the site. */
 .px-4 { padding-left: clamp(0.875rem, 0.82609rem + 0.21739vw, 1rem)    !important;
         padding-right: clamp(0.875rem, 0.82609rem + 0.21739vw, 1rem)   !important; }
 .px-5 { padding-left: clamp(1rem,     0.90217rem + 0.43478vw, 1.25rem) !important;
@@ -67,9 +20,6 @@ body {
 .px-8 { padding-left: clamp(1.25rem,  0.95652rem + 1.30435vw, 2rem)    !important;
         padding-right: clamp(1.25rem,  0.95652rem + 1.30435vw, 2rem)   !important; }
 
-/* Grid and flex gutters. The ≤375px block further down still overrides
-   `.grid.gap-*` for the smallest phones — higher specificity and later in the
-   file — and its 0.75rem lands on the same value these clamps floor at. */
 .gap-3  { gap: clamp(0.625rem, 0.57609rem + 0.21739vw, 0.75rem) !important; }
 .gap-4  { gap: clamp(0.75rem,  0.65217rem + 0.43478vw, 1rem)    !important; }
 .gap-5  { gap: clamp(0.875rem, 0.72826rem + 0.65217vw, 1.25rem) !important; }
@@ -77,10 +27,6 @@ body {
 .gap-8  { gap: clamp(1.25rem,  0.95652rem + 1.30435vw, 2rem)    !important; }
 .gap-12 { gap: clamp(1.75rem,  1.26087rem + 2.17391vw, 3rem)    !important; }
 
-/* Horizontal safe-area gutters for landscape notches. The header, tab bar and
-   sidebar already handle the top and bottom insets; in landscape the left and
-   right insets are the ones that clip a full-bleed container. Applied to the
-   page wrappers rather than globally so nothing double-pads. */
 @supports (padding: max(0px, env(safe-area-inset-left))) {
     body > header,
     body > main,
@@ -90,42 +36,15 @@ body {
     }
 }
 
-/* ============================================================================
-   Mobile viewport chrome — dynamic viewport height + notch safe areas
-   ----------------------------------------------------------------------------
-   `100vh` on mobile browsers measures the viewport as if the URL chrome were
-   already hidden, so a `min-h-screen` layout (login.html's body) renders a few
-   pixels too tall and forces a scroll on first paint. Where the engine
-   supports it, upgrade to `dvh`, which tracks the visible height as the chrome
-   collapses. The Play CDN injects its utilities after this file, so the
-   override needs !important. Browsers without dvh support simply keep vh.
-   ========================================================================== */
 @supports (min-height: 100dvh) {
     .min-h-screen { min-height: 100dvh !important; }
 }
 
-/* The fixed site header — shipped per page and then replaced by nav.js's
-   canonical one, both of which match this selector — extends its blurred
-   background up into the status-bar area on notched phones instead of letting
-   scrolling content show through above it. env() resolves to 0 unless the
-   viewport opts into viewport-fit=cover, so this is a no-op where it isn't
-   needed. */
 header.fixed.top-0 {
     padding-top: env(safe-area-inset-top, 0px);
 }
 
-/* ============================================================================
-   Mobile bottom tab bar (injected by nav.js)
-   ----------------------------------------------------------------------------
-   A fixed, native-feeling tab bar shown only on phones. Desktop uses the sticky
-   header instead, so the bar is hidden from the `md` breakpoint up.
-   ========================================================================== */
 .ff-tabbar {
-    /* !important on the layout-critical properties: this bar is injected into
-       the end of <body>, so if any page style wins the cascade it drops into
-       normal document flow and renders as a plain link list under the footer.
-       The desktop `display: none !important` below is later in the file, so it
-       still overrides `display: flex !important` at the md breakpoint. */
     position: fixed !important;
     left: 0 !important;
     right: 0 !important;
@@ -134,7 +53,6 @@ header.fixed.top-0 {
     display: flex !important;
     background-color: #FCFCFC;
     border-top: 1px solid #E5E5E5;
-    /* Clear the iOS home indicator without eating the whole bar height. */
     padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -156,26 +74,18 @@ header.fixed.top-0 {
 }
 
 .ff-tabbar__item svg {
-    /* Match the inline width/height="24" nav.js sets, so this rule reinforces
-       the icon size instead of shrinking it (CSS beats presentation attrs). */
     width: 24px;
     height: 24px;
 }
 
 .ff-tabbar__item[aria-current="page"] {
-    color: #5F7A63; /* sage-500 — the favicon green, the site accent */
+    color: #5F7A63;
 }
 
 .ff-tabbar__item:active {
-    color: #4C6650; /* sage-600 */
+    color: #4C6650;
 }
 
-/* --- SPA routing state (scripts/router.js) -------------------------------
-   Set on <html> while a client-side navigation is fetching the next page.
-   A fetch on a slow connection is the one moment an SPA feels broken: the
-   tap registers, nothing moves. The cursor and a dimmed main are enough
-   feedback without a spinner that flashes on fast navigations.
-   Pointer events stay ON: cancelling by tapping another link must work. */
 html.ff-routing {
     cursor: progress;
 }
@@ -189,44 +99,16 @@ html.ff-routing main {
     html.ff-routing main { transition: none; }
 }
 
-/* Only phones get the bar; from md up the sticky header carries navigation. */
 @media (min-width: 768px) {
     .ff-tabbar { display: none !important; }
 }
 
-/* Reserve room so page content and footers are never hidden behind the bar.
-   Height = 56px control + safe-area inset. Desktop needs none. */
 @media (max-width: 767px) {
     body.has-tabbar {
         padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
     }
 }
 
-/* ============================================================================
-   Right-side navigation drawer (injected by nav.js)
-   ----------------------------------------------------------------------------
-   One surface (#FCFCFC), one border colour (#E5E5E5), one radius (8px), and only
-   the three Tailwind type sizes the rest of the site uses: 0.75 / 0.875 / 1rem.
-
-   What was here before: a tinted card whose ::before injected the string
-   "Field Botanist ID", a flat link list, and a third tinted panel holding a live
-   clock and a reverse-geocoded location. Three card idioms and three background
-   tints inside one 26rem column, on six ad-hoc font sizes down to 0.59rem.
-
-   The clock and location panel are deleted rather than restyled. Opening a
-   navigation menu called navigator.geolocation and then posted the coordinates
-   to nominatim.openstreetmap.org, and nothing consumed the answer:
-   window.ffDrawerLocation and the ff:location event had zero listeners in the
-   repo, and try.html uses its own ffGeolocate for the one place a position is
-   actually stored.
-
-   position / inset / z-index keep !important for the reason the blur.js modal's
-   do -- losing the cascade must not drop a fixed overlay into document flow.
-   width does not: it was three competing !important declarations
-   (min(90vw,26rem), then 25vw above 1024px, then 94vw below 380px, which made
-   the drawer 640px wide on a 2560px monitor) and is now one clamp with nothing
-   to fight.
-   ========================================================================== */
 .ff-sidebar-backdrop {
     position: fixed !important;
     inset: 0 !important;
@@ -237,8 +119,6 @@ html.ff-routing main {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    /* `visibility 0s linear 280ms` and not `visibility 280ms ease`: see the note
-       on .ff-sidebar below. Same race, same fix, half a frame narrower. */
     transition: opacity 280ms ease, visibility 0s linear 280ms;
 }
 
@@ -267,16 +147,6 @@ html.ff-routing main {
     box-shadow: -24px 0 70px -34px rgba(23, 23, 23, 0.38);
     transform: translate3d(100%, 0, 0);
     visibility: hidden;
-    /* visibility is animated as a discrete step, so `visibility 380ms ease` does
-       not fade it -- it holds the OLD value for part of the transition. Measured
-       in Chrome 151: after .active was added, getComputedStyle(sidebar).visibility
-       still read "hidden" at 0ms and only read "visible" by 30ms. setSidebar()
-       focuses the close button 20ms after opening, which landed inside that
-       window; Chrome refuses focus on a visibility:hidden element, so
-       document.activeElement stayed <body>, the focus trap's
-       `activeElement === first` test never matched, and Shift+Tab walked
-       backwards out of the dialog into the tab bar behind the backdrop.
-       0s on the way in, 0s delayed by the slide on the way out. */
     transition: transform 380ms cubic-bezier(0.16, 1, 0.3, 1), visibility 0s linear 380ms;
     will-change: transform;
 }
@@ -297,9 +167,6 @@ html.ff-routing main {
     border-bottom: 1px solid #E5E5E5;
 }
 
-/* Sans, not Fraunces. The serif is for display headings; this is the label on a
-   piece of chrome, and it sits 64px under a header that already sets the brand
-   in the same weight. */
 .ff-sidebar__header h2 {
     margin: 0;
     color: #171717;
@@ -337,9 +204,6 @@ html.ff-routing main {
     scrollbar-color: #D4D4D4 transparent;
 }
 
-/* ---- account row ---------------------------------------------------------
-   A plain block on the drawer's own surface. Guest state is one sentence and
-   two buttons; signed in it is the profile row further down. */
 .ff-drawer-account {
     padding-bottom: 1rem;
     margin-bottom: 0.85rem;
@@ -360,9 +224,6 @@ html.ff-routing main {
     margin-top: 0.85rem;
 }
 
-/* 44px, not the 40 this used to be. The site's own touch-target rule sets 44 as
-   the floor under (pointer: coarse), and these are the drawer's two primary
-   controls. */
 .ff-drawer-button {
     min-height: 44px;
     display: inline-flex;
@@ -429,11 +290,6 @@ html.ff-routing main {
 .ff-drawer-profile small { color: #737373; font-size: 0.75rem; }
 .ff-drawer-profile__arrow { margin-left: auto; color: #A3A3A3; font-size: 0.875rem; }
 
-/* ---- the link list -------------------------------------------------------
-   Two columns, not three: the third held a "Coming Soon" pill on a href="#",
-   and both the pill and the dead link are gone now that Blogs and Community are
-   real routes. Icons are neutral until the row is current, which is what makes
-   the active row legible -- every icon used to be sage-500 at all times. */
 .ff-drawer-nav {
     display: grid;
     gap: 0.1rem;
@@ -468,25 +324,12 @@ html.ff-routing main {
 .ff-drawer-link.is-active > svg { color: #5F7A63; }
 
 @media (prefers-reduced-motion: reduce) {
-    /* The .active selectors have to be listed too. They carry their own
-       `transition` shorthand for the visibility fix above, and (0,2,0) beats
-       the (0,1,0) of a bare `.ff-sidebar`, so without them the drawer would
-       keep sliding for anyone who asked it not to. */
     .ff-sidebar,
     .ff-sidebar.active,
     .ff-sidebar-backdrop,
     .ff-sidebar-backdrop.active { transition: none; }
 }
 
-/* ============================================================================
-   Focus-warning modal (blur.js)
-   ----------------------------------------------------------------------------
-   Centred intercept shown when the Laplacian variance says the frame is too
-   soft to spend an inference on. z-index sits above the sidebar (100) and the
-   tab bar (50) because it is a blocking decision. Positioning is !important for
-   the same reason the tab bar's is: if the cascade is ever lost this must not
-   land in document flow halfway down the page.
-   ========================================================================== */
 .ff-blur-backdrop {
     position: fixed !important;
     inset: 0 !important;
@@ -520,8 +363,8 @@ html.ff-routing main {
     align-items: center;
     justify-content: center;
     border-radius: 9999px;
-    background-color: #FEF3C7;   /* amber-100 */
-    color: #B45309;              /* amber-700 */
+    background-color: #FEF3C7;
+    color: #B45309;
 }
 
 .ff-blur-title {
@@ -571,18 +414,11 @@ html.ff-routing main {
 }
 .ff-blur-btn--ghost:hover { color: #171717; border-color: #A3A3A3; }
 
-/* Side by side once there is room for both to stay tappable. */
 @media (min-width: 420px) {
     .ff-blur-actions { flex-direction: row-reverse; }
     .ff-blur-btn { flex: 1 1 0; }
 }
 
-/* ============================================================================
-   Confidence & safety badges
-   ----------------------------------------------------------------------------
-   Two states worth interrupting the user for: the model is unsure, and the
-   plant can hurt you. Both read as pills to match the Beta chip in the header.
-   ========================================================================== */
 .ff-badge {
     display: inline-flex;
     align-items: center;
@@ -596,43 +432,36 @@ html.ff-routing main {
 }
 
 .ff-badge--uncertain {
-    background-color: #FEF9C3;   /* yellow-100 */
-    color: #854D0E;              /* yellow-800 */
+    background-color: #FEF9C3;
+    color: #854D0E;
     border: 1px solid #FDE68A;
 }
 
 .ff-badge--toxic {
-    background-color: #FEE2E2;   /* red-100 */
-    color: #991B1B;              /* red-800 */
+    background-color: #FEE2E2;
+    color: #991B1B;
     border: 1px solid #FCA5A5;
     font-weight: 600;
 }
 
-/* Neutral "at a glance" chip — the taxonomy/care summary that sits under a
-   species name (Family · Growth habit · Sunlight · Toxicity). Same pill
-   footprint as the alert badges above, quieter sage palette so a row of them
-   reads as reference, not warning. */
 .ff-badge--fact {
-    background-color: #F2F5F2;   /* sage-50 */
-    color: #3D5341;              /* sage-700 */
-    border: 1px solid #E4EBE5;   /* sage-100 */
+    background-color: #F2F5F2;
+    color: #3D5341;
+    border: 1px solid #E4EBE5;
 }
 .ff-badge--fact svg {
     width: 13px;
     height: 13px;
     flex-shrink: 0;
-    color: #5F7A63;              /* sage-500 — the icon reads a shade lighter */
+    color: #5F7A63;
 }
 
-/* A family or habit phrase can run long; cap the label and ellipsise it so one
-   chip never stretches the whole row. The pill itself already sets nowrap. */
 .ff-badge__text {
     max-width: 22ch;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Full-width toxicity banner at the top of a result card. */
 .ff-toxic-banner {
     display: flex;
     align-items: flex-start;
@@ -657,28 +486,19 @@ html.ff-routing main {
     color: #B91C1C;
 }
 
-/* ============================================================================
-   Candidate scroller (medium-confidence cross-reference)
-   ----------------------------------------------------------------------------
-   Horizontal, snap-scrolling row of the other top_k possibilities. Scrollbar is
-   hidden on every engine but the gesture and keyboard scrolling still work, so
-   this stays reachable without a visible track eating 12px of a 360px screen.
-   ========================================================================== */
 .ff-candidates {
     display: flex;
     gap: 10px;
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;              /* Firefox */
-    -ms-overflow-style: none;           /* old Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     padding-bottom: 2px;
-    /* Bleed to the card edge so the row visibly continues past the fold —
-       the cue that tells a user it scrolls at all. */
     margin-inline: -4px;
     padding-inline: 4px;
 }
-.ff-candidates::-webkit-scrollbar { display: none; }   /* Chrome / Safari */
+.ff-candidates::-webkit-scrollbar { display: none; }
 
 .ff-candidate {
     flex: 0 0 auto;
@@ -690,9 +510,6 @@ html.ff-routing main {
     border-radius: 18px;
     padding: 10px;
     cursor: pointer;
-    /* No transition here: these chips carry .soft-click, whose own transition
-       is declared further down this file and therefore wins. The combined list
-       for both lives with that rule, so there is one place to read. */
 }
 .ff-candidate:hover { border-color: #8FA893; background-color: #F6F8F6; }
 
@@ -712,7 +529,6 @@ html.ff-routing main {
     color: #262626;
     text-transform: capitalize;
     line-height: 1.3;
-    /* Two lines max, then ellipsis — species names get long. */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -726,14 +542,6 @@ html.ff-routing main {
     margin-top: 2px;
 }
 
-/* ============================================================================
-   Lookalike comparison slider
-   ----------------------------------------------------------------------------
-   Drag a vertical divider to wipe between the user's photo and a reference shot
-   of the species most often confused with the match. The reveal is done by
-   clipping the top layer with inset() driven by a --ff-pos custom property, so
-   dragging mutates one value and never triggers layout.
-   ========================================================================== */
 .ff-compare {
     position: relative;
     width: 100%;
@@ -741,7 +549,7 @@ html.ff-routing main {
     border-radius: 18px;
     overflow: hidden;
     background-color: #F5F5F5;
-    touch-action: pan-y;          /* horizontal drag is ours; vertical scrolls */
+    touch-action: pan-y;
     cursor: ew-resize;
     -webkit-user-select: none;
     user-select: none;
@@ -754,10 +562,9 @@ html.ff-routing main {
     height: 100%;
     object-fit: cover;
     display: block;
-    pointer-events: none;         /* never swallow the drag */
+    pointer-events: none;
 }
 
-/* Top layer is clipped from the right edge inward. */
 .ff-compare__img--top {
     clip-path: inset(0 calc(100% - var(--ff-pos, 50%)) 0 0);
 }
@@ -790,14 +597,13 @@ html.ff-routing main {
     justify-content: center;
     color: #525252;
     cursor: ew-resize;
-    touch-action: none;           /* the handle itself never scrolls the page */
+    touch-action: none;
 }
 .ff-compare__handle:focus-visible {
     outline: 2px solid #5F7A63;
     outline-offset: 2px;
 }
 
-/* Corner labels so it is obvious which side is which. */
 .ff-compare__label {
     position: absolute;
     bottom: 8px;
@@ -818,32 +624,17 @@ html.ff-routing main {
 .ff-compare__label--left  { left: 8px; }
 .ff-compare__label--right { right: 8px; }
 
-/* ============================================================================
-   Small / budget phones (≤375px — e.g. Vivo Y21, iPhone SE)
-   ----------------------------------------------------------------------------
-   At 360px the default card gaps and padding eat most of the row, leaving text
-   in a column too narrow to break cleanly. These trim the spacing and step the
-   body copy down one notch. !important is required: the Tailwind Play CDN
-   injects its utility styles AFTER this file, so `gap-6`/`p-6` would otherwise
-   win. Only spacing and type scale here — no layout or colour changes.
-   ========================================================================== */
 @media (max-width: 375px) {
-    /* Tighten grid gutters (Tailwind gap-4/5/6 → ~gap-3). */
     .grid.gap-4,
     .grid.gap-5,
     .grid.gap-6 {
         gap: 0.75rem !important;
     }
 
-    /* Card interiors: p-4/p-5/p-6 → p-3. */
     .p-4, .p-5, .p-6 {
         padding: 0.75rem !important;
     }
 
-    /* Step card body copy down one notch (text-sm/text-base to 0.75rem) so
-       species names stop breaking mid-word. This was 0.8125rem, which is 13px
-       and not a step on the Tailwind scale; 0.75rem is the next one down and
-       gives the long binomials slightly more room, not less. */
     .grid p,
     .grid li,
     .grid .text-sm,
@@ -852,16 +643,6 @@ html.ff-routing main {
         line-height: 1.45 !important;
     }
 
-    /* Tab bar: keep the full-height (56px) touch target, tighten the padding
-       and icons so four tabs never clip at 360px.
-       There is deliberately no font-size step here any more. It used to drop
-       the label to 10px because the base was 11px and "Dashboard" was close to
-       the edge; both are off the Tailwind scale, and at 0.75rem there is room
-       to spare. Measured in Chrome at 320px, the narrowest case: each tab is
-       80px wide, 76px inside the 2px padding, and "Dashboard" -- the longest
-       label -- renders at 63px. letter-spacing: 0 stays because it is what
-       bought those last pixels before, and overflow: hidden stays as the guard
-       for a reader whose minimum font size is larger than ours. */
     .ff-tabbar__item {
         padding-left: 2px;
         padding-right: 2px;
@@ -876,26 +657,11 @@ html.ff-routing main {
         height: 22px;
     }
 
-    /* New Phase-2 components at 360px: narrower candidate cards so a second
-       one always peeks in (the affordance that says "scroll me"), and a
-       slightly tighter modal. .ff-blur-title had a font-size here too; the
-       base is 1rem now (it was 1.0625rem), so this said the same thing twice. */
     .ff-candidate { width: 118px; }
     .ff-candidate__thumb { height: 74px; }
     .ff-blur-card { padding: 22px 18px 18px; border-radius: 20px; }
 }
 
-/* ============================================================================
-   One-column plant grids under 380px
-   ----------------------------------------------------------------------------
-   Below 380px a two-column plant card is ~165px wide: the photo is cramped and
-   a long species name has nowhere to go. Collapse every plant-card grid to a
-   single column — the directory encyclopedia (#dirGrid) and its three embeds
-   (#previewGrid on the homepage, #miniGrid on the scanner, #discoverGrid on the
-   dashboard), which all render the same card through scripts/ui.js. ID
-   selectors outrank the Play CDN's later-injected .grid-cols-* utilities;
-   !important is belt and braces, matching this file's existing pattern.
-   ========================================================================== */
 @media (max-width: 379.98px) {
     #dirGrid,
     #miniGrid,
@@ -905,13 +671,6 @@ html.ff-routing main {
     }
 }
 
-/* ============================================================================
-   Shared plant-card animations (directory.js embeds)
-   ----------------------------------------------------------------------------
-   directory.html defines these inline for its own grid; the reusable engine in
-   directory.js renders the same `.skeleton` / `.fade-in` classes on the
-   dashboard and scanner pages, so the definitions live here to travel with it.
-   ========================================================================== */
 @keyframes ff-shimmer {
     0%   { background-position: -400px 0; }
     100% { background-position: 400px 0; }
@@ -932,21 +691,6 @@ html.ff-routing main {
     .fade-in { animation: none; }
 }
 
-/* ============================================================================
-   Header plate on scroll (nav.js adds/removes .ff-header--solid)
-   ----------------------------------------------------------------------------
-   At the top of a page the header is invisible chrome: no background, no
-   border, so the hero composition runs edge to edge behind it. Once the page
-   scrolls, content would collide with the links, so the plate comes in.
-
-   Only background-color and border-color transition. Neither triggers layout,
-   and the header keeps a constant 4rem height in both states, so nothing below
-   it ever shifts.
-
-   Pages ship a solid <header> in their HTML as the no-JS fallback and nav.js
-   replaces it, so the transparent state only ever exists when the script that
-   restores the plate is running.
-   ========================================================================== */
 .ff-header {
     background-color: transparent;
     border-bottom: 1px solid transparent;
@@ -962,23 +706,12 @@ html.ff-routing main {
     .ff-header { transition: none; }
 }
 
-/* ============================================================================
-   Hamburger morph — three lines fold into an X
-   ----------------------------------------------------------------------------
-   Driven entirely off the button's own aria-expanded, which nav.js already
-   maintains on every hamburger (see setSidebar). No extra class to keep in
-   sync, and the accessible state and the visual state cannot disagree.
-
-   The bars are absolutely positioned so the transform is pure rotate/translate
-   with no effect on the button's 40px box. Animating `top` would relayout the
-   button on every frame; translateY does not.
-   ========================================================================== */
 .ff-burger {
     position: relative;
     display: block;
     width: 20px;
     height: 14px;
-    pointer-events: none;   /* the <button> owns the click, not the bars */
+    pointer-events: none;
 }
 
 .ff-burger > span {
@@ -996,7 +729,6 @@ html.ff-routing main {
 .ff-burger > span:nth-child(2) { top: 50%; margin-top: -0.9px; }
 .ff-burger > span:nth-child(3) { bottom: 0; }
 
-/* Open: outer bars slide to the centre line and cross; the middle one fades. */
 .ff-hamburger[aria-expanded="true"] .ff-burger > span:nth-child(1) {
     transform: translateY(6.1px) rotate(45deg);
 }
@@ -1012,13 +744,6 @@ html.ff-routing main {
     .ff-burger > span { transition: none; }
 }
 
-/* ============================================================================
-   Desktop nav links — centre-out underline
-   ----------------------------------------------------------------------------
-   scaleX on a pseudo-element from transform-origin: center. A width or
-   background-size animation would work visually but costs a paint of the text
-   run on every frame; a composited scale does not.
-   ========================================================================== */
 .ff-header nav a {
     position: relative;
 }
@@ -1047,33 +772,7 @@ html.ff-routing main {
     .ff-header nav a::after { transition: none; }
 }
 
-/* ============================================================================
-   Tactile press — .soft-click
-   ----------------------------------------------------------------------------
-   The whole feedback budget of a tap, spent on one composited property. Pair
-   it with ffHaptic() (scripts/ux.js) on the buttons that commit to something.
-
-   `transform` only, so a press never reflows its neighbours. The scale is
-   applied to the element itself, which means it works on <button>, <a> and
-   the pill-shaped controls alike without any per-component styling.
-   ========================================================================== */
 .soft-click {
-    /* Anything carrying this class must have `transform` in whichever
-       transition list finally wins, or the press has no easing at all: it
-       jumps to 0.98 and jumps back. That is easy to lose, because the list
-       below is one of the first things to be overridden —
-
-         * Tailwind's `transition-colors` utility sets the same longhand and
-           the Play CDN injects it at runtime, i.e. after this file;
-         * a page's own <style> block follows the app.css <link> too.
-
-       Measured before this was fixed: 38 of 38 .soft-click elements resolved
-       to a list with no transform in it, so every press on the site snapped.
-       The rule is therefore: pair .soft-click with Tailwind's plain
-       `transition` (a superset of transition-colors that includes transform),
-       and any component rule that declares its own list must name transform
-       itself. press.qa.mjs asserts this for every .soft-click on the site, so
-       a regression fails a suite instead of quietly going unnoticed. */
     transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
     -webkit-tap-highlight-color: transparent;
 }
@@ -1082,17 +781,10 @@ html.ff-routing main {
     transform: scale(0.98);
 }
 
-/* A pressed control must not also fight a hover-lift transform on touch
-   devices, where :hover sticks after the tap. */
 @media (hover: none) {
     .soft-click:hover { transform: none; }
 }
 
-/* The candidate chip is the one component whose own transition sits EARLIER in
-   this file than .soft-click, so it is the one case where .soft-click is the
-   winner and the chip is what loses. Both lists are merged here, after that
-   rule, and deliberately before the reduced-motion block below so that block
-   still switches the whole thing off. */
 .ff-candidate {
     transition: border-color 0.18s ease, background-color 0.18s ease,
                 transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -1103,19 +795,6 @@ html.ff-routing main {
     .soft-click:active { transform: none; }
 }
 
-/* ============================================================================
-   Calm loading — .skeleton-shimmer, and the cross-fade off it
-   ----------------------------------------------------------------------------
-   .skeleton (above) is the plant-card placeholder and keeps its own sizing.
-   .skeleton-shimmer is the general-purpose version for any loading block, and
-   shares the same ff-shimmer keyframes so the whole site sweeps at one rhythm
-   instead of two subtly different ones.
-
-   Slower and lower-contrast than a spinner on purpose: a spinner says "this is
-   taking a while", a shimmer says "this is arriving". Content then cross-fades
-   in with .ff-fade-in rather than popping, which is what makes the swap read as
-   one motion.
-   ========================================================================== */
 .skeleton-shimmer {
     background-color: #F5F5F5;
     background-image: linear-gradient(90deg, #F5F5F5 0px, #ECECEC 48px, #F5F5F5 96px);
@@ -1125,7 +804,6 @@ html.ff-routing main {
     border-radius: 12px;
 }
 
-/* Opacity-only, so a cross-fade never moves the layout it is fading into. */
 .ff-fade-in {
     animation: ff-fade-opacity 320ms ease-out both;
 }
@@ -1135,12 +813,6 @@ html.ff-routing main {
     to   { opacity: 1; }
 }
 
-/* Result-card skeleton (scanner #resLoading). A structural placeholder that
-   mirrors the final match card — image block, name/confidence line, fact
-   grid — so the swap to real content lands in place instead of reflowing.
-   Every bar is a .skeleton-shimmer, so the whole thing sweeps on the shared
-   ff-shimmer rhythm. Sizes echo the real card (24x24 thumb, two-column facts)
-   without being pixel-locked to it: close enough that nothing jumps. */
 .ff-res-skeleton {
     display: flex;
     flex-direction: column;
@@ -1187,9 +859,6 @@ html.ff-routing main {
 }
 .ff-skel-cell--wide { grid-column: 1 / -1; }
 
-/* Cold-start staging text sits BELOW the skeleton (see try.html): the skeleton
-   says "a card is coming", this line says why it is taking a moment. Centred,
-   quiet, and it never shifts the skeleton above it. */
 .ff-skel-status {
     margin-top: 22px;
     text-align: center;
@@ -1200,37 +869,6 @@ html.ff-routing main {
     .ff-fade-in { animation: none; }
 }
 
-/* ============================================================================
-   Scroll reveals — global, and fail-safe by default
-   ----------------------------------------------------------------------------
-   Every page carries its own inline copy of this: a `.reveal-up` block at
-   opacity 0 plus its own IntersectionObserver. Fourteen copies of one effect.
-
-   All fourteen share a failure mode. `.reveal-up` is hidden by DEFAULT and only
-   an observer can reveal it, so if the script owning that observer never runs
-   the content stays invisible with no error anywhere. That is exactly how
-   try.html shipped a blank page: a truncated file left its inline block
-   uncompiled, the observer never ran, and every section held at opacity 0.
-
-   Two independent fixes, one here and one in scripts/ux.js:
-
-     - The default below is INVERTED. `.reveal-up` is visible until JS puts
-       .ff-reveal on <html>, which scripts/ux.js does only after confirming it
-       has an IntersectionObserver to reveal them with. No JS, blocked JS, or a
-       parse error in the tag that would have set it all land on "visible".
-
-     - `html:not(.ff-reveal)` is deliberate, not decoration. The pages' inline
-       `.reveal-up { opacity: 0 }` sits in a <style> that loads AFTER this file,
-       so an equal-specificity rule here would lose on source order. `:not()`
-       counts its argument, making this (0,2,0) against their (0,1,0) — it wins
-       on specificity, where source order does not apply. No !important, which
-       would have to be matched on the .active rules and would turn one missed
-       flag into permanently hidden content.
-
-   The revealed state stays keyed to `.active`, the class all fourteen inline
-   observers already set, so the global observer drives the pages' own CSS and
-   each page's observer drives this. Either one alone is enough.
-   ========================================================================== */
 html:not(.ff-reveal) .reveal-up {
     opacity: 1;
     transform: none;
@@ -1248,7 +886,6 @@ html.ff-reveal .reveal-up.active {
     transform: translateY(0);
 }
 
-/* Stagger helpers, matching the inline sets the pages already use. */
 html.ff-reveal .reveal-up.delay-100 { transition-delay: 100ms; }
 html.ff-reveal .reveal-up.delay-200 { transition-delay: 200ms; }
 html.ff-reveal .reveal-up.delay-300 { transition-delay: 300ms; }
@@ -1262,28 +899,6 @@ html.ff-reveal .reveal-up.delay-400 { transition-delay: 400ms; }
     }
 }
 
-/* ============================================================================
-   REDUCED MOTION, CHOSEN IN THE APP — html.ff-reduce-motion
-   ----------------------------------------------------------------------------
-   prefs.js sets this class from the Motion switch on /dashboard, for a reader
-   whose OS has no such setting (or who wants the site still without making
-   every site still). The nine `prefers-reduced-motion` blocks above stay
-   exactly as they are: they answer the OS, this answers the app.
-
-   Deliberately NOT nine duplicated blocks. Two reasons it collapses
-   durations instead of writing `animation: none`:
-
-     - one selector list cannot drift out of step with nine others as new
-       animations arrive;
-     - `animation: none` reverts an element to its BASE style, which for
-       anything animated in with `both`/`forwards` fill (.fade-in, .ff-fade-in)
-       means opacity: 0 — invisible, not still. A 1ms run with the fill mode
-       intact lands on the final keyframe and stays there.
-
-   1ms rather than 0s because a zero-duration animation is not guaranteed to
-   fire `animationend`, and delays are zeroed too — a 400ms transition-delay on
-   a stagger helper would otherwise still hold the element back.
-   ========================================================================== */
 html.ff-reduce-motion,
 html.ff-reduce-motion *,
 html.ff-reduce-motion *::before,
@@ -1295,14 +910,8 @@ html.ff-reduce-motion *::after {
     transition-delay: 0ms !important;
 }
 
-/* html.scroll-smooth is a Tailwind utility on every page here, and the CDN's
-   sheet order relative to this file is not ours to rely on. */
 html.ff-reduce-motion { scroll-behavior: auto !important; }
 
-/* The one rest state a duration collapse cannot infer, mirrored from the
-   media block at line 1257: .reveal-up is revealed by a JS class, so
-   collapsing the transition would only make it snap in when the observer
-   fires; with motion off it should simply be there. */
 html.ff-reduce-motion .reveal-up {
     opacity: 1;
     transform: none;

@@ -1,23 +1,6 @@
-/**
- * FindFlower scanner runtime.
- *
- * Shared, page-agnostic logic for the camera scanner: backend liveness,
- * confidence tiering, and camera lifecycle. try.html wires its own DOM to
- * these; nothing here touches the DOM except the status indicator it is
- * handed. The pre-inference focus check lives in its own file, blur.js.
- *
- * Exposes window.ffStatus, window.ffConfidence, window.ffCamera.
- */
 (function () {
   "use strict";
 
-  // === Confidence tiering ==================================================
-  //
-  // Three outcomes, because a 45%-confident species name is worse than no name
-  // at all -- the user photographs it, believes it, and misidentifies a plant.
-  //   high      >= 80%  trust it, save it, count it toward the streak
-  //   uncertain >= 40%  show the candidates, let the human decide
-  //   low        < 40%  refuse to name anything
   const HIGH = 0.80;
   const UNCERTAIN = 0.40;
 
@@ -35,28 +18,6 @@
     UNCERTAIN_PROMPT: "Uncertain match — does it look like one of these?",
   };
 
-  // === Blur shield =========================================================
-  //
-  // MOVED. The Laplacian-variance focus check now lives in blur.js, which
-  // try.html loads before this file, so there is exactly one implementation
-  // and one threshold to calibrate. window.ffBlur is defined there.
-  //
-  // Nothing is re-exported here: a stub would silently shadow the real module
-  // if the script order ever changed, which is worse than a clear failure.
-
-  // === Backend status ======================================================
-  //
-  // NOTE ON THE PROBE TARGET. The proxy Worker has no /health route and is
-  // off-limits to edit, and the inference backend sends no CORS headers, so its
-  // /health cannot be read from a browser at all. Its URL is also a Worker
-  // secret and deliberately absent from this file -- publishing it here would
-  // undo the whole point of gating the model behind the proxy.
-  //
-  // What is actually readable: a GET to the Worker returns 405 with CORS
-  // headers. That is a real liveness signal for the hop the browser depends on.
-  // So: reachable+fast => Ready, reachable+slow => degraded, unreachable =>
-  // Offline. Cold start is then confirmed from real evidence by the inference
-  // path calling markColdStart() when a request runs long or 502s.
   const PROBE_TIMEOUT_MS = 8000;
   const SLOW_MS = 1500;
 
@@ -72,7 +33,6 @@
     _els: null,
     _onChange: null,
 
-    /** Bind the indicator elements once. Both are optional. */
     bind({ dot, label, onChange } = {}) {
       this._els = { dot, label };
       this._onChange = onChange || null;
@@ -89,7 +49,7 @@
         this._els.label.textContent = s.text;
       }
       if (this._onChange) {
-        try { this._onChange(this.state, s.text); } catch { /* caller's problem */ }
+        try { this._onChange(this.state, s.text); } catch { }
       }
     },
 
@@ -103,10 +63,6 @@
     markColdStart() { this._set("cold"); },
     markOffline() { this._set("offline"); },
 
-    /**
-     * Probe the proxy. Resolves to "ready" | "cold" | "offline".
-     * Never rejects.
-     */
     async probe(apiUrl) {
       if (!apiUrl) return this.state;
       this._set("checking");
@@ -116,8 +72,6 @@
       const started = (performance && performance.now) ? performance.now() : Date.now();
 
       try {
-        // GET is intentional: it is the cheapest request that proves the Worker
-        // is up without spending an inference on the backend.
         const res = await fetch(apiUrl, {
           method: "GET",
           cache: "no-store",
@@ -125,19 +79,9 @@
         });
         const elapsed = ((performance && performance.now) ? performance.now() : Date.now()) - started;
 
-        // Any readable status means the Worker answered and CORS let us see it.
-        // 200 is the health endpoint's answer; an older deploy replies 405
-        // because it only accepted POST. Both prove the Worker is up, so this
-        // stays status-tolerant instead of asserting one number.
-        //
-        // A 401 here is NOT an auth failure worth reporting: the probe sends no
-        // token by design, and it must never paint a "session expired" style
-        // message. Only the scan's own POST gets to judge the user's session.
         if (res.status >= 500) this._set("cold");
         else this._set(elapsed > SLOW_MS ? "cold" : "ready");
       } catch {
-        // Abort, DNS failure, offline, or CORS refusal -- all indistinguishable
-        // from here, and all mean the user cannot scan right now.
         this._set("offline");
       } finally {
         clearTimeout(timer);
@@ -146,12 +90,6 @@
     },
   };
 
-  // === Camera lifecycle ====================================================
-  //
-  // Stopping every track matters for more than tidiness: an un-stopped track
-  // keeps the hardware capture light on and the sensor powered, which drains a
-  // phone battery in the field and reads to the user as "this site is still
-  // watching me".
   const ffCamera = {
     stream: null,
 
@@ -166,7 +104,7 @@
       this.stop(videoEl);
       const wanted = constraints || {
         video: {
-          facingMode: { ideal: "environment" }, // rear camera for field use
+          facingMode: { ideal: "environment" },
           width: { ideal: 1280 },
           height: { ideal: 1280 },
         },
@@ -175,27 +113,25 @@
       this.stream = await navigator.mediaDevices.getUserMedia(wanted);
       if (videoEl) {
         videoEl.srcObject = this.stream;
-        videoEl.setAttribute("playsinline", ""); // iOS: don't go fullscreen
-        try { await videoEl.play(); } catch { /* autoplay policy; user gesture already happened */ }
+        videoEl.setAttribute("playsinline", "");
+        try { await videoEl.play(); } catch { }
       }
       return this.stream;
     },
 
-    /** Release the hardware. Safe to call when already stopped. */
     stop(videoEl) {
       if (this.stream) {
         this.stream.getTracks().forEach((t) => {
-          try { t.stop(); } catch { /* already dead */ }
+          try { t.stop(); } catch { }
         });
         this.stream = null;
       }
       if (videoEl) {
-        try { videoEl.pause(); } catch { /* not playing */ }
+        try { videoEl.pause(); } catch { }
         videoEl.srcObject = null;
       }
     },
 
-    /** Grab the current frame as a JPEG blob. */
     capture(videoEl, quality) {
       return new Promise((resolve, reject) => {
         const w = videoEl.videoWidth, h = videoEl.videoHeight;
@@ -213,7 +149,6 @@
     },
   };
 
-  /** Best-effort coordinates for a scan record. Resolves null if denied. */
   function ffGeolocate(timeoutMs) {
     return new Promise((resolve) => {
       if (!navigator.geolocation) { resolve(null); return; }
@@ -221,7 +156,7 @@
       const finish = (v) => { if (!done) { done = true; resolve(v); } };
       navigator.geolocation.getCurrentPosition(
         (pos) => finish({
-          lat: +pos.coords.latitude.toFixed(5),   // ~1m; no need to store more
+          lat: +pos.coords.latitude.toFixed(5),
           lon: +pos.coords.longitude.toFixed(5),
           accuracy: Math.round(pos.coords.accuracy || 0),
         }),

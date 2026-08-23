@@ -1,30 +1,3 @@
-/* ============================================================================
-   FindFlower — profile view (scripts/views/profile.js)
-   ----------------------------------------------------------------------------
-   /profile?id=<auth0 sub> renders one botanist's card from IndexedDB alone.
-   With no ?id it renders the signed-in viewer's own card.
-
-   Unlike the other views this one owns the FIRST paint as well as router
-   swaps: profile.html ships no inline engine, because there is no markup a
-   server could have rendered -- every field on the card is a read against
-   ff_users, ff_scans, ff_stats and ff_friends. So there is deliberately no
-   `if (ctx.initial) return;` guard here. The router calls mount() for the
-   initial route too, and that is the only render path.
-
-   Who can see what:
-
-     * own card          -> everything, plus the avatar control and Privacy
-                            settings, whatever the visibility flag says
-     * public, not yours -> everything except the avatar control
-     * private, not yours-> the name and nothing else
-     * no row stored     -> the "no profile stored here" state, since a profile
-                            exists only in the browser that made it
-
-   Friend rows are per-direction ("<owner>|<other>"), so accepting writes both
-   directions here: the other person's request row is updated to accepted at the
-   same time as ours is created. That is only sound because both accounts live
-   in one browser -- when the WebSocket server exists, acceptance belongs to it.
-   ========================================================================== */
 (function () {
     'use strict';
 
@@ -49,7 +22,6 @@
         return String(s || '').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
     }
 
-    /** "12 August 2026" — a join date is a date, not "3 months ago". */
     function longDate(iso) {
         var d = new Date(iso);
         if (isNaN(d)) return '';
@@ -65,10 +37,6 @@
         }
     }
 
-    /* ?handle= is the other kind of card: one the server holds, readable from
-       any device. ?id= is an account in this browser. They are different
-       identifiers for what may or may not be the same person, so the page never
-       tries to guess one from the other. */
     function wantedHandle() {
         try {
             var q = new URLSearchParams(location.search).get('handle');
@@ -79,8 +47,6 @@
         }
     }
 
-    /* An Auth0 sub is "auth0|68a…" — the tail is what distinguishes two
-       accounts on one device, and the whole thing is too long for a card. */
     function shortId(sub) {
         var s = String(sub || '');
         var bar = s.indexOf('|');
@@ -98,8 +64,6 @@
             img.alt = '';
             img.className = 'w-full h-full object-cover';
             img.referrerPolicy = 'no-referrer';
-            // A dead Auth0 picture URL must fall back to the initial, not a
-            // broken-image icon on somebody's identity card.
             img.onerror = function () {
                 host.innerHTML = '<span class="font-serif text-2xl text-sage-700">' +
                     esc((name || 'B').charAt(0).toUpperCase()) + '</span>';
@@ -125,16 +89,10 @@
         }).join('');
     }
 
-    /* Earned badges only, in catalogue order. A public card is not the place to
-       list ten things somebody has NOT done; the count line says how many are
-       left, which is the part that is actually informative. */
     function paintBadges(stats) {
         paintBadgeIds((stats && stats.unlockedBadges) || []);
     }
 
-    /* Badge ids, whether they were read from this browser's stats row or from a
-       server card. The catalogue that turns an id into a name and an icon is
-       local either way: the server stores ids, not artwork. */
     function paintBadgeIds(held) {
         var host = $('pfBadges');
         if (!host) return;
@@ -154,9 +112,6 @@
 
     var STATUS_LABEL = { accepted: 'Friends', pending: 'Request sent', blocked: 'Blocked' };
 
-    /* A pending row is somebody's outgoing request, which is theirs to disclose,
-       not this page's. Another account's card therefore lists accepted
-       friendships only; your own lists everything with its real status. */
     function paintFriends(rows, names, isOwn) {
         var host = $('pfFriends');
         if (!host) return;
@@ -174,14 +129,9 @@
         }).join('');
     }
 
-    /* The lists at the foot of the card. Which of them a card can offer depends
-       on where it was read from: identifications and species are rows in THIS
-       browser, so a server card belonging to somebody else can only offer the
-       posts, which are the part a server actually holds. */
     var lists = { uid: null, handle: null, tabs: [], active: null };
     var TAB_LABEL = { observations: 'Observations', threads: 'Threads', species: 'Species' };
 
-    /** Same rule as the feed's, so a post reads the same in both places. */
     function relTime(iso) {
         var then = new Date(iso);
         if (isNaN(then)) return '';
@@ -233,8 +183,6 @@
             if (!r.ok) return emptyLine(r.error || 'The server did not answer.');
             rows = (r.data && r.data.rows) || [];
         } else if (lists.uid) {
-            // The local store indexes posts by space and by time, not by author,
-            // so the read is a page of the feed narrowed here.
             var all = await window.ffStore.listPosts({ limit: 100 });
             rows = all.filter(function (p) {
                 return String(p.userId) === String(lists.uid);
@@ -276,8 +224,6 @@
         show($('pfLists'), lists.tabs.length > 0);
         if (!strip) return;
         if (lists.tabs.length < 2) {
-            // One list is a heading, not a tab: a tab you cannot switch away
-            // from is a control that does nothing.
             strip.innerHTML = lists.active
                 ? '<h2 id="pfTab-' + lists.active + '" class="text-sm font-medium text-neutral-900">' +
                   esc(TAB_LABEL[lists.active]) + '</h2>'
@@ -307,7 +253,6 @@
         } catch (e) {
             html = emptyLine('That list could not be read.');
         }
-        // A tab pressed while this read was in flight owns the panel now.
         if (lists.active !== want) return;
         panel.innerHTML = html;
     }
@@ -325,8 +270,6 @@
         });
     }
 
-    /* The panel paint is deliberately not awaited: the rest of the card is
-       already correct without it, and a slow list should not hold it back. */
     function setLists(uid, handle, tabs) {
         lists.uid = uid;
         lists.handle = handle;
@@ -336,7 +279,6 @@
         paintTabs();
         paintPanel();
     }
-
 
     function note(text) {
         var el = $('pfActionNote');
@@ -385,9 +327,6 @@
     }
 
     function reportProfile(wanted, viewer) {
-        // The payload the blueprint asks for: which account, when, and who is
-        // reporting. There is no moderation queue to POST to, and a fake one
-        // would be worse than an email that actually arrives.
         var body = 'Reported profile: ' + wanted + '\n' +
             'Reported at: ' + new Date().toISOString() + '\n' +
             'Reported by: ' + (viewer || 'not signed in') + '\n\n' +
@@ -399,7 +338,7 @@
 
     function on(el, fn) {
         if (!el) return;
-        el.onclick = fn;   // assigned, not added: render() runs again after every action
+        el.onclick = fn;
     }
 
     function paintActions(wanted, viewer, isOwn, mine, theirs) {
@@ -442,8 +381,6 @@
         if (theirs === 'pending') {
             show(accept, true);
             on(accept, function () {
-                // Both directions, or the other card would still read "request
-                // sent" while this one reads "friends".
                 window.ffStore.addFriend(wanted, viewer, 'accepted')
                     .then(function () { return window.ffStore.addFriend(viewer, wanted, 'accepted'); })
                     .then(render);
@@ -458,9 +395,6 @@
         });
     }
 
-    /* The link to your own server card, if you have one. It costs one request,
-       and only on your own card with a server in reach: the answer is what names
-       the handle, which no row in this browser records. */
     function offerServerCard(isOwn) {
         var line = $('pfPublicLine'), link = $('pfPublicLink');
         if (!line || !link) return;
@@ -474,7 +408,7 @@
             link.textContent = 'Your card on the server';
             link.setAttribute('href', '/profile?handle=' + encodeURIComponent(h));
             show(line, true);
-        }).catch(function () { /* no server card to offer, so no line */ });
+        }).catch(function () { });
     }
 
     function wireBio(u) {
@@ -510,9 +444,6 @@
         reveal();
     }
 
-    /* A server card has no friend buttons yet: friendship there is keyed on a
-       handle and lives in routes this build has no reader for, so a request sent
-       from here would be invisible to whoever received it. */
     function paintRemoteActions(handle, viewer, isOwn) {
         show($('pfAdd'), false);
         show($('pfAccept'), false);
@@ -523,9 +454,6 @@
         if (!isOwn) on($('pfReport'), function () { reportProfile('@' + handle, viewer); });
     }
 
-    /* Your own server card is where this browser's numbers get published: the
-       server cannot count rows it never sees, so it holds whatever was last
-       reported. Only a difference is sent, so reading your card costs no write. */
     async function pushOwnNumbers(u, viewer, stats) {
         if (!viewer || !window.ffStore) return;
         var row;
@@ -571,8 +499,6 @@
         var isOwn = !!r.data.isOwner;
         var name = u.displayName || u.handle;
 
-        // On your own card the local rows are the truth and the server holds a
-        // copy: read them first, show those, and publish the difference below.
         var localStats = null;
         if (isOwn && viewer && window.ffStore) {
             try { localStats = await window.ffStore.getStats(viewer); } catch (e) { localStats = null; }
@@ -606,10 +532,6 @@
         paintAvatar({ avatar: u.avatar }, name);
         paintBadgeIds(localStats ? (localStats.unlockedBadges || []) : (u.badges || []));
 
-        // Streak, scans and species are counted from rows in one browser, so a
-        // server card cannot show them for anybody but the viewer. The two it
-        // can show are the post count the server holds and the scan count the
-        // account last reported from its own device.
         show($('pfLocalStats'), false);
         show($('pfRemoteStats'), true);
         $('pfThreads').textContent = typeof r.data.threads === 'number' ? r.data.threads : 0;
@@ -654,13 +576,10 @@
 
         if (!wanted) { only('pfGuest'); reveal(); return; }
 
-        // Nothing else writes ff_users on a first visit, so the viewer's own row
-        // is created here -- from the Auth0 name and picture, since the handle
-        // picker is a backend-phase feature.
         if (viewer && viewer === wanted) {
             try {
                 await window.ffStore.upsertUser({ id: viewer, name: me.name, picture: me.picture });
-            } catch (e) { /* a blocked store still renders below as "no profile" */ }
+            } catch (e) { }
         }
 
         var user = null;
@@ -700,9 +619,6 @@
         $('pfJoined').textContent = user.created
             ? 'Joined ' + longDate(user.created)
             : 'Join date not recorded';
-        // The card has no handle to show -- the picker is a backend-phase
-        // feature -- so this line carries the one fact that distinguishes two
-        // accounts on one device, or tells you the card is yours.
         $('pfHandle').textContent = isOwn
             ? (user.isPublic ? 'Your card, public to other accounts on this device' : 'Your card, private')
             : shortId(wanted);
@@ -714,8 +630,6 @@
         paintBadges(stats);
         paintFriends(friends, names, isOwn);
 
-        // Back on the local reads, so the rows only a server can fill go away:
-        // a bio and a reported scan count are fields it holds, not this browser.
         show($('pfLocalStats'), true);
         show($('pfRemoteStats'), false);
         show($('pfTopSection'), true);
@@ -743,8 +657,6 @@
     window.ffViews['profile.html'] = {
         mount: function () { return render(); },
         unmount: function () {
-            // The only thing this view retains is the reveal observer, which
-            // home.js owns; the file input's handler dies with the swapped markup.
             if (window.ffHomeView && typeof window.ffHomeView.teardown === 'function') {
                 window.ffHomeView.teardown();
             }

@@ -1,34 +1,8 @@
-/* ============================================================================
-   FindFlower — dashboard panels (scripts/dashboard-panels.js)
-   ----------------------------------------------------------------------------
-   The five sections below the badge shelf on /dashboard:
-
-     Preferences        the four switches prefs.js stores and try.html obeys
-     Places             where the located scans were taken
-     Model & data       what identifies a flower, and what leaves this device
-     Profile & privacy  whether your card is readable by another account here
-     Storage            what IndexedDB holds here, exportable and erasable
-
-   In its own file rather than dashboard.html's inline IIFE for one concrete
-   reason: dashboard.html hides <main> and shows the sign-in wall for a guest,
-   so nothing inside it can be reached by a test that has no Auth0 session.
-   window.ffPanels.mount() is the seam -- settings.qa.mjs unhides #dashMain,
-   calls mount(), and drives the switches with no session at all.
-
-   Every panel renders into a host element by id and skips itself when that id
-   is absent, so a page can adopt one panel without taking all five.
-   ========================================================================== */
 (function () {
     'use strict';
 
-    // Facts, not marketing: both numbers are the ones releases.html and
-    // api.html already publish. Kept here so a model change is one edit.
     var MODEL = { arch: 'Vision Transformer (ViT)', classes: 116 };
 
-    // The local correction log. try.html writes {predicted, confidence,
-    // correct, correction} and feedback.html writes {predicted, correct,
-    // correction, notes, hasImage, at} -- so `at` is optional by history, and
-    // anything reading this has to tolerate its absence.
     var FEEDBACK_KEY = 'ff_feedback';
 
     var teardown = [];
@@ -51,8 +25,6 @@
         if (n < 1024) return n + ' B';
         if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
         if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
-        // Quotas are gigabytes. Without this rung the browser's own estimate
-        // reads "10240.0 MB", which nobody says out loud.
         return (n / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
     }
 
@@ -62,8 +34,6 @@
         return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    /** The correction log, or [] for private mode, absent key, or hand-edited
-     *  JSON. A malformed log must not take the whole panel down with it. */
     function readFeedback() {
         try {
             var raw = JSON.parse(localStorage.getItem(FEEDBACK_KEY) || '[]');
@@ -73,9 +43,6 @@
         }
     }
 
-    /** Hand the browser a file. Object URL rather than a data: URL because a
-     *  full history export with thumbnails runs to megabytes, and Safari caps
-     *  data: navigations well below that. */
     function download(filename, text) {
         var blob = new Blob([text], { type: 'application/json' });
         var url = URL.createObjectURL(blob);
@@ -85,8 +52,6 @@
         document.body.appendChild(a);
         a.click();
         a.remove();
-        // Revoked on a timer: revoking in the same tick cancels the download in
-        // Firefox, which reads the blob after the click handler returns.
         setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
     }
 
@@ -94,9 +59,6 @@
         return new Date().toISOString().slice(0, 10);
     }
 
-    /** Two-step destructive buttons. The first click arms and relabels; a
-     *  second click within 5s commits. Nothing here can be undone, and a
-     *  confirm() is suppressible in a way an inline arm state is not. */
     function arm(btn, armedLabel, run) {
         var idle = btn.textContent;
         var armed = false;
@@ -123,11 +85,6 @@
         });
     }
 
-    // === Preferences =====================================================
-    // Each entry names the behaviour the switch changes, in both positions,
-    // because a settings row that only says "Attach location" makes the reader
-    // guess. The `on`/`off` copy is what the switch actually does -- if one of
-    // these lines ever stops being true, the switch is the bug.
     var PREFS = [
         {
             key: 'attachLocation',
@@ -155,11 +112,6 @@
         }
     ];
 
-    // The identification engines the scanner can be asked for. `ready` is not a
-    // label -- it is whether an engine exists to answer a capture. A tier
-    // without one is listed and cannot be picked, and `why` is the reason shown
-    // in its place, because a control that changes nothing is worse than a
-    // sentence saying so.
     var TIERS = [
         {
             id: 'lite',
@@ -206,9 +158,6 @@
         '</button>';
     }
 
-    /** The engine picker. Separate from the switches above because its value is
-     *  a name rather than a flag, and because two of the three names have no
-     *  engine behind them yet. */
     function tierBlock(current) {
         return '' +
         '<div class="mt-2 mb-6">' +
@@ -223,10 +172,6 @@
         '</div>';
     }
 
-    /** attr is the data- attribute the delegated handler keys off. It defaults
-     *  to data-pref because that is what the four preference switches use; the
-     *  privacy switch below is stored in IndexedDB, not prefs.js, so it needs
-     *  its own. */
     function switchRow(p, on, attr) {
         return '' +
         '<div class="flex items-start justify-between gap-4 py-4 border-b border-neutral-100 last:border-b-0">' +
@@ -244,11 +189,6 @@
         '</div>';
     }
 
-    /** Draw the rows. Called again after every toggle, because the hint line
-     *  under a switch is a function of its value and one code path should draw
-     *  both states. The delegated listener lives in renderPrefs(), NOT here --
-     *  host survives the innerHTML swap, so wiring it per paint would stack a
-     *  second handler on every toggle and the switch would flip twice. */
     function paintPrefs(host) {
         var values = window.ffPrefs.all();
         var rows = PREFS.map(function (p) { return switchRow(p, !!values[p.key]); }).join('');
@@ -264,7 +204,6 @@
                 '<button type="button" id="prefReset" data-haptic class="soft-click tap shrink-0 px-4 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-md hover:bg-neutral-50 transition">Restore defaults</button>' +
             '</div>';
 
-        // Recreated by the swap above, so wiring it here leaks nothing.
         $('prefReset').addEventListener('click', function () {
             window.ffPrefs.reset();
             paintPrefs(host);
@@ -273,8 +212,6 @@
         });
     }
 
-    /** Repaint the switches from another panel, without re-attaching the
-     *  delegated handler renderPrefs() owns. */
     function repaintPrefs() {
         var h = $('panelPrefs');
         if (h && window.ffPrefs && h.querySelector('[data-pref]')) paintPrefs(h);
@@ -304,8 +241,6 @@
             var stored = window.ffPrefs.set(key, next);
             paintPrefs(host);
             if (!stored) $('prefWarn').classList.remove('hidden');
-            // Places reads attachLocation for its empty state, and Storage
-            // reports what keepPhotos will do to the next write.
             if (key === 'attachLocation') renderPlaces($('panelPlaces'));
             if (key === 'keepPhotos' || key === 'recordHistory') renderStorage($('panelStorage'));
         }
@@ -314,11 +249,6 @@
         teardown.push(function () { host.removeEventListener('click', onClick); });
     }
 
-    // === Profile & privacy ===============================================
-
-    // Stored as ff_users.isPublic, not as a device preference: it describes an
-    // account, and two accounts on one browser must be able to disagree about
-    // it. That is also why it cannot live in PREFS above.
     var VISIBILITY = {
         key: 'profileVisible',
         label: 'Public profile card',
@@ -379,15 +309,6 @@
         teardown.push(function () { host.removeEventListener('click', onClick); });
     }
 
-    // === Places ==========================================================
-    /**
-     * Group located scans by rounded coordinate.
-     *
-     * 3 decimal places is about 110m at the equator and less further from it,
-     * which is the point: a garden, a park corner, one stretch of path. Full
-     * 5-dp keys (what ffGeolocate stores, ~1m) would make every scan its own
-     * "place" because GPS never returns the same fix twice.
-     */
     function groupPlaces(scans) {
         var byKey = {};
         var order = [];
@@ -403,15 +324,12 @@
             p.count += 1;
             var name = titleCase(scans[i].species || '');
             if (name && p.species.indexOf(name) === -1) p.species.push(name);
-            // scans arrive newest-first, so the first timestamp seen is the latest.
             if (!p.last || scans[i].timestamp > p.last) p.last = scans[i].timestamp;
         }
         return order.map(function (k) { return byKey[k]; }).sort(function (a, b) { return b.count - a.count; });
     }
 
     function placeCard(p) {
-        // zoom 15 shows a few streets -- close enough to recognise the spot,
-        // wide enough that it is not a pin on someone's front door.
         var osm = 'https://www.openstreetmap.org/?mlat=' + p.lat + '&mlon=' + p.lon + '#map=15/' + p.lat + '/' + p.lon;
         return '' +
         '<div class="bg-white border border-neutral-200 rounded-lg p-4">' +
@@ -449,8 +367,6 @@
                 why = 'None of your ' + state.scans.length + ' identifications carry coordinates, because location is switched off above.';
                 action = '<button type="button" id="placesEnable" data-haptic class="soft-click tap inline-flex items-center justify-center mt-4 px-5 border border-neutral-300 text-sm font-medium rounded-md hover:bg-neutral-50 transition">Turn on location for new scans</button>';
             } else {
-                // The pref is on but nothing is located: either no scan since,
-                // or the browser prompt was dismissed or denied.
                 why = 'Location is on, so your next identification will be placed here. If nothing appears, this browser may have denied the location permission for the site.';
                 action = '<a href="/try" class="tap inline-flex items-center justify-center mt-4 px-5 bg-neutral-900 text-white text-sm font-medium rounded-md hover:bg-neutral-800 transition-colors">Identify a flower</a>';
             }
@@ -481,8 +397,6 @@
             '</p>';
     }
 
-    // === Model & data ====================================================
-    /** One "spec sheet" row. `note` is the honest caveat, not a footnote. */
     function factRow(label, value, note) {
         return '' +
         '<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3 border-b border-neutral-100 last:border-b-0">' +
@@ -554,12 +468,9 @@
             });
         }
 
-        // privacy.html promises "You can clear locally stored feedback at any
-        // time from your browser". Until this button existed, that sentence was
-        // only true for someone who knew how to open devtools.
         if (clearBtn && log.length) {
             arm(clearBtn, 'Delete ' + log.length + ' — tap again', function () {
-                try { localStorage.removeItem(FEEDBACK_KEY); } catch (e) { /* nothing to remove */ }
+                try { localStorage.removeItem(FEEDBACK_KEY); } catch (e) { }
                 renderModel(host);
                 var n = $('fbNote');
                 n.textContent = 'Feedback log deleted from this browser.';
@@ -568,9 +479,6 @@
         }
     }
 
-    // === Storage =========================================================
-    /** Rough on-disk cost of the thumbnails, from the base64 length: four
-     *  characters encode three bytes. Reported as approximate because it is. */
     function thumbBytes(scans) {
         var n = 0;
         for (var i = 0; i < scans.length; i++) {
@@ -650,8 +558,6 @@
             '</div>' +
         '</div>';
 
-        // storage.estimate() is a promise and is missing in Safari < 17, so the
-        // bar is hidden until (and unless) a real number arrives.
         if (navigator.storage && navigator.storage.estimate) {
             navigator.storage.estimate().then(function (est) {
                 var wrap = $('quotaWrap');
@@ -660,17 +566,12 @@
                 $('quotaText').textContent = fmtBytes(est.usage) + ' of ' + fmtBytes(est.quota);
                 $('quotaBar').style.width = pct.toFixed(1) + '%';
                 wrap.classList.remove('hidden');
-            }).catch(function () { /* no estimate, no bar */ });
+            }).catch(function () { });
         }
 
         var exportBtn = $('dataExport');
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
-                // stats.unlockedBadges is a list of ids, which tells the
-                // reader of the file nothing. The catalogue is resolved into
-                // the export so it explains itself years from now, locked
-                // entries included -- otherwise the absence of "collector-50"
-                // could mean unearned or could mean the badge did not exist.
                 var held = (state.stats && state.stats.unlockedBadges) || [];
                 var payload = {
                     exported: new Date().toISOString(),
@@ -690,9 +591,6 @@
                     scans: state.scans
                 };
                 var n = $('dataNote');
-                // The four social stores are read here rather than held in
-                // state: an export is the only thing that wants the message
-                // and friend rows in full, and they can be large.
                 var bundle = window.ffStore.exportBundle
                     ? window.ffStore.exportBundle(state.uid)
                     : Promise.resolve(null);
@@ -718,8 +616,6 @@
         if (clearBtn && state.scans.length) {
             arm(clearBtn, 'Erase ' + state.scans.length + ' — tap again', function () {
                 var target = state.uid;
-                // clearUser, never clearAll: a shared browser holds other
-                // accounts' rows in the same database.
                 window.ffStore.clearUser(target).then(function (n) {
                     return refresh().then(function () {
                         var note = $('dataNote');
@@ -738,34 +634,21 @@
             });
         }
 
-        // Everything, not just the history: the scans, stats, profile row, posts,
-        // friend rows and messages in IndexedDB, the four device preferences,
-        // the correction log, and the cached session profile that ffLogout
-        // removes on its way out. deleteAccount rather than clearAll --
-        // "everything" means everything of YOURS, and another account's rows sit
-        // in the same database.
         var wipeBtn = $('dataWipe');
         if (wipeBtn) {
             arm(wipeBtn, 'Delete everything — tap again', function () {
                 var target = state.uid;
                 window.ffStore.deleteAccount(target).then(function () {
                     if (window.ffPrefs) window.ffPrefs.reset();
-                    try { localStorage.removeItem(FEEDBACK_KEY); } catch (e) { /* nothing to remove */ }
-                    // Hands off to Auth0, which returns to "/". Anything below
-                    // therefore runs only when Auth0 is unreachable -- and the
-                    // data is already gone by then either way, which is why a
-                    // failed sign-out must not be reported as a failed delete.
+                    try { localStorage.removeItem(FEEDBACK_KEY); } catch (e) { }
                     if (typeof ffLogout === 'function') {
-                        return ffLogout().catch(function () { /* still deleted */ });
+                        return ffLogout().catch(function () { });
                     }
                 }).then(function () {
                     return refresh();
                 }).then(function () {
                     var note = $('dataNote');
                     if (note) {
-                        // Conditional on purpose: reaching this line means the
-                        // redirect did not happen, and whether the Auth0 session
-                        // itself survived is not something this page can see.
                         note.textContent = 'Deleted. If you are still signed in, use Sign out at the top of this page.';
                         note.classList.remove('hidden');
                     }
@@ -781,16 +664,6 @@
         }
     }
 
-    // === lifecycle =======================================================
-
-    /** The three social reads the privacy card and the counts need.
-     *
-     *  state.uid is passed through even when it is null: every reader in
-     *  storage.js falls back to its own owner() -- the unclaimed id when nobody
-     *  is signed in -- which is the same scope getSummary() used for the scans
-     *  in the panel above. Guarding on a session here instead would report
-     *  zero posts on a browser that has some. A blocked store must not take the
-     *  other panels down, hence the catch. */
     function social() {
         if (!window.ffStore || typeof window.ffStore.getUser !== 'function') {
             state.profile = null;
@@ -814,10 +687,6 @@
         });
     }
 
-    /** Re-read the store into `state` and repaint every data-driven panel.
-     *  Returns a promise so a caller can post a message after the repaint --
-     *  which is also why the panels look their nodes up by id afterwards
-     *  instead of closing over them: the repaint replaces them. */
     function refresh() {
         if (!window.ffStore) return Promise.resolve(null);
         return window.ffStore.getSummary().then(function (summary) {
@@ -829,27 +698,13 @@
             renderPrivacy($('panelPrivacy'));
             renderPlaces($('panelPlaces'));
             renderStorage($('panelStorage'));
-            // dashboard.html passes a callback so the metric tiles, recent grid
-            // and badge shelf above these panels agree with them after an erase.
             if (typeof state.onChange === 'function') {
-                try { state.onChange(summary); } catch (e) { /* the host's problem, not ours */ }
+                try { state.onChange(summary); } catch (e) { }
             }
             return summary;
         });
     }
 
-    /**
-     * Draw the panels into whichever of the five hosts the page has.
-     *
-     * opts: { session, summary, onDataChanged }
-     *   session         from getUserSession(); only `sub` is used, to scope the
-     *                   erase and to read the one ff_users row that is yours
-     *   summary         an ffStore.getSummary() the caller already awaited
-     *   onDataChanged   called with a fresh summary after an erase
-     *
-     * Every field is optional: mount() with nothing at all is what the harness
-     * does, and it reads the store itself.
-     */
     function mount(opts) {
         var o = opts || {};
         unmount();
@@ -858,16 +713,12 @@
         state.scans = (o.summary && o.summary.scans) || [];
         state.stats = (o.summary && o.summary.stats) || null;
 
-        // Preferences first and unconditionally: it is the one panel that owes
-        // nothing to IndexedDB, so it must still work when storage is blocked.
         renderPrefs($('panelPrefs'));
         renderModel($('panelModel'));
         renderPlaces($('panelPlaces'));
         renderPrivacy($('panelPrivacy'));
         renderStorage($('panelStorage'));
 
-        // A caller holding a summary already paid for the read (dashboard.html
-        // drew its metric tiles from it), so draw from that and skip the trip.
         if (o.summary) {
             return social().then(function () {
                 renderPrivacy($('panelPrivacy'));
@@ -876,7 +727,6 @@
             });
         }
         return refresh().catch(function () {
-            // Private mode or a blocked database: the switches are still live.
             var s = $('panelStorage');
             if (s) s.innerHTML = '<p class="text-sm text-neutral-500">Local storage is unavailable in this browser mode, so there is nothing to report or erase.</p>';
             return null;
@@ -885,7 +735,7 @@
 
     function unmount() {
         for (var i = 0; i < teardown.length; i++) {
-            try { teardown[i](); } catch (e) { /* ignore */ }
+            try { teardown[i](); } catch (e) { }
         }
         teardown = [];
         state = { uid: null, scans: [], stats: null, profile: null, posts: 0, friends: 0, onChange: null };
@@ -895,7 +745,6 @@
         mount: mount,
         unmount: unmount,
         refresh: refresh,
-        // exported for the QA suite, which asserts the copy matches the keys
         PREFS: PREFS,
         MODEL: MODEL
     };

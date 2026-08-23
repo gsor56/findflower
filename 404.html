@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -12,15 +11,10 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
-    <!-- The search palette, and the fetcher its live species half calls. No
-         storage.js here: a wrong address is not the place to open IndexedDB, so
-         this page's palette offers species and routes and says so in the
-         field's placeholder. -->
     <script src="scripts/api.js?v=1" defer></script>
     <script src="scripts/search.js?v=1" defer></script>
     <script src="scripts/router.js" defer></script>
@@ -66,10 +60,6 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -77,15 +67,6 @@
             input[type="submit"], input[type="button"] { min-width: 44px; }
         }
 
-        /* Search palette (scripts/search.js), same rules as /dashboard. Kept
-           page-local rather than moved into app.css: app.css is cache-busted at
-           ?v=9 across every page, and a returning reader holding the cached copy
-           would get the palette markup with none of its styling.
-
-           Hidden by visibility rather than display so the panel can fade, and
-           .active drops the visibility delay so that input.focus(), called in
-           the same task as the class flip, is not thrown away on a node the
-           browser still considers hidden. */
         .ff-cmd {
             position: fixed;
             inset: 0;
@@ -99,8 +80,6 @@
             transition: opacity .16s ease, visibility 0s linear .16s;
         }
         .ff-cmd.active { visibility: visible; opacity: 1; transition: opacity .16s ease; }
-        /* Flat, not blurred: backdrop-filter is banned on basic UI here, and
-           there is nothing worth seeing through it. */
         .ff-cmd__scrim { position: absolute; inset: 0; background: rgba(23, 23, 23, .18); }
         .ff-cmd__panel {
             position: relative;
@@ -124,7 +103,6 @@
         .ff-cmd__input {
             flex: 1;
             min-width: 0;
-            /* 1rem exactly: anything smaller and iOS zooms the viewport on focus. */
             font-size: 1rem;
             line-height: 1.5;
             padding: 0.875rem 0;
@@ -214,9 +192,6 @@
                     take one of the routes below.
                 </p>
 
-                <!-- The same palette the dashboard opens (scripts/search.js). It
-                     replaces a form that submitted ?q= to a page that reads no
-                     query string, so the field looked like search and was not. -->
                 <button type="button" id="ffSearchOpen" data-haptic
                         aria-haspopup="dialog" aria-expanded="false"
                         data-placeholder="Search species and pages"
@@ -238,9 +213,6 @@
                 </div>
             </div>
 
-            <!-- The number, set in the page's own serif rather than drawn: the
-                 viewBox scales it to the column, so the size needs no font-size
-                 class off the Tailwind scale. -->
             <div class="hidden lg:flex lg:col-span-5 justify-center pt-2" aria-hidden="true">
                 <svg viewBox="0 0 340 180" class="w-full max-w-sm text-neutral-200" fill="currentColor">
                     <text x="170" y="142" text-anchor="middle" font-family="Fraunces, serif" font-size="168" font-weight="500" letter-spacing="-4">404</text>

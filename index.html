@@ -18,7 +18,6 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js" defer></script>
     <script src="auth.js?v=3" defer></script>
@@ -26,9 +25,6 @@
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="species.js"></script>
-    <!-- SPA: the router swaps <main> so navigation never reloads. Each page
-         stays a complete document on disk, so crawlers and no-JS readers are
-         unaffected; views/home.js re-arms the scroll-reveal after a swap. -->
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -84,10 +80,6 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        /* Set by the observer in scripts/ux.js. app.css defines the same class
-           with html:not(.ff-reveal) at (0,2,0), which beats this (0,1,0) until
-           that script runs, so a page with no JS shows its content rather than
-           an empty column. Do not raise the specificity here. */
         .reveal-up {
             opacity: 0;
             transform: translateY(30px);
@@ -130,14 +122,6 @@
             }
         }
 
-        /* The tabs are real <button>s: nothing navigates, the card re-renders
-           from a different record in trefle-data.json. Selected state is read
-           from [aria-selected] rather than a parallel `.active` class, so the
-           accessibility tree and the styling cannot disagree about it.
-
-           Only colour transitions. The tab row is above the fold on a phone in
-           landscape, where animating its box reflowed the card under it on
-           every tap. */
         .ff-sample-tab {
             font-size: 0.875rem;
             font-weight: 500;
@@ -146,8 +130,6 @@
             border: 1px solid #E5E5E5;
             background-color: #FFFFFF;
             color: #737373;
-            /* transform last: the tab carries .soft-click, and this rule wins
-               over it, so the press scale has to be listed here or it snaps. */
             transition: color 0.3s ease, border-color 0.3s ease, background-color 0.3s ease,
                         transform 160ms cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -160,24 +142,6 @@
             color: #3D5341;
         }
 
-        /* One grid row of the record. The label column is fixed so the values
-           line up down the card however long the labels get.
-
-           It is fixed on purpose, and a fluid clamp() here was tried and
-           reverted: the card is NARROWEST just past the md breakpoint (five of
-           twelve columns ≈ 273px at 768px, where 360px gives it the full 324px),
-           so that is where a narrower label column would pay off, but the floor
-           it needs is set by "GROWTH HABIT", which wraps to two lines under about
-           7rem. Measured: at a 91px column the label breaks while the value still
-           wraps, which is both problems at once. Any floor high enough to keep
-           the label on one line lands within a few px of the 7.5rem below, so the
-           clamp bought nothing and cost a wrapped label. The label text itself is
-           not available to shorten: species.html and try.html both print
-           "Growth habit" for this same Trefle field.
-
-           `start` rather than `center` because "Full sun to light shade" does
-           wrap on the narrowest card, and its label should stay level with the
-           first line rather than float against the middle of two. */
         .ff-sample-row {
             display: grid;
             grid-template-columns: 7.5rem 1fr;
@@ -201,7 +165,6 @@
             line-height: 1.45;
         }
 
-        /* Shimmer while a directory-preview card hydrates from Wikipedia. */
         @keyframes shimmer {
             0% { background-position: -400px 0; }
             100% { background-position: 400px 0; }
@@ -212,7 +175,6 @@
             animation: shimmer 1.4s infinite linear;
         }
 
-        /* Each card fades and rises when its own data resolves. */
         .card-in {
             opacity: 0;
             transform: translateY(12px);
@@ -220,22 +182,13 @@
         }
         .card-in.ready { opacity: 1; transform: translateY(0); }
 
-        /* Buttons lift on press: scale plus shadow, 220ms. */
         .lift-btn { transition: transform 0.2s ease, box-shadow 0.2s ease; }
         @media (hover: hover) {
             .lift-btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
         }
         .lift-btn:focus-visible { transform: translateY(-2px) scale(1.02); box-shadow: 0 14px 30px -12px rgba(23, 23, 23, 0.28); }
-        /* app.css gives every .soft-click a press-in, but `.soft-click:active`
-           and `.lift-btn:hover` are both (0,2,0) and this file loads last, so on
-           a hovering mouse the lift would swallow the press. Name both. */
         .lift-btn.soft-click:active { transform: scale(0.98); }
 
-        /* The hero: headline in the wide left rail, one run of the pipeline in
-           a panel on the right, pollen full-bleed behind both.
-
-           Motion here is transform, opacity or stroke-dashoffset and nothing
-           else, so the band composites on the GPU and never touches layout. */
         .ff-hero {
             position: relative;
             isolation: isolate;
@@ -245,7 +198,6 @@
             align-items: center;
         }
 
-        /* Ambient pollen: full-bleed, behind everything, under the words. */
         .ff-pollen {
             position: absolute;
             inset: 0;
@@ -268,9 +220,6 @@
             align-items: center;
             grid-template-columns: 1fr;
         }
-        /* The asymmetry only takes effect once there is room for two columns:
-           the copy rail a shade wider than the specimen. Below that the
-           specimen drops beneath the copy and both go full width. */
         @media (min-width: 1024px) {
             .ff-hero-inner { grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr); }
         }
@@ -289,7 +238,6 @@
             text-wrap: balance;
         }
 
-        /* The stage is the fixed 5:6 box; the panel fills it. */
         .ff-glass-stage {
             position: relative;
             width: min(100%, 30rem);
@@ -308,8 +256,6 @@
             overflow: hidden;
         }
 
-        /* Names the drawing as a drawing. The percentages in it are invented, so
-           a visitor who reads them as a live result has been misled. */
         .ff-panel-note {
             position: absolute;
             left: 1rem;
@@ -320,11 +266,6 @@
             color: #737373;
         }
 
-        /* The identification pass.
-           The rest state below is the FINISHED state, not an empty one: with JS
-           off nothing ever adds .is-running, and a visitor should still see a
-           complete illustration rather than a blank frame. Same reasoning as the
-           sample card's leaf mark further down. */
         .ff-pass { width: 84%; height: auto; max-height: 92%; overflow: visible; }
 
         .ff-pass-grid { stroke-dasharray: 1; stroke-dashoffset: 0; }
@@ -333,8 +274,6 @@
         .ff-pass-rise { opacity: 1; transform: translateY(0); }
         .ff-pass-fill { transform-box: fill-box; transform-origin: left center; transform: scaleX(var(--w, 1)); }
 
-        /* pathLength="1" on the grid path, so the dash figures are 0-1 and no
-           path-length arithmetic has to be kept in sync with the coordinates. */
         .is-running .ff-pass-grid { animation: ff-pass-draw var(--dur, 800ms) cubic-bezier(0.16, 1, 0.3, 1) var(--d, 200ms) both; }
         .is-running .ff-pass-cell { animation: ff-pass-cell 420ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 1s) both; }
         .is-running .ff-pass-crop { animation: ff-pass-crop 620ms cubic-bezier(0.16, 1, 0.3, 1) 2200ms both; }
@@ -351,23 +290,12 @@
         @keyframes ff-pass-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes ff-pass-fill { from { transform: scaleX(0); } to { transform: scaleX(var(--w, 1)); } }
 
-        /* Pointer-only. The stage is aria-hidden, so it must stay out of the tab
-           order; a keyboard user gets the finished state and loses nothing. */
         @media (hover: hover) {
             [data-replay] { cursor: pointer; }
         }
 
-        /* The enrichment trace. No classes of its own beyond sizing: the nodes,
-           paths and labels wear .ff-pass-cell, .ff-pass-grid and .ff-pass-rise,
-           so both animations on this page run off one set of five keyframes and
-           one rest state. --d and --dur are what make them different. */
-        /* Capped: the sticky column is about 470px on a desktop, but full width
-           on a phone, and an uncapped 320-unit viewBox stretched to 700px put
-           17px labels on a diagram whose own card sets body text at 14. */
         .ff-trace { display: block; width: 100%; max-width: 27rem; height: auto; margin-inline: auto; }
 
-        /* Tabular digits so the count does not wobble on its way to 116. The
-           width is locked in JS from the final value before the first tick. */
         .ff-count { font-variant-numeric: tabular-nums; display: inline-block; }
 
         @media (prefers-reduced-motion: reduce) {
@@ -375,17 +303,12 @@
             .reveal-up { opacity: 1; transform: none; }
             .card-in { opacity: 1; transform: none; }
             .draw-path { stroke-dashoffset: 0; }
-            /* The pass rests finished: grid drawn, patches lit, bars filled. */
             .ff-pass-grid { stroke-dashoffset: 0; }
             .ff-pass-cell, .ff-pass-crop { opacity: 1; transform: scale(1); }
             .ff-pass-rise { opacity: 1; transform: translateY(0); }
             .ff-pass-fill { transform: scaleX(var(--w, 1)); }
         }
     
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -428,12 +351,6 @@
 
     <main class="relative pt-32 pb-24 overflow-hidden">
 
-        <!-- Two pieces of gutter line art, not four, and deliberately not level
-             with each other: at 20% left and 72% right they never read as a pair
-             framing the content. The two that went were a leaf at 44% right and a
-             stem at 66% left, which put something in both gutters at three of the
-             four heights. All of this is lg: and up, because below that there is no
-             gutter to put anything in. -->
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
             <svg class="hidden lg:block absolute left-[-2.5rem] top-[20%] text-sage-200 opacity-70 float-slow" width="120" height="250" viewBox="0 0 120 260" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M60 255C60 205 58 150 60 40"/>
@@ -480,9 +397,6 @@
                     <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">Runs in any browser. Nothing to install, and free while it is in beta.</p>
                 </div>
 
-                <!-- One pass of the pipeline: patch grid, attention, top-1 with
-                     its runners-up. The figures are illustrative until the eval
-                     numbers land, which is what the chip says. -->
                 <div id="heroPass" data-replay class="reveal-up delay-200 ff-glass-stage" aria-hidden="true">
                     <div class="ff-glass-panel">
                         <svg class="ff-pass" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -583,7 +497,6 @@
 
             <div id="previewGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
 
-            <!-- Mobile "view all" (the header link is hidden on small screens) -->
             <div class="reveal-up mt-10 flex md:hidden">
                 <a href="/directory" class="inline-flex items-center text-sm font-medium bg-neutral-900 text-white px-6 py-3 rounded-md hover:bg-neutral-800 transition-colors">
                     View full directory
@@ -591,15 +504,6 @@
             </div>
         </section>
 
-        <!-- Four figures, each one checkable against something in this repo:
-               116:  space/class_names.json has exactly 116 labels
-               ViT:  space/app.py serves a Vision Transformer through ONNX Runtime
-               Free: pricing.html states it for the duration of the Beta
-               0:    try.html reaches the model with no account and no key
-             The two that used to sit here ("<2s average result time", "Weekly
-             model refinements") were measurements nobody had taken and a
-             cadence a small project cannot promise, so they are gone rather than
-             softened. -->
         <section class="max-w-7xl mx-auto px-6 mb-36">
             <div id="statsStrip" class="reveal-up grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 border-y border-neutral-200 py-12">
                 <div class="text-center md:border-r border-neutral-200">
@@ -621,11 +525,6 @@
             </div>
         </section>
 
-        <!-- Asymmetrical on purpose: the three steps take the wide column and a
-             real record from the catalogue takes the narrow one, so the section
-             explains the pipeline and shows its output at the same time. The
-             steps used to sit in three equal boxes under a horizontal rule,
-             which read as a diagram of a process rather than the process. -->
         <section id="how" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
             <div class="reveal-up max-w-2xl mb-16">
                 <span class="text-sm font-medium text-sage-600 mb-4 block">How it works</span>
@@ -637,10 +536,6 @@
             <div class="grid grid-cols-1 md:grid-cols-12 gap-16 md:gap-10 lg:gap-16 items-start">
 
                 <div class="md:col-span-7 relative">
-                    <!-- The spine sits behind the markers and dissolves rather than
-                         stopping at a hard edge. The last step has nothing below it
-                         to connect to, and a gradient works that out without any
-                         per-item :last-child plumbing. -->
                     <div class="absolute left-[19px] top-6 bottom-6 w-px bg-gradient-to-b from-neutral-200 via-neutral-200 to-transparent" aria-hidden="true"></div>
 
                     <ol class="relative space-y-10 list-none">
@@ -676,18 +571,10 @@
                     </ol>
                 </div>
 
-                <!-- A real record from the catalogue, in the narrow column.
-                     Sticky on desktop so it stays alongside whichever step you are
-                     reading; it simply scrolls with the page on a phone. -->
                 <div class="md:col-span-5 md:sticky md:top-28">
                     <div class="reveal-up delay-100">
                         <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase block mb-3">Sample record</span>
 
-                        <!-- Three species from trefle-data.json, picked because their
-                             records disagree in every field that matters: full sun
-                             against shade, dry ground against water, edible against
-                             undocumented. A tab row where every card looked the same
-                             would not be worth tapping. -->
                         <div id="sampleTabs" class="flex flex-wrap gap-2 mb-4" role="tablist" aria-label="Sample species">
                             <button type="button" role="tab" aria-selected="true" aria-controls="samplePanel"
                                 class="ff-sample-tab soft-click" data-key="rudbeckia hirta" data-binomial="Rudbeckia hirta">Black-eyed Susan</button>
@@ -701,19 +588,9 @@
                             class="bg-white border border-neutral-200 rounded-lg overflow-hidden">
                             <div class="flex items-center gap-4 p-5">
                                 <div class="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 bg-sage-50">
-                                    <!-- The leaf mark is the DEFAULT state, not a failure
-                                         state. With JS off nothing ever fetches a plate,
-                                         and a shimmer that resolves to nothing would be a
-                                         lie about what is coming. The script swaps to a
-                                         shimmer only once a request is actually in flight. -->
                                     <div id="samplePh" class="absolute inset-0 flex items-center justify-center">
                                         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-300"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                     </div>
-                                    <!-- No loading="lazy" here, deliberately: the element
-                                         starts `hidden`, a hidden element has no box, and
-                                         a box that never intersects the viewport never
-                                         triggers a lazy load. The script controls when
-                                         src is set, which is the same saving. -->
                                     <img id="sampleImg" class="w-full h-full object-cover" alt="" hidden />
                                 </div>
                                 <div class="min-w-0">
@@ -722,17 +599,6 @@
                                 </div>
                             </div>
 
-                            <!-- These rows are trefle-data.json's record for Rudbeckia
-                                 hirta, copied verbatim, so the card is complete before a
-                                 single script runs and stays complete if none ever does.
-                                 The script re-renders them from the file itself, which is
-                                 also what keeps this copy from quietly going stale.
-
-                                 No "edible" row here even though the record carries
-                                 `edible: false`: species.js documents that Trefle returns
-                                 false for plants that are plainly edible (dandelion,
-                                 sunflower), so the site never reads it as a statement
-                                 about safety. Only an affirmative yes is shown. -->
                             <dl id="sampleFields" class="border-t border-neutral-100">
                                 <div class="ff-sample-row"><dt>Family</dt><dd>Asteraceae</dd></div>
                                 <div class="ff-sample-row"><dt>Growth habit</dt><dd>Forb/herb</dd></div>
@@ -750,11 +616,6 @@
                             </div>
                         </article>
 
-                        <!-- Three sources, one record: what step 03 describes, drawn.
-                             Wikidata lands the taxonomy row, Trefle the four growing
-                             rows, Wikipedia the plate, and each one flashes the part
-                             of the card above that it is responsible for. Tap to run
-                             it again. -->
                         <div id="sampleTrace" data-replay class="reveal-up delay-200 mt-6 px-1">
                             <svg class="ff-trace" viewBox="0 0 320 100" fill="none" aria-hidden="true">
                 <text class="ff-pass-rise" style="--d:0ms" x="40" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIDATA</text>
@@ -802,12 +663,6 @@
             </div>
         </section>
 
-        <!-- Three claims, and each one is checkable: the model is in space/app.py,
-             the three data sources are in species.js and scripts/api.js, and the
-             absence of a sign-up is visible from try.html. The card that used to
-             sit third claimed "500 distinct botanical classes" and weekly dataset
-             refinements. The real figure is 116 (space/class_names.json) and the
-             cadence was never a commitment anyone had made. -->
         <section id="architecture" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
             <div class="reveal-up max-w-2xl mb-14">
                 <span class="text-sm font-medium text-sage-600 mb-4 block">Why FindFlower</span>
@@ -886,29 +741,19 @@
         var stage = document.getElementById('heroPass');
         if (!stage) return;
 
-        // Same reason the pollen canvas needs a teardown: the router re-runs this
-        // block against a new #heroPass while the old timer is still firing at a
-        // detached one, so every visit home would leave another loop behind.
         if (typeof window.ffStopHeroPass === 'function') {
-            try { window.ffStopHeroPass(); } catch (e) { /* a broken teardown must not block a new one */ }
+            try { window.ffStopHeroPass(); } catch (e) { }
         }
 
-        // Rest state IS the finished state: grid drawn, patches lit, bars filled.
-        // So reduced motion (and no JS at all) needs nothing added, only nothing
-        // started.
         if (window.matchMedia &&
             window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-        var CYCLE = 6000;   // 4600ms of animation, then 1400ms holding the result
+        var CYCLE = 6000;
         var timer = null;
         var io = null;
         var dead = false;
 
         function run() {
-            // Restart by taking the class off, forcing a reflow, putting it back.
-            // Without the reflow the browser coalesces both writes into one frame
-            // and the animations never see a change to restart from. Same idiom as
-            // crossFade() in scripts/ux.js.
             stage.classList.remove('is-running');
             void stage.offsetWidth;
             stage.classList.add('is-running');
@@ -933,10 +778,6 @@
             else start();
         }
 
-        // Tap to replay. This is the only interaction the hero has on a phone,
-        // where none of the :hover affordances elsewhere on the page resolve.
-        // Pointer-only on purpose: the stage is aria-hidden, so it must not be
-        // given a tabindex just to earn a keyboard equivalent.
         function onReplay() {
             stopTimer();
             tick();
@@ -948,7 +789,7 @@
             stopTimer();
             stage.removeEventListener('click', onReplay);
             document.removeEventListener('visibilitychange', onVisibility);
-            if (io) { try { io.disconnect(); } catch (e) { /* ignore */ } io = null; }
+            if (io) { try { io.disconnect(); } catch (e) { } io = null; }
             if (window.ffStopHeroPass === stop) window.ffStopHeroPass = null;
         }
         window.ffStopHeroPass = stop;
@@ -956,8 +797,6 @@
         stage.addEventListener('click', onReplay);
         document.addEventListener('visibilitychange', onVisibility);
 
-        // Scrolled past means stopped. A loop repainting a hero nobody can see is
-        // the same waste as the pollen canvas off-screen.
         if ('IntersectionObserver' in window) {
             io = new IntersectionObserver(function (entries) {
                 if (entries[entries.length - 1].isIntersecting) start();
@@ -977,27 +816,18 @@
         if (!trace) return;
 
         if (typeof window.ffStopTrace === 'function') {
-            try { window.ffStopTrace(); } catch (e) { /* a broken teardown must not block a new one */ }
+            try { window.ffStopTrace(); } catch (e) { }
         }
 
-        // Rest state is the finished diagram, so reduced motion needs nothing
-        // started and nothing added.
         if (window.matchMedia &&
             window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-        // Resolved at flash time, never cached. The sample-card script re-renders
-        // #sampleFields from trefle-data.json, and again on every tab press, so a
-        // NodeList taken at parse time points at detached rows: the first version
-        // of this flashed the plate and nothing else.
         function rows() { return document.querySelectorAll('#sampleFields .ff-sample-row'); }
         function plate() {
             var ph = document.getElementById('samplePh');
             return ph ? ph.parentNode : null;
         }
 
-        // Each source flashes the part of the card it is actually responsible
-        // for, at the moment its path lands. Times track the --d values on the
-        // three .ff-pass-grid paths plus their 520ms draw.
         var LANDINGS = [
             [780, function () { return [rows()[0]]; }],
             [1080, function () { var r = rows(); return [r[1], r[2], r[3], r[4]]; }],
@@ -1045,16 +875,13 @@
             dead = true;
             clearTimers();
             trace.removeEventListener('click', onReplay);
-            if (io) { try { io.disconnect(); } catch (e) { /* ignore */ } io = null; }
+            if (io) { try { io.disconnect(); } catch (e) { } io = null; }
             if (window.ffStopTrace === stop) window.ffStopTrace = null;
         }
         window.ffStopTrace = stop;
 
         trace.addEventListener('click', onReplay);
 
-        // One-shot on arrival, then only on demand. Unlike the hero this does not
-        // loop: three sources merging is a fact to state once, and a diagram that
-        // kept redrawing itself beside prose would fight the prose.
         if ('IntersectionObserver' in window) {
             io = new IntersectionObserver(function (entries, obs) {
                 if (!entries[entries.length - 1].isIntersecting) return;
@@ -1078,43 +905,22 @@
         if (!el) return;
 
         if (typeof window.ffStopCount === 'function') {
-            try { window.ffStopCount(); } catch (e) { /* a broken teardown must not block a new one */ }
+            try { window.ffStopCount(); } catch (e) { }
         }
 
         var target = parseInt(el.getAttribute('data-countup'), 10);
         if (isNaN(target)) return;
-        if (typeof requestAnimationFrame !== 'function') return;   // leave 116 as written
+        if (typeof requestAnimationFrame !== 'function') return;
 
         var raf = null;
 
-        // No second observer: the strip already carries .reveal-up, and the class
-        // the reveal observer adds starts a 700ms transition on it. Listening for
-        // the end of that transition costs nothing and starts the count when the
-        // strip has finished arriving, provided the right transition is used.
-        //
-        // It is also the right fallback in both directions. With no
-        // IntersectionObserver .ff-reveal is never set, nothing transitions, and
-        // the figure simply stays as written. Under prefers-reduced-motion app.css
-        // sets transition: none on .reveal-up, so this never fires there either.
         function onEnd(e) {
             if (e.target !== strip || e.propertyName !== 'opacity') return;
 
-            // The first opacity transitionend on this strip is the wrong one, and
-            // it cost an afternoon. app.css holds .reveal-up at opacity 1 until
-            // ux.js sets html.ff-reveal; the instant it does, this page's own
-            // opacity: 0 wins and the strip fades OUT over 700ms. That end event
-            // lands about 900ms after load, while the strip is still a screen
-            // below the fold. Counting there meant the figure had already reached
-            // 116 before anyone scrolled to it, so the animation was real,
-            // correct, and never once seen. .active is the only signal that says
-            // the strip faded IN.
             if (!strip.classList.contains('active')) return;
 
             strip.removeEventListener('transitionend', onEnd);
 
-            // Lock the box at its final width first. 0 is one glyph wide and 116
-            // is three, and a centred number that grows mid-count drags the label
-            // under it sideways.
             el.style.minWidth = el.offsetWidth + 'px';
 
             var t0 = null;
@@ -1143,9 +949,6 @@
     })();
     </script>
 
-    <!-- Pollen. The one animation on this site that is not a CSS
-         transform: a few dozen grains on independent drifting paths cannot be
-         expressed as a transform on a single box. It never touches layout. -->
     <script>
     (function () {
         'use strict';
@@ -1154,12 +957,8 @@
         var ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // The router swaps <main>, which re-runs this block against a brand new
-        // canvas while the previous loop is still ticking a detached one. Retire
-        // the old one first, or every visit to the home page leaves another frame
-        // loop running for the life of the tab.
         if (typeof window.ffStopPollen === 'function') {
-            try { window.ffStopPollen(); } catch (e) { /* a broken teardown must not block a new one */ }
+            try { window.ffStopPollen(); } catch (e) { }
         }
 
         var TAU = Math.PI * 2;
@@ -1173,18 +972,16 @@
 
         function rand(lo, hi) { return lo + Math.random() * (hi - lo); }
 
-        /** Seed one grain. `spread` places it anywhere in the box (first paint);
-         *  otherwise it re-enters from just below the bottom edge. */
         function seedGrain(g, spread) {
             g.x = rand(0, w);
             g.y = spread ? rand(0, h) : h + rand(4, 48);
             g.r = rand(1.1, 2.8);
-            g.rise = rand(6, 18);          // px per second, upward
-            g.sway = rand(6, 22);          // px of horizontal drift
-            g.freq = rand(0.05, 0.2);      // sway cycles per second
+            g.rise = rand(6, 18);
+            g.sway = rand(6, 22);
+            g.freq = rand(0.05, 0.2);
             g.phase = rand(0, TAU);
             g.alpha = rand(0.1, 0.22);
-            g.warm = Math.random() < 0.45; // a minority carry a pollen tint
+            g.warm = Math.random() < 0.45;
         }
 
         function wantCount() { return w < 560 ? 22 : (w < 900 ? 34 : 48); }
@@ -1198,10 +995,6 @@
             }
         }
 
-        /** Re-measure, and report whether the CSS box actually changed. Returning
-         *  false on an unchanged box is what stops the ResizeObserver below from
-         *  feeding itself: setting canvas.width is an intrinsic-size change, and
-         *  a naive observer would treat its own write as a new resize. */
         function fit() {
             var rect = canvas.getBoundingClientRect();
             var nw = Math.max(1, Math.round(rect.width));
@@ -1209,12 +1002,10 @@
             if (nw === w && nh === h) return false;
             w = nw;
             h = nh;
-            // Cap the ratio at 2: on a 3x phone a full-bleed canvas would cost
-            // triple the fill for grains that are two pixels across.
             dpr = Math.min(2, window.devicePixelRatio || 1);
             canvas.width = Math.round(w * dpr);
             canvas.height = Math.round(h * dpr);
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);   // then draw in CSS pixels
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             return true;
         }
 
@@ -1223,8 +1014,6 @@
             for (var i = 0; i < grains.length; i++) {
                 var g = grains[i];
                 var x = g.x + Math.sin(g.phase) * g.sway;
-                // Two arcs per grain: a soft halo under a tighter core, which
-                // reads as out of focus rather than as a dot.
                 ctx.beginPath();
                 ctx.arc(x, g.y, g.r * 2.8, 0, TAU);
                 ctx.fillStyle = g.warm
@@ -1244,8 +1033,6 @@
             raf = 0;
             if (dead) return;
             if (!last) last = now;
-            // Clamped: a backgrounded tab hands back a multi-second gap, which
-            // would teleport every grain off the top in a single frame.
             var dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
             last = now;
             for (var i = 0; i < grains.length; i++) {
@@ -1269,7 +1056,6 @@
             raf = 0;
         }
 
-        /** Restart from a fresh clock so a pause never shows up as a jump. */
         function resume() {
             last = 0;
             schedule();
@@ -1283,9 +1069,6 @@
                 if (dead) return;
                 var was = grains.length;
                 if (!fit()) return;
-                // Re-populate only when the grain budget itself changed. A phone
-                // collapsing its URL bar resizes the hero by 60px, and
-                // re-randomising every grain for that reads as a glitch.
                 if (was !== wantCount()) {
                     populate();
                 } else {
@@ -1309,8 +1092,8 @@
             window.removeEventListener('resize', onResize);
             window.removeEventListener('orientationchange', onResize);
             document.removeEventListener('visibilitychange', onVisibility);
-            if (io) { try { io.disconnect(); } catch (e) { /* ignore */ } io = null; }
-            if (ro) { try { ro.disconnect(); } catch (e) { /* ignore */ } ro = null; }
+            if (io) { try { io.disconnect(); } catch (e) { } io = null; }
+            if (ro) { try { ro.disconnect(); } catch (e) { } ro = null; }
             if (window.ffStopPollen === stop) window.ffStopPollen = null;
         }
         window.ffStopPollen = stop;
@@ -1321,22 +1104,15 @@
 
         window.addEventListener('resize', onResize);
         window.addEventListener('orientationchange', onResize);
-        // Fonts and the plate band settle after first paint, both of which change
-        // the hero's height. Without this the bitmap would keep its first-paint
-        // size and the browser would stretch it.
         if (typeof ResizeObserver === 'function') {
             ro = new ResizeObserver(onResize);
             ro.observe(canvas);
         }
 
-        // Reduced motion: one still frame of grains, and no frame loop is ever
-        // scheduled. Resizes still redraw it, so it stays sharp.
         if (reduce) return;
 
         document.addEventListener('visibilitychange', onVisibility);
 
-        // Off-screen means off. Scrolling past the hero must not leave a rAF loop
-        // painting a canvas nobody can see.
         if ('IntersectionObserver' in window) {
             io = new IntersectionObserver(function (entries) {
                 visible = entries[entries.length - 1].isIntersecting;
@@ -1348,13 +1124,11 @@
     })();
     </script>
 
-    <!-- Directory preview: first 12 seed species, hydrated live from the shared module -->
     <script>
     (function () {
         'use strict';
-        if (typeof ffFetchSpecies !== 'function') return; // species.js unavailable, leave section empty
+        if (typeof ffFetchSpecies !== 'function') return;
 
-        // First 12 of directory.html's seed list (kept in sync with that page).
         const PREVIEW = [
             { common: 'Rose',         q: 'Rose' },
             { common: 'Tulip',        q: 'Tulip' },
@@ -1373,8 +1147,6 @@
         const grid = document.getElementById('previewGrid');
         if (!grid) return;
 
-        // The directory listing builds its own cards in scripts/ui.js; this is
-        // the preview's own, so the homepage needs nothing from that file.
         function buildCard(seed) {
             const a = document.createElement('a');
             a.href = '/species?name=' + encodeURIComponent(seed.q);
@@ -1425,10 +1197,6 @@
                 sname.innerHTML = ''; sname.textContent = '—'; sname.classList.remove('italic');
                 if (ph) { ph.classList.remove('skeleton'); ph.classList.add('bg-neutral-100'); }
             } finally {
-                // Hydration finished (image/text swapped in). The visible entrance
-                // itself is handled by the reveal observer below so cards fade in on
-                // scroll even before their data lands. This just ensures a card that
-                // was never observed (no IO support) still becomes visible.
                 if (!('IntersectionObserver' in window)) {
                     requestAnimationFrame(() => card.classList.add('ready'));
                 }
@@ -1446,8 +1214,6 @@
             }, { rootMargin: '200px 0px' })
             : null;
 
-        // Entrance observer: fade + slide each card up as it scrolls into view,
-        // staggered across a row so they cascade in gently rather than snapping.
         const reveal = ('IntersectionObserver' in window)
             ? new IntersectionObserver((entries, obs) => {
                 entries.forEach(entry => {
@@ -1470,22 +1236,6 @@
     })();
     </script>
 
-    <!-- The tabs render from trefle-data.json: the same same-origin file
-         species.js merges into every species profile. So the fields on the
-         homepage are the fields the app actually shows, not a mock-up of them.
-         The plate and the binomial come from ffFetchSpecies, the same
-         Wikipedia/Wikidata path a scan result takes.
-
-         The markup already holds a complete record, so this script's job is to
-         make the tabs work and to re-render from the live file (which is what
-         keeps the copy in the markup from going stale). With JS off, or with no
-         network, the card stays complete and correct.
-
-         Router note: this block re-runs on every client-side arrival at
-         index.html. Every node it touches lives inside <main>, which the router
-         replaces wholesale, and the two listeners below are attached to one of
-         those nodes, so the previous run's wiring is collected with the DOM it
-         was bound to. Nothing survives a swap, so there is nothing to retire. -->
     <script>
     (function () {
         'use strict';
@@ -1500,8 +1250,6 @@
         var binomial = document.getElementById('sampleBinomial');
         var link = document.getElementById('sampleLink');
 
-        // Same key species.js writes, deliberately: whichever of us runs first
-        // pays for the request and the other reads it back out of the session.
         var CACHE_KEY = 'ff_trefle_map';
         var mapPromise = null;
 
@@ -1511,7 +1259,7 @@
                 try {
                     var cached = sessionStorage.getItem(CACHE_KEY);
                     if (cached) { resolve(JSON.parse(cached)); return; }
-                } catch (e) { /* private mode, or a poisoned entry: just refetch */ }
+                } catch (e) { }
                 fetch('trefle-data.json').then(function (res) {
                     return res.ok ? res.json() : null;
                 }).then(function (map) {
@@ -1524,8 +1272,6 @@
             return mapPromise;
         }
 
-        // trefle-data.json is generated from a third-party API, so its strings
-        // are treated as untrusted even though the file ships with the site.
         function esc(s) {
             return String(s).replace(/[&<>"]/g, function (c) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -1535,21 +1281,10 @@
         function row(label, value) {
             return '<div class="ff-sample-row"><dt>' + label + '</dt><dd>' + value + '</dd></div>';
         }
-        // Trefle's growth figures are 0–10 indices, not measurements. Printing
-        // the denominator is what stops "8" reading as eight of something.
         function indexRow(label, n) {
             return row(label, n + ' <span class="text-neutral-300">/ 10</span>');
         }
 
-        /**
-         * The record as rows, skipping every field Trefle left empty. An
-         * absent row is honest, a row reading "—" is filler.
-         *
-         * Edibility follows species.js's rule exactly: only an affirmative
-         * `edible: true` is shown. Trefle returns false for plants that are
-         * plainly edible (dandelion, sunflower), so this card must not become
-         * the one place on the site that reads it as a claim about safety.
-         */
         function rowsFor(rec) {
             var html = '';
             if (rec.family)      html += row('Family', esc(rec.family));
@@ -1567,12 +1302,8 @@
             return html;
         }
 
-        // Which tab's data is on screen. Also the guard every async callback
-        // checks, so a second tap mid-flight cannot paint the first tap's data.
         var current = null;
 
-        /** Loading shows a shimmer; settled-with-no-plate shows the leaf mark.
-         *  Never both: a shimmer behind a leaf reads as neither one. */
         function setThumb(loading) {
             img.hidden = true;
             img.removeAttribute('src');
@@ -1580,8 +1311,6 @@
             ph.hidden = false;
             ph.classList.toggle('skeleton-shimmer', !!loading);
             var mark = ph.firstElementChild;
-            // visibility, not display: the mark keeps its box either way, so
-            // swapping it can never nudge the header's layout.
             if (mark) mark.style.visibility = loading ? 'hidden' : '';
         }
 
@@ -1590,9 +1319,6 @@
                 if (current !== key || !document.contains(fields)) return;
                 var rec = map && map[key];
                 if (!rec) {
-                    // On the first pass the markup already holds this species'
-                    // record, so there is nothing to correct. Only a *switch*
-                    // must never leave one species' name over another's data.
                     if (initial) return;
                     fields.innerHTML = row('Record', 'Catalogue unavailable');
                 } else {
@@ -1603,7 +1329,7 @@
         }
 
         function loadPlate(query, key) {
-            if (typeof ffFetchSpecies !== 'function') return;  // species.js absent
+            if (typeof ffFetchSpecies !== 'function') return;
             setThumb(true);
             ffFetchSpecies(query).then(function (info) {
                 if (current !== key || !document.contains(img)) return;
@@ -1632,9 +1358,6 @@
                 all[i].setAttribute('aria-selected', all[i] === btn ? 'true' : 'false');
             }
 
-            // The heading comes off the tab itself so it changes in the same
-            // frame as the tap. The record is a fetch away at worst, and a
-            // heading that lags behind the selection reads as a dead button.
             var bino = btn.getAttribute('data-binomial') || '';
             common.textContent = btn.textContent.trim();
             if (bino) binomial.textContent = bino;
@@ -1649,9 +1372,6 @@
             if (btn) select(btn, false);
         });
 
-        // A tablist is expected to move under the arrow keys, and the selection
-        // follows focus. With three cheap, cached records there is no reason to
-        // make someone press Enter as well.
         tabs.addEventListener('keydown', function (e) {
             if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
             var all = [].slice.call(tabs.querySelectorAll('.ff-sample-tab'));
@@ -1668,10 +1388,6 @@
                     tabs.querySelector('.ff-sample-tab');
         if (!first) return;
 
-        // The card sits well below the fold, and the markup is already showing
-        // the right record, so there is nothing to gain from spending its first
-        // request during page load. Hold it until the card is nearly in view,
-        // the same way the directory preview holds its cards.
         var panel = document.getElementById('samplePanel');
         if (panel && 'IntersectionObserver' in window) {
             new IntersectionObserver(function (entries, obs) {
@@ -1687,12 +1403,5 @@
     })();
     </script>
 
-    <!-- The scroll-reveal observer that used to sit here is gone. It was the
-         fourteenth copy of one effect, and two layers already cover this page
-         from outside it: scripts/ux.js arms a global observer and re-scans on
-         any DOM mutation, and scripts/views/home.js re-arms one per route.
-         Either alone is sufficient, and app.css keeps .reveal-up VISIBLE until
-         a script confirms it can reveal things, so the failure mode is content
-         without animation rather than the blank page this page used to risk. -->
 </body>
 </html>

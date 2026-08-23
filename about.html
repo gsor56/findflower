@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -19,13 +18,10 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
-    <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
-         scroll-reveal observer on arrival. The page stays a full document. -->
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,9 +50,6 @@
         .group:hover .cta-arrow { transform:translateX(4px); }
                 .prose p { line-height:1.75; }
 
-        /* The colophon is a two-column ledger from 640px up and stacks below it.
-           dt/dd inside one grid keeps each label next to its value in the
-           markup, instead of two parallel lists that can drift apart. */
         .ff-facts { display:grid; grid-template-columns:1fr; }
         .ff-facts dt { font-size:0.875rem; font-weight:500; color:#A3A3A3; padding-top:0.875rem; }
         .ff-facts dd { padding-bottom:0.875rem; }
@@ -68,10 +61,6 @@
 
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
 
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -82,8 +71,6 @@
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
-    <!-- Kept as the no-JS fallback. nav.js replaces this whole element with the
-         canonical header once the DOM is parsed. -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">

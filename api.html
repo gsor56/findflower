@@ -1,5 +1,4 @@
 ﻿<!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -19,13 +18,10 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
-    <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
-         scroll-reveal observer on arrival. The page stays a full document. -->
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
@@ -78,7 +74,6 @@
         .cta-arrow { transition: transform .35s cubic-bezier(0.16,1,0.3,1); }
         .group:hover .cta-arrow { transform: translateX(4px); }
 
-        /* Code blocks */
         .code {
             background: #171717;
             color: #E5E5E5;
@@ -88,11 +83,11 @@
             line-height: 1.65;
             overflow-x: auto;
         }
-        .code .tok-key { color: #C9D6CB; }     /* keys */
-        .code .tok-str { color: #A7C4AB; }     /* strings */
-        .code .tok-num { color: #E4B7A0; }     /* numbers */
-        .code .tok-com { color: #737373; }     /* comments */
-        .code .tok-mut { color: #A3A3A3; }     /* muted */
+        .code .tok-key { color: #C9D6CB; }
+        .code .tok-str { color: #A7C4AB; }
+        .code .tok-num { color: #E4B7A0; }
+        .code .tok-com { color: #737373; }
+        .code .tok-mut { color: #A3A3A3; }
         .code::-webkit-scrollbar { height: 8px; }
         .code::-webkit-scrollbar-thumb { background: #404040; border-radius: 8px; }
 
@@ -104,8 +99,6 @@
             .reveal-up { opacity: 1; transform: none; }
         }
 
-        /* Mobile-first touch targets. Every laid-out control clears the 44px
-           minimum; inline links inside body copy are untouched. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -116,7 +109,6 @@
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
-    <!-- HEADER (shared) -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -147,7 +139,6 @@
 
     <main class="pt-32 pb-24">
 
-        <!-- INTRO -->
         <section class="max-w-7xl mx-auto px-6 mb-16">
             <div class="max-w-3xl">
                 <div class="reveal-up flex items-center gap-3 mb-6">
@@ -164,8 +155,6 @@
             </div>
         </section>
 
-        <!-- TWO PATHS · one hairline rule, not two cards: this is a comparison,
-             and framing each column made the reader compare frames. -->
         <section class="max-w-7xl mx-auto px-6 mb-20">
             <div class="grid grid-cols-1 md:grid-cols-2 border-t border-neutral-200">
                 <div class="reveal-up pt-8 pb-2 md:pr-12">
@@ -195,10 +184,8 @@
             </div>
         </section>
 
-        <!-- DOC LAYOUT: sidebar + content -->
         <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
 
-            <!-- SIDEBAR -->
             <aside class="hidden lg:block lg:col-span-3">
                 <nav class="sticky top-24 space-y-1 text-sm">
                     <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">Reference</p>
@@ -215,13 +202,8 @@
                 </nav>
             </aside>
 
-            <!-- CONTENT -->
             <div class="lg:col-span-9 space-y-24">
 
-                <!-- AUTHENTICATION · the key below is a SHA-256 of the Auth0 id,
-                     derived in the browser (auth.js ffDeriveKey). No server has
-                     ever seen it, so the copy says so rather than calling it a
-                     credential. -->
                 <section id="credentials" class="scroll-mt-24">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Authentication</h2>
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-10 max-w-2xl">
@@ -265,7 +247,6 @@
                     </div>
                 </section>
 
-                <!-- BASE URL -->
                 <section id="base" class="scroll-mt-24">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Base URL &amp; format</h2>
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
@@ -282,10 +263,8 @@
                     </div>
                 </section>
 
-                <!-- ENDPOINTS -->
                 <div id="endpoints"></div>
 
-                <!-- IDENTIFY · UPLOAD -->
                 <section id="identify-upload" class="scroll-mt-24">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
                         <span class="text-xs font-mono font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-md">POST</span>
@@ -324,7 +303,6 @@ curl -X POST https://api.findflower.me/v1/identify \
                     </div>
                 </section>
 
-                <!-- IDENTIFY · CAMERA -->
                 <section id="identify-camera" class="scroll-mt-24">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
                         <span class="text-xs font-mono font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-md">POST</span>
@@ -364,7 +342,6 @@ curl -X POST https://api.findflower.me/v1/identify \
                     </div>
                 </section>
 
-                <!-- IDENTIFY · URL -->
                 <section id="identify-url" class="scroll-mt-24">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
                         <span class="text-xs font-mono font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-md">POST</span>
@@ -397,7 +374,6 @@ curl -X POST https://api.findflower.me/v1/identify/url \
                     </div>
                 </section>
 
-                <!-- FEEDBACK -->
                 <section id="feedback" class="scroll-mt-24">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
                         <span class="text-xs font-mono font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-md">POST</span>
@@ -430,7 +406,6 @@ curl -X POST https://api.findflower.me/v1/identify/url \
                     </div>
                 </section>
 
-                <!-- WIKIPEDIA -->
                 <section id="wikipedia" class="scroll-mt-24">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
                         <span class="text-xs font-mono font-medium text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-md">GET</span>
@@ -461,7 +436,6 @@ curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower
                     </div>
                 </section>
 
-                <!-- DIRECT ENDPOINT -->
                 <section id="sdk" class="scroll-mt-24">
                     <div class="flex items-center gap-3 mb-4">
                         <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Working now</span>
@@ -511,7 +485,6 @@ curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower
                     </div>
                 </section>
 
-                <!-- SUPPORT -->
                 <section class="scroll-mt-24 border-t border-neutral-200 pt-10">
                     <div class="max-w-xl">
                         <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Building something with this?</h2>
@@ -532,7 +505,6 @@ curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower
 
     </main>
 
-    <!-- FOOTER (shared) -->
     <div id="ff-footer"><noscript>
         <footer class="border-t border-neutral-200 bg-[#FCFCFC] py-10 text-center text-xs text-neutral-400 font-light">
             <a href="/" class="hover:text-neutral-900">Home</a> &middot;
@@ -554,7 +526,6 @@ curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower
             }, { threshold: 0.15 });
             document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
 
-            // Sidebar active-link highlight on scroll
             const links = [...document.querySelectorAll('.doc-link')];
             const map = new Map(links.map(l => [l.getAttribute('href').slice(1), l]));
             const secObs = new IntersectionObserver((entries) => {
@@ -569,11 +540,10 @@ curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower
             map.forEach((_, id) => { const el = document.getElementById(id); if (el) secObs.observe(el); });
         });
 
-        // Auth-aware credentials panel
         (async function () {
             await ffRenderHeader();
             const user = await ffUser();
-            if (!user) return; // gate stays visible
+            if (!user) return;
             document.getElementById('keyGate').classList.add('hidden');
             document.getElementById('keyPanel').classList.remove('hidden');
             document.getElementById('keyBadge').textContent = 'Derived';

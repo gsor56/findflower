@@ -1,72 +1,36 @@
-/* ============================================================================
-   FindFlower — community view (scripts/views/community.js)
-   ----------------------------------------------------------------------------
-   Three columns: the spaces, the composer and feed, the rules. The feed is the
-   only interesting part.
-
-   Why the feed is windowed rather than mapped.
-
-   ff_posts is a local store with no server behind it, so there is no natural
-   page size -- a browser that has been used for a year could hand back its cap
-   of 100 rows, each with wrapped prose, and rendering all of them costs layout
-   on every scroll frame of a phone that is already warm from the scanner. So
-   only the rows near the viewport are in the DOM. #cmFeed is given the summed
-   height of every row and each rendered row is absolutely placed at its own
-   offset, which keeps the scrollbar honest about how much is there.
-
-   Heights are measured, not assumed. A post is between one line and twenty, so
-   a fixed row height would either clip prose or leave holes. Every row starts at
-   ROW_GUESS, and each paint measures what it actually rendered and corrects the
-   offsets; unmeasured rows keep the guess until they scroll into view. That is
-   the only reason paintWindow() can call itself -- once, with the corrected
-   offsets, never as a loop.
-
-   The scan for the visible range is linear rather than a binary search on
-   purpose: listPosts() caps at ffStore.CACHE_LIMIT, so it is a hundred integer
-   comparisons inside one requestAnimationFrame.
-
-   Like views/profile.js this view owns the FIRST paint too -- community.html
-   ships no inline engine -- so there is no `if (ctx.initial) return;` guard.
-   ========================================================================== */
 (function () {
     'use strict';
 
     var $ = function (id) { return document.getElementById(id); };
 
-    var ROW_GUESS = 132;     // px, including the row's bottom padding
-    var OVERSCAN = 3;        // rows kept above and below the viewport
-    var PAGE = 20;           // the server's own ceiling for /api/posts
+    var ROW_GUESS = 132;
+    var OVERSCAN = 3;
+    var PAGE = 20;
 
-    /* A sleeping free-tier instance answers its first request in 30-60s, so the
-       fast probe that keeps the first paint honest cannot be the only one. These
-       are the retry: two tries with a long abort, which covers that window
-       without leaving a page that has no server at all waiting on it forever. */
     var WAKE_TRIES = 2;
     var WAKE_TIMEOUT_MS = 25000;
     var WAKE_GAP_MS = 2000;
 
     var state = {
-        space: null,         // null = every space
+        space: null,
         posts: [],
         heights: [],
         offsets: [],
         total: 0,
-        names: {},           // userId -> ff_users row, for names and avatars
+        names: {},
         viewer: null,
         viewerName: '',
         draftRef: null,
         rendered: [0, -1],
 
-        // The server half. remote is false until /health has answered, so the
-        // first paint is always the local feed and never waits on a network.
         remote: false,
-        waking: false,       // configured, but the first probe found it asleep
-        handle: null,        // the viewer's server handle, once claimed
+        waking: false,
+        handle: null,
         needsHandle: false,
-        spaces: [],          // server rows: { id, label, blurb, posts }
+        spaces: [],
         hasMore: false,
-        single: false,       // showing one post followed from a link
-        focus: null,         // that post's id, so its row is marked
+        single: false,
+        focus: null,
     };
 
     var bound = false;
@@ -84,7 +48,6 @@
         if (el) el.classList.toggle('hidden', !on);
     }
 
-    /* "3 hours ago" / "Yesterday" / "12 Mar" — short enough for a feed row. */
     function relTime(iso) {
         var then = new Date(iso);
         if (isNaN(then)) return '';
@@ -106,9 +69,6 @@
         return tail.length > 10 ? tail.slice(0, 10) : tail;
     }
 
-    /* The space list in force: the server's when it is answering, storage.js's
-       otherwise. Both use the same four slugs for the seeded spaces, so a local
-       post keeps its label after the server takes over the list. */
     function spacesList() {
         if (state.remote && state.spaces.length) return state.spaces;
         return (window.ffStore && window.ffStore.SPACES) || [];
@@ -146,8 +106,6 @@
     var ACT = 'text-xs text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 rounded ' +
         'px-2 py-1 transition disabled:opacity-40';
 
-    /* Markdown for the body, with the escaping renderer as the floor: if
-       composer.js is missing the text is still shown, just as text. */
     function bodyHtml(md) {
         if (window.ffComposer && typeof window.ffComposer.toHtml === 'function') {
             return window.ffComposer.toHtml(md);
@@ -155,10 +113,6 @@
         return esc(md).replace(/\n/g, '<br>');
     }
 
-    /* Only what has somewhere to go. A like needs a claimed handle, a report
-       needs one too, and Delete belongs to the author; the local store has no
-       write path for any of the three, so a local row gets no action row at all
-       and its like count is shown as the number it is. */
     function actionsHtml(p) {
         if (!p.remote) return '';
         var can = !!(state.remote && state.handle);
@@ -182,8 +136,6 @@
             out.join('') + '</div>';
     }
 
-    /* authorName is stored on the row so a post keeps the name it was written
-       under; the ff_users row is only consulted for the picture. */
     function rowHtml(p, i) {
         var who = state.names[p.userId] || (p.remote ? p : null);
         var name = p.authorName || (who && who.name) || shortId(p.userId);
@@ -237,8 +189,6 @@
         if (feed) feed.style.height = run + 'px';
     }
 
-    /* Which rows overlap the viewport, in list coordinates: the feed's own top
-       is subtracted so the header above it does not shift the range. */
     function visibleRange() {
         var feed = $('cmFeed');
         if (!feed || !state.posts.length) return [0, -1];
@@ -275,8 +225,6 @@
         feed.innerHTML = html;
         state.rendered = r;
 
-        // What was rendered is now measurable. Correcting the offsets moves the
-        // rows that were just placed, so paint once more with the real numbers.
         var changed = false;
         var nodes = feed.children;
         for (var j = 0; j < nodes.length; j++) {
@@ -295,14 +243,6 @@
         scheduleSettle(feed);
     }
 
-    /* Rows are measured in the task that paints them, which is one task too
-       early. Tailwind's CDN build compiles the utilities it finds in the markup
-       it has just seen, so a class the static page never used -- the row's own
-       pb-3, 12px of pitch on every row -- has no rule yet when offsetHeight is
-       read, and the offsets come out a padding short per row. Remeasuring on
-       the next frame, after styles have been applied, is what keeps the pitch
-       equal to the rows; it also catches a font swap or a late avatar. The
-       corrections stop as soon as a frame measures nothing new. */
     function scheduleSettle(feed) {
         if (settle) return;
         settle = requestAnimationFrame(function () {
@@ -332,9 +272,6 @@
         });
     }
 
-    /* A narrower page rewraps prose, so every measured height is now wrong.
-       The visible rows are remeasured by this paint; the rest correct
-       themselves as they scroll in. */
     function onResize() {
         paintWindow(true);
     }
@@ -363,7 +300,6 @@
 
         host.innerHTML = spaces.map(function (s) {
             var on = state.space === s.id;
-            // The count is the server's own; the local store does not carry one.
             var n = typeof s.posts === 'number'
                 ? '<span class="text-xs text-neutral-400 tabular-nums ml-2">' + s.posts + '</span>'
                 : '';
@@ -383,8 +319,6 @@
                 : '';
         }
         var cap = $('cmCap');
-        // CACHE_LIMIT is the local read cap. A server page is 20 with a Load
-        // older posts button under it, which is a different sentence.
         var capped = !state.remote && window.ffStore &&
             state.posts.length >= window.ffStore.CACHE_LIMIT;
         if (cap && capped) {
@@ -396,8 +330,6 @@
         show($('cmMore'), !!(state.remote && state.hasMore && !state.single));
     }
 
-    /* Rows in, feed painted. Heights start at the guess and are corrected by the
-       paint, which is why every path that changes the list goes through here. */
     function seat(rows) {
         state.posts = rows || [];
         state.heights = state.posts.map(function () { return ROW_GUESS; });
@@ -422,8 +354,6 @@
         state.focus = null;
         if (state.remote) {
             if (await loadRemote()) return;
-            // It answered /health a moment ago and does not answer now. Say so,
-            // and show what this browser has rather than an empty page.
             state.remote = false;
             syncNote();
             note('The server stopped answering, so this is the copy in your browser.');
@@ -441,13 +371,11 @@
             var users = await window.ffStore.listUsers();
             state.names = {};
             users.forEach(function (u) { state.names[u.id] = u; });
-        } catch (e) { /* names fall back to the stored authorName */ }
+        } catch (e) { }
 
         seat(rows);
     }
 
-    /* Older posts by cursor rather than by page number: a post written while
-       someone is reading would shift a numbered page and repeat a row. */
     async function loadMore() {
         var btn = $('cmMore');
         var last = state.posts[state.posts.length - 1];
@@ -472,10 +400,6 @@
         paintWindow(true);
     }
 
-    /* The indicator under the page title and the aside that says where posts
-       live, both written from one state so they cannot contradict each other.
-       Photos are named in the server case on purpose: the thing people assume
-       gets uploaded is the one thing that never leaves the browser. */
     function syncNote() {
         var dot = $('cmSyncDot');
         var text = $('cmSyncText');
@@ -546,13 +470,10 @@
         var feed = $('cmFeed');
         if (!feed) return;
         var listTop = feed.getBoundingClientRect().top + window.pageYOffset;
-        var y = listTop + (state.offsets[i] || 0) - 96;   // clears the fixed header
+        var y = listTop + (state.offsets[i] || 0) - 96;
         window.scrollTo(0, y < 0 ? 0 : y);
     }
 
-    /* A shared link names one post, which may be older than the page of the feed
-       this browser just read. If it is not in hand, ask the server for it and
-       show it on its own rather than dropping the reader at the top of the list. */
     async function focusPost(id) {
         var i = indexOf(id);
         if (i !== -1) {
@@ -591,9 +512,6 @@
         }
     }
 
-    /* The article's own <h1> is fetched rather than duplicated in a lookup table
-       here: two copies of a headline drift apart the first time one is edited.
-       If the fetch fails the link alone is still a real reference. */
     async function prefillDraft(ref) {
         var box = $('cmBody');
         var line = $('cmDraftRef');
@@ -608,7 +526,7 @@
                 var h1 = doc.querySelector('article[data-entry="' + ref + '"] h1') || doc.querySelector('h1');
                 if (h1) title = h1.textContent.trim();
             }
-        } catch (e) { /* offline, or the entry is gone: fall through to the link */ }
+        } catch (e) { }
 
         state.draftRef = ref;
         if (!box.value) {
@@ -640,12 +558,9 @@
         sel.innerHTML = spaces.map(function (s) {
             return '<option value="' + esc(s.id) + '">' + esc(s.label) + '</option>';
         }).join('');
-        // Posting into the space you are reading is what a filter implies.
         if (state.space) sel.value = state.space;
     }
 
-    /* A new row at the top without re-reading the store. Returns false when the
-       row does not belong in what is on screen, and the caller reloads. */
     function insertRow(row) {
         if (!row || state.single) return false;
         if (state.space && row.space !== state.space) return false;
@@ -669,9 +584,6 @@
         var body = box.value.trim();
         if (!body) return;
 
-        /* Server first, and no fallback to the local store on a failure. A post
-           the writer believes went to the server, silently kept in one browser
-           instead, is worse than an error message. */
         if (state.remote) {
             if (!state.handle) {
                 showClaim(true);
@@ -747,8 +659,6 @@
         if (!insertRow(out && out.post)) await load();
     }
 
-    /* The link is shown as well as copied: a clipboard write can be refused, and
-       a reader who can see the URL can still send it. */
     function share(id) {
         var url = location.origin + '/community?post=' + encodeURIComponent(id);
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -807,9 +717,6 @@
             return;
         }
         if (act === 'report') {
-            /* A reason box inside the row would lose what was typed in it: rows
-               are recycled as the window scrolls, so the node holding the text
-               is gone by the time it is read. */
             var reason = window.prompt('What is wrong with this post?');
             if (reason === null) return;
             reason = String(reason).trim();
@@ -831,8 +738,6 @@
         if (on && d && !d.value) d.value = state.viewerName || '';
     }
 
-    /* A first guess at a handle from the name the account already carries. It is
-       put in an editable field, and dropped when it cannot be made to fit. */
     function suggestHandle() {
         var s = String(state.viewerName || '').toLowerCase()
             .replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20);
@@ -872,7 +777,6 @@
         show($('cmForm'), true);
         show($('cmSpaceNew'), true);
         syncNote();
-        // The feed is re-read so the viewer's own rows arrive knowing they are.
         await load();
     }
 
@@ -917,8 +821,6 @@
             box.dataset.wired = '1';
             box.addEventListener('input', countChars);
         }
-        // The toolbar and the preview are added around the box, not in place of
-        // it: the counter above still reads the same textarea.
         if (box && window.ffComposer && !composer) {
             composer = window.ffComposer.attach({ box: box });
         }
@@ -938,8 +840,6 @@
         }
         if (feed && !feed.dataset.wired) {
             feed.dataset.wired = '1';
-            // Delegated, because the rows themselves are replaced on every scroll
-            // frame that moves the window.
             feed.addEventListener('click', feedAction);
         }
 
@@ -995,10 +895,6 @@
         }
     }
 
-    /* Fire-and-forget: router.js awaits mount(), so awaiting this would hold a
-       navigation open for the length of a cold start. It re-checks the feed
-       node and the flag on every pass because the reader may have swapped to
-       another page in the meantime, and unmount() clears the flag. */
     async function wakeServer() {
         for (var i = 0; i < WAKE_TRIES; i++) {
             if (i) await new Promise(function (r) { setTimeout(r, WAKE_GAP_MS); });
@@ -1013,16 +909,12 @@
         syncNote();
     }
 
-    /* Everything that needs the network, run after the local feed is already on
-       screen. Nothing above it awaits a request, so a page opened with the
-       server down behaves exactly as it did before this view could talk to one. */
     async function syncUp() {
         if (!window.ffSocial) return;
         if (await probeOnce()) {
             await goRemote();
             return;
         }
-        // A configured backend that missed the fast probe is asleep, not absent.
         if (window.ffSocial.base()) {
             state.waking = true;
             syncNote();
@@ -1070,12 +962,10 @@
         state.viewer = me.authenticated && me.sub ? String(me.sub) : null;
         state.viewerName = me.name || (state.viewer ? shortId(state.viewer) : '');
 
-        // Same reason as the profile card: nothing else writes ff_users on a
-        // first visit, so a post would otherwise have no author row to read.
         if (state.viewer) {
             try {
                 await window.ffStore.upsertUser({ id: state.viewer, name: me.name, picture: me.picture });
-            } catch (e) { /* a blocked store still reads and renders below */ }
+            } catch (e) { }
         }
 
         show($('cmForm'), !!state.viewer);
@@ -1107,9 +997,7 @@
             state.single = false;
             state.focus = null;
             state.hasMore = false;
-            // Stops a wake retry that outlived the page it was painting into.
             state.waking = false;
-            // The composer's own nodes leave with the <main> the router replaces.
             composer = null;
             if (window.ffHomeView && typeof window.ffHomeView.teardown === 'function') {
                 window.ffHomeView.teardown();
@@ -1117,7 +1005,6 @@
         },
     };
 
-    // The QA suite asserts the window stays small while the store is large.
     window.ffCommunityFeed = {
         render: render,
         reload: load,

@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -23,47 +22,14 @@
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="directory.js" defer></script>
-    <!-- Fetch/render split: api.js grabs data, ui.js turns it into DOM.
-         Both must load before species.js, whose mergeTrefle() reaches for
-         window.ffApi to fill care facts the static map does not cover. -->
     <script src="scripts/api.js?v=1"></script>
     <script src="scripts/ui.js?v=1"></script>
     <script src="species.js?v=2"></script>
     <script src="prefs.js?v=1"></script>
     <script src="storage.js"></script>
     <script src="blur.js?v=1"></script>
-    <!-- Auth0 is NOT loaded on this page (temporary, 2026-08-08, pre-production).
-         The scanner posts straight to the proxy with no credentials of its own,
-         so nothing here touches Auth0: no SDK fetch, no client, no cached
-         session read, no silent token call on load. Removing the two tags
-         rather than only flipping the flag below is what makes that literally
-         true.
-
-         TO RESTORE, add these two back immediately above main.js and set
-         SEND_AUTH_TOKEN = true in the same change (tags written without their
-         angle brackets so nothing mistakes this comment for live markup):
-
-           script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"
-           script src="auth.js?v=3"
-
-         The flag alone is not enough: without these, ffAuthHeader does not
-         exist and every scan would go out unauthenticated. inferenceAuthHeaders
-         logs a loud console error if it ever finds itself in that state.
-
-         While they are gone there is no live session on this page, so nav.js
-         paints the header from the profile auth.js cached in localStorage on
-         whichever page the visitor signed in from. It greets them by name and
-         points at /dashboard, same as everywhere else; it just cannot notice a
-         session that expired since. -->
     <script src="main.js?v=2"></script>
-    <!-- SPA: try.html is deliberately NOT router-swapped (see RELOAD in
-         scripts/router.js) -- re-executing the inline ViT block is how inference
-         breaks quietly. views/scanner.js only adds camera teardown, so the
-         capture LED and sensor are released the moment the page is hidden. -->
     <script src="scripts/views/scanner.js" defer></script>
-    <!-- First-run coach marks over the capture card, phones only. Deferred:
-         it reads the page state it points at, and it must not delay the
-         inference script above it. -->
     <script src="scripts/try-coach.js?v=1" defer></script>
     <script src="scripts/router.js" defer></script>
 
@@ -117,16 +83,11 @@
         .delay-100 { transition-delay: 100ms; }
         .delay-200 { transition-delay: 200ms; }
 
-        /* Segmented control */
-        /* transform is in the list because these carry .soft-click, and this
-           rule (a page <style>, after the app.css <link>) is the one that wins.
-           The colour fade keeps its own slower .3s; the press gets 160ms. */
         .seg-btn { transition: color .3s ease, transform 160ms cubic-bezier(0.16, 1, 0.3, 1); }
         .seg-btn[aria-selected="true"] { color: #171717; }
         .seg-btn[aria-selected="false"] { color: #737373; }
         .seg-indicator { transition: transform .4s cubic-bezier(0.16, 1, 0.3, 1), width .4s cubic-bezier(0.16, 1, 0.3, 1); }
 
-        /* Scan sweep during identification */
         @keyframes scan-sweep {
             0% { transform: translateY(-120%); opacity: 0; }
             15% { opacity: 1; } 85% { opacity: 1; }
@@ -134,21 +95,6 @@
         }
         .scan-line { animation: scan-sweep 1.8s infinite cubic-bezier(0.4, 0, 0.2, 1); }
 
-        /* ====================================================================
-           Viewfinder reticle — live camera
-           --------------------------------------------------------------------
-           Two composited-only motions, both switched off by the blanket
-           prefers-reduced-motion rule at the foot of this stylesheet.
-
-             sweep   — a soft line drifts down the frame on a loop. The line is
-                       painted at the TOP of a full-height element and translated
-                       by exactly ±100% of that element's own height, so it
-                       traverses the box whatever size the box resolves to. Its
-                       wrapper clips it so it never spills onto the live feed.
-             breathe — the corner brackets scale gently around their centre. The
-                       scale lives on a wrapper with no other transform, so the
-                       centring translate on the parent box is never clobbered.
-           ==================================================================== */
         .ff-reticle-sweep-clip {
             position: absolute;
             inset: 0;
@@ -160,7 +106,6 @@
             right: 0;
             top: 0;
             height: 100%;
-            /* A thin white line with a faint sage halo beneath it. */
             background:
                 linear-gradient(to bottom,
                     rgba(124, 151, 129, 0) 0,
@@ -189,23 +134,13 @@
             50%      { transform: scale(1.04); }
         }
 
-        /* Confidence bar fill. The width animates on the 1s easing; the colour
-           is tier-aware and set by a class in renderResult() so the meter reads
-           the same story as the result tiers: sage when the model is confident
-           enough to claim a species (>=80%), amber in the uncertain band
-           (40-79%), a quiet grey below that. Only background-color changes
-           between tiers, so the width transition is never interrupted. */
         .conf-fill {
             transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
-            background-color: #5F7A63;                 /* sage-500 — high */
+            background-color: #5F7A63;
         }
-        .conf-fill.is-uncertain { background-color: #F59E0B; }  /* amber-500 */
-        .conf-fill.is-low       { background-color: #A3A3A3; }  /* neutral-400 */
+        .conf-fill.is-uncertain { background-color: #F59E0B; }
+        .conf-fill.is-low       { background-color: #A3A3A3; }
 
-        /* Threshold ticks at the 40% and 80% tier boundaries. Faint, full-height
-           hairlines that paint OVER the fill (later siblings in the track), so
-           they stay visible whatever the bar's width or colour. Decorative —
-           aria-hidden in the markup. */
         .ff-conf-track { position: relative; }
         .ff-conf-tick {
             position: absolute;
@@ -213,80 +148,34 @@
             bottom: 0;
             width: 1px;
             background-color: rgba(23, 23, 23, 0.14);
-            transform: translateX(-0.5px);            /* centre the hairline on the mark */
+            transform: translateX(-0.5px);
             pointer-events: none;
         }
 
-        /* ====================================================================
-           Capture confirmation — the soft pop on the preview thumbnail
-           --------------------------------------------------------------------
-           A photograph was just taken and the only evidence of it is an 80px
-           thumbnail appearing in a corner of a busy panel. The pop is what
-           connects the tap to that thumbnail; without it the capture reads as
-           "nothing happened" and people tap again.
-
-           It settles FROM 1.05 rather than pulsing up and back: one motion
-           coming to rest, which is the calm version of the same feedback. Two
-           keyframes, transform only — no width, no height, no margin — so it
-           composites on the GPU and cannot reflow the preview row it sits in.
-
-           No prefers-reduced-motion block of its own: the blanket rule at the
-           end of this stylesheet already disables every animation here, and the
-           JS declines to add the class at all in that case, so the thumbnail
-           simply appears.
-           ==================================================================== */
         @keyframes ff-pop {
             from { transform: scale(1.05); }
             to   { transform: scale(1); }
         }
         .ff-pop { animation: ff-pop 200ms cubic-bezier(0.16, 1, 0.3, 1) both; }
 
-        /* The capture switch toggles `hidden` on two buttons that also carry a
-           `flex` utility for their icon rows. Which of `.hidden` and `.flex`
-           wins is decided by utility source order inside the Tailwind Play CDN
-           bundle, which this page has no business depending on — an id selector
-           (1,1,0) settles it outright and keeps the state switch deterministic. */
         #camCapture.hidden, #camRetake.hidden { display: none; }
 
-        /* Dropzone hover */
         .dropzone { transition: border-color .3s ease, background-color .3s ease; }
         .dropzone.dragging { border-color: #5F7A63; background-color: #F2F5F2; }
 
         .cta-arrow { transition: transform .35s cubic-bezier(0.16, 1, 0.3, 1); }
         .group:hover .cta-arrow { transform: translateX(4px); }
 
-        /* Spinner */
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin .9s linear infinite; }
 
-        /* ====================================================================
-           FIRST-RUN COACH MARKS — phones only (scripts/try-coach.js)
-           --------------------------------------------------------------------
-           A ring drawn just OUTSIDE the control it is pointing at, a "Tap here"
-           pill on the ring, and a sheet above the mobile tab bar.
-
-           Two things this block has to get right:
-
-           Taps. Every part of the layer is pointer-events: none except the Hide
-           button. The ring sits directly over a live control, and the tap the
-           coach is asking for has to reach the page, not the coach.
-
-           Stillness. The blanket reduced-motion rule at the end of this sheet
-           is `animation: none`, which reverts an element to its BASE style — so
-           the resting frame of every keyframe here is also the base style. The
-           ripple rests at spread 0, tucked behind the ring's own border; the
-           pill rests at its centring translate, not at translate(0), which
-           would drop it half a width to the right. The sheet fades in from a
-           CLASS instead of a fill mode, so it arrives whether or not
-           animations run.
-           ==================================================================== */
         .ff-coach { position: absolute; top: 0; left: 0; width: 0; height: 0; }
 
         .ff-coach__ring {
-            position: absolute;         /* document coordinates: scrolls for free */
-            z-index: 40;                /* over the card, under the tab bar (50) */
+            position: absolute;
+            z-index: 40;
             pointer-events: none;
-            border: 3px solid #5F7A63;  /* sage-500 — the site accent */
+            border: 3px solid #5F7A63;
             opacity: 0;
             transition: opacity .3s ease,
                         top .32s cubic-bezier(0.16, 1, 0.3, 1),
@@ -297,16 +186,6 @@
         .ff-coach__ring[hidden] { display: none; }
         .ff-coach.is-on .ff-coach__ring { opacity: 1; }
 
-        /* The pulse: a ripple spreading out of the ring's own edge.
-           Deliberately a box-shadow and not a scaled pseudo-element, which is
-           the cheaper thing to composite but the wrong thing here -- a ring
-           310px wide (the upload dropzone) grown to scale(1.22) reaches 34px
-           past a 360px viewport, and the page collects a horizontal scrollbar
-           for a decoration. A shadow is ink: it cannot extend the document.
-           The rest frame is spread 0, which is a shadow hidden exactly behind
-           the border it belongs to -- so with animations off the ring is a
-           plain ring, and with them collapsed to 1ms it lands on the
-           fully-faded frame instead. Both read as still. */
         .ff-coach__ring {
             box-shadow: 0 0 0 0 rgba(95, 122, 99, 0.5);
             animation: ff-coach-halo 1.9s ease-out infinite;
@@ -322,9 +201,9 @@
             bottom: calc(100% + 11px);
             transform: translateX(-50%);
             white-space: nowrap;
-            background-color: #3D5341;   /* sage-700 */
+            background-color: #3D5341;
             color: #FFFFFF;
-            font-size: 0.75rem;         /* text-xs */
+            font-size: 0.75rem;
             font-weight: 500;
             line-height: 1;
             padding: 8px 12px;
@@ -332,7 +211,6 @@
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
             animation: ff-coach-nudge 1.9s ease-in-out infinite;
         }
-        /* The caret is what ties the words to the ring. */
         .ff-coach__here::after {
             content: '';
             position: absolute;
@@ -342,8 +220,6 @@
             border: 5px solid transparent;
             border-top-color: #3D5341;
         }
-        /* Flipped under the ring when the control sits too close to the fixed
-           header for a pill to fit above it. */
         .ff-coach__ring.is-below .ff-coach__here { bottom: auto; top: calc(100% + 11px); }
         .ff-coach__ring.is-below .ff-coach__here::after {
             top: auto;
@@ -358,44 +234,32 @@
 
         .ff-coach__sheet {
             position: fixed;
-            z-index: 60;                /* over the tab bar (50), under the drawer (90) */
+            z-index: 60;
             left: 12px;
             right: 12px;
-            /* Clear the mobile tab bar: 56px of control plus the home
-               indicator, the same reservation app.css makes on <body>. */
             bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 10px);
             padding: 14px 14px 15px 16px;
             background-color: #FFFFFF;
             border: 1px solid #E5E5E5;
             border-radius: 20px;
             box-shadow: 0 12px 34px rgba(0, 0, 0, 0.13);
-            pointer-events: auto;       /* Hide has to be tappable */
+            pointer-events: auto;
             opacity: 0;
             transform: translateY(14px);
             transition: opacity .4s ease, transform .4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        /* nav.js only adds the tab bar on phones; without it there is nothing
-           to clear and the sheet should sit at the bottom edge. */
         body:not(.has-tabbar) .ff-coach__sheet {
             bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
         }
         .ff-coach.is-on .ff-coach__sheet { opacity: 1; transform: none; }
-        /* Bold inside the copy names an on-screen control. 600, not the UA's
-           `bolder`, which would land on 700 against the 500 around it. */
         .ff-coach__sheet b { font-weight: 600; color: #171717; }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
             .reveal-up { opacity: 1; transform: none; }
-            /* A frozen scan line sitting at the frame's top edge reads as a bug,
-               not as "still". Hide it when motion is off. */
             .ff-reticle-sweep { opacity: 0; }
         }
     
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -406,7 +270,6 @@
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
-    <!-- HEADER (shared) -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -439,7 +302,6 @@
 
     <main class="pt-32 pb-24">
 
-        <!-- INTRO -->
         <section class="max-w-7xl mx-auto px-6 mb-12 md:mb-16">
             <div class="reveal-up max-w-2xl">
                 <span class="text-sm font-medium text-sage-600 block mb-6">The workspace</span>
@@ -454,13 +316,10 @@
             </div>
         </section>
 
-        <!-- WORKSPACE -->
         <section class="max-w-7xl mx-auto px-6">
             <div class="reveal-up grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-                <!-- LEFT: INPUT -->
                 <div class="bg-white border border-neutral-200 rounded-lg p-6 md:p-8 flex flex-col">
-                    <!-- Status -->
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-sm font-medium tracking-wide text-neutral-500 uppercase">Input</h2>
                         <div id="modelStatus" class="flex items-center gap-2 text-xs font-medium text-neutral-500">
@@ -469,7 +328,6 @@
                         </div>
                     </div>
 
-                    <!-- Segmented control -->
                     <div class="relative bg-neutral-100 rounded-sm p-1 flex mb-6 text-sm font-medium">
                         <div id="segIndicator" class="seg-indicator absolute top-1 bottom-1 left-1 rounded-sm bg-white" style="width: calc((100% - 0.5rem) / 3);"></div>
                         <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-sm flex items-center justify-center gap-2" data-mode="camera" aria-selected="true">
@@ -486,14 +344,8 @@
                         </button>
                     </div>
 
-                    <!-- Panels -->
                     <div class="flex-1">
-                        <!-- Camera -->
                         <div data-panel="camera" class="panel">
-                            <!-- Portrait 3:4 on phones matches the phone camera's
-                                 native frame (object-cover stops cropping the
-                                 sides away); 4:3 landscape from sm up. Display
-                                 only — capture reads the video's real pixels. -->
                             <div id="camFrame" class="relative aspect-[3/4] sm:aspect-[4/3] rounded-lg overflow-hidden bg-neutral-900 border border-neutral-200 flex items-center justify-center">
                                 <video id="camVideo" class="w-full h-full object-cover hidden" playsinline muted></video>
                                 <div id="camPlaceholder" class="text-center px-6">
@@ -501,17 +353,11 @@
                                     <p class="text-sm text-neutral-400 font-light">Camera is off</p>
                                 </div>
 
-                                <!-- Targeting reticle. Purely a framing aid: the full frame is
-                                     still sent for inference, but a flower that fills this box
-                                     is large enough that the model isn't classifying background. -->
                                 <div id="camReticle" class="hidden absolute inset-0 pointer-events-none">
                                     <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[62%] aspect-square">
-                                        <!-- Scan sweep: a soft line drifting down the frame on a
-                                             loop, clipped to the box so it never spills onto the feed. -->
                                         <div class="ff-reticle-sweep-clip" aria-hidden="true">
                                             <div class="ff-reticle-sweep"></div>
                                         </div>
-                                        <!-- Corner brackets, gently breathing around the centre. -->
                                         <div class="ff-reticle-frame">
                                             <span class="absolute -top-px -left-px w-7 h-7 border-t-2 border-l-2 border-white/90 rounded-tl-lg"></span>
                                             <span class="absolute -top-px -right-px w-7 h-7 border-t-2 border-r-2 border-white/90 rounded-tr-lg"></span>
@@ -524,27 +370,10 @@
                                     </p>
                                 </div>
 
-                                <!-- Focus warning from the pre-inference blur check. -->
                                 <div id="camBlurWarn" class="hidden absolute inset-x-3 top-3 bg-amber-500/95 text-white text-xs font-medium rounded-lg px-3 py-2 text-center">
                                     Image is out of focus. Please tap to focus.
                                 </div>
                             </div>
-                            <!-- The two-state capture switch.
-                                 STATE 1 (pre-capture): [Start camera] [Capture].
-                                 STATE 2 (post-capture): [Stop camera] [Retake photo],
-                                 with Capture hidden — there is already a frame in
-                                 hand, and the next commitment is Identify, which is
-                                 the full-width button below the preview.
-
-                                 Retake deliberately does NOT take the primary
-                                 (filled) treatment. In state 2 exactly one action
-                                 should look like the way forward, and it is Identify;
-                                 two filled buttons in one panel is how people end up
-                                 discarding a photo they meant to submit.
-
-                                 Both live in the same flex row and swap via `hidden`,
-                                 so the row's height never changes between states and
-                                 nothing below it moves. -->
                             <div class="flex gap-3 mt-4">
                                 <button id="camStart" class="soft-click flex-1 min-h-[44px] text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-2.5 rounded-sm hover:bg-neutral-50 transition">Start camera</button>
                                 <button id="camCapture" data-haptic class="soft-click flex-1 min-h-[44px] text-sm font-medium bg-neutral-900 text-white px-4 py-2.5 rounded-sm border border-neutral-200 hover:bg-neutral-800 transition disabled:opacity-40 disabled:cursor-not-allowed" disabled>Capture</button>
@@ -555,7 +384,6 @@
                             </div>
                         </div>
 
-                        <!-- Upload -->
                         <div data-panel="upload" class="panel hidden">
                             <label id="dropzone" for="fileInput" class="dropzone cursor-pointer flex flex-col items-center justify-center text-center aspect-[3/4] sm:aspect-[4/3] rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 px-6">
                                 <svg class="mb-4 text-sage-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
@@ -565,7 +393,6 @@
                             </label>
                         </div>
 
-                        <!-- URL -->
                         <div data-panel="url" class="panel hidden">
                             <div class="aspect-[3/4] sm:aspect-[4/3] rounded-lg border border-neutral-200 bg-neutral-50 flex flex-col justify-center px-6 md:px-8">
                                 <label class="text-sm font-medium text-neutral-700 mb-2 block">Image or YouTube link</label>
@@ -580,11 +407,6 @@
                         </div>
                     </div>
 
-                    <!-- Preview + Identify.
-                         This block is the scroll target after a capture: the brief
-                         asks for the preview and Identify "dead centre", and they
-                         are only dead centre together if the thing being centred is
-                         the pair rather than either one. -->
                     <div id="previewBlock" class="mt-6 pt-6 border-t border-neutral-100">
                         <div class="flex items-center gap-4">
                             <div id="previewBox" class="relative w-20 h-20 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 flex items-center justify-center">
@@ -603,27 +425,16 @@
                     </div>
                 </div>
 
-                <!-- RIGHT: RESULT -->
                 <div id="resultPanel" class="bg-white border border-neutral-200 rounded-lg p-6 md:p-8 flex flex-col min-h-[520px]">
                     <h2 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-6">Result</h2>
 
-                    <!-- Empty state -->
                     <div id="resEmpty" class="flex-1 flex flex-col items-center justify-center text-center px-6">
                         <svg width="34" height="34" viewBox="0 0 24 24" fill="none" class="text-sage-400 mb-5"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
                         <p class="text-neutral-500 font-light max-w-xs leading-relaxed">The identification appears here, with a confidence score and what Wikipedia says about the plant.</p>
                     </div>
 
-                    <!-- Loading state. A structural skeleton that mirrors the
-                         result card below (thumb + name/confidence line + fact
-                         grid), so real content swaps in without a reflow. It
-                         shimmers on the shared .skeleton-shimmer rhythm rather
-                         than spinning: a spinner says "waiting", a skeleton says
-                         "arriving". The staged cold-start copy stays, layered
-                         underneath so the honest "waking the model up" messaging
-                         is unchanged. -->
                     <div id="resLoading" class="hidden flex-1 flex flex-col">
                         <div class="ff-res-skeleton" aria-hidden="true">
-                            <!-- Header: thumbnail + eyebrow / name / family lines -->
                             <div class="ff-skel-head">
                                 <div class="ff-skel-thumb skeleton-shimmer"></div>
                                 <div class="ff-skel-lines">
@@ -632,27 +443,19 @@
                                     <div class="ff-skel-bar ff-skel-bar--sub skeleton-shimmer"></div>
                                 </div>
                             </div>
-                            <!-- Confidence track -->
                             <div class="ff-skel-conf skeleton-shimmer"></div>
-                            <!-- Fact grid: two square cells + a wide one, echoing resFacts -->
                             <div class="ff-skel-grid">
                                 <div class="ff-skel-cell skeleton-shimmer"></div>
                                 <div class="ff-skel-cell skeleton-shimmer"></div>
                                 <div class="ff-skel-cell ff-skel-cell--wide skeleton-shimmer"></div>
                             </div>
                         </div>
-                        <!-- Staged cold-start messaging, layered under the skeleton.
-                             aria-live so the honest "waking the model" updates are
-                             announced even though the skeleton itself is hidden from
-                             assistive tech. -->
                         <div class="ff-skel-status" aria-live="polite">
                             <p id="resLoadingMain" class="text-neutral-500 font-light">Analyzing image…</p>
                             <p id="resLoadingSub" class="text-neutral-400 font-light text-sm mt-2"></p>
                         </div>
                     </div>
 
-                    <!-- Tier 2 (40-79%): the model has candidates but no winner. Naming one
-                         species here would be a confident wrong answer, so the human picks. -->
                     <div id="resUncertain" class="hidden flex-1 flex-col">
                         <div class="flex items-start gap-3 mb-5">
                             <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
@@ -670,12 +473,8 @@
                             </div>
                         </div>
 
-                        <!-- Top match, stated but not claimed. -->
                         <div id="resUncertainTop" class="mb-5"></div>
 
-                        <!-- Secondary top_k candidates, side by side for visual
-                             cross-reference. Horizontal so comparing is a swipe,
-                             not a scroll down a list. -->
                         <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-2.5">Other possibilities</p>
                         <div id="resUncertainList" class="ff-candidates"></div>
 
@@ -687,7 +486,6 @@
                         </p>
                     </div>
 
-                    <!-- Tier 3 (<40% or not a flower): refuse to name anything at all. -->
                     <div id="resLowConf" class="hidden flex-1 flex-col items-center justify-center text-center px-6">
                         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="text-neutral-300 mb-5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/></svg>
                         <h3 class="text-lg font-medium tracking-tight text-neutral-900 mb-2">Could not detect a clear flower</h3>
@@ -703,10 +501,7 @@
                         </ul>
                     </div>
 
-                    <!-- Result content -->
                     <div id="resContent" class="hidden flex-1 flex-col">
-                        <!-- Safety first: a toxicity warning outranks the name of
-                             the plant, so it renders above the match card. -->
                         <div id="resToxic" class="ff-toxic-banner hidden">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;margin-top:1px" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>
                             <div>
@@ -728,50 +523,36 @@
                             </div>
                         </div>
 
-                        <!-- Confidence -->
                         <div class="mb-6">
                             <div class="flex justify-between items-center mb-1.5">
                                 <span class="text-sm text-neutral-500">Confidence</span>
                                 <span id="resConfVal" class="text-sm font-medium text-neutral-900">—</span>
                             </div>
                             <div class="ff-conf-track h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
-                                <!-- Colour comes from a tier class in renderResult(); the
-                                     sage default keeps a sensible fill before JS runs. -->
                                 <div id="resConfBar" class="conf-fill h-full rounded-full" style="width:0%"></div>
-                                <!-- Tier-boundary ticks: 40% (uncertain floor) and 80%
-                                     (confident floor). Decorative framing marks. -->
                                 <span class="ff-conf-tick" style="left:40%" aria-hidden="true"></span>
                                 <span class="ff-conf-tick" style="left:80%" aria-hidden="true"></span>
                             </div>
                             <p id="resConfNote" class="text-xs text-neutral-400 font-light mt-2"></p>
                         </div>
 
-                        <!-- Alternatives -->
                         <div id="resAlts" class="mb-6 hidden">
                             <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-3">Other possibilities</p>
                             <div id="resAltsList" class="space-y-2"></div>
                         </div>
 
-                        <!-- Lookalike comparison. Only rendered when the matched
-                             species has a known confusable; the slider itself is
-                             built by buildCompare() in the script below. -->
                         <div id="resCompare" class="mb-6 hidden">
                             <p class="text-xs font-medium tracking-wide text-neutral-400 uppercase mb-1.5">Compare with lookalike</p>
                             <p id="resCompareHint" class="text-xs text-neutral-500 font-light mb-3 leading-relaxed"></p>
                             <div id="resCompareMount"></div>
                         </div>
 
-                        <!-- Species detail (live from Wikipedia + Wikidata) -->
                         <div id="resDetail" class="mb-6 pt-6 border-t border-neutral-100">
-                            <!-- Binomial / scientific name -->
                             <p id="resBinomial" class="hidden text-sm font-medium text-neutral-500 italic mb-3"></p>
 
-                            <!-- Summary -->
                             <p id="resWiki" class="text-sm text-neutral-600 font-light leading-relaxed mb-5"></p>
 
-                            <!-- Structured facts grid; each cell fills in or shows a graceful fallback -->
                             <div id="resFacts" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                                <!-- Native range -->
                                 <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
@@ -779,7 +560,6 @@
                                     </div>
                                     <p id="factRange" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
-                                <!-- Toxicity -->
                                 <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -787,7 +567,6 @@
                                     </div>
                                     <p id="factToxic" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
-                                <!-- Growing conditions -->
                                 <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5 sm:col-span-2">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
@@ -795,7 +574,6 @@
                                     </div>
                                     <p id="factGrow" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
-                                <!-- Sunlight (Trefle) -->
                                 <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
@@ -803,7 +581,6 @@
                                     </div>
                                     <p id="factSun" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
-                                <!-- Growth habit (Trefle) -->
                                 <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 22V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5Zm0 0c0-3-2-5-5-5 0 3 2 5 5 5ZM12 14c0-2.5 1.6-4 4-4 0 2.5-1.6 4-4 4Zm0 0c0-2.5-1.6-4-4-4 0 2.5 1.6 4 4 4Z"/></svg>
@@ -811,7 +588,6 @@
                                     </div>
                                     <p id="factHabit" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
-                                <!-- Watering (Trefle moisture index, phrased as a relative measure) -->
                                 <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5 sm:col-span-2">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 2.7s6 6.1 6 10.3a6 6 0 0 1-12 0c0-4.2 6-10.3 6-10.3z"/></svg>
@@ -821,9 +597,6 @@
                                 </div>
                             </div>
 
-                            <!-- Edibility, shown only when affirmatively documented.
-                                 One-directional on purpose: an absent record is not
-                                 a clearance to eat, so there is no "inedible" state. -->
                             <div id="resEdibleWrap" class="hidden mb-5 flex items-start gap-2.5 rounded-lg border border-sage-200 bg-sage-50 p-3.5">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600 flex-shrink-0 mt-0.5"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><path d="M12 22V9M9 6c1.5 0 3 1 3 3"/></svg>
                                 <p id="resEdible" class="text-sm text-sage-700 font-light leading-snug"></p>
@@ -834,12 +607,10 @@
                                     Read full article on Wikipedia
                                     <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                                 </a>
-                                <!-- Attribution, per Wikipedia/Wikimedia reuse (CC BY-SA) -->
                                 <p id="resAttribution" class="text-xs text-neutral-400 font-light"></p>
                             </div>
                         </div>
 
-                        <!-- Feedback -->
                         <div id="feedbackBox" class="mt-auto pt-6 border-t border-neutral-100">
                             <div id="fbPrompt">
                                 <p class="text-sm font-medium text-neutral-700 mb-3">Was this identification correct?</p>
@@ -862,12 +633,9 @@
                         </div>
                     </div>
 
-                    <!-- Error state -->
                     <div id="resError" class="hidden flex-1 flex-col items-center justify-center text-center px-6">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="text-neutral-300 mb-4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         <p id="resErrorText" class="text-neutral-500 font-light max-w-xs leading-relaxed"></p>
-                        <!-- Shown only for the signed-out case, so the fix is one
-                             tap away instead of a dead end. -->
                         <a id="resErrorAction" href="/login" class="hidden mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-sm border border-neutral-200 bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition-colors flex items-center justify-center gap-2">
                             Sign in to continue
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="width:16px;height:16px"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -877,15 +645,11 @@
 
             </div>
 
-            <!-- Reassurance line -->
             <p class="reveal-up delay-100 text-center text-xs text-neutral-400 font-light mt-8">
                 Images are sent to our inference service to be identified and are not stored afterwards. Predictions are a best guess and may be imperfect.
             </p>
         </section>
 
-        <!-- MINI DIRECTORY — a living grid beneath the scanner so the page is
-             never empty below the fold. Same live Wikidata source as the full
-             Directory, capped at ~40 cards (no infinite scroll here). -->
         <section class="max-w-7xl mx-auto px-6 mt-24">
             <div class="reveal-up flex items-end justify-between gap-4 mb-8">
                 <div>
@@ -917,8 +681,6 @@
     </main>
 
     <script>
-        // Mini directory: fixed ~40-card grid from the shared catalogue engine
-        // (directory.js — Trefle first, Wikidata when the proxy is unreachable).
         document.addEventListener('DOMContentLoaded', function () {
             var grid = document.getElementById('miniGrid');
             if (!grid || !window.ffDirectory) return;
@@ -935,7 +697,6 @@
         });
     </script>
 
-    <!-- FOOTER (shared) -->
     <div id="ff-footer"><noscript>
         <footer class="border-t border-neutral-200 bg-[#FCFCFC] py-10 text-center text-xs text-neutral-400 font-light">
             <a href="/" class="hover:text-neutral-900">Home</a> &middot;
@@ -953,83 +714,21 @@
     (function () {
         'use strict';
 
-        // ---- Config ----
-        // Inference runs server-side: browser -> Cloudflare Worker -> private
-        // model server. Swap in your deployed Worker URL.
         const API_URL = 'https://findflower-proxy.fofi.workers.dev';
 
-        // Which engine answers a capture. The Settings picker stores a tier name
-        // in prefs (`modelTier`); identification runs on the server, so a tier
-        // is an endpoint rather than a file to map into memory, and only the ViT
-        // has one today. An unknown tier falls back here instead of failing the
-        // scan: the picker will not offer a tier with no endpoint, but a value
-        // hand-edited into localStorage must not break identifying.
         const ENGINES = { standard: API_URL };
 
         function engineUrl() {
             return ENGINES[pref('modelTier', 'standard')] || API_URL;
         }
 
-        // ---- Zero-trust inference auth ----
-        //
-        // AUDIT RESULT: there is no API key in this frontend to strip. The
-        // Worker holds PROXY_SECRET and SPACE_TOKEN as server-side bindings and
-        // the browser posts the image with no credentials of its own. What was
-        // missing is per-user identity on the request, which these switches add.
-        //
-        //   SEND_AUTH_TOKEN — attaches the Auth0 access token as a Bearer
-        //     header. This makes the POST a non-simple CORS request, so the
-        //     browser preflights it; the Worker now answers preflight with
-        //     `Access-Control-Allow-Headers: Content-Type, Authorization`
-        //     (proxy/worker.js) and 401s any request without a valid token.
-        //
-        //   REQUIRE_SIGN_IN — gates the scan client-side. It must track the
-        //     Worker's ENFORCE_AUTH, not SEND_AUTH_TOKEN: while the Worker
-        //     enforces, leaving this off would let a guest shoot a photo, wait
-        //     through the upload, and only then be told to sign in.
-        //
-        // AUTH0_AUDIENCE must be your API identifier from the Auth0 dashboard,
-        // and must match the Worker's AUTH0_AUDIENCE. Without it Auth0 issues an
-        // opaque token that no resource server can verify — the Worker will see
-        // a non-JWT and reject it — so an audience-less Bearer token is
-        // decoration, not security.
-        //
-        // ---------------------------------------------------------------------
-        // FULLY OPEN — 2026-08-08, pre-production. This page is plain: it makes
-        // a direct POST to the proxy and does not touch Auth0 at all. The SDK
-        // and auth.js are not even loaded (see <head>), so there is no client,
-        // no cached session read, and no silent token call on page load.
-        //
-        // Paired with ENFORCE_AUTH = "false" in proxy/wrangler.toml. All three
-        // must come back together before launch:
-        //
-        //   1. restore the two <script> tags in <head>
-        //   2. SEND_AUTH_TOKEN = true, REQUIRE_SIGN_IN = true
-        //   3. delete ENFORCE_AUTH from wrangler.toml and wrangler deploy
-        //
-        // Any partial combination is a broken state. Worth knowing which one
-        // hurts most: the Worker armed while this page sends no token 401s
-        // every scan AFTER the upload completes.
-        //
-        // Cost of being open: X-FF-Auth no longer reports `ok` for anyone,
-        // because no token is being sent for it to grade. Re-arming therefore
-        // has no live evidence behind it — do step 3 last, and check a real
-        // signed-in scan in the browser's network tab before deleting the var.
         const SEND_AUTH_TOKEN = false;
         const REQUIRE_SIGN_IN = false;
         const AUTH0_AUDIENCE = 'https://api.findflower.me';
 
-        /** Bearer header for the inference POST, or {} when we send none.
-         *  Resolves rather than throwing: a token we cannot mint is a UI
-         *  decision (see inferencePreflight), not an exception in the
-         *  request path. */
         async function inferenceAuthHeaders() {
             if (!SEND_AUTH_TOKEN) return {};
             if (typeof window.ffAuthHeader !== 'function') {
-                // Someone set the flag without restoring the <script> tags in
-                // <head>. Silently sending no token would look like working
-                // code until the proxy is armed and every scan 401s, so say it
-                // out loud instead.
                 console.error(
                     'FindFlower: SEND_AUTH_TOKEN is true but auth.js is not loaded — ' +
                     'scans will be sent with no Authorization header. Restore the ' +
@@ -1039,26 +738,11 @@
             return ffAuthHeader(AUTH0_AUDIENCE || undefined);
         }
 
-        /** Paint an auth problem with the sign-in button attached. */
         function showAuthError(message) {
             showError(message);
             $('resErrorAction').classList.remove('hidden');
         }
 
-        /**
-         * Resolve the headers for the scan, or null if the scan must not run.
-         *
-         * This runs BEFORE the upload on purpose. Being signed in and being
-         * able to mint an access token are two different things:
-         * ffIsAuthenticated() only reads the cached session, while the proxy
-         * needs a real token for AUTH0_AUDIENCE. A session that predates the
-         * audience — or one whose refresh token has lapsed — passes the first
-         * check and fails the second.
-         *
-         * Finding that out here costs nothing. Finding it out from the POST's
-         * 401 costs the user a full photo upload, on mobile data, in a field,
-         * to be told to sign in. Returns null having already said why.
-         */
         async function inferencePreflight() {
             if (!REQUIRE_SIGN_IN) return await inferenceAuthHeaders();
 
@@ -1072,60 +756,27 @@
 
             const headers = await inferenceAuthHeaders();
             if (SEND_AUTH_TOKEN && !headers.Authorization) {
-                // Signed in, yet no usable token. This is the genuine expired
-                // session, and it is the only place we can name it honestly —
-                // by the time the proxy answers 401 we can no longer tell this
-                // apart from a token the server simply refused.
                 showAuthError('Your sign-in needs refreshing before you can identify a flower. Please sign in again.');
                 return null;
             }
             return headers;
         }
 
-        // ---- State ----
-        let currentBlob = null;    // the image bytes we'll send for inference
+        let currentBlob = null;
         let lastPrediction = null;
 
-        // ---- Elements ----
         const $ = (id) => document.getElementById(id);
         const modelDot = $('modelDot'), modelStatusText = $('modelStatusText');
         const identifyBtn = $('identifyBtn'), identifyLabel = $('identifyLabel'), identifyArrow = $('identifyArrow');
         const previewImg = $('previewImg'), previewEmpty = $('previewEmpty'), previewHint = $('previewHint'), previewScan = $('previewScan');
         const previewBlock = $('previewBlock'), previewBox = $('previewBox'), resultPanel = $('resultPanel');
 
-        // The hint the preview carries before any image is chosen. Read out of the
-        // markup rather than repeated here, so Retake restores exactly what the
-        // page shipped with and the two cannot drift apart.
         const PREVIEW_HINT_IDLE = previewHint ? previewHint.textContent : '';
-
-        /* ====================================================================
-           Presentation helpers
-           --------------------------------------------------------------------
-           Classes, scroll position and button visibility. Nothing below reads or
-           writes currentBlob, touches the inference request, or knows that
-           IndexedDB exists — the capture/identify handlers stay in charge of all
-           of that and simply call these to narrate what they are doing.
-           ==================================================================== */
 
         function reduceMotion() {
             return !!(window.ffUX && ffUX.prefersReducedMotion());
         }
 
-        /**
-         * Bring `el` to the middle of the viewport — but only if it is not
-         * already essentially there.
-         *
-         * The guard is the whole point. On a phone the result panel is a full
-         * screen below the shutter and the scroll is the only thing that tells
-         * you where the answer went; on a desktop the same panel sits beside the
-         * camera and is already in view, where an identical scrollIntoView is a
-         * jolt carrying no information. Same call, opposite effect, so it is
-         * measured rather than assumed.
-         *
-         * Two ways to be "already there": most of the element is on screen, or
-         * the element is taller than the viewport and is already filling it —
-         * the second case can never satisfy the first.
-         */
         function softScrollTo(el) {
             if (!el || typeof el.getBoundingClientRect !== 'function') return;
             try {
@@ -1134,22 +785,14 @@
                 const visible = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
                 if (r.height > 0 && (visible / r.height >= 0.65 || visible >= vh * 0.6)) return;
                 el.scrollIntoView({
-                    // Honour the OS setting explicitly. Not every engine maps
-                    // `smooth` to an instant jump under reduced-motion, and the
-                    // ones that do not would animate against the user's wishes.
                     behavior: reduceMotion() ? 'auto' : 'smooth',
                     block: 'center',
                 });
             } catch (e) {
-                // Older engines reject the options object outright; an unsmoothed
-                // scroll still gets the user to the right place.
-                try { el.scrollIntoView(); } catch (e2) { /* give up quietly */ }
+                try { el.scrollIntoView(); } catch (e2) { }
             }
         }
 
-        /** The capture confirmation pop. Re-armed on every shot: the class has to
-         *  come off and a reflow has to land before it goes back on, or a second
-         *  capture in the same session animates nothing. */
         function popPreview() {
             if (!previewBox || reduceMotion()) return;
             previewBox.classList.remove('ff-pop');
@@ -1157,29 +800,12 @@
             previewBox.classList.add('ff-pop');
         }
 
-        /**
-         * The camera panel's two-state switch.
-         *
-         * State 1 offers Capture; state 2 replaces it with Retake, because once
-         * there is a frame in hand the next commitment is Identify. Only two
-         * classes move — the buttons keep their boxes, so the row's height is
-         * identical in both states and nothing below the switch shifts.
-         */
         function setCaptureState(captured) {
             if (!camCapture || !camRetake) return;
             camCapture.classList.toggle('hidden', !!captured);
             camRetake.classList.toggle('hidden', !captured);
         }
 
-        /**
-         * Forget the chosen image and return the panel to state 1.
-         *
-         * The blob URL behind previewImg is deliberately NOT revoked. A finished
-         * result card copies this exact string into #resImg, the uncertain-tier
-         * lead button, and the lookalike comparison, so revoking it here would
-         * blank the images in a result the user is very likely still reading.
-         * Dropping our own reference is all this needs to do.
-         */
         function clearPreview() {
             currentBlob = null;
             previewImg.classList.add('hidden');
@@ -1189,7 +815,6 @@
             refreshIdentifyState();
         }
 
-        // ---- Reveal animations ----
         document.addEventListener('DOMContentLoaded', () => {
             const obs = new IntersectionObserver((entries) => {
                 entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
@@ -1197,7 +822,6 @@
             document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
         });
 
-        // ---- Segmented control ----
         const segButtons = document.querySelectorAll('.seg-btn');
         const segIndicator = $('segIndicator');
         const panels = document.querySelectorAll('.panel');
@@ -1209,14 +833,6 @@
         }
         segButtons.forEach((b, i) => b.addEventListener('click', () => selectMode(b.dataset.mode, i)));
 
-        /** Send the user back to a capture surface after a rejected result.
-         *  Prefers the camera tab (the fastest path to a better photo) and falls
-         *  back to whatever the first mode is if this build reorders them.
-         *
-         *  Resets the capture switch but leaves the preview alone: this also runs
-         *  when the focus shield turns down an image the user already has, and
-         *  silently discarding their photo is not what "look again" should mean.
-         *  Only an explicit Retake tap throws the frame away. */
         function focusCaptureEntry() {
             let idx = -1;
             segButtons.forEach((b, i) => { if (b.dataset.mode === 'camera') idx = i; });
@@ -1224,23 +840,14 @@
             const btn = segButtons[idx];
             if (btn) selectMode(btn.dataset.mode, idx);
             setCaptureState(false);
-            // Aim at the viewfinder rather than the tab strip: the frame is what
-            // the next photo gets composed in, and centring the tabs leaves it
-            // half off the bottom of a phone screen.
             softScrollTo(camFrame || btn);
         }
 
-        /** Discard the current frame and go back to composing a new one. Shared by
-         *  the camera panel's own Retake and by both rejection tiers in the result
-         *  panel, so "Retake photo" means the same thing wherever it is tapped. */
         function retakePhoto() {
             clearPreview();
             focusCaptureEntry();
         }
 
-        // ---- Model status ----
-        // Live probe of the proxy, not a hardcoded green dot. See main.js for why
-        // the probe targets the Worker rather than the model server's /health.
         function initStatus() {
             ffStatus.bind({
                 dot: modelDot,
@@ -1252,10 +859,6 @@
         }
         initStatus();
 
-        // ---- Set current image for inference + preview ----
-        // Capture the image as a JPEG blob now (from <img> or <canvas>), so the
-        // Identify click just uploads bytes. Cross-origin URL images may taint
-        // the canvas and fail here — handled at identify time.
         function setImage(sourceEl, displaySrc) {
             currentBlob = null;
             try {
@@ -1273,10 +876,6 @@
             previewHint.textContent = 'Ready to identify.';
             refreshIdentifyState();
 
-            // Upload and Link arrive here, and they earn the same confirmation the
-            // shutter gets: an image appeared in the preview and Identify just
-            // became the next step. No capture switch, though — neither panel has
-            // a Capture button to swap out.
             popPreview();
             softScrollTo(previewBlock);
         }
@@ -1284,14 +883,10 @@
             identifyBtn.disabled = !currentBlob;
         }
 
-        // ---- Camera ----
         const camVideo = $('camVideo'), camPlaceholder = $('camPlaceholder');
         const camStart = $('camStart'), camCapture = $('camCapture'), camRetake = $('camRetake');
         const camReticle = $('camReticle'), camBlurWarn = $('camBlurWarn'), camFrame = $('camFrame');
 
-        // Explicit Start/Stop. Leaving the stream open holds the capture LED on and
-        // keeps the sensor powered, which costs real battery in the field, so Stop
-        // releases every track rather than just hiding the <video>.
         camStart.addEventListener('click', async () => {
             if (ffCamera.active) { stopCamera(); return; }
             camStart.disabled = true;
@@ -1317,14 +912,8 @@
             camBlurWarn.classList.add('hidden');
             camCapture.disabled = true;
             camStart.textContent = 'Start camera';
-            // Back to state 1: with the stream released there is nothing to
-            // retake, and Retake would be offering an action the panel can no
-            // longer perform. The captured frame itself is kept on purpose —
-            // stopping the camera is not the same as rejecting the photo, and
-            // Identify stays live for whatever is already in the preview.
             setCaptureState(false);
         }
-        // Release the camera if the user leaves or backgrounds the tab.
         window.addEventListener('pagehide', () => ffCamera.stop(camVideo));
 
         camRetake.addEventListener('click', () => retakePhoto());
@@ -1332,10 +921,6 @@
         camCapture.addEventListener('click', async () => {
             if (!ffCamera.active) return;
 
-            // Focus shield on the LIVE frame, before we even spend a capture.
-            // Same modal as the upload path so the override reads identically
-            // wherever the photo came from; 'Retake' simply leaves the camera
-            // running so the next attempt is one tap away.
             if (window.ffBlur) {
                 const choice = await ffBlur.confirm(camVideo);
                 if (choice !== 'scan') {
@@ -1357,10 +942,6 @@
                 previewHint.textContent = 'Captured. Ready to identify.';
                 refreshIdentifyState();
 
-                // The shot landed: confirm it, then move to state 2 and put the
-                // preview and Identify in front of the user. Order matters — the
-                // switch happens before the scroll so the row has already settled
-                // at its final height when the scroll measures where to stop.
                 setCaptureState(true);
                 popPreview();
                 softScrollTo(previewBlock);
@@ -1369,7 +950,6 @@
             }
         });
 
-        // ---- Upload ----
         const fileInput = $('fileInput'), dropzone = $('dropzone');
         function handleFile(file) {
             if (!file || !file.type.startsWith('image/')) return;
@@ -1383,7 +963,6 @@
         ['dragleave', 'drop'].forEach(evt => dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragging'); }));
         dropzone.addEventListener('drop', (e) => { if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
 
-        // ---- URL ----
         const urlInput = $('urlInput'), urlLoad = $('urlLoad');
         function youTubeId(u) {
             const m = u.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
@@ -1404,7 +983,6 @@
             img.src = src;
         });
 
-        // ---- Result states ----
         const resEmpty = $('resEmpty'), resLoading = $('resLoading'), resContent = $('resContent'), resError = $('resError');
         const resUncertain = $('resUncertain'), resLowConf = $('resLowConf');
         function showState(state) {
@@ -1421,21 +999,11 @@
         }
         function showError(msg) {
             $('resErrorText').textContent = msg;
-            // Hidden by default; only the signed-out path re-reveals it, so a
-            // network error never tells the user to go and log in.
             $('resErrorAction').classList.add('hidden');
             showState('error');
-            // The identity gate can refuse a scan before the request is even
-            // built, which is upstream of the try/finally that scrolls on every
-            // other outcome. Without this, the one failure the user could
-            // actually fix is the one that never scrolls itself into view.
             softScrollTo(resultPanel);
         }
 
-        // ---- Inference (server-side via the Worker) ----
-        // The free inference host can cold-start (~30-90s) if it has gone idle.
-        // We keep the UI honest and moving with staged messages + a hard timeout,
-        // so the worst case is a clear message, never a frozen spinner.
         const LOAD_STAGES = [
             { at: 0,     main: 'Analyzing image…',        sub: '' },
             { at: 6000,  main: 'Analyzing image…',        sub: 'Waking up the model — this can take a moment on the first try.' },
@@ -1461,17 +1029,9 @@
         identifyBtn.addEventListener('click', async () => {
             if (!currentBlob) return;
 
-            // Identity gate first, and it resolves the actual token: if this
-            // scan is going to be refused, refuse it before a byte of the
-            // user's photo leaves the device.
             const authHeaders = await inferencePreflight();
             if (!authHeaders) return;
 
-            // Pre-inference focus shield. Runs on whatever the user is about to
-            // send, before a single byte leaves the device: a soft frame costs a
-            // network round trip, a server inference, and — worse — produces a
-            // confident-looking answer derived from mush. The modal offers the
-            // override because our threshold is a heuristic, not a verdict.
             if (window.ffBlur && previewImg.src && !previewImg.classList.contains('hidden') && previewImg.complete) {
                 const choice = await ffBlur.confirm(previewImg);
                 if (choice !== 'scan') {
@@ -1496,22 +1056,12 @@
                 form.append('file', currentBlob, 'flower.jpg');
                 const res = await fetch(engineUrl(), {
                     method: 'POST',
-                    // Bearer token when the session can mint one, resolved by
-                    // inferencePreflight() before the upload started.
-                    // Content-Type is deliberately unset: the browser must
-                    // generate the multipart boundary itself.
                     headers: authHeaders,
                     body: form,
                     signal: controller.signal,
                 });
                 if (!res.ok) {
                     const detail = await res.text().catch(() => '');
-                    // 401 and 403 are different failures and must not share a
-                    // message. 401 is this user's token, and signing in again
-                    // genuinely fixes it. 403 is the proxy's origin allowlist
-                    // refusing the whole site — nothing the user did and
-                    // nothing they can repair, so sending them to sign in
-                    // again would loop them through a screen that cannot help.
                     if (res.status === 401) {
                         showAuthError('Your session has expired. Please sign in again to keep identifying flowers.');
                         return;
@@ -1526,7 +1076,6 @@
                 const data = await res.json();
                 if (!data.top_k || !data.top_k.length) throw new Error('Empty prediction.');
 
-                // Normalize to the shape renderResult already expects: {name, p}.
                 const ranked = data.top_k.map(x => ({ name: x.name, p: x.confidence }));
                 lastPrediction = ranked[0];
                 ffStatus.markReady();
@@ -1537,8 +1086,6 @@
                     ffStatus.markColdStart();
                     showError('The identifier is taking too long to respond (it may be starting up). Please try again in a moment.');
                 } else {
-                    // A failed POST is the only hard evidence we get that the path
-                    // to the model is unhealthy, so let it drive the indicator.
                     ffStatus.markColdStart();
                     showError('This image could not be analyzed right now. Please try again, or use a different photo.');
                 }
@@ -1550,28 +1097,12 @@
                 identifyArrow.classList.remove('hidden');
                 identifyBtn.disabled = false;
 
-                // Whatever came back — a species, an uncertain shortlist, a
-                // refusal, or an error — the answer is in the result panel and the
-                // user is still looking at the camera. Scrolling here rather than
-                // in each branch means no outcome can be the one that silently
-                // leaves them staring at the wrong half of the page.
                 softScrollTo(resultPanel);
             }
         });
 
-        // ---- Clean a class label into a Wikipedia-friendly query ----
         function cleanName(name) { return name.replace(/\?+$/, '').trim(); }
 
-        // ---- 3-tier confidence safeguard ----
-        //
-        // The model always returns its best guess, even for a photo of a chair.
-        // Rendering that guess verbatim is how a plant-ID app tells someone a
-        // toxic species is edible, so the top score decides how much we are
-        // willing to claim:
-        //
-        //   >= 80%  state the species, save it, count the streak
-        //   >= 40%  show candidates, claim nothing, save only on user choice
-        //   <  40%  name nothing at all
         async function handlePrediction(ranked) {
             const tier = ffConfidence.tier(ranked[0].p);
 
@@ -1588,24 +1119,10 @@
             await saveScan(ranked[0]);
         }
 
-        /* One preference read, with prefs.js's own default as the fallback so a
-           page that somehow loads without it behaves as the dashboard promises
-           rather than as this file used to. */
         function pref(key, dflt) {
             return window.ffPrefs ? window.ffPrefs.get(key) : dflt;
         }
 
-        /** Persist a confirmed identification and roll the streak forward.
-         *
-         *  Three of the four switches on /dashboard are enforced right here,
-         *  which is the reason they are switches and not decoration:
-         *    recordHistory  off -> nothing is written at all
-         *    attachLocation off -> no permission prompt, no coordinates
-         *    keepPhotos     off -> the row is stored without its thumbnail
-         *
-         *  attachLocation is why the geolocation call moved behind a condition:
-         *  every single identification used to open a permission dialog nobody
-         *  had asked for. */
         async function saveScan(pick) {
             if (!window.ffStore) return;
             if (!pref('recordHistory', true)) return;
@@ -1621,8 +1138,6 @@
                 });
                 if (newBadges && newBadges.length) announceBadges(newBadges);
             } catch (err) {
-                // Storage being unavailable (private mode, quota) must never break
-                // the identification the user actually came for.
                 console.warn('Could not save scan locally:', err);
             }
         }
@@ -1642,31 +1157,18 @@
             setTimeout(() => el.remove(), 4500);
         }
 
-        /** Tier 2: show the top match, but let the human disambiguate.
-         *
-         *  The lead card states what the model thinks it saw; the horizontal
-         *  strip underneath carries the rest of top_k so the user can compare
-         *  possibilities side by side instead of reading a ranked list and
-         *  anchoring on the first row. Nothing is saved until they choose. */
         function renderUncertain(ranked) {
             const pickCandidate = async (c) => {
-                // The user's pick is the identification, so render and save it
-                // at the model's own score -- not inflated to look certain.
                 lastPrediction = c;
                 renderResult([c, ...ranked.filter(x => x !== c)]);
                 await saveScan(c);
             };
 
-            // --- Lead: the top match, clearly hedged. ---
             const top = ranked[0];
             const lead = $('resUncertainTop');
             lead.innerHTML = '';
             const leadBtn = document.createElement('button');
             leadBtn.type = 'button';
-            // Accepting a candidate writes a scan to history, so it is a commit and
-            // gets the same tick and press as Identify. data-haptic is delegated
-            // from the document in scripts/ux.js, which is why setting the
-            // attribute is all the wiring a button built at runtime needs.
             leadBtn.setAttribute('data-haptic', '');
             leadBtn.className = 'soft-click w-full min-h-[56px] flex items-center gap-3 text-left border border-amber-200 bg-amber-50 rounded-md px-4 py-3 hover:border-amber-300 transition-colors';
             leadBtn.innerHTML =
@@ -1679,7 +1181,6 @@
             leadBtn.addEventListener('click', () => pickCandidate(top));
             lead.appendChild(leadBtn);
 
-            // --- Secondary candidates, horizontally scrollable. ---
             const list = $('resUncertainList');
             list.innerHTML = '';
             const others = ranked.slice(1, 5);
@@ -1695,20 +1196,15 @@
                 btn.addEventListener('click', () => pickCandidate(c));
                 list.appendChild(btn);
 
-                // Reference photo is a nice-to-have: load it after the card is
-                // already interactive, and leave the neutral tile if it fails.
                 loadCandidateThumb(btn.querySelector('.ff-candidate__thumb'), c.name);
             });
 
-            // No secondaries (the model returned a single class) -> drop the
-            // "Other possibilities" heading rather than leave it above an empty row.
             const heading = list.previousElementSibling;
             if (heading) heading.classList.toggle('hidden', others.length === 0);
 
             showState('uncertain');
         }
 
-        /** Swap a candidate's placeholder tile for a real Wikipedia thumbnail. */
         async function loadCandidateThumb(tile, name) {
             if (!tile || typeof window.ffFetchSpecies !== 'function') return;
             try {
@@ -1719,9 +1215,9 @@
                 img.alt = '';
                 img.loading = 'lazy';
                 img.src = info.image;
-                img.onerror = () => { /* keep the placeholder */ };
+                img.onerror = () => { };
                 if (tile.parentNode) tile.parentNode.replaceChild(img, tile);
-            } catch (e) { /* thumbnails are decoration; never break the picker */ }
+            } catch (e) { }
         }
 
         function renderResult(ranked) {
@@ -1731,15 +1227,10 @@
             $('resFamily').textContent = '';
             $('resConfVal').textContent = pct.toFixed(1) + '%';
 
-            // Tier-aware fill colour, keyed off the same 40/80 boundaries as the
-            // ticks and the result tiers. renderResult() is reached both by the
-            // >=80% path and by a user picking a candidate from the uncertain
-            // flow, so the tier is read from pct here rather than assumed high.
             const bar = $('resConfBar');
             bar.classList.remove('is-uncertain', 'is-low');
             if (pct < 40) bar.classList.add('is-low');
             else if (pct < 80) bar.classList.add('is-uncertain');
-            // (>=80% keeps the sage default)
 
             bar.style.width = '0%';
             requestAnimationFrame(() => { bar.style.width = Math.max(4, pct).toFixed(1) + '%'; });
@@ -1749,7 +1240,6 @@
             else if (pct >= 40) note.textContent = 'Moderate confidence — compare with the possibilities below.';
             else note.textContent = 'Low confidence — this may be a species outside the current Beta set.';
 
-            // Alternatives
             const alts = ranked.slice(1, 4);
             const altsWrap = $('resAlts'), altsList = $('resAltsList');
             altsList.innerHTML = '';
@@ -1763,32 +1253,19 @@
                 });
             } else altsWrap.classList.add('hidden');
 
-            // Reset feedback UI
             $('fbPrompt').classList.remove('hidden');
             $('fbCorrection').classList.add('hidden');
             $('fbThanks').classList.add('hidden');
 
-            // Clear the previous scan's safety UI. loadSpeciesPanel() repaints
-            // both a moment later; without this the old plant's toxicity banner
-            // would sit above the new plant's name until that request lands.
             $('resToxic').classList.add('hidden');
             $('resCompare').classList.add('hidden');
 
-            // Result image defaults to user's own preview; Wikipedia may override
             $('resImg').src = previewImg.src;
 
             showState('content');
             loadSpeciesPanel(cleanName(top.name));
         }
 
-        // ============================================================
-        //  Species detail panel — data comes from the shared species.js
-        //  module (ffFetchSpecies); this function only paints try.html's
-        //  own result DOM. Rendering stays local because this panel's
-        //  markup is unique to the workspace.
-        // ============================================================
-
-        // Small helpers to keep the UI honest when a fact is missing.
         const UNKNOWN = (typeof window.FF_SPECIES_UNKNOWN === 'string')
             ? window.FF_SPECIES_UNKNOWN : 'Not documented in the source article.';
         function setFact(id, value) {
@@ -1804,16 +1281,12 @@
             }
         }
 
-        // Fetch via the shared module, then paint. Graceful fallback on failure.
         async function loadSpeciesPanel(name) {
             const wikiP = $('resWiki'), wikiLink = $('resWikiLink');
 
-            // Reset the panel to a loading baseline every time.
             wikiP.textContent = 'Loading botanical context…';
             $('resBinomial').classList.add('hidden');
             $('resAttribution').textContent = '';
-            // Trefle-fed cells reset with the rest: a species with no Trefle
-            // record must not inherit the previous scan's sunlight or watering.
             ['factRange', 'factToxic', 'factGrow',
                 'factSun', 'factHabit', 'factWater'].forEach(id => setFact(id, ''));
             $('resEdibleWrap').classList.add('hidden');
@@ -1827,21 +1300,17 @@
             }
         }
 
-        // Keep the panel useful even when no article was found.
         function showDetailFallback(info) {
             $('resWiki').textContent = 'A detailed article wasn’t found automatically for this name. Use the link below to search Wikipedia for more context.';
             $('resWikiLink').href = (info && info.articleUrl) || 'https://en.wikipedia.org/';
             ['factRange', 'factToxic', 'factGrow',
                 'factSun', 'factHabit', 'factWater'].forEach(id => setFact(id, ''));
             $('resEdibleWrap').classList.add('hidden');
-            // No article means no verified safety data — clear both, never leave a
-            // stale warning (or a stale absence of one) from the previous scan.
             renderToxicity(null);
             renderCompare(null);
             $('resAttribution').textContent = 'Source: Wikipedia';
         }
 
-        // Paint the panel from an info object (fresh or cached).
         function applySpecies(info) {
             $('resWiki').textContent = info.summary || 'No summary available.';
 
@@ -1864,21 +1333,11 @@
 
             $('resAttribution').textContent = info.attribution || 'Source: Wikipedia';
 
-            // Trefle care facts (sunlight, habit, watering, edibility) plus the
-            // family line and the multi-source attribution. Runs last so its
-            // attribution wins over the Wikipedia-only line above. Guarded: if
-            // scripts/ui.js is missing, the Wikidata fields painted above still
-            // stand and the Trefle cells keep their honest "not documented" text.
             if (window.ffUi && typeof ffUi.renderResultDetails === 'function') {
                 ffUi.renderResultDetails(info);
             }
         }
 
-        /** Red banner above the match when the species carries a toxicity claim.
-         *
-         *  Deliberately one-directional: we shout when there IS evidence of harm
-         *  and stay silent otherwise. We never render a "safe" badge, because
-         *  absence of a poison claim in Wikidata is not a clearance to eat it. */
         function renderToxicity(info) {
             const banner = $('resToxic');
             if (!info || !info.isToxic) { banner.classList.add('hidden'); return; }
@@ -1889,7 +1348,6 @@
             banner.classList.remove('hidden');
         }
 
-        /** Build the drag-to-compare slider when a known lookalike exists. */
         function renderCompare(info) {
             const wrap = $('resCompare'), mount = $('resCompareMount');
             mount.innerHTML = '';
@@ -1909,13 +1367,6 @@
             wrap.classList.remove('hidden');
         }
 
-        /** Vertical-divider image comparison.
-         *
-         *  Position lives in a --ff-pos custom property that drives both the
-         *  clip-path and the handle offset, so a drag mutates one value and the
-         *  browser never re-lays-out. Pointer Events cover mouse, touch and pen
-         *  in one path; setPointerCapture keeps the drag alive when the finger
-         *  leaves the element. */
         function buildCompare({ leftSrc, leftLabel, rightSrc, rightLabel }) {
             const el = document.createElement('div');
             el.className = 'ff-compare';
@@ -1956,18 +1407,17 @@
             });
             el.addEventListener('pointermove', (e) => {
                 if (!dragging) return;
-                e.preventDefault();   // stop the browser turning it into a scroll
+                e.preventDefault();
                 fromEvent(e);
             });
             const end = (e) => {
                 if (!dragging) return;
                 dragging = false;
-                try { el.releasePointerCapture(e.pointerId); } catch (err) { /* already released */ }
+                try { el.releasePointerCapture(e.pointerId); } catch (err) { }
             };
             el.addEventListener('pointerup', end);
             el.addEventListener('pointercancel', end);
 
-            // Keyboard parity: the slider is focusable, so it must be operable.
             handle.addEventListener('keydown', (e) => {
                 const step = e.shiftKey ? 10 : 2;
                 if (e.key === 'ArrowLeft') { setPos(pos - step); e.preventDefault(); }
@@ -1979,12 +1429,6 @@
             return el;
         }
 
-        // ---- Retake shortcuts on the two rejection states ----
-        // A rejected result is a dead end unless the next attempt is one tap
-        // away, so both tiers route straight back to the camera. retakePhoto()
-        // clears the frame that was just turned down, resets the capture switch
-        // to state 1 and scrolls to the viewfinder — the same three things the
-        // camera panel's own Retake does, because it is the same button.
         $('resLowRetake').addEventListener('click', () => {
             showState('empty');
             retakePhoto();
@@ -1994,7 +1438,6 @@
             retakePhoto();
         });
 
-        // ---- Feedback (stored locally; future human-in-the-loop signal) ----
         function saveFeedback(correct, correction) {
             try {
                 const log = JSON.parse(localStorage.getItem('ff_feedback') || '[]');
@@ -2003,13 +1446,10 @@
                     confidence: lastPrediction ? lastPrediction.p : null,
                     correct: correct,
                     correction: correction || null,
-                    // feedback.html has always stamped `at`; the dashboard's
-                    // Model & data panel reports when you last corrected the
-                    // model, and rows written here had no date to report.
                     at: new Date().toISOString()
                 });
                 localStorage.setItem('ff_feedback', JSON.stringify(log));
-            } catch (e) { /* storage unavailable — ignore */ }
+            } catch (e) { }
         }
         $('fbYes').addEventListener('click', () => {
             saveFeedback(true, null);

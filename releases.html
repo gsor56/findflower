@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -19,13 +18,10 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
-    <!-- SPA: router swaps <main> without a reload; views/home.js re-arms the
-         scroll-reveal observer on arrival. The page stays a full document. -->
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,10 +50,6 @@
         .group:hover .cta-arrow { transform:translateX(4px); }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
     
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -68,7 +60,6 @@
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
-    <!-- HEADER -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -97,7 +88,6 @@
 
     <main class="pt-32 pb-24">
 
-        <!-- HEADER BLOCK -->
         <section class="relative max-w-7xl mx-auto px-6 mb-20">
             <div class="max-w-3xl">
                 <span class="reveal-up text-sm font-medium text-sage-600 mb-6 block">Release notes</span>
@@ -109,11 +99,9 @@
             </div>
         </section>
 
-        <!-- TIMELINE -->
         <section class="max-w-3xl mx-auto px-6">
             <div class="relative border-l border-neutral-200 pl-8 md:pl-12 space-y-16">
 
-                <!-- v0.9.8 -->
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-sage-500 ring-4 ring-[#FCFCFC]"></span>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
@@ -154,7 +142,6 @@
                     </div>
                 </article>
 
-                <!-- v0.9.4 -->
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-neutral-300 ring-4 ring-[#FCFCFC]"></span>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
@@ -194,7 +181,6 @@
                     </div>
                 </article>
 
-                <!-- v0.9.0 -->
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-neutral-300 ring-4 ring-[#FCFCFC]"></span>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
@@ -224,7 +210,6 @@
                     </div>
                 </article>
 
-                <!-- v0.8.0 -->
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-neutral-300 ring-4 ring-[#FCFCFC]"></span>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
@@ -243,7 +228,6 @@
                     </div>
                 </article>
 
-                <!-- Upcoming -->
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-white border-2 border-dashed border-neutral-300 ring-4 ring-[#FCFCFC]"></span>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
@@ -264,7 +248,6 @@
 
     </main>
 
-    <!-- FOOTER -->
     <div id="ff-footer"><noscript>
         <footer class="border-t border-neutral-200 bg-[#FCFCFC] py-10 text-center text-xs text-neutral-400 font-light">
             <a href="/" class="hover:text-neutral-900">Home</a> &middot;

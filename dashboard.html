@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -20,9 +19,6 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred, and next to the stylesheet on purpose: prefs.js puts the
-         ff-reduce-motion class on <html> as it parses, so a reader who asked for
-         less motion never sees a frame of the animation they turned off. -->
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
@@ -30,21 +26,10 @@
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <script src="auth.js?v=3"></script>
     <script src="storage.js"></script>
-    <!-- directory.js renders through ffUi and reads ffApi for the Trefle
-         catalogue, so both must be loaded before it runs. -->
     <script src="scripts/api.js?v=1"></script>
     <script src="scripts/ui.js?v=1"></script>
     <script src="directory.js" defer></script>
-    <!-- SPA: router swaps <main> between pages without a reload; the view
-         modules give each route a mount/unmount so the directory feed's
-         observer is torn down on the way out. router.js loads last — it mounts
-         the current route on DOMContentLoaded and needs ffViews populated. -->
-    <!-- The four panels under the badge shelf. Deferred, so it is executed
-         before DOMContentLoaded fires the inline init() that mounts it. -->
     <script src="scripts/dashboard-panels.js?v=1" defer></script>
-    <!-- The search palette. Body-level, built on first open, and it reads
-         ffStore, ffApi and ffUi only when someone opens it — so load order
-         against them does not matter. -->
     <script src="scripts/search.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/views/dashboard.js" defer></script>
@@ -96,7 +81,6 @@
         @media (prefers-reduced-motion: reduce) {
             .reveal-up { opacity: 1; transform: none; transition: none; }
         }
-        /* Every tappable control clears the 44px minimum touch target. */
         .tap { min-height: 44px; min-width: 44px; }
         .flame-pulse { animation: flame 2.4s ease-in-out infinite; }
         @keyframes flame {
@@ -105,10 +89,6 @@
         }
         @media (prefers-reduced-motion: reduce) { .flame-pulse { animation: none; } }
     
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -116,14 +96,6 @@
             input[type="submit"], input[type="button"] { min-width: 44px; }
         }
 
-        /* Search palette (scripts/search.js). Page-local because the palette
-           is: /dashboard is the only route that offers it, and the router
-           adopts this <style> along with the <main> it swaps in.
-
-           Hidden by visibility rather than display so the panel can fade, and
-           .active drops the visibility delay so that input.focus(), called in
-           the same task as the class flip, is not thrown away on a node the
-           browser still considers hidden. Same trick as .ff-sidebar.active. */
         .ff-cmd {
             position: fixed;
             inset: 0;
@@ -137,8 +109,6 @@
             transition: opacity .16s ease, visibility 0s linear .16s;
         }
         .ff-cmd.active { visibility: visible; opacity: 1; transition: opacity .16s ease; }
-        /* Flat, not blurred: backdrop-filter is banned on basic UI here, and
-           there is nothing worth seeing through it. */
         .ff-cmd__scrim { position: absolute; inset: 0; background: rgba(23, 23, 23, .18); }
         .ff-cmd__panel {
             position: relative;
@@ -162,7 +132,6 @@
         .ff-cmd__input {
             flex: 1;
             min-width: 0;
-            /* 1rem exactly: anything smaller and iOS zooms the viewport on focus. */
             font-size: 1rem;
             line-height: 1.5;
             padding: 0.875rem 0;
@@ -222,8 +191,6 @@
                 </a>
             </div>
 
-            <!-- Canonical fallback link set (nav.js swaps this for the real
-                 header on load). Dashboard is the active page. -->
             <nav class="hidden md:flex items-center gap-8 text-sm text-neutral-500 font-medium">
                 <a href="/how" class="hover:text-neutral-900 transition-colors">How it works</a>
                 <a href="/pricing" class="hover:text-neutral-900 transition-colors">Pricing</a>
@@ -242,10 +209,6 @@
         </div>
     </header>
 
-    <!-- === Auth wall (guests only; unhidden by JS when not signed in) === -->
-    <!-- data-ff-page: lives outside <main>, so the router carries it across a
-         swap explicitly (see EXTRA in scripts/router.js). Without that the
-         page's inline init() would call $('authWall') on a null node. -->
     <div id="authWall" data-ff-page class="hidden fixed inset-0 z-[60] overflow-y-auto flex items-center bg-[#FCFCFC]">
         <div class="reveal-up active w-full max-w-6xl mx-auto px-5 sm:px-8 py-24">
             <div class="max-w-lg">
@@ -272,10 +235,6 @@
     <main id="dashMain" class="pt-28 sm:pt-32 pb-24">
         <div class="max-w-6xl mx-auto px-5 sm:px-8">
 
-            <!-- Opens the palette built by scripts/search.js. A button and not
-                 an input: the real field is inside the palette, and two search
-                 boxes on one screen is one too many. Ctrl+K is true on every
-                 platform here — the handler takes the Command key as well. -->
             <button type="button" id="ffSearchOpen" data-haptic aria-haspopup="dialog" aria-expanded="false"
                     class="soft-click tap w-full flex items-center gap-2.5 mb-8 px-3.5 text-left bg-white border border-neutral-200 rounded hover:border-neutral-300 transition">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="text-neutral-400 shrink-0" aria-hidden="true">
@@ -285,7 +244,6 @@
                 <span class="hidden sm:inline text-xs font-medium text-neutral-400 shrink-0">Ctrl K</span>
             </button>
 
-            <!-- === Profile header === -->
             <section class="flex flex-col sm:flex-row sm:items-center gap-5 pb-8 border-b border-neutral-200">
                 <div id="avatarWrap" class="w-16 h-16 rounded-full bg-sage-100 border border-sage-200 flex items-center justify-center shrink-0 overflow-hidden">
                     <span id="avatarInitial" class="font-serif text-2xl text-sage-700">G</span>
@@ -299,7 +257,6 @@
                 </button>
             </section>
 
-            <!-- === Metric cards === -->
             <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
                 <div class="reveal-up bg-white border border-neutral-200 rounded-lg p-5">
                     <div class="flex items-center gap-2 text-neutral-500 text-sm font-medium">
@@ -338,7 +295,6 @@
                 </div>
             </section>
 
-            <!-- === Recent identifications === -->
             <section class="mt-14">
                 <div class="flex items-end justify-between mb-5">
                     <div>
@@ -358,20 +314,12 @@
                 <div id="recentGrid" class="hidden grid grid-cols-2 lg:grid-cols-3 gap-4"></div>
             </section>
 
-            <!-- === Badges === -->
             <section class="mt-14">
                 <h2 class="font-serif text-2xl text-neutral-900">Achievement badges</h2>
                 <p class="text-sm text-neutral-500 mt-1 mb-5">Earned in the field.</p>
                 <div id="badgeGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"></div>
             </section>
 
-            <!-- === Preferences, Places, Profile & privacy, Model & data, Storage ===
-                 Five empty hosts. scripts/dashboard-panels.js fills each one it
-                 finds and skips the rest, so this markup carries no copy that
-                 could drift from the behaviour it describes. The panels are the
-                 answer to three questions the dashboard could not answer
-                 before: what can I change, where have I been, and what is
-                 actually stored about me. -->
             <section id="prefsSection" class="mt-14 scroll-mt-24">
                 <h2 class="font-serif text-2xl text-neutral-900">Preferences</h2>
                 <p class="text-sm text-neutral-500 mt-1 mb-5">Four switches. Each one changes what the scanner does on this device — none of them is decoration.</p>
@@ -430,7 +378,6 @@
             return String(s || '').replace(/\b\w/g, (c) => c.toUpperCase());
         }
 
-        /* "3 hours ago" / "Yesterday" / "12 Mar" — short enough for a card. */
         function relTime(iso) {
             const then = new Date(iso);
             if (isNaN(then)) return '';
@@ -445,7 +392,6 @@
             return then.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
         }
 
-        // === profile ========================================================
         async function renderProfile(session) {
             $('userName').textContent = session.name;
             $('userSub').textContent = session.authenticated
@@ -458,7 +404,6 @@
                 img.alt = '';
                 img.className = 'w-full h-full object-cover';
                 img.referrerPolicy = 'no-referrer';
-                // A broken avatar URL should fall back to the initial, not a broken icon.
                 img.onerror = () => { $('avatarWrap').innerHTML = '<span class="font-serif text-2xl text-sage-700">' + esc((session.name || 'G')[0].toUpperCase()) + '</span>'; };
                 $('avatarWrap').innerHTML = '';
                 $('avatarWrap').appendChild(img);
@@ -476,7 +421,6 @@
             }
         }
 
-        // === metrics + history ==============================================
         function renderRecent(scans) {
             const grid = $('recentGrid');
             const empty = $('recentEmpty');
@@ -526,7 +470,6 @@
             try {
                 data = await window.ffStore.getSummary();
             } catch (e) {
-                // Private browsing / blocked storage: show the page, not a crash.
                 $('recentEmpty').innerHTML =
                     '<p class="text-neutral-500 text-sm">Local history is unavailable in this browser mode.</p>';
                 renderBadges(window.ffStore ? window.ffStore.BADGES.map((b) => ({ ...b, earned: false })) : []);
@@ -537,11 +480,6 @@
             return data;
         }
 
-        /* Tiles, streak note, history grid and badge shelf from one summary.
-           Split out of renderStats() because the Storage panel can erase the
-           history under it: everything on this page that describes the store
-           has to be redrawn from the same object, or the tiles keep reporting a
-           streak for scans that no longer exist. */
         function paintSummary(data) {
             $('mStreak').textContent = data.streak;
             $('mTotal').textContent = data.totalScans;
@@ -556,12 +494,6 @@
             renderBadges(data.badges);
         }
 
-        /* === Preferences / Places / Model & data / Storage ==================
-           The panels themselves are scripts/dashboard-panels.js. Two reasons
-           they are not in this file: everything here is unreachable for a guest
-           (dashMain is hidden and init() returns early), which makes it
-           untestable without an Auth0 session; and this inline script is
-           already the longest thing on the page. */
         function mountPanels(session, data) {
             if (!window.ffPanels) return;
             window.ffPanels.mount({
@@ -592,10 +524,8 @@
             let session = { authenticated: false, name: 'Guest Botanist', picture: null, isGuest: true };
             try {
                 if (typeof getUserSession === 'function') session = await getUserSession();
-            } catch { /* treat as guest */ }
+            } catch { }
 
-            // The dashboard is private. A signed-out visitor sees only the
-            // sign-in modal — no metrics, no history, no empty void.
             if (!session.authenticated) {
                 $('dashMain').classList.add('hidden');
                 $('authWall').classList.remove('hidden');
@@ -606,7 +536,6 @@
                 return;
             }
 
-            // Signed in: render the real dashboard.
             $('authWall').classList.add('hidden');
             $('dashMain').classList.remove('hidden');
             renderProfile(session);

@@ -1,17 +1,3 @@
-/* FindFlower composer: the markdown toolbar on the post box, and the renderer
-   that displays what it produced.
-
-   Both halves live in one file on purpose. A toolbar that writes **bold** into a
-   feed which renders it as literal asterisks is worse than no toolbar, so the
-   only markup the buttons can produce is the markup toHtml() knows how to draw:
-   three heading levels, bold, italic, blockquotes, fenced and inline code,
-   [species:Name] tags and bare http links. Nothing else in markdown is offered,
-   because nothing else would render.
-
-   The renderer never inserts caller HTML. Code spans, species tags and links are
-   pulled out into slots before the rest of the text is escaped, then put back as
-   built markup -- which is also why a species name keeps its apostrophes instead
-   of arriving at encodeURIComponent already HTML-escaped. */
 (function () {
     'use strict';
 
@@ -24,17 +10,11 @@
     var LINK = 'text-sage-600 hover:text-sage-700 underline underline-offset-2';
     var CODE = 'bg-neutral-100 rounded px-1 py-0.5 text-xs font-mono text-neutral-800';
 
-    // inline()'s slot marker, built rather than written as an escape: a
-    // control character cannot come from a keyboard and survives esc()
-    // untouched, so it cannot collide with anything a writer typed.
     var NUL = String.fromCharCode(0);
 
     var SPECIES_TAG = /\[species:([^\]\n]{1,80})\]/g;
     var BARE_URL = /https?:\/\/[^\s<>()]+/g;
 
-    /* Inline markup for one run of text. Slots first, escape second, emphasis
-       last: emphasis is the only pattern safe to run over escaped text, because
-       * and _ survive escaping unchanged. */
     function inline(raw) {
         var slots = [];
         function slot(html) {
@@ -53,10 +33,6 @@
                 esc(n) + '</a>');
         });
         s = s.replace(BARE_URL, function (url) {
-            /* A code span or species tag written immediately after a URL leaves its
-               slot marker inside this match -- the marker is not whitespace, so the
-               URL pattern runs straight through it. Cut there, or the marker ends up
-               in the href and its slot never restores. */
             var mark = url.indexOf(NUL);
             var rest = '';
             if (mark !== -1) {
@@ -84,9 +60,6 @@
         'text-sm font-medium text-neutral-700'
     ];
 
-    /* Block markup. A single newline inside a paragraph becomes a <br> rather
-       than being collapsed: these are field notes, and someone who put a
-       sighting on its own line meant it to stay there. */
     function toHtml(md) {
         var lines = String(md == null ? '' : md).replace(/\r\n?/g, '\n').split('\n');
         var out = [];
@@ -169,10 +142,6 @@
         return String(s || '').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
     }
 
-    /* Names for the species picker, from what this browser already has: the
-       prebuilt trefle-data.json records and the species in this device's own
-       scan history. The sessionStorage key is species.js's, so a reader who has
-       opened a species page this session pays nothing for the first list. */
     var namesPromise = null;
     function speciesNames() {
         if (namesPromise) return namesPromise;
@@ -185,24 +154,21 @@
                     var res = await fetch('trefle-data.json');
                     if (res.ok) {
                         map = await res.json();
-                        try { sessionStorage.setItem('ff_trefle_map', JSON.stringify(map)); } catch (e) { /* quota */ }
+                        try { sessionStorage.setItem('ff_trefle_map', JSON.stringify(map)); } catch (e) { }
                     }
                 }
                 Object.keys(map || {}).forEach(function (k) { seen[titleCase(k)] = 1; });
-            } catch (e) { /* offline, or a private window: the picker still accepts typing */ }
+            } catch (e) { }
             try {
                 if (window.ffStore && typeof ffStore.listSpecies === 'function') {
                     (await ffStore.listSpecies() || []).forEach(function (n) { seen[titleCase(n)] = 1; });
                 }
-            } catch (e) { /* blocked storage */ }
+            } catch (e) { }
             return Object.keys(seen).sort();
         })();
         return namesPromise;
     }
 
-    /* Every edit below goes through this, so the page's own input listeners --
-       the character counter, the enabled state of the Post button -- see a
-       programmatic edit exactly as they see typing. */
     function fire(box) {
         box.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -223,8 +189,6 @@
         fire(box);
     }
 
-    /* Line prefixes toggle. Pressing Quote twice should leave the text as it
-       was, not build "> > ". */
     function prefixLines(box, prefix) {
         var v = box.value;
         var start = v.lastIndexOf('\n', box.selectionStart - 1) + 1;
@@ -265,9 +229,6 @@
 
     var seq = 0;
 
-    /* Puts the toolbar above a textarea and the preview panel below it. The
-       textarea itself is left exactly where the page put it, with its id and its
-       own listeners intact -- this adds controls, it does not take the box over. */
     function attach(opts) {
         var box = (opts && opts.box) || null;
         if (!box || box.dataset.ffComposer) return null;
@@ -317,9 +278,6 @@
         var field = picker.querySelector('[data-md-name]');
         var filled = false;
 
-        // hidden and flex are never both set: Tailwind's display utilities are one
-        // cascade layer, so which of the two won would depend on their order in a
-        // stylesheet this page does not control.
         function showPicker(on) {
             picker.classList.toggle('hidden', !on);
             picker.classList.toggle('flex', on);
@@ -337,8 +295,6 @@
                 tabs[i].setAttribute('aria-selected', sel ? 'true' : 'false');
                 tabs[i].className = sel ? TAB_ON : TAB_OFF;
             }
-            // The buttons edit the textarea, and in preview mode the textarea is
-            // not on screen to show what they did.
             for (var j = 0; j < tools.length; j++) tools[j].disabled = on;
             if (on) showPicker(false);
             box.classList.toggle('hidden', on);
@@ -363,8 +319,6 @@
             }
         }
 
-        /* Brackets are stripped rather than escaped: [species:...] has no escape
-           for a ] inside it, and a name containing one would end the tag early. */
         function addTag() {
             var name = field.value.trim().replace(/[[\]]/g, '').trim();
             if (!name) { field.focus(); return; }
@@ -391,7 +345,6 @@
             if (e.target.closest('[data-md-add]')) addTag();
         });
 
-        // The picker sits inside the post form, where a bare Enter would submit it.
         picker.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') { e.preventDefault(); addTag(); }
             else if (e.key === 'Escape') { showPicker(false); box.focus(); }
@@ -404,8 +357,6 @@
             else if (k === 'i') { e.preventDefault(); wrap(box, '*', '*'); }
         });
 
-        // Covers the caller emptying the box after a successful post while the
-        // preview is the visible half.
         box.addEventListener('input', function () {
             if (!preview.classList.contains('hidden')) paintPreview();
         });

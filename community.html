@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- Core Engine Architected by gsor56 (Bhrigu Choudhury). Solo Student Project. -->
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -19,7 +18,6 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
-    <!-- Not deferred: prefs.js applies the reduce-motion class before first paint. -->
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
@@ -27,23 +25,13 @@
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <script src="auth.js?v=3"></script>
     <script src="storage.js"></script>
-    <!-- The deployed backend. Left unset on a local origin, where social.js
-         already points at 127.0.0.1:4000: the local server process and the QA
-         stub both listen there. -->
     <script>
         if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
             window.FF_SOCIAL_API = 'https://findflower-social.onrender.com';
         }
     </script>
-    <!-- social.js and composer.js are listed ahead of the view that uses them:
-         deferred scripts run in document order, so window.ffSocial and
-         window.ffComposer exist by the time the router mounts this page. -->
     <script src="scripts/social.js?v=1" defer></script>
     <script src="scripts/composer.js?v=1" defer></script>
-    <!-- The feed is a windowed list over ff_posts, so this page has no inline
-         engine and views/community.js owns the first paint as well as router
-         swaps. It is listed before views/home.js deliberately: home.js will not
-         overwrite a view another module has already registered. -->
     <script src="scripts/views/community.js" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
@@ -70,20 +58,11 @@
         .reveal-up { opacity:0; transform:translateY(24px); transition:opacity .9s cubic-bezier(0.16,1,0.3,1), transform .9s cubic-bezier(0.16,1,0.3,1); }
         .reveal-up.active { opacity:1; transform:translateY(0); }
 
-        /* The feed is windowed: #cmFeed is given the full height of all rows and
-           only the rows near the viewport are in the DOM, each absolutely placed
-           at its measured offset. Without position:relative here those offsets
-           would resolve against the page instead of the list. */
         #cmFeed { position:relative; }
         .ff-post { position:absolute; left:0; right:0; }
-        /* Post bodies are rendered markup now, not preserved text: composer.js
-           turns single newlines into <br> itself, so pre-wrap here would add a
-           second line break to every one of them. */
         .ff-post-body { overflow-wrap:anywhere; }
         .ff-post-body a { overflow-wrap:break-word; }
 
-        /* Spaces are a wrapping row on a phone and a column on a wide screen.
-           No scroll container either way -- there are four of them. */
         .ff-space { border:1px solid transparent; }
         .ff-space[aria-current="true"] { background:#F2F5F2; border-color:#C9D6CB; color:#3D5341; }
 
@@ -92,10 +71,6 @@
             .reveal-up { opacity:1; transform:none; }
         }
 
-        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
-           on a phone. Every control clears the 44px minimum. min-height is
-           ignored on inline non-replaced boxes, so links inside body copy are
-           untouched -- only laid-out controls grow. */
         @media (pointer: coarse) {
             a, button, select, summary, label[for],
             input[type="submit"], input[type="button"] { min-height: 44px; }
@@ -106,8 +81,6 @@
 </head>
 <body class="font-sans antialiased selection:bg-sage-100 selection:text-sage-700">
 
-    <!-- Kept as the no-JS fallback. nav.js replaces this whole element with the
-         canonical header once the DOM is parsed. -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-200">
         <div class="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
             <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -132,9 +105,6 @@
                     Field notes, identification questions, and corrections when the model gets it
                     wrong. Posts are short; the long write-ups live in the field logs.
                 </p>
-                <!-- Where this page is actually reading and writing. The static text
-                     names the deployed server; views/community.js rewrites it with the
-                     handle it posts as, or with the local store if nothing answers. -->
                 <p id="cmSync" class="reveal-up flex items-center gap-2 text-xs text-neutral-500 mt-4">
                     <span id="cmSyncDot" class="w-1.5 h-1.5 shrink-0 rounded-full bg-neutral-300"></span>
                     <span id="cmSyncText">Posts are stored on the FindFlower server.</span>
@@ -147,8 +117,6 @@
                     <h2 class="text-xs font-medium tracking-wide uppercase text-neutral-400">Spaces</h2>
                     <div id="cmSpaces" class="flex flex-wrap gap-1.5 lg:block lg:space-y-0.5 mt-3"></div>
 
-                    <!-- Both stay hidden unless the server is answering and the
-                         viewer has a handle: POST /api/spaces needs both. -->
                     <button type="button" id="cmSpaceNew"
                             class="hidden text-xs text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 border border-neutral-200 rounded px-2 py-1 mt-3 transition">+ New space</button>
                     <form id="cmSpaceForm" class="hidden mt-3">
@@ -168,8 +136,6 @@
 
                 <div class="min-w-0">
 
-                    <!-- Shown only when the server has said 409 needsHandle: the
-                         account is verified but has no profile row to author with. -->
                     <form id="cmClaim" class="hidden bg-white border border-neutral-200 rounded p-4 sm:p-5">
                         <h2 class="text-sm font-medium text-neutral-900">Pick a handle</h2>
                         <p class="text-xs text-neutral-500 leading-relaxed mt-1">
@@ -226,8 +192,6 @@
                         <div id="cmFeed" class="mt-4"></div>
                         <p id="cmEmpty" class="hidden text-sm text-neutral-400 mt-4">No posts in this space yet.</p>
                         <p id="cmCap" class="hidden text-xs text-neutral-400 mt-4"></p>
-                        <!-- Server paging only. The local store hands back its whole
-                             cap in one read, so there is nothing further to fetch. -->
                         <button type="button" id="cmMore"
                                 class="hidden text-sm text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50 border border-neutral-200 rounded px-4 py-2 mt-4 transition disabled:opacity-40">Load older posts</button>
                     </section>
