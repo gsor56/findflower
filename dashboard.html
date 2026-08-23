@@ -36,9 +36,9 @@
     <script src="scripts/ui.js?v=1"></script>
     <script src="directory.js" defer></script>
     <!-- SPA: router swaps <main> between pages without a reload; the view
-         modules give each route a mount/unmount so observers and the Discover
-         feed are torn down on the way out. router.js loads last — it mounts the
-         current route on DOMContentLoaded and needs ffViews populated. -->
+         modules give each route a mount/unmount so the directory feed's
+         observer is torn down on the way out. router.js loads last — it mounts
+         the current route on DOMContentLoaded and needs ffViews populated. -->
     <!-- The four panels under the badge shelf. Deferred, so it is executed
          before DOMContentLoaded fires the inline init() that mounts it. -->
     <script src="scripts/dashboard-panels.js?v=1" defer></script>
@@ -211,7 +211,7 @@
 </head>
 <body class="font-sans antialiased">
 
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-200/60">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-200/60">
         <div class="max-w-6xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -235,9 +235,8 @@
 
             <div class="flex items-center gap-3">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
@@ -248,13 +247,13 @@
          swap explicitly (see EXTRA in scripts/router.js). Without that the
          page's inline init() would call $('authWall') on a null node. -->
     <div id="authWall" data-ff-page class="hidden fixed inset-0 z-[60] flex items-center justify-center px-5 bg-[#FCFCFC]/85 backdrop-blur-md">
-        <div class="reveal-up active w-full max-w-md bg-white border border-neutral-200 rounded-3xl shadow-lift p-8 sm:p-10 text-center">
-            <div class="w-14 h-14 mx-auto rounded-2xl bg-sage-100 border border-sage-200 flex items-center justify-center mb-6">
+        <div class="reveal-up active w-full max-w-md bg-white border border-neutral-200 rounded-lg p-8 sm:p-10 text-center">
+            <div class="w-14 h-14 mx-auto rounded-lg bg-sage-100 border border-sage-200 flex items-center justify-center mb-6">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-700"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
             <h1 class="font-serif text-2xl sm:text-3xl text-neutral-900 mb-3">Your botanical history</h1>
             <p class="text-neutral-500 leading-relaxed mb-8">Sign in with your email to view and save your botanical history.</p>
-            <button id="wallSignIn" data-haptic class="soft-click tap w-full flex items-center justify-center gap-2 bg-neutral-900 text-white text-sm font-medium px-6 py-3.5 rounded-full hover:bg-neutral-800 transition">
+            <button id="wallSignIn" data-haptic class="soft-click tap w-full flex items-center justify-center gap-2 bg-neutral-900 text-white text-sm font-medium px-6 py-3.5 rounded-md hover:bg-neutral-800 transition">
                 Sign in with email
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             </button>
@@ -287,16 +286,16 @@
                     <h1 id="userName" class="font-serif text-2xl sm:text-3xl text-neutral-900 truncate">Guest Botanist</h1>
                     <p id="userSub" class="text-sm text-neutral-500 mt-0.5">Your history is stored privately on this device.</p>
                 </div>
-                <button id="authBtn" data-haptic class="soft-click tap px-5 text-sm font-medium border border-neutral-300 rounded-full hover:bg-neutral-50 transition self-start sm:self-auto">
+                <button id="authBtn" data-haptic class="soft-click tap px-5 text-sm font-medium border border-neutral-300 rounded-md hover:bg-neutral-50 transition self-start sm:self-auto">
                     Sign in
                 </button>
             </section>
 
             <!-- === Metric cards === -->
             <section class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
-                <div class="reveal-up bg-white border border-neutral-200 rounded-2xl p-5 shadow-subtle">
+                <div class="reveal-up bg-white border border-neutral-200 rounded-lg p-5">
                     <div class="flex items-center gap-2 text-neutral-500 text-sm font-medium">
-                        <span class="flame-pulse text-base" aria-hidden="true">🔥</span>
+                        <span class="flame-pulse" aria-hidden="true"><svg class="block" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a6 6 0 0 0 6-6c0-4.2-3-6.6-6-11.5-3 4.9-6 7.3-6 11.5a6 6 0 0 0 6 6Z"/></svg></span>
                         Botanist Streak
                     </div>
                     <div class="mt-3 flex items-baseline gap-1.5">
@@ -306,7 +305,7 @@
                     <p id="mStreakNote" class="text-xs text-neutral-400 mt-1.5">Scan today to begin a streak.</p>
                 </div>
 
-                <div class="reveal-up bg-white border border-neutral-200 rounded-2xl p-5 shadow-subtle">
+                <div class="reveal-up bg-white border border-neutral-200 rounded-lg p-5">
                     <div class="flex items-center gap-2 text-neutral-500 text-sm font-medium">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-sage-600"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
                         Model Usage
@@ -318,7 +317,7 @@
                     <p class="text-xs text-neutral-400 mt-1.5">Total identifications run.</p>
                 </div>
 
-                <div class="reveal-up bg-white border border-neutral-200 rounded-2xl p-5 shadow-subtle">
+                <div class="reveal-up bg-white border border-neutral-200 rounded-lg p-5">
                     <div class="flex items-center gap-2 text-neutral-500 text-sm font-medium">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-sage-600"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/></svg>
                         Species Identified
@@ -341,32 +340,14 @@
                     <a href="/try" class="hidden sm:block text-sm font-medium text-sage-700 hover:text-sage-600 transition-colors">New scan &rarr;</a>
                 </div>
 
-                <div id="recentEmpty" class="border border-dashed border-neutral-300 rounded-2xl p-10 text-center">
+                <div id="recentEmpty" class="border border-dashed border-neutral-300 rounded-lg p-10 text-center">
                     <p class="text-neutral-500 text-sm">No identifications yet.</p>
-                    <a href="/try" class="tap inline-flex items-center justify-center mt-4 px-5 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition-colors">
+                    <a href="/try" class="tap inline-flex items-center justify-center mt-4 px-5 bg-neutral-900 text-white text-sm font-medium rounded-md hover:bg-neutral-800 transition-colors">
                         Identify your first flower
                     </a>
                 </div>
 
                 <div id="recentGrid" class="hidden grid grid-cols-2 lg:grid-cols-3 gap-4"></div>
-            </section>
-
-            <!-- === Discover feed (shown when signed in with no scan history) === -->
-            <section id="discoverSection" class="hidden mt-14">
-                <div class="mb-5">
-                    <h2 class="font-serif text-2xl text-neutral-900">Discover</h2>
-                    <p class="text-sm text-neutral-500 mt-1">While your collection grows, wander through flowers from around the world.</p>
-                </div>
-                <div id="discoverGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"></div>
-                <div id="discoverError" class="hidden border border-dashed border-neutral-300 rounded-2xl p-8 text-center mt-4">
-                    <p class="text-neutral-500 text-sm">Couldn’t reach the live directory just now.</p>
-                    <button id="discoverRetry" class="soft-click tap inline-flex items-center justify-center mt-3 px-5 border border-neutral-300 text-sm font-medium rounded-full hover:bg-neutral-50 transition">Try again</button>
-                </div>
-                <div id="discoverSpinner" class="hidden flex justify-center py-8">
-                    <svg class="animate-spin w-6 h-6 text-sage-500" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-20"/><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
-                </div>
-                <div id="discoverSentinel" class="h-6"></div>
-                <p id="discoverEnd" class="hidden text-center text-sm text-neutral-400 py-8">You’ve reached the end of the directory.</p>
             </section>
 
             <!-- === Badges === -->
@@ -386,7 +367,7 @@
             <section id="prefsSection" class="mt-14 scroll-mt-24">
                 <h2 class="font-serif text-2xl text-neutral-900">Preferences</h2>
                 <p class="text-sm text-neutral-500 mt-1 mb-5">Four switches. Each one changes what the scanner does on this device — none of them is decoration.</p>
-                <div id="panelPrefs" class="bg-white border border-neutral-200 rounded-2xl p-5 sm:p-6 shadow-subtle"></div>
+                <div id="panelPrefs" class="bg-white border border-neutral-200 rounded-lg p-5 sm:p-6"></div>
             </section>
 
             <section id="placesSection" class="mt-14 scroll-mt-24">
@@ -509,7 +490,7 @@
                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="text-sage-400"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/></svg>
                        </div>`;
                 return `
-                <article class="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-subtle">
+                <article class="bg-white border border-neutral-200 rounded-lg overflow-hidden">
                     <div class="aspect-square bg-neutral-100">${thumb}</div>
                     <div class="p-3">
                         <h3 class="font-medium text-sm text-neutral-900 leading-snug line-clamp-2">${esc(titleCase(s.species))}</h3>
@@ -524,11 +505,9 @@
 
         function renderBadges(badges) {
             $('badgeGrid').innerHTML = badges.map((b) => `
-                <div class="rounded-2xl p-4 text-center border ${b.earned
-                    ? 'bg-white border-sage-200 shadow-subtle'
-                    : 'bg-neutral-50 border-neutral-200'}"
+                <div class="rounded-lg p-4 text-center border ${b.earned ? 'bg-white border-sage-300' : 'bg-white border-neutral-200'}"
                      title="${esc(b.description)}">
-                    <div class="text-2xl ${b.earned ? '' : 'opacity-25 grayscale'}" aria-hidden="true">${b.icon}</div>
+                    <div class="text-2xl ${b.earned ? '' : 'opacity-25 grayscale'}" aria-hidden="true">${window.ffStore.badgeIcon(b.icon)}</div>
                     <p class="mt-2 text-xs font-medium ${b.earned ? 'text-neutral-900' : 'text-neutral-400'}">${esc(b.name)}</p>
                     <p class="mt-0.5 text-xs ${b.earned ? 'text-sage-700' : 'text-neutral-400'}">${b.earned ? 'Earned' : esc(b.description)}</p>
                 </div>`).join('');
@@ -584,28 +563,6 @@
             });
         }
 
-        // === discover feed (signed-in users with an empty collection) ========
-        var discoverMounted = false;
-        function mountDiscover() {
-            if (discoverMounted || !window.ffDirectory) return;
-            discoverMounted = true;
-            $('discoverSection').classList.remove('hidden');
-            // Handle is published so views/dashboard.js can stop the feed when
-            // the router navigates away -- otherwise its IntersectionObserver
-            // keeps pulling Trefle pages into a detached grid.
-            window.ffDiscoverHandle = window.ffDirectory.mount({
-                grid:     $('discoverGrid'),
-                sentinel: $('discoverSentinel'),
-                spinner:  $('discoverSpinner'),
-                endNote:  $('discoverEnd'),
-                errorBox: $('discoverError'),
-                retryBtn: $('discoverRetry'),
-                infinite: true,
-                link:     'species'
-            });
-            window.ffDiscoverHandle.start();
-        }
-
         function initReveal() {
             const els = document.querySelectorAll('.reveal-up');
             if (!('IntersectionObserver' in window)) {
@@ -647,9 +604,6 @@
             renderProfile(session);
             const data = await renderStats();
             mountPanels(session, data);
-            // A signed-in botanist with no scans yet gets the Discover feed
-            // instead of an empty page.
-            if (data && (!data.scans || !data.scans.length)) mountDiscover();
         }
 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

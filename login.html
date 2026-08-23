@@ -69,41 +69,6 @@
         .spin { animation: spin .9s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Sign-in background. Decoration only, so it takes no taps and carries
-           no meaning. It drifts one wave length every 80s and rests correctly
-           at either end of that shift, which is why reduced motion can simply
-           stop it instead of pinning a transform back. */
-        .ff-signin-bg {
-            position: absolute;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            height: 220px;
-            overflow: hidden;
-            pointer-events: none;
-            /* The waves fade out before they reach the copy above them, so no
-               line ever runs through a sentence. */
-            -webkit-mask-image: linear-gradient(to top, #000 32%, transparent);
-            mask-image: linear-gradient(to top, #000 32%, transparent);
-        }
-        .ff-signin-bg svg {
-            display: block;
-            width: 200%;
-            height: 100%;
-            animation: ffSigninDrift 80s linear infinite;
-        }
-        @keyframes ffSigninDrift {
-            to { transform: translate3d(-25%, 0, 0); }
-        }
-        /* A phone has far less room under the card, so the band shrinks rather
-           than sliding under the closing paragraph. */
-        @media (max-width: 640px) {
-            .ff-signin-bg { height: 160px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .ff-signin-bg svg { animation: none; }
-        }
-    
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
            on a phone. Every control clears the 44px minimum. min-height is
            ignored on inline non-replaced boxes, so links inside body copy are
@@ -116,7 +81,7 @@
         }
     </style>
 </head>
-<body class="selection:bg-sage-100 selection:text-sage-700 min-h-screen flex flex-col">
+<body class="selection:bg-sage-100 selection:text-sage-700">
 
     <!-- HEADER (shared) -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
@@ -147,91 +112,79 @@
         </div>
     </header>
 
-    <!-- LOGIN · one centred column. The card is the only interactive thing on
-         the page, so nothing sits beside it competing for attention. The line
-         work behind it is decoration: aria-hidden, and pointer-events off in
-         the rule, so it can never swallow a tap meant for the button. -->
-    <main class="flex-1 relative overflow-hidden flex items-center justify-center px-6 pt-28 pb-20">
+    <!-- SIGN IN · one column, read top to bottom: what this is, the button,
+         then what happens to your data. The action sits directly under its own
+         context rather than in a second column, and nothing is boxed. -->
+    <main class="pt-32 pb-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="max-w-lg">
+                <span id="authKicker" class="text-sm font-medium text-sage-600 block mb-6">Sign in</span>
+                <h1 id="authTitle" class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                    Your finds, kept under your own name.
+                </h1>
+                <p id="authBlurb" class="font-serif italic text-xl md:text-2xl text-sage-700 leading-snug mb-12">
+                    Signing in separates your records from anyone else who uses this browser. It uploads nothing.
+                </p>
 
-        <!-- Five hairline contour waves. Each path is one q segment followed by
-             repeated t, which mirrors the previous control point, so the curve
-             stays continuous without listing every control point by hand. The
-             wave repeats every 360 units and the drift shifts exactly two of
-             those periods, so the loop has no visible seam. -->
-        <div class="ff-signin-bg" aria-hidden="true">
-            <svg viewBox="0 0 2880 320" preserveAspectRatio="none" fill="none" stroke="#C9D6CB" stroke-width="1">
-                    <path d="M0 60 q90 -34 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
-                    <path d="M0 116 q90 -30 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
-                    <path d="M0 170 q90 -26 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
-                    <path d="M0 222 q90 -22 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
-                    <path d="M0 272 q90 -18 180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0 t180 0" vector-effect="non-scaling-stroke"/>
-            </svg>
-        </div>
-
-        <div class="relative w-full max-w-md">
-            <h1 id="authTitle" class="font-serif text-3xl sm:text-4xl font-normal tracking-tight text-neutral-900 text-center mb-3">
-                Every bloom you find,<br>kept in one place.
-            </h1>
-            <p id="authBlurb" class="text-sm text-neutral-500 font-light text-center mb-8 leading-relaxed">
-                Sign in to keep your scans, streak and badges under your own account.
-            </p>
-
-            <div class="bg-white border border-neutral-200 rounded-lg p-6 sm:p-8">
-                <!-- Loading -->
-                <div id="authLoading" class="flex flex-col items-center py-4">
-                    <svg class="spin text-sage-500 mb-3" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
-                    <p class="text-sm text-neutral-400 font-light">Checking your sign-in…</p>
+                <div id="authLoading" class="flex items-center gap-3">
+                    <svg class="spin text-sage-500" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56" stroke-linecap="round"/></svg>
+                    <p class="text-base text-neutral-500 font-light">Checking your sign-in…</p>
                 </div>
 
-                <!-- Signed-out: sign-in button -->
                 <div id="authSignedOut" class="hidden">
-                    <button id="loginBtn" data-haptic class="soft-click w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition flex items-center justify-center">
+                    <button id="loginBtn" data-haptic class="soft-click text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition inline-flex items-center">
                         Continue with Auth0
                     </button>
-                    <p class="text-xs text-neutral-400 font-light text-center mt-4 leading-relaxed">
-                        Authentication is handled by Auth0. FindFlower never sees your password.
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mt-8">
+                        Auth0 handles the sign-in, so FindFlower never sees your password. The scanner works without an account at all.
                     </p>
                 </div>
 
-                <!-- Signed-in -->
-                <div id="authSignedIn" class="hidden text-center">
-                    <div class="text-left mb-6 p-4 rounded-md border border-neutral-200">
-                        <p class="text-sm font-medium text-neutral-900 truncate" id="userName">—</p>
-                        <p class="text-xs text-neutral-500 font-light truncate" id="userEmail">—</p>
+                <div id="authSignedIn" class="hidden">
+                    <div class="divide-y divide-neutral-200 border-t border-b border-neutral-200 mb-8">
+                        <div class="py-5">
+                            <p class="text-base font-medium text-neutral-900 truncate" id="userName">—</p>
+                            <p class="text-base text-neutral-500 font-light truncate" id="userEmail">—</p>
+                        </div>
                     </div>
                     <!-- Signed in, your own dashboard is the destination. Sending an
                          authenticated user to the API page instead stranded them on
                          developer docs they never asked for. -->
-                    <a href="/dashboard" class="w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors flex items-center justify-center mb-3">
-                        Go to Dashboard
-                    </a>
-                    <a href="/api" class="block w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-md hover:text-neutral-900 transition-colors">View API docs</a>
-                    <button id="logoutBtn" data-haptic class="soft-click w-full text-sm font-medium text-neutral-500 px-6 py-2.5 rounded-md hover:text-neutral-900 transition">Sign out</button>
+                    <div class="flex flex-wrap items-center gap-x-8 gap-y-4">
+                        <a href="/dashboard" class="text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors inline-flex items-center">
+                            Go to Dashboard
+                        </a>
+                        <a href="/api" class="text-base text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">View API docs</a>
+                        <button id="logoutBtn" data-haptic class="soft-click text-base text-neutral-500 hover:text-neutral-900 transition">Sign out</button>
+                    </div>
                 </div>
 
-                <!-- Not configured notice -->
                 <div id="authSetup" class="hidden">
-                    <p class="text-sm font-medium text-neutral-900 mb-3">Auth0 setup required</p>
-                    <p class="text-sm text-neutral-500 font-light leading-relaxed mb-3">
-                        Sign-in isn’t active yet. Add your Auth0 <span class="font-mono text-neutral-700">domain</span> and
-                        <span class="font-mono text-neutral-700">clientId</span> in <span class="font-mono text-neutral-700">auth.js</span>,
+                    <p class="text-base font-medium text-neutral-900 mb-4">Auth0 setup required</p>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mb-8">
+                        Sign-in isn’t active yet. Add your Auth0 <span class="font-mono text-base text-neutral-700">domain</span> and
+                        <span class="font-mono text-base text-neutral-700">clientId</span> in <span class="font-mono text-base text-neutral-700">auth.js</span>,
                         then set the callback URLs in your Auth0 application.
                     </p>
-                    <ul class="text-xs text-neutral-500 font-light space-y-1.5">
-                        <li>Callback: <span class="font-mono text-neutral-700">http://localhost:8000/login.html</span></li>
-                        <li>Logout: <span class="font-mono text-neutral-700">http://localhost:8000/index.html</span></li>
-                        <li>Web Origin: <span class="font-mono text-neutral-700">http://localhost:8000</span></li>
+                    <ul class="divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base text-neutral-600 font-light">
+                        <li class="py-3">Callback: <span class="font-mono text-neutral-700">http://localhost:8000/login.html</span></li>
+                        <li class="py-3">Logout: <span class="font-mono text-neutral-700">http://localhost:8000/index.html</span></li>
+                        <li class="py-3">Web Origin: <span class="font-mono text-neutral-700">http://localhost:8000</span></li>
                     </ul>
                 </div>
+
+                <div class="mt-16 pt-8 border-t border-neutral-200 space-y-6 text-base text-neutral-600 font-light leading-relaxed">
+                    <p>
+                        Your scans, streak and badges live in this browser, signed in or not. There is no copy on a server and no sync between devices — clear your browser data and the history is gone with it.
+                    </p>
+                    <p>
+                        Signing in only decides which of those records are yours on this machine. The scanner never asks for an account, and no copy of your photo is kept.
+                    </p>
+                    <p class="text-neutral-500">
+                        By continuing you agree to the FindFlower <a href="/terms" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Terms</a> and <a href="/privacy" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Privacy Policy</a>.
+                    </p>
+                </div>
             </div>
-
-            <p class="text-center text-xs text-neutral-400 font-light mt-5">
-                By continuing you agree to the FindFlower <a href="/terms" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Terms</a> and <a href="/privacy" class="text-neutral-600 hover:text-neutral-900 underline underline-offset-2">Privacy Policy</a>.
-            </p>
-
-            <p class="text-center text-sm text-neutral-500 font-light mt-10 leading-relaxed">
-                Your scans, streak and badges stay in this browser. The scanner works without an account, and no copy of your photo is kept.
-            </p>
         </div>
     </main>
 
@@ -269,8 +222,9 @@
                 document.getElementById('userEmail').textContent = user.email || '';
                 // The card kept asking a signed-in visitor to sign in: the heading
                 // and blurb sit above all four states, so they have to move too.
+                document.getElementById('authKicker').textContent = 'Account';
                 document.getElementById('authTitle').textContent = 'Signed in';
-                document.getElementById('authBlurb').textContent = 'Your scans, streaks and badges are kept under this account.';
+                document.getElementById('authBlurb').textContent = 'What you save in this browser is now filed under this account.';
                 show(signedIn);
                 // If a destination was stored before login, honor it.
                 const dest = localStorage.getItem('ff_return_to');
