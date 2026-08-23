@@ -17,6 +17,12 @@
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=1" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
+    <!-- The search palette, and the fetcher its live species half calls. No
+         storage.js here: a wrong address is not the place to open IndexedDB, so
+         this page's palette offers species and routes and says so in the
+         field's placeholder. -->
+    <script src="scripts/api.js?v=1" defer></script>
+    <script src="scripts/search.js?v=1" defer></script>
     <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -60,57 +66,113 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
-        .lost-garden {
-            background-image:
-                radial-gradient(circle at 18% 34%, rgba(95, 122, 99, 0.07) 0 1px, transparent 1.5px),
-                radial-gradient(circle at 78% 68%, rgba(178, 129, 126, 0.08) 0 1px, transparent 1.5px);
-            background-size: 46px 46px, 58px 58px;
+        /* Mobile-first touch targets. Primary users are outdoors, one-handed,
+           on a phone. Every control clears the 44px minimum. min-height is
+           ignored on inline non-replaced boxes, so links inside body copy are
+           untouched -- only laid-out controls grow. */
+        @media (pointer: coarse) {
+            a, button, select, summary, label[for],
+            input[type="submit"], input[type="button"] { min-height: 44px; }
+            button, select, summary,
+            input[type="submit"], input[type="button"] { min-width: 44px; }
         }
 
-        .fallen-flower {
-            width: min(100%, 31rem);
-            aspect-ratio: 16 / 10;
-            filter: drop-shadow(0 22px 24px rgba(23, 23, 23, 0.07));
+        /* Search palette (scripts/search.js), same rules as /dashboard. Kept
+           page-local rather than moved into app.css: app.css is cache-busted at
+           ?v=9 across every page, and a returning reader holding the cached copy
+           would get the palette markup with none of its styling.
+
+           Hidden by visibility rather than display so the panel can fade, and
+           .active drops the visibility delay so that input.focus(), called in
+           the same task as the class flip, is not thrown away on a node the
+           browser still considers hidden. */
+        .ff-cmd {
+            position: fixed;
+            inset: 0;
+            z-index: 80;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 4.5rem 1rem 1rem;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity .16s ease, visibility 0s linear .16s;
         }
-
-        .fallen-flower__head {
-            transform-origin: 231px 116px;
-            animation: flower-breathe 5.5s ease-in-out infinite;
+        .ff-cmd.active { visibility: visible; opacity: 1; transition: opacity .16s ease; }
+        /* Flat, not blurred: backdrop-filter is banned on basic UI here, and
+           there is nothing worth seeing through it. */
+        .ff-cmd__scrim { position: absolute; inset: 0; background: rgba(23, 23, 23, .18); }
+        .ff-cmd__panel {
+            position: relative;
+            width: 100%;
+            max-width: 34rem;
+            display: flex;
+            flex-direction: column;
+            background: #FFFFFF;
+            border: 1px solid #E5E5E5;
+            border-radius: 4px;
+            box-shadow: 0 20px 60px -18px rgba(23, 23, 23, 0.15);
+            overflow: hidden;
         }
-
-        .fallen-flower__petal {
-            transform-origin: center;
-            animation: petal-settle 6.5s ease-in-out infinite;
+        .ff-cmd__head {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0 0.75rem;
+            border-bottom: 1px solid #F5F5F5;
         }
-
-        .fallen-flower__petal--two { animation-delay: -2.1s; }
-
-        @keyframes flower-breathe {
-            0%, 100% { transform: rotate(0deg) translateY(0); }
-            50% { transform: rotate(1.5deg) translateY(2px); }
+        .ff-cmd__input {
+            flex: 1;
+            min-width: 0;
+            /* 1rem exactly: anything smaller and iOS zooms the viewport on focus. */
+            font-size: 1rem;
+            line-height: 1.5;
+            padding: 0.875rem 0;
+            border: 0;
+            background: transparent;
+            color: #171717;
         }
-
-        @keyframes petal-settle {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(3px) rotate(2deg); }
+        .ff-cmd__input::placeholder { color: #A3A3A3; }
+        .ff-cmd__input:focus { outline: none; }
+        .ff-cmd__close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 4px;
+            color: #A3A3A3;
+            background: transparent;
         }
-
-        .directory-search:focus-within {
-            border-color: #7C9781;
-            box-shadow: 0 0 0 4px rgba(124, 151, 129, 0.12),
-                        0 12px 36px -20px rgba(23, 23, 23, 0.2);
+        .ff-cmd__close:hover { color: #171717; background: #F5F5F5; }
+        .ff-cmd__list { max-height: min(60vh, 26rem); overflow-y: auto; overscroll-behavior: contain; }
+        .ff-cmd__row {
+            display: flex;
+            align-items: baseline;
+            gap: 0.625rem;
+            min-height: 44px;
+            padding: 0.5rem 1rem;
+            border-left: 2px solid transparent;
         }
-
+        .ff-cmd__row > span { min-width: 0; }
+        .ff-cmd__row > span:first-child { flex: 0 0 auto; max-width: 60%; }
+        .ff-cmd__row > span:last-child { flex: 1 1 auto; text-align: right; }
+        .ff-cmd__row[aria-selected="true"] { background: #F2F5F2; border-left-color: #5F7A63; }
+        .ff-cmd__foot {
+            display: none;
+            padding: 0.625rem 1rem;
+            border-top: 1px solid #F5F5F5;
+            font-size: 0.75rem;
+            color: #A3A3A3;
+        }
+        @media (min-width: 640px) { .ff-cmd__foot { display: block; } }
         @media (prefers-reduced-motion: reduce) {
-            .fallen-flower__head,
-            .fallen-flower__petal {
-                animation: none;
-            }
+            .ff-cmd, .ff-cmd.active { transition: none; }
         }
     </style>
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -133,79 +195,58 @@
 
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
     </header>
 
-    <main class="lost-garden relative overflow-hidden pt-28 sm:pt-32 pb-20 sm:pb-24 min-h-[72vh] flex items-center">
-        <div aria-hidden="true" class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sage-200 to-transparent"></div>
+    <main class="pt-32 pb-24">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            <div class="lg:col-span-7 max-w-xl">
+                <span class="text-sm font-medium text-sage-600 block mb-6">404</span>
+                <h1 class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                    There is nothing at this address
+                </h1>
+                <p class="font-serif italic text-xl md:text-2xl text-sage-700 leading-snug mb-12">
+                    The page either moved or never existed. Search for a flower, or
+                    take one of the routes below.
+                </p>
 
-        <section class="relative max-w-5xl mx-auto px-6 w-full text-center">
-            <div class="mx-auto mb-2 flex justify-center" aria-hidden="true">
-                <svg class="fallen-flower" viewBox="0 0 480 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <ellipse cx="247" cy="255" rx="132" ry="14" fill="#171717" fill-opacity="0.045"/>
+                <!-- The same palette the dashboard opens (scripts/search.js). It
+                     replaces a form that submitted ?q= to a page that reads no
+                     query string, so the field looked like search and was not. -->
+                <button type="button" id="ffSearchOpen" data-haptic
+                        aria-haspopup="dialog" aria-expanded="false"
+                        data-placeholder="Search species and pages"
+                        class="soft-click w-full flex items-center gap-2.5 px-3.5 py-3 text-left bg-white border border-neutral-200 rounded hover:border-neutral-300 transition">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="text-neutral-400 shrink-0" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/>
+                    </svg>
+                    <span class="flex-1 min-w-0 text-sm text-neutral-400 truncate">Search species and pages</span>
+                    <span class="hidden sm:inline text-xs font-medium text-neutral-400 shrink-0">Ctrl K</span>
+                </button>
 
-                    <path d="M327 245C296 227 280 204 270 177C261 153 260 135 245 119" stroke="#5F7A63" stroke-width="7" stroke-linecap="round"/>
-                    <path d="M286 205C306 187 327 184 345 194C329 212 307 217 286 205Z" fill="#C9D6CB" stroke="#5F7A63" stroke-width="2" stroke-linejoin="round"/>
-                    <path d="M272 173C252 157 231 157 214 169C231 185 253 188 272 173Z" fill="#E4EBE5" stroke="#7C9781" stroke-width="2" stroke-linejoin="round"/>
+                <div class="mt-16 pt-8 border-t border-neutral-200">
+                    <p class="text-sm font-medium text-neutral-900 mb-4">Or start again from</p>
+                    <div class="flex flex-wrap items-center gap-x-8 gap-y-3 text-base">
+                        <a href="/" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">The home page</a>
+                        <a href="/try" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Identify a flower</a>
+                        <a href="/directory" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Browse every species</a>
+                    </div>
+                </div>
+            </div>
 
-                    <g class="fallen-flower__head">
-                        <path d="M247 122C223 123 205 111 199 91C218 86 238 94 247 112C249 91 262 74 282 69C289 90 279 111 258 121C280 114 301 120 313 137C297 151 274 151 257 136C267 156 263 177 247 190C229 176 225 154 236 135C217 150 194 149 178 135C190 117 211 111 234 119" fill="#B8817E" fill-opacity="0.92"/>
-                        <path d="M247 122C223 123 205 111 199 91C218 86 238 94 247 112C249 91 262 74 282 69C289 90 279 111 258 121C280 114 301 120 313 137C297 151 274 151 257 136C267 156 263 177 247 190C229 176 225 154 236 135C217 150 194 149 178 135C190 117 211 111 234 119" stroke="#966A68" stroke-width="2.2" stroke-linejoin="round"/>
-                        <circle cx="248" cy="125" r="18" fill="#D5A84B"/>
-                        <circle cx="243" cy="120" r="2.8" fill="#7B5A2D"/>
-                        <circle cx="254" cy="128" r="2.4" fill="#7B5A2D"/>
-                        <circle cx="249" cy="116" r="2" fill="#7B5A2D"/>
-                    </g>
-
-                    <g class="fallen-flower__petal">
-                        <path d="M170 230C155 219 152 203 160 191C175 199 182 215 176 230C174 234 171 234 170 230Z" fill="#C89490" stroke="#966A68" stroke-width="1.8"/>
-                    </g>
-                    <g class="fallen-flower__petal fallen-flower__petal--two">
-                        <path d="M118 247C109 235 111 223 121 216C131 226 132 239 124 248C122 251 120 250 118 247Z" fill="#D7AAA5" stroke="#A77A76" stroke-width="1.6"/>
-                    </g>
-
-                    <path d="M89 256C142 254 190 255 225 258" stroke="#D4D4D4" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 8"/>
-                    <circle cx="198" cy="238" r="2.5" fill="#D5A84B" fill-opacity="0.8"/>
-                    <circle cx="186" cy="246" r="1.8" fill="#D5A84B" fill-opacity="0.6"/>
-                    <circle cx="208" cy="249" r="1.6" fill="#D5A84B" fill-opacity="0.55"/>
+            <!-- The number, set in the page's own serif rather than drawn: the
+                 viewBox scales it to the column, so the size needs no font-size
+                 class off the Tailwind scale. -->
+            <div class="hidden lg:flex lg:col-span-5 justify-center pt-2" aria-hidden="true">
+                <svg viewBox="0 0 340 180" class="w-full max-w-sm text-neutral-200" fill="currentColor">
+                    <text x="170" y="142" text-anchor="middle" font-family="Fraunces, serif" font-size="168" font-weight="500" letter-spacing="-4">404</text>
                 </svg>
             </div>
-
-            <p class="text-xs sm:text-sm font-medium uppercase tracking-[0.18em] text-sage-700 mb-4">404 Not Found</p>
-            <h1 class="font-serif text-4xl sm:text-5xl md:text-6xl leading-[1.08] tracking-tight text-neutral-900 max-w-3xl mx-auto">
-                This flower has fallen off the map.
-            </h1>
-            <p class="mt-5 text-base sm:text-lg text-neutral-500 font-light leading-relaxed max-w-xl mx-auto">
-                The page may have moved, but the directory is still growing. Search for a flower or return to the scanner.
-            </p>
-
-            <div class="mt-9 sm:mt-10 max-w-2xl mx-auto">
-                <form action="/directory.html" method="get" role="search" class="directory-search flex items-center gap-2 bg-white border border-neutral-200 rounded-full p-1.5 pl-4 shadow-subtle transition duration-300">
-                    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 text-neutral-400">
-                        <circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
-                    </svg>
-                    <label for="flower-search" class="sr-only">Search the flower directory</label>
-                    <input id="flower-search" name="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Search the flower directory" class="min-w-0 flex-1 bg-transparent border-0 px-1 py-2.5 text-sm sm:text-base text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:ring-0">
-                    <button type="submit" aria-label="Search directory" title="Search directory" class="soft-click shrink-0 w-11 h-11 rounded-full bg-neutral-900 text-white flex items-center justify-center hover:bg-neutral-800 transition">
-                        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path>
-                        </svg>
-                    </button>
-                </form>
-
-                <a href="/" class="soft-click mt-5 inline-flex items-center gap-2 min-h-11 px-5 text-sm font-medium text-neutral-700 hover:text-neutral-900 transition-colors">
-                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 12H5"></path><path d="m11 18-6-6 6-6"></path>
-                    </svg>
-                    Back to App
-                </a>
-            </div>
-        </section>
+        </div>
     </main>
 
     <div id="ff-footer"><noscript>

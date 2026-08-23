@@ -153,9 +153,7 @@
                         '<p class="ff-coach__title text-base font-medium text-neutral-900 leading-snug mt-0.5"></p>' +
                         '<p class="ff-coach__body text-sm text-neutral-500 font-light leading-snug mt-1"></p>' +
                     '</div>' +
-                    '<button type="button" class="ff-coach__hide soft-click flex-shrink-0 -mt-1 -mr-1 min-h-[44px] ' +
-                        'min-w-[44px] px-3 rounded-full text-sm font-medium text-neutral-500 ' +
-                        'hover:text-neutral-900 hover:bg-neutral-50 transition" ' +   // plain transition:
+                    '<button type="button" class="ff-coach__hide soft-click flex-shrink-0 -mt-1 -mr-1 min-h-[44px] ' + 'min-w-[44px] px-3 rounded-md text-sm font-medium text-neutral-500 ' + 'hover:text-neutral-900 hover:bg-neutral-50 transition" ' +   // plain transition:
                         // transition-colors would drop transform and .soft-click's press would snap
 
                         'aria-label="Hide these tips">Hide</button>' +

@@ -76,7 +76,7 @@
             : placeholderTile(plant.name);
 
         return '' +
-        '<article class="ff-card group fade-in bg-white border border-neutral-200 rounded-3xl overflow-hidden shadow-subtle hover:shadow-float transition-shadow duration-300"' +
+        '<article class="ff-card group fade-in bg-white border border-neutral-200 rounded-lg overflow-hidden transition-shadow duration-300"' +
             (plant.qid ? ' data-qid="' + esc(plant.qid) + '"' : '') + '>' +
             '<a href="' + esc(l.href) + '"' + l.attrs + ' class="block">' +
                 '<div class="aspect-[4/5] bg-neutral-100 overflow-hidden">' + media + '</div>' +

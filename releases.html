@@ -52,7 +52,6 @@
         .reveal-up.active { opacity:1; transform:translateY(0); }
         .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
         .group:hover .cta-arrow { transform:translateX(4px); }
-        .grid-dots { background-image:radial-gradient(rgba(23,23,23,0.05) 1px,transparent 1px); background-size:28px 28px; -webkit-mask-image:radial-gradient(ellipse 60% 50% at 50% 30%,black 0%,transparent 75%); mask-image:radial-gradient(ellipse 60% 50% at 50% 30%,black 0%,transparent 75%); }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
     
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
@@ -70,7 +69,7 @@
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
     <!-- HEADER -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -89,9 +88,8 @@
             </nav>
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
@@ -101,12 +99,12 @@
 
         <!-- HEADER BLOCK -->
         <section class="relative max-w-7xl mx-auto px-6 mb-20">
-            <div class="absolute inset-0 -z-10 grid-dots"></div>
             <div class="max-w-3xl">
-                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Release notes</span>
-                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">What’s new in <span class="font-serif italic font-normal text-sage-600">FindFlower</span>.</h1>
-                <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
-                    What changed in the model, the interface and the data the app keeps, newest first. Removals are listed alongside the additions.
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-6 block">Release notes</span>
+                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">What changed, and when</h1>
+                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug">
+                    The model, the interface and the data the app keeps, newest first.
+                    Removals are listed next to the additions.
                 </p>
             </div>
         </section>
@@ -123,34 +121,34 @@
                         <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Current</span>
                         <span class="text-sm text-neutral-400 font-light">20 August 2026</span>
                     </div>
-                    <div class="bg-white border border-neutral-200/70 rounded-2xl shadow-subtle p-6 md:p-8 space-y-6">
+                    <div class="space-y-6">
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Dataset &amp; model infrastructure</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>The species list for the next model is settled: 1,500 flowering plants, ranked by observation count out of 5,458 candidates. Collection is well along — 1,003 species and 104,720 verified photos so far, no class under 100 images.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Collection runs as five Kaggle shard workers in parallel. Deduplication, quality filtering and the 100-image floor per class happen in the pipeline, so one shard can be re-run without disturbing the other four.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">Dataset &amp; model infrastructure</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>The species list for the next model is settled: 1,500 flowering plants, ranked by observation count out of 5,458 candidates. Collection is well along — 1,003 species and 104,720 verified photos so far, no class under 100 images.</li>
+                                <li>Collection runs as five Kaggle shard workers in parallel. Deduplication, quality filtering and the 100-image floor per class happen in the pipeline, so one shard can be re-run without disturbing the other four.</li>
                             </ul>
                         </div>
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Interface &amp; de-AI refactor</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Rebuilt the sidebar drawer. The credential badge, the clock and the location panel are gone: the badge showed nothing real, and the location panel asked the browser for your position every time the drawer opened. What is left is navigation, on the standard type scale.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Added Blogs and Community as real routes, listed in the drawer and the footer. Both are placeholders for now; Blogs opens with a small botanical drawing animated in CSS.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Removed the decorative toggles from the dashboard. Every control left on it reads and writes something real.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">Interface &amp; de-AI refactor</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Rebuilt the sidebar drawer. The credential badge, the clock and the location panel are gone: the badge showed nothing real, and the location panel asked the browser for your position every time the drawer opened. What is left is navigation, on the standard type scale.</li>
+                                <li>Added Blogs and Community as real routes, listed in the drawer and the footer. Both are placeholders for now; Blogs opens with a small botanical drawing animated in CSS.</li>
+                                <li>Removed the decorative toggles from the dashboard. Every control left on it reads and writes something real.</li>
                             </ul>
                         </div>
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Storage &amp; data control</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>The local database moves to v3. The upgrade is additive, so existing rows are not rewritten, and it makes room for deleting a single scan, correcting a wrong identification, and exporting your history as JSON.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Streaks and totals are recomputed from the day keys of the records that are still there, so deleting a scan changes the numbers instead of leaving a stale counter behind.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">Storage &amp; data control</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>The local database moves to v3. The upgrade is additive, so existing rows are not rewritten, and it makes room for deleting a single scan, correcting a wrong identification, and exporting your history as JSON.</li>
+                                <li>Streaks and totals are recomputed from the day keys of the records that are still there, so deleting a scan changes the numbers instead of leaving a stale counter behind.</li>
                             </ul>
                         </div>
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">Fixes &amp; code health</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Router swaps and first page loads now run through one mount path. The dashboard had two ways to start up and could run its setup twice.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Dropped the leftover !important overrides and the one-off font sizes; every size on the site is a step on the type scale.</li>
+                            <p class="text-sm font-medium text-neutral-500 mb-3">Fixes &amp; code health</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Router swaps and first page loads now run through one mount path. The dashboard had two ways to start up and could run its setup twice.</li>
+                                <li>Dropped the leftover !important overrides and the one-off font sizes; every size on the site is a step on the type scale.</li>
                             </ul>
                         </div>
                     </div>
@@ -163,34 +161,34 @@
                         <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.9.4</h2>
                         <span class="text-sm text-neutral-400 font-light">8 July 2026</span>
                     </div>
-                    <div class="bg-white border border-neutral-200/70 rounded-2xl shadow-subtle p-6 md:p-8 space-y-6">
+                    <div class="space-y-6">
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">New features</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Identify flowers from a link, including automatic YouTube thumbnail extraction.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Developer preview: direct-endpoint documentation and gated API keys via secure sign-in.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">New features</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Identify flowers from a link, including automatic YouTube thumbnail extraction.</li>
+                                <li>Developer preview: direct-endpoint documentation, plus a per-account string derived in the browser so the examples have a value to paste.</li>
                             </ul>
                         </div>
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Model improvements</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>New Vision Transformer model, now served from a secure hosted endpoint instead of downloading to the browser. Your photo is sent for processing and only the result comes back — this changes the privacy model, so see the <a href="/privacy" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">privacy page</a>.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Expanded coverage to 116 botanical classes.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Steadier confidence scoring, with clearer separation between close look-alikes.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">Model improvements</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>New Vision Transformer model, now served from a secure hosted endpoint instead of downloading to the browser. Your photo is sent for processing and only the result comes back — this changes the privacy model, so see the <a href="/privacy" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">privacy page</a>.</li>
+                                <li>Expanded coverage to 116 botanical classes.</li>
+                                <li>Steadier confidence scoring, with clearer separation between close look-alikes.</li>
                             </ul>
                         </div>
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Interface</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Refined result panel with animated confidence and top alternatives.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Live Wikipedia context, with reference image and full-article link.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">Interface</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Refined result panel with animated confidence and top alternatives.</li>
+                                <li>Live Wikipedia context, with reference image and full-article link.</li>
                             </ul>
                         </div>
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">Fixes</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Resolved model-loading issues on browsers with strict cache settings.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Corrected preview handling for large photos.</li>
+                            <p class="text-sm font-medium text-neutral-500 mb-3">Fixes</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Resolved model-loading issues on browsers with strict cache settings.</li>
+                                <li>Corrected preview handling for large photos.</li>
                             </ul>
                         </div>
                     </div>
@@ -203,24 +201,24 @@
                         <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.9.0</h2>
                         <span class="text-sm text-neutral-400 font-light">21 June 2026</span>
                     </div>
-                    <div class="bg-white border border-neutral-200/70 rounded-2xl shadow-subtle p-6 md:p-8 space-y-6">
+                    <div class="space-y-6">
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">New features</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Live camera capture, alongside image upload.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Feedback prompt after each result to guide future improvements.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">New features</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Live camera capture, alongside image upload.</li>
+                                <li>Feedback prompt after each result, written to this browser.</li>
                             </ul>
                         </div>
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">Model improvements</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Fully in-browser inference — images no longer leave the device.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">Model improvements</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Fully in-browser inference — images no longer leave the device.</li>
                             </ul>
                         </div>
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">Fixes</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Improved camera permission handling across browsers.</li>
+                            <p class="text-sm font-medium text-neutral-500 mb-3">Fixes</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Improved camera permission handling across browsers.</li>
                             </ul>
                         </div>
                     </div>
@@ -233,13 +231,13 @@
                         <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.8.0</h2>
                         <span class="text-sm text-neutral-400 font-light">2 June 2026</span>
                     </div>
-                    <div class="bg-white border border-neutral-200/70 rounded-2xl shadow-subtle p-6 md:p-8 space-y-6">
+                    <div class="space-y-6">
                         <div>
-                            <p class="text-xs font-medium tracking-widest text-sage-600 uppercase mb-3">The first public Beta</p>
-                            <ul class="space-y-2 text-neutral-600 font-light">
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Core identification from an uploaded photo.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>The calm, single-workspace interface FindFlower is built around.</li>
-                                <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-neutral-300 mt-2 flex-shrink-0"></span>Initial model covering common garden flowers.</li>
+                            <p class="text-sm font-medium text-sage-600 mb-3">The first public Beta</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Core identification from an uploaded photo.</li>
+                                <li>The calm, single-workspace interface FindFlower is built around.</li>
+                                <li>Initial model covering common garden flowers.</li>
                             </ul>
                         </div>
                     </div>
@@ -251,11 +249,11 @@
                     <div class="flex flex-wrap items-center gap-3 mb-4">
                         <h2 class="text-2xl font-medium tracking-tight text-neutral-400">On the horizon</h2>
                     </div>
-                    <div class="border border-dashed border-neutral-200 rounded-2xl p-6 md:p-8">
-                        <ul class="space-y-2 text-neutral-500 font-light">
-                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>An end-to-end training run and model export for the 1,500-class model.</li>
-                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>Deleting a scan, correcting an identification by hand, and exporting the full history from the dashboard.</li>
-                            <li class="flex items-start gap-2.5"><span class="w-1.5 h-1.5 rounded-full bg-sage-400 mt-2 flex-shrink-0"></span>Field guides and engineering writeups on the Blogs route.</li>
+                    <div class="border-t border-neutral-200 pt-6">
+                        <ul class="space-y-2.5 text-neutral-500 font-light list-disc pl-5 marker:text-sage-400">
+                            <li>An end-to-end training run and model export for the 1,500-class model.</li>
+                            <li>Deleting a scan, correcting an identification by hand, and exporting the full history from the dashboard.</li>
+                            <li>Field guides and engineering writeups on the Blogs route.</li>
                         </ul>
                         <p class="text-sm text-neutral-400 font-light mt-5">Something missing or broken? <a href="/feedback" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Send feedback</a> or <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">get in touch</a>.</p>
                     </div>

@@ -139,8 +139,7 @@
             return '<img src="' + esc(src) + '" alt="" referrerpolicy="no-referrer" ' +
                 'class="w-8 h-8 shrink-0 rounded border border-neutral-200 object-cover">';
         }
-        return '<span class="w-8 h-8 shrink-0 rounded border border-neutral-200 bg-sage-50 ' +
-            'flex items-center justify-center font-serif text-sm text-sage-700">' +
+        return '<span class="w-8 h-8 shrink-0 rounded border border-neutral-200 bg-sage-50 ' + 'flex items-center justify-center font-serif text-sm text-sage-700">' +
             esc((name || 'B').charAt(0).toUpperCase()) + '</span>';
     }
 
@@ -166,22 +165,18 @@
         var out = [];
         if (can) {
             out.push('<button type="button" data-act="like" data-id="' + esc(p.id) + '" ' +
-                'aria-pressed="' + (p.likedByViewer ? 'true' : 'false') + '" class="' + ACT +
-                (p.likedByViewer ? ' text-sage-700' : '') + '">' +
+                'aria-pressed="' + (p.likedByViewer ? 'true' : 'false') + '" class="' + ACT + (p.likedByViewer ? ' text-sage-700' : '') + '">' +
                 (p.likedByViewer ? 'Liked' : 'Like') + (p.likeCount ? ' ' + p.likeCount : '') +
                 '</button>');
         } else if (p.likeCount) {
             out.push('<span class="text-xs text-neutral-400 tabular-nums px-2 py-1">' +
                 p.likeCount + (p.likeCount === 1 ? ' like' : ' likes') + '</span>');
         }
-        out.push('<button type="button" data-act="share" data-id="' + esc(p.id) + '" class="' +
-            ACT + '">Share</button>');
+        out.push('<button type="button" data-act="share" data-id="' + esc(p.id) + '" class="' + ACT + '">Share</button>');
         if (p.mine) {
-            out.push('<button type="button" data-act="delete" data-id="' + esc(p.id) + '" class="' +
-                ACT + '">Delete</button>');
+            out.push('<button type="button" data-act="delete" data-id="' + esc(p.id) + '" class="' + ACT + '">Delete</button>');
         } else if (can) {
-            out.push('<button type="button" data-act="report" data-id="' + esc(p.id) + '" class="' +
-                ACT + '">Report</button>');
+            out.push('<button type="button" data-act="report" data-id="' + esc(p.id) + '" class="' + ACT + '">Report</button>');
         }
         return '<div class="flex flex-wrap items-center gap-1 mt-3 pt-3 border-t border-neutral-100">' +
             out.join('') + '</div>';
@@ -208,8 +203,7 @@
 
         return '<article class="ff-post pb-3" data-i="' + i + '" data-id="' + esc(p.id) + '" ' +
             'style="top:' + top + 'px">' +
-            '<div class="bg-white border rounded p-4 shadow-subtle ' +
-                (focused ? 'border-sage-200' : 'border-neutral-200') + '">' +
+            '<div class="bg-white border rounded p-4 ' + (focused ? 'border-sage-200' : 'border-neutral-200') + '">' +
                 '<div class="flex items-center gap-3">' +
                     avatarCell(who, name) +
                     '<div class="min-w-0 flex-1">' +
@@ -373,9 +367,7 @@
             var n = typeof s.posts === 'number'
                 ? '<span class="text-xs text-neutral-400 tabular-nums ml-2">' + s.posts + '</span>'
                 : '';
-            return '<button type="button" class="ff-space text-left text-sm px-3 py-2 rounded ' +
-                'lg:flex lg:items-baseline lg:justify-between lg:w-full transition ' +
-                (on ? '' : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50') + '" ' +
+            return '<button type="button" class="ff-space text-left text-sm px-3 py-2 rounded ' + 'lg:flex lg:items-baseline lg:justify-between lg:w-full transition ' + (on ? '' : 'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50') + '" ' +
                 'data-space="' + esc(s.id || '') + '" aria-current="' + (on ? 'true' : 'false') + '" ' +
                 'title="' + esc(s.blurb || '') + '"><span>' + esc(s.label) + '</span>' + n + '</button>';
         }).join('');

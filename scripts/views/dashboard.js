@@ -66,7 +66,7 @@
               'stroke-width="1.4" class="text-sage-400"><path d="' + FLOWER_PATH + '"/></svg></div>';
 
         var name = titleCase(scan.species);
-        return '<article class="bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-subtle">' +
+        return '<article class="bg-white border border-neutral-200 rounded-lg overflow-hidden">' +
             '<a href="/species?name=' + encodeURIComponent(name) + '" class="block">' +
                 '<div class="aspect-square bg-neutral-100">' + thumb + '</div>' +
             '</a>' +
@@ -83,14 +83,12 @@
     }
 
     var EMPTY_HTML =
-        '<div class="border border-dashed border-neutral-300 rounded-2xl p-10 text-center">' +
+        '<div class="border border-dashed border-neutral-300 rounded-lg p-10 text-center">' +
             '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
                 'stroke-width="1.3" class="text-neutral-300 mx-auto mb-3">' +
                 '<path d="' + FLOWER_PATH + '"/></svg>' +
             '<p class="text-neutral-500 font-light">Your herbarium is empty.</p>' +
-            '<a href="/try" class="inline-flex items-center justify-center mt-4 min-h-[44px] px-6 ' +
-                'rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 ' +
-                'transition-colors">Start scanning</a>' +
+            '<a href="/try" class="inline-flex items-center justify-center mt-4 min-h-[44px] px-6 ' + 'rounded-full bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 ' + 'transition-colors">Start scanning</a>' +
         '</div>';
 
     /**

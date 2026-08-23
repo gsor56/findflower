@@ -407,7 +407,7 @@
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
     <!-- HEADER (shared) -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -430,7 +430,7 @@
 
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md">
                     Try Now
                 </a>
             </div>
@@ -442,12 +442,14 @@
         <!-- INTRO -->
         <section class="max-w-7xl mx-auto px-6 mb-12 md:mb-16">
             <div class="reveal-up max-w-2xl">
-                <span class="text-sm font-medium text-sage-600 mb-4 block">The workspace</span>
-                <h1 class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-5">
-                    Identify a <span class="font-serif italic font-normal text-sage-600">flower</span>.
+                <span class="text-sm font-medium text-sage-600 block mb-6">The workspace</span>
+                <h1 class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                    Identify a flower
                 </h1>
-                <p class="text-lg text-neutral-500 font-light leading-relaxed">
-                    Capture with your camera, upload a photo, or paste a link. FindFlower sends your image to our inference service and returns the species, a confidence score, and verified context from Wikipedia.
+                <p class="font-serif italic text-xl md:text-2xl text-sage-700 leading-snug">
+                    Camera, a photo you already have, or a link. The image goes to the inference
+                    service and comes back as a species, a confidence score, and what Wikipedia
+                    says about the plant.
                 </p>
             </div>
         </section>
@@ -457,7 +459,7 @@
             <div class="reveal-up grid grid-cols-1 lg:grid-cols-2 gap-6">
 
                 <!-- LEFT: INPUT -->
-                <div class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-8 flex flex-col">
+                <div class="bg-white border border-neutral-200 rounded-lg p-6 md:p-8 flex flex-col">
                     <!-- Status -->
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="text-sm font-medium tracking-wide text-neutral-500 uppercase">Input</h2>
@@ -469,7 +471,7 @@
 
                     <!-- Segmented control -->
                     <div class="relative bg-neutral-100 rounded-sm p-1 flex mb-6 text-sm font-medium">
-                        <div id="segIndicator" class="seg-indicator absolute top-1 bottom-1 left-1 rounded-sm bg-white shadow-sm" style="width: calc((100% - 0.5rem) / 3);"></div>
+                        <div id="segIndicator" class="seg-indicator absolute top-1 bottom-1 left-1 rounded-sm bg-white" style="width: calc((100% - 0.5rem) / 3);"></div>
                         <button class="soft-click seg-btn relative z-10 flex-1 py-2 rounded-sm flex items-center justify-center gap-2" data-mode="camera" aria-selected="true">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                             Camera
@@ -492,7 +494,7 @@
                                  native frame (object-cover stops cropping the
                                  sides away); 4:3 landscape from sm up. Display
                                  only — capture reads the video's real pixels. -->
-                            <div id="camFrame" class="relative aspect-[3/4] sm:aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-900 border border-neutral-200 flex items-center justify-center">
+                            <div id="camFrame" class="relative aspect-[3/4] sm:aspect-[4/3] rounded-lg overflow-hidden bg-neutral-900 border border-neutral-200 flex items-center justify-center">
                                 <video id="camVideo" class="w-full h-full object-cover hidden" playsinline muted></video>
                                 <div id="camPlaceholder" class="text-center px-6">
                                     <svg class="mx-auto mb-4 text-neutral-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
@@ -523,7 +525,7 @@
                                 </div>
 
                                 <!-- Focus warning from the pre-inference blur check. -->
-                                <div id="camBlurWarn" class="hidden absolute inset-x-3 top-3 bg-amber-500/95 text-white text-xs font-medium rounded-xl px-3 py-2 text-center">
+                                <div id="camBlurWarn" class="hidden absolute inset-x-3 top-3 bg-amber-500/95 text-white text-xs font-medium rounded-lg px-3 py-2 text-center">
                                     Image is out of focus. Please tap to focus.
                                 </div>
                             </div>
@@ -555,7 +557,7 @@
 
                         <!-- Upload -->
                         <div data-panel="upload" class="panel hidden">
-                            <label id="dropzone" for="fileInput" class="dropzone cursor-pointer flex flex-col items-center justify-center text-center aspect-[3/4] sm:aspect-[4/3] rounded-2xl border-2 border-dashed border-neutral-200 bg-neutral-50 px-6">
+                            <label id="dropzone" for="fileInput" class="dropzone cursor-pointer flex flex-col items-center justify-center text-center aspect-[3/4] sm:aspect-[4/3] rounded-lg border-2 border-dashed border-neutral-200 bg-neutral-50 px-6">
                                 <svg class="mb-4 text-sage-500" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                                 <p class="text-sm font-medium text-neutral-700 mb-1">Drop an image here</p>
                                 <p class="text-xs text-neutral-400 font-light">or click to browse · JPG, PNG, WEBP</p>
@@ -565,7 +567,7 @@
 
                         <!-- URL -->
                         <div data-panel="url" class="panel hidden">
-                            <div class="aspect-[3/4] sm:aspect-[4/3] rounded-2xl border border-neutral-200 bg-neutral-50 flex flex-col justify-center px-6 md:px-8">
+                            <div class="aspect-[3/4] sm:aspect-[4/3] rounded-lg border border-neutral-200 bg-neutral-50 flex flex-col justify-center px-6 md:px-8">
                                 <label class="text-sm font-medium text-neutral-700 mb-2 block">Image or YouTube link</label>
                                 <div class="flex gap-2">
                                     <input id="urlInput" type="url" placeholder="https://…" class="flex-1 text-sm bg-white border border-neutral-200 rounded-sm px-4 py-2.5 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
@@ -585,7 +587,7 @@
                          the pair rather than either one. -->
                     <div id="previewBlock" class="mt-6 pt-6 border-t border-neutral-100">
                         <div class="flex items-center gap-4">
-                            <div id="previewBox" class="relative w-20 h-20 rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 flex items-center justify-center">
+                            <div id="previewBox" class="relative w-20 h-20 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0 flex items-center justify-center">
                                 <img id="previewImg" class="w-full h-full object-cover hidden" alt="Selected preview" crossorigin="anonymous" />
                                 <span id="previewEmpty" class="text-xs text-neutral-400 font-light text-center px-1">No image</span>
                                 <div id="previewScan" class="scan-line absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-transparent via-sage-400/40 to-transparent hidden"></div>
@@ -594,7 +596,7 @@
                                 <p class="text-sm text-neutral-500 font-light leading-snug" id="previewHint">Select an image to begin. Your photo is sent securely for identification and not stored.</p>
                             </div>
                         </div>
-                        <button id="identifyBtn" data-haptic class="soft-click group w-full mt-5 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-sm border border-neutral-200 hover:bg-neutral-800 transition shadow-float disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
+                        <button id="identifyBtn" data-haptic class="soft-click group w-full mt-5 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-sm border border-neutral-200 hover:bg-neutral-800 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2" disabled>
                             <span id="identifyLabel">Identify flower</span>
                             <svg id="identifyArrow" class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                         </button>
@@ -602,15 +604,13 @@
                 </div>
 
                 <!-- RIGHT: RESULT -->
-                <div id="resultPanel" class="bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-8 flex flex-col min-h-[520px]">
+                <div id="resultPanel" class="bg-white border border-neutral-200 rounded-lg p-6 md:p-8 flex flex-col min-h-[520px]">
                     <h2 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-6">Result</h2>
 
                     <!-- Empty state -->
                     <div id="resEmpty" class="flex-1 flex flex-col items-center justify-center text-center px-6">
-                        <div class="w-14 h-14 rounded-2xl bg-sage-50 flex items-center justify-center mb-5">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-500"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </div>
-                        <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Your identification will appear here, complete with a confidence score and botanical context.</p>
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" class="text-sage-400 mb-5"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <p class="text-neutral-500 font-light max-w-xs leading-relaxed">The identification appears here, with a confidence score and what Wikipedia says about the plant.</p>
                     </div>
 
                     <!-- Loading state. A structural skeleton that mirrors the
@@ -655,7 +655,7 @@
                          species here would be a confident wrong answer, so the human picks. -->
                     <div id="resUncertain" class="hidden flex-1 flex-col">
                         <div class="flex items-start gap-3 mb-5">
-                            <div class="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+                            <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-amber-600"><circle cx="12" cy="12" r="10"/><path d="M12 16v.01M12 8v5" stroke-linecap="round"/></svg>
                             </div>
                             <div>
@@ -689,9 +689,7 @@
 
                     <!-- Tier 3 (<40% or not a flower): refuse to name anything at all. -->
                     <div id="resLowConf" class="hidden flex-1 flex-col items-center justify-center text-center px-6">
-                        <div class="w-14 h-14 rounded-2xl bg-neutral-100 flex items-center justify-center mb-5">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-neutral-400"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/></svg>
-                        </div>
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="text-neutral-300 mb-5"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5" stroke-linecap="round"/></svg>
                         <h3 class="text-lg font-medium tracking-tight text-neutral-900 mb-2">Could not detect a clear flower</h3>
                         <p class="text-neutral-500 font-light max-w-xs leading-relaxed">Please move closer and ensure good lighting.</p>
                         <button id="resLowRetake" type="button" data-haptic class="soft-click mt-6 min-h-[48px] w-full max-w-xs px-6 rounded-sm border border-neutral-200 bg-neutral-900 text-white text-sm font-medium hover:bg-neutral-800 transition flex items-center justify-center gap-2">
@@ -717,7 +715,7 @@
                             </div>
                         </div>
                         <div class="flex items-start gap-5 mb-6">
-                            <div class="w-24 h-24 rounded-2xl overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0">
+                            <div class="w-24 h-24 rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200 flex-shrink-0">
                                 <img id="resImg" class="w-full h-full object-cover" alt="Identified flower" />
                             </div>
                             <div class="flex-1 min-w-0">
@@ -774,7 +772,7 @@
                             <!-- Structured facts grid; each cell fills in or shows a graceful fallback -->
                             <div id="resFacts" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                                 <!-- Native range -->
-                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5">
+                                <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                                         <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Native range</span>
@@ -782,7 +780,7 @@
                                     <p id="factRange" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
                                 <!-- Toxicity -->
-                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5">
+                                <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                                         <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Toxicity</span>
@@ -790,7 +788,7 @@
                                     <p id="factToxic" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
                                 <!-- Growing conditions -->
-                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5 sm:col-span-2">
+                                <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5 sm:col-span-2">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 2v6M12 22a7 7 0 0 0 7-7c0-2-1-4-3-6M12 22a7 7 0 0 1-7-7c0-2 1-4 3-6"/><circle cx="12" cy="5" r="2"/></svg>
                                         <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Growing conditions</span>
@@ -798,7 +796,7 @@
                                     <p id="factGrow" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
                                 <!-- Sunlight (Trefle) -->
-                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5">
+                                <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
                                         <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Sunlight</span>
@@ -806,7 +804,7 @@
                                     <p id="factSun" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
                                 <!-- Growth habit (Trefle) -->
-                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5">
+                                <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 22V8M12 8c0-3 2-5 5-5 0 3-2 5-5 5Zm0 0c0-3-2-5-5-5 0 3 2 5 5 5ZM12 14c0-2.5 1.6-4 4-4 0 2.5-1.6 4-4 4Zm0 0c0-2.5-1.6-4-4-4 0 2.5 1.6 4 4 4Z"/></svg>
                                         <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Growth habit</span>
@@ -814,7 +812,7 @@
                                     <p id="factHabit" class="text-sm text-neutral-700 font-light leading-snug">—</p>
                                 </div>
                                 <!-- Watering (Trefle moisture index, phrased as a relative measure) -->
-                                <div class="rounded-xl border border-neutral-100 bg-neutral-50 p-3.5 sm:col-span-2">
+                                <div class="rounded-lg border border-neutral-100 bg-neutral-50 p-3.5 sm:col-span-2">
                                     <div class="flex items-center gap-1.5 mb-1">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-500"><path d="M12 2.7s6 6.1 6 10.3a6 6 0 0 1-12 0c0-4.2 6-10.3 6-10.3z"/></svg>
                                         <span class="text-xs font-medium tracking-wide text-neutral-400 uppercase">Watering</span>
@@ -826,7 +824,7 @@
                             <!-- Edibility, shown only when affirmatively documented.
                                  One-directional on purpose: an absent record is not
                                  a clearance to eat, so there is no "inedible" state. -->
-                            <div id="resEdibleWrap" class="hidden mb-5 flex items-start gap-2.5 rounded-xl border border-sage-200 bg-sage-50 p-3.5">
+                            <div id="resEdibleWrap" class="hidden mb-5 flex items-start gap-2.5 rounded-lg border border-sage-200 bg-sage-50 p-3.5">
                                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600 flex-shrink-0 mt-0.5"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/><path d="M12 22V9M9 6c1.5 0 3 1 3 3"/></svg>
                                 <p id="resEdible" class="text-sm text-sage-700 font-light leading-snug"></p>
                             </div>
@@ -859,16 +857,14 @@
                             </div>
                             <div id="fbThanks" class="hidden flex items-center gap-2 text-sm text-sage-700">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
-                                Thank you — your feedback helps FindFlower improve.
+                                Saved in this browser. Your dashboard counts it.
                             </div>
                         </div>
                     </div>
 
                     <!-- Error state -->
                     <div id="resError" class="hidden flex-1 flex-col items-center justify-center text-center px-6">
-                        <div class="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center mb-4">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="text-neutral-500"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                        </div>
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="text-neutral-300 mb-4"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                         <p id="resErrorText" class="text-neutral-500 font-light max-w-xs leading-relaxed"></p>
                         <!-- Shown only for the signed-out case, so the fix is one
                              tap away instead of a dead end. -->
@@ -903,7 +899,7 @@
                 </a>
             </div>
             <div id="miniGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"></div>
-            <div id="miniError" class="hidden border border-dashed border-neutral-300 rounded-2xl p-8 text-center mt-4">
+            <div id="miniError" class="hidden border border-dashed border-neutral-300 rounded-lg p-8 text-center mt-4">
                 <p class="text-neutral-500 text-sm">Couldn’t reach the live directory just now.</p>
                 <button id="miniRetry" class="soft-click text-sm font-medium text-sage-700 hover:text-sage-600 transition mt-3">Try again</button>
             </div>
@@ -1635,8 +1631,13 @@
             const names = ffStore.BADGES.filter(b => ids.includes(b.id)).map(b => b.name);
             if (!names.length) return;
             const el = document.createElement('div');
-            el.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-neutral-900 text-white text-sm font-medium px-5 py-3 rounded-full shadow-lift';
-            el.textContent = '🏅 Badge unlocked: ' + names.join(', ');
+            el.className = 'fixed bottom-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-neutral-900 text-white text-sm font-medium px-5 py-3 rounded-md';
+            el.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+                + 'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="flex-shrink-0 text-sage-400" '
+                + 'aria-hidden="true"><circle cx="12" cy="9" r="5.5"/>'
+                + '<path d="M8.6 13.7 7.5 21.5l4.5-2.5 4.5 2.5-1.1-7.8"/></svg><span></span>';
+            el.querySelector('span').textContent =
+                (names.length > 1 ? 'Badges earned: ' : 'Badge earned: ') + names.join(', ');
             document.body.appendChild(el);
             setTimeout(() => el.remove(), 4500);
         }
@@ -1667,9 +1668,9 @@
             // from the document in scripts/ux.js, which is why setting the
             // attribute is all the wiring a button built at runtime needs.
             leadBtn.setAttribute('data-haptic', '');
-            leadBtn.className = 'soft-click w-full min-h-[56px] flex items-center gap-3 text-left border border-amber-200 bg-amber-50/60 rounded-2xl px-4 py-3 hover:border-amber-300 transition-colors';
+            leadBtn.className = 'soft-click w-full min-h-[56px] flex items-center gap-3 text-left border border-amber-200 bg-amber-50 rounded-md px-4 py-3 hover:border-amber-300 transition-colors';
             leadBtn.innerHTML =
-                `<img src="${previewImg.src}" alt="" class="w-11 h-11 rounded-xl object-cover flex-shrink-0 bg-neutral-100" />` +
+                `<img src="${previewImg.src}" alt="" class="w-11 h-11 rounded-md object-cover flex-shrink-0 bg-neutral-100" />` +
                 '<span class="flex-1 min-w-0">' +
                     `<span class="block text-sm font-medium text-neutral-900 capitalize truncate">${cleanName(top.name)}</span>` +
                     '<span class="block text-xs text-neutral-500 font-light">Most likely — tap to accept</span>' +

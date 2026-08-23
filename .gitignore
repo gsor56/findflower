@@ -33,6 +33,12 @@ proxy/litellm-config.yaml
 /training/checkpoint/
 /training/output/
 
+# Local Hub validation/download caches; the canonical dataset lives remotely.
+.hf-validation-cache/
+.hf-audit-cache/
+.duplicate-audit/
+.final-hub-index/
+
 # --- Build output ---
 # _site/ is assembled by .github/workflows/pages.yml at deploy time.
 _site/

@@ -72,7 +72,7 @@
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
     <!-- HEADER -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -91,9 +91,8 @@
             </nav>
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
@@ -104,12 +103,16 @@
         <!-- HEADER BLOCK -->
         <section class="max-w-7xl mx-auto px-6 mb-16">
             <div class="max-w-3xl">
-                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Legal</span>
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-6 block">Legal</span>
                 <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">Privacy at FindFlower</h1>
-                <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
-                    We built FindFlower to collect as little as possible and to be honest about what happens to your photos. This page explains, in plain language, exactly what happens to your data — including the fact that identification now runs on a server, not on your device.
+                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug">
+                    What is collected, what is kept, and where your photo actually goes.
                 </p>
-                <p class="reveal-up text-sm text-neutral-400 font-light mt-6">Last updated 8 July 2026 · Applies to the FindFlower Beta</p>
+                <p class="reveal-up text-base text-neutral-600 font-light leading-relaxed mt-6">
+                    Identification runs on a server, not on your device. That changes what leaves
+                    your browser, so it is spelled out below rather than buried.
+                </p>
+                <p class="reveal-up text-sm text-neutral-500 font-light mt-6">Last updated 8 July 2026 &middot; Applies to the FindFlower Beta</p>
             </div>
         </section>
 
@@ -131,7 +134,7 @@
             <div class="lg:col-span-9 space-y-16">
 
                 <!-- Summary card -->
-                <div class="reveal-up bg-sage-50 border border-sage-100 rounded-[2rem] p-8 md:p-10">
+                <div class="reveal-up bg-sage-50 border border-sage-100 rounded-lg p-8 md:p-10">
                     <h2 class="text-lg font-medium text-neutral-900 mb-5">The short version</h2>
                     <ul class="space-y-4">
                         <li class="flex items-start gap-3">
@@ -169,7 +172,7 @@
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Whether feedback is saved, and why</h2>
                     <div class="space-y-4 text-neutral-600 font-light text-lg">
                         <p>Feedback is optional and always initiated by you. During the Beta, the feedback you provide is stored locally on your device so the experience keeps working offline and privately.</p>
-                        <p>When the improvement pipeline launches, submitted corrections — and any photo you choose to attach — will be used for a single purpose: <span class="text-neutral-900 font-normal">making future model versions more accurate</span>. This is the human-in-the-loop that helps FindFlower recognise more species over time. We will never repurpose that data for advertising or sell it.</p>
+                        <p>If a training pipeline is ever built, submitted corrections — and any photo you choose to attach — would be used for one thing: <span class="text-neutral-900 font-normal">making future model versions more accurate</span>. That pipeline does not exist yet, and this page will say so before it does. That data is never sold or used for advertising.</p>
                     </div>
                 </section>
 
@@ -184,18 +187,18 @@
                 <section id="control" class="reveal-up scroll-mt-24 prose">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Your privacy, in your control</h2>
                     <div class="space-y-4 text-neutral-600 font-light text-lg">
-                        <p>You decide what to share. Feedback is never sent quietly in the background. You can clear locally stored feedback at any time from your browser, and if you hold a developer account you can request its deletion.</p>
+                        <p>You decide what to share. Feedback is never sent quietly in the background. Everything stored locally can be exported as JSON or erased from your <a href="/dashboard" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">dashboard</a> at any time.</p>
                         <p>If anything here is unclear, we’d rather you ask than wonder. Reach us through the <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> and a person will respond.</p>
                     </div>
                 </section>
 
                 <!-- Related -->
                 <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-4">
-                    <a href="/terms" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors">
+                    <a href="/terms" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 transition-colors">
                         Read the Terms of Service
                         <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
-                    <a href="/contact" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Contact us about privacy</a>
+                    <a href="/contact" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-md hover:text-neutral-900 transition-colors">Contact us about privacy</a>
                 </div>
 
             </div>

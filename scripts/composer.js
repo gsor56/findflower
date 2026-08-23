@@ -101,16 +101,14 @@
         }
         function flushQuote() {
             if (!quote.length) return;
-            out.push('<blockquote class="mt-2 first:mt-0 border-l-2 border-neutral-200 pl-3 ' +
-                'text-neutral-500">' + inline(quote.join('\n')).replace(/\n/g, '<br>') +
+            out.push('<blockquote class="mt-2 first:mt-0 border-l-2 border-neutral-200 pl-3 ' + 'text-neutral-500">' + inline(quote.join('\n')).replace(/\n/g, '<br>') +
                 '</blockquote>');
             quote = [];
         }
         function fenced(lines, i) {
             var buf = [];
             for (i++; i < lines.length && !/^```/.test(lines[i]); i++) buf.push(lines[i]);
-            out.push('<pre class="mt-2 first:mt-0 overflow-x-auto bg-neutral-50 border ' +
-                'border-neutral-200 rounded p-3"><code class="text-xs font-mono text-neutral-700">' +
+            out.push('<pre class="mt-2 first:mt-0 overflow-x-auto bg-neutral-50 border ' + 'border-neutral-200 rounded p-3"><code class="text-xs font-mono text-neutral-700">' +
                 esc(buf.join('\n')) + '</code></pre>');
             return i;
         }
@@ -300,8 +298,7 @@
             '<label class="sr-only" for="' + listId + 'Field">Species name</label>' +
             '<input type="text" id="' + listId + 'Field" list="' + listId + '" data-md-name ' +
                 'placeholder="Species name" autocomplete="off" ' +
-                'class="min-w-0 flex-1 text-sm text-neutral-900 placeholder:text-neutral-400 border ' +
-                'border-neutral-200 rounded px-3 py-2 focus:outline-none focus:border-neutral-400">' +
+                'class="min-w-0 flex-1 text-sm text-neutral-900 placeholder:text-neutral-400 border ' + 'border-neutral-200 rounded px-3 py-2 focus:outline-none focus:border-neutral-400">' +
             '<datalist id="' + listId + '"></datalist>' +
             '<button type="button" data-md-add class="' + BTN + '">Add tag</button>';
 

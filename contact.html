@@ -53,7 +53,6 @@
         .delay-100{transition-delay:100ms}
         .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
         .group:hover .cta-arrow { transform:translateX(4px); }
-        .grid-dots { background-image:radial-gradient(rgba(23,23,23,0.05) 1px,transparent 1px); background-size:28px 28px; -webkit-mask-image:radial-gradient(ellipse 60% 50% at 50% 25%,black 0%,transparent 75%); mask-image:radial-gradient(ellipse 60% 50% at 50% 25%,black 0%,transparent 75%); }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
     
         /* Mobile-first touch targets. Primary users are outdoors, one-handed,
@@ -71,7 +70,7 @@
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
     <!-- HEADER -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -90,119 +89,104 @@
             </nav>
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
     </header>
 
+    <!-- CONTACT Â· functional page, so one column: the heading, the form, then
+         the alternatives, all sharing a left edge. The editorial 12-col split
+         used elsewhere put the h1 in a column the form could not reach. -->
     <main class="pt-32 pb-24">
-
-        <!-- INTRO -->
-        <section class="relative max-w-7xl mx-auto px-6 mb-16">
-            <div class="absolute inset-0 -z-10 grid-dots"></div>
-            <div class="max-w-3xl">
-                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Contact</span>
-                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">We’d like to <span class="font-serif italic font-normal text-sage-600">hear</span> from you.</h1>
-                <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
-                    Whether it’s a bug, a feature you wish existed, a misidentified flower, or a question about the API — I read every message myself. Tell me what’s on your mind.
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="max-w-xl">
+                <span class="reveal-up text-sm font-medium text-sage-600 block mb-6">Contact</span>
+                <h1 class="reveal-up text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                    Tell me what broke
+                </h1>
+                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug mb-12">
+                    A bug, a wrong identification, a missing feature, a question about
+                    the API. One person reads these, and that person is me.
                 </p>
-            </div>
-        </section>
 
-        <section class="max-w-7xl mx-auto px-6">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                <!-- FORM -->
-                <div class="lg:col-span-7">
-                    <div class="reveal-up bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-10">
-                        <form id="contactForm" class="space-y-6">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                <div>
-                                    <label for="name" class="text-sm font-medium text-neutral-900 mb-2 block">Name</label>
-                                    <input id="name" type="text" required placeholder="Your name" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
-                                </div>
-                                <div>
-                                    <label for="email" class="text-sm font-medium text-neutral-900 mb-2 block">Email</label>
-                                    <input id="email" type="email" required placeholder="you@example.com" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
-                                </div>
-                            </div>
-                            <div>
-                                <label for="topic" class="text-sm font-medium text-neutral-900 mb-2 block">What’s this about?</label>
-                                <select id="topic" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition appearance-none">
-                                    <option>General question</option>
-                                    <option>Bug report</option>
-                                    <option>Feature request</option>
-                                    <option>A misidentified flower</option>
-                                    <option>API &amp; developer access</option>
-                                    <option>Privacy &amp; data</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="message" class="text-sm font-medium text-neutral-900 mb-2 block">Message</label>
-                                <textarea id="message" rows="6" required placeholder="Tell us what happened, or what you’d like to see…" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition resize-none"></textarea>
-                            </div>
-                            <div class="pt-1">
-                                <button type="submit" data-haptic class="soft-click group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float flex items-center justify-center gap-2">
-                                    Send message
-                                    <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                                </button>
-                                <p class="text-xs text-neutral-400 font-light text-center mt-4 leading-relaxed">This opens a pre-filled email in your mail app, so nothing is sent until you review and hit send yourself.</p>
-                            </div>
-                        </form>
-
-                        <!-- Confirmation -->
-                        <div id="contactDone" class="hidden text-center py-6">
-                            <div class="w-14 h-14 rounded-2xl bg-sage-50 flex items-center justify-center mx-auto mb-5">
-                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                            </div>
-                            <h3 class="text-2xl font-medium tracking-tight text-neutral-900 mb-2">Your draft is ready</h3>
-                            <p class="text-neutral-500 font-light max-w-sm mx-auto leading-relaxed mb-6">We’ve opened a pre-filled email in your mail app. Review it and hit send — we’ll take it from there.</p>
-                            <button id="contactAgain" class="soft-click text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition">Write another message</button>
+                <form id="contactForm" class="reveal-up space-y-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="name" class="text-sm font-medium text-neutral-900 mb-2 block">Name</label>
+                            <input id="name" type="text" required placeholder="Your name" class="w-full text-base bg-white border border-neutral-200 rounded-md px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                        </div>
+                        <div>
+                            <label for="email" class="text-sm font-medium text-neutral-900 mb-2 block">Email</label>
+                            <input id="email" type="email" required placeholder="you@example.com" class="w-full text-base bg-white border border-neutral-200 rounded-md px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
                         </div>
                     </div>
-                </div>
-
-                <!-- SIDE INFO -->
-                <div class="lg:col-span-5 space-y-6">
-                    <div class="reveal-up bg-white border border-neutral-200/70 rounded-2xl p-8">
-                        <div class="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center mb-5">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="m22 6-10 7L2 6"/></svg>
-                        </div>
-                        <h3 class="text-lg font-medium text-neutral-900 mb-2">Email us directly</h3>
-                        <p class="text-neutral-500 font-light leading-relaxed mb-4">Prefer your own mail client? Reach the team at:</p>
-                        <a href="mailto:support@findflower.me" class="group inline-flex items-center gap-1.5 text-sm font-medium text-sage-600 hover:text-sage-700 transition-colors">
-                            support@findflower.me
-                            <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                        </a>
+                    <div>
+                        <label for="topic" class="text-sm font-medium text-neutral-900 mb-2 block">What is this about?</label>
+                        <select id="topic" class="w-full text-base bg-white border border-neutral-200 rounded-md px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition appearance-none">
+                            <option>General question</option>
+                            <option>Bug report</option>
+                            <option>Feature request</option>
+                            <option>A misidentified flower</option>
+                            <option>API &amp; developer access</option>
+                            <option>Privacy &amp; data</option>
+                        </select>
                     </div>
-
-                    <div class="reveal-up delay-100 bg-white border border-neutral-200/70 rounded-2xl p-8">
-                        <div class="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center mb-5">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-600"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                        </div>
-                        <h3 class="text-lg font-medium text-neutral-900 mb-2">Response times</h3>
-                        <p class="text-neutral-500 font-light leading-relaxed">
-                            We’re a small team and we read everything. During the Beta, expect a reply within <span class="text-neutral-900">two to three business days</span>. Bug reports affecting identification are prioritised.
+                    <div>
+                        <label for="message" class="text-sm font-medium text-neutral-900 mb-2 block">Message</label>
+                        <textarea id="message" rows="6" required placeholder="What happened, or what you would like to see" class="w-full text-base bg-white border border-neutral-200 rounded-md px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition resize-none"></textarea>
+                    </div>
+                    <div class="pt-1">
+                        <button type="submit" data-haptic class="soft-click group text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition inline-flex items-center gap-2">
+                            Send message
+                            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        </button>
+                        <p class="text-base text-neutral-500 font-light mt-6 leading-relaxed">
+                            This opens a pre-filled email in your own mail app. Nothing leaves your
+                            machine until you read it over and press send yourself.
                         </p>
                     </div>
+                </form>
 
-                    <div class="reveal-up delay-100 bg-sage-50 border border-sage-100 rounded-2xl p-8">
-                        <h3 class="text-lg font-medium text-neutral-900 mb-2">Faster paths</h3>
-                        <p class="text-neutral-600 font-light leading-relaxed mb-4">Some things have a dedicated home:</p>
-                        <ul class="space-y-2.5 text-sm">
-                            <li><a href="/feedback" class="text-sage-700 hover:text-sage-600 font-medium">Report a misidentified flower →</a></li>
-                            <li><a href="/api" class="text-sage-700 hover:text-sage-600 font-medium">Developer &amp; API questions →</a></li>
-                            <li><a href="/privacy" class="text-sage-700 hover:text-sage-600 font-medium">Privacy &amp; your data →</a></li>
-                        </ul>
-                    </div>
+                <div id="contactDone" class="hidden">
+                    <h2 class="text-2xl font-medium tracking-tight text-neutral-900 mb-3">The draft is open in your mail app</h2>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mb-8">
+                        Nothing has been sent yet. Read it over, then send it from there.
+                    </p>
+                    <button id="contactAgain" class="soft-click text-base font-medium text-neutral-500 hover:text-neutral-900 transition">Write another message</button>
                 </div>
 
+                <div class="mt-20 pt-8 border-t border-neutral-200">
+                    <h2 class="reveal-up text-2xl font-medium tracking-tight text-neutral-900 mb-8">Other ways to reach me</h2>
+                    <div class="reveal-up divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
+                        <div class="py-6">
+                            <p class="font-medium text-neutral-900 mb-2">Plain email</p>
+                            <p class="text-neutral-600 font-light leading-relaxed">
+                                Skip the form and write to
+                                <a href="mailto:support@findflower.me" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">support@findflower.me</a>.
+                                It is the same inbox the form fills in.
+                            </p>
+                        </div>
+                        <div class="py-6">
+                            <p class="font-medium text-neutral-900 mb-2">How long a reply takes</p>
+                            <p class="text-neutral-600 font-light leading-relaxed">
+                                Usually a few days. This is one student&rsquo;s evening project, so a busy
+                                week can stretch that out. A wrong identification gets read first.
+                            </p>
+                        </div>
+                        <div class="py-6">
+                            <p class="font-medium text-neutral-900 mb-2">Somewhere better to say it</p>
+                            <ul class="mt-2 space-y-2 text-neutral-600 font-light">
+                                <li><a href="/feedback" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Correct a misidentified flower</a></li>
+                                <li><a href="/api" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Read the API reference first</a></li>
+                                <li><a href="/privacy" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">What happens to your data</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
-
+        </div>
     </main>
 
     <!-- FOOTER -->

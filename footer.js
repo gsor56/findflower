@@ -122,8 +122,7 @@
                 // data-ff-key is what setActive() repaints against. Pairing the
                 // anchors to the tables by DOM index would work today and break
                 // the first time a column gains a row.
-                return '<li><a href="' + i.href + '" data-ff-key="' + i.key + '" class="' +
-                    (on ? 'text-neutral-900' : LINK_CLS) + '"' +
+                return '<li><a href="' + i.href + '" data-ff-key="' + i.key + '" class="' + (on ? 'text-neutral-900' : LINK_CLS) + '"' +
                     (on ? ' aria-current="page"' : '') + '>' + i.label + '</a></li>';
             }).join('') +
             '</ul></div>';
@@ -137,8 +136,7 @@
     }
 
     function bottomBar() {
-        return '<div class="flex flex-col md:flex-row items-center justify-between pt-8 ' +
-                'border-t border-neutral-100 text-xs text-neutral-400 font-light">' +
+        return '<div class="flex flex-col md:flex-row items-center justify-between pt-8 ' + 'border-t border-neutral-100 text-xs text-neutral-400 font-light">' +
                 '<p data-ff-credit>' + creditLine() + '</p>' +
                 '<div class="flex gap-4 mt-4 md:mt-0">' +
                     '<span class="flex items-center gap-1.5">' +
@@ -165,8 +163,7 @@
             '<div class="max-w-7xl mx-auto px-6">' +
                 '<div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">' +
                     '<div class="col-span-2">' +
-                        '<span class="flex items-center gap-2 text-lg font-medium tracking-tight ' +
-                            'text-neutral-900 mb-3">' + LOGO + 'FindFlower</span>' +
+                        '<span class="flex items-center gap-2 text-lg font-medium tracking-tight ' + 'text-neutral-900 mb-3">' + LOGO + 'FindFlower</span>' +
                         '<p class="text-sm text-neutral-500 font-light max-w-xs">' +
                             'Flower identification from a single photo, running a Vision ' +
                             'Transformer trained on 116 species.</p>' +

@@ -5,17 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Feedback | Help Improve Flower Identification Accuracy — FindFlower</title>
-    <meta name="description" content="Tell us when the scanner gets a flower wrong. Your corrections feed directly into retraining the identification model.">
+    <title>Feedback | Correct a Misidentified Flower — FindFlower</title>
+    <meta name="description" content="Tell the scanner when it gets a flower wrong. Corrections are saved in your own browser, not uploaded anywhere.">
     <link rel="canonical" href="https://findflower.me/feedback">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/feedback">
-    <meta property="og:title" content="Feedback | Help Improve Flower Identification Accuracy — FindFlower">
-    <meta property="og:description" content="Tell us when the scanner gets a flower wrong. Your corrections feed directly into retraining the identification model.">
+    <meta property="og:title" content="Feedback | Correct a Misidentified Flower — FindFlower">
+    <meta property="og:description" content="Tell the scanner when it gets a flower wrong. Corrections are saved in your own browser, not uploaded anywhere.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Feedback | Help Improve Flower Identification Accuracy — FindFlower">
-    <meta name="twitter:description" content="Tell us when the scanner gets a flower wrong. Your corrections feed directly into retraining the identification model.">
+    <meta name="twitter:title" content="Feedback | Correct a Misidentified Flower — FindFlower">
+    <meta name="twitter:description" content="Tell the scanner when it gets a flower wrong. Corrections are saved in your own browser, not uploaded anywhere.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
@@ -53,7 +53,6 @@
         .delay-100{transition-delay:100ms}.delay-200{transition-delay:200ms}
         .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
         .group:hover .cta-arrow { transform:translateX(4px); }
-        .grid-dots { background-image:radial-gradient(rgba(23,23,23,0.05) 1px,transparent 1px); background-size:28px 28px; -webkit-mask-image:radial-gradient(ellipse 60% 50% at 50% 30%,black 0%,transparent 75%); mask-image:radial-gradient(ellipse 60% 50% at 50% 30%,black 0%,transparent 75%); }
         .choice[aria-pressed="true"] { border-color:#5F7A63; background:#F2F5F2; color:#3D5341; }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
     
@@ -72,7 +71,7 @@
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
     <!-- HEADER -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -91,119 +90,99 @@
             </nav>
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
     </header>
 
+    <!-- FEEDBACK Â· functional page: one column, and the form sits on the page
+         rather than in a card. The copy states where a correction actually
+         goes, which is localStorage and nowhere else. -->
     <main class="pt-32 pb-24">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="max-w-xl">
+                <span class="reveal-up text-sm font-medium text-sage-600 block mb-6">Feedback</span>
+                <h1 class="reveal-up text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                    Say when it got the flower wrong
+                </h1>
+                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug mb-12">
+                    Corrections are written to this browser and nowhere else. Nothing has
+                    been sent to a server, and no model has been retrained from them yet.
+                </p>
 
-        <!-- INTRO -->
-        <section class="relative max-w-3xl mx-auto px-6 text-center mt-8 md:mt-16 mb-14">
-            <div class="absolute inset-0 -z-10 grid-dots"></div>
-            <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Human-in-the-loop</span>
-            <h1 class="reveal-up delay-100 text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-5">
-                Teach FindFlower to see <span class="font-serif italic font-normal text-sage-600">better</span>.
-            </h1>
-            <p class="reveal-up delay-200 text-lg text-neutral-500 font-light leading-relaxed max-w-xl mx-auto">
-                Every correction you share becomes a teaching signal. Confirmations reinforce what the model already knows; corrections show us exactly where it needs to grow. This is how each new version gets sharper.
-            </p>
-        </section>
-
-        <!-- FORM -->
-        <section class="max-w-2xl mx-auto px-6">
-            <div class="reveal-up bg-white border border-neutral-200/70 rounded-[2rem] shadow-subtle p-6 md:p-10">
-
-                <!-- Form state -->
-                <form id="fbForm" class="space-y-8">
-
-                    <!-- Was it correct -->
+                <form id="fbForm" class="reveal-up space-y-8">
                     <div>
-                        <label class="text-sm font-medium text-neutral-900 mb-1 block">Was the identification correct?</label>
-                        <p class="text-sm text-neutral-500 font-light mb-4">Tell us how the last prediction did.</p>
-                        <div class="grid grid-cols-2 gap-3">
-                            <button type="button" data-choice="correct" class="soft-click choice flex items-center justify-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-xl transition" aria-pressed="false">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 6 9 17l-5-5"/></svg>
-                                Correct
-                            </button>
-                            <button type="button" data-choice="incorrect" class="soft-click choice flex items-center justify-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-xl transition" aria-pressed="false">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                                Incorrect
-                            </button>
+                        <label class="text-sm font-medium text-neutral-900 mb-2 block">Was the identification correct?</label>
+                        <div class="grid grid-cols-2 gap-3 max-w-sm">
+                            <button type="button" data-choice="correct" class="soft-click choice text-base font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-md transition" aria-pressed="false">Correct</button>
+                            <button type="button" data-choice="incorrect" class="soft-click choice text-base font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-md transition" aria-pressed="false">Incorrect</button>
                         </div>
                     </div>
 
-                    <!-- Predicted name (what the model said) -->
                     <div>
-                        <label for="predicted" class="text-sm font-medium text-neutral-900 mb-2 block">What did FindFlower predict? <span class="text-neutral-400 font-normal">(optional)</span></label>
-                        <input id="predicted" type="text" placeholder="e.g. rose" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                        <label for="predicted" class="text-sm font-medium text-neutral-900 mb-2 block">What did it predict? <span class="text-neutral-400 font-normal">optional</span></label>
+                        <input id="predicted" type="text" placeholder="e.g. rose" class="w-full text-base bg-white border border-neutral-200 rounded-md px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
                     </div>
 
-                    <!-- Correct name -->
                     <div>
-                        <label for="correct" class="text-sm font-medium text-neutral-900 mb-2 block">If you know it, what is the correct flower? <span class="text-neutral-400 font-normal">(optional)</span></label>
-                        <input id="correct" type="text" placeholder="e.g. peruvian lily" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
+                        <label for="correct" class="text-sm font-medium text-neutral-900 mb-2 block">What was it actually? <span class="text-neutral-400 font-normal">optional</span></label>
+                        <input id="correct" type="text" placeholder="e.g. peruvian lily" class="w-full text-base bg-white border border-neutral-200 rounded-md px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition" />
                     </div>
 
-                    <!-- Notes -->
                     <div>
-                        <label for="notes" class="text-sm font-medium text-neutral-900 mb-2 block">Anything else? <span class="text-neutral-400 font-normal">(optional)</span></label>
-                        <textarea id="notes" rows="3" placeholder="Where you found it, distinguishing features, lighting…" class="w-full text-sm bg-white border border-neutral-200 rounded-xl px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition resize-none"></textarea>
+                        <label for="notes" class="text-sm font-medium text-neutral-900 mb-2 block">Anything else? <span class="text-neutral-400 font-normal">optional</span></label>
+                        <textarea id="notes" rows="3" placeholder="Where you found it, distinguishing features, the light" class="w-full text-base bg-white border border-neutral-200 rounded-md px-4 py-3 focus:outline-none focus:border-sage-400 focus:ring-2 focus:ring-sage-100 transition resize-none"></textarea>
                     </div>
 
-                    <!-- Image upload -->
                     <div>
-                        <label class="text-sm font-medium text-neutral-900 mb-2 block">Reference photo <span class="text-neutral-400 font-normal">(optional)</span></label>
-                        <label id="dropzone" for="fbImage" class="cursor-pointer flex items-center gap-4 border border-dashed border-neutral-200 bg-neutral-50 rounded-xl px-4 py-4 hover:border-sage-400 transition-colors">
-                            <div class="w-14 h-14 rounded-lg bg-white border border-neutral-200 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                <img id="fbPreview" class="w-full h-full object-cover hidden" alt="preview" />
-                                <svg id="fbPreviewIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-sage-500"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                        <label class="text-sm font-medium text-neutral-900 mb-2 block">Reference photo <span class="text-neutral-400 font-normal">optional</span></label>
+                        <label id="dropzone" for="fbImage" class="cursor-pointer flex items-center gap-4 border border-dashed border-neutral-300 rounded-md px-4 py-4 hover:border-sage-400 transition-colors">
+                            <div class="w-12 h-12 border border-neutral-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                <img id="fbPreview" class="w-full h-full object-cover hidden" alt="Selected photo" />
+                                <svg id="fbPreviewIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-neutral-400" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                             </div>
                             <div class="min-w-0">
-                                <p class="text-sm font-medium text-neutral-700" id="fbImageName">Attach an image</p>
-                                <p class="text-xs text-neutral-400 font-light">Helps us verify and label the correction · JPG, PNG</p>
+                                <p class="text-base text-neutral-700" id="fbImageName">Attach an image</p>
+                                <p class="text-sm text-neutral-500 font-light">The file stays on your device. Only the fact that you attached one is recorded.</p>
                             </div>
                             <input id="fbImage" type="file" accept="image/*" class="hidden" />
                         </label>
                     </div>
 
-                    <!-- Submit -->
-                    <div class="pt-2">
-                        <button type="submit" data-haptic class="soft-click group w-full text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-full hover:bg-neutral-800 transition shadow-float flex items-center justify-center gap-2">
-                            Submit feedback
-                            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    <div class="pt-1">
+                        <button type="submit" data-haptic class="soft-click group text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition inline-flex items-center gap-2">
+                            Save this correction
+                            <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                         </button>
-                        <p class="text-xs text-neutral-400 font-light text-center mt-4 leading-relaxed">
-                            Feedback is stored locally on your device during the Beta and used only to improve the model. Nothing is shared without your action.
+                        <p class="text-base text-neutral-500 font-light mt-6 leading-relaxed">
+                            Your dashboard counts these and can export or erase the lot at any time.
                         </p>
                     </div>
                 </form>
 
-                <!-- Confirmation state -->
-                <div id="fbDone" class="hidden text-center py-8">
-                    <div class="w-14 h-14 rounded-2xl bg-sage-50 flex items-center justify-center mx-auto mb-5">
-                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-sage-600"><path d="M20 6 9 17l-5-5"/></svg>
-                    </div>
-                    <h3 class="text-2xl font-medium tracking-tight text-neutral-900 mb-2">Thank you</h3>
-                    <p class="text-neutral-500 font-light max-w-sm mx-auto leading-relaxed mb-8">
-                        Your feedback has been recorded. Signals like yours are folded into future model versions — the FindFlower you use next is a little better because of this.
+                <div id="fbDone" class="hidden">
+                    <h2 class="text-2xl font-medium tracking-tight text-neutral-900 mb-3">Saved in this browser</h2>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mb-8 max-w-lg">
+                        It is in the correction log on this device. Nothing was uploaded. If this
+                        needs a person to read it, send it through
+                        <a href="/contact" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">contact</a>
+                        instead.
                     </p>
-                    <div class="flex flex-col sm:flex-row gap-3 justify-center">
-                        <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors">Identify another flower</a>
-                        <button id="fbAgain" class="soft-click text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition">Submit more feedback</button>
+                    <div class="flex flex-wrap items-center gap-x-8 gap-y-4">
+                        <a href="/try" class="text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors inline-flex items-center">Identify another flower</a>
+                        <a href="/dashboard" class="text-base text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">See the log</a>
+                        <button id="fbAgain" class="soft-click text-base text-neutral-500 hover:text-neutral-900 transition">Add another correction</button>
                     </div>
                 </div>
 
+                <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed mt-16 pt-8 border-t border-neutral-200">
+                    What happens to a correction once the pipeline exists is written up in
+                    <a href="/how" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">how it works</a>.
+                </p>
             </div>
-
-            <p class="reveal-up text-center text-sm text-neutral-400 font-light mt-8">
-                Curious how this fits in? See <a href="/how" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">how FindFlower improves over time</a>.
-            </p>
-        </section>
-
+        </div>
     </main>
 
     <!-- FOOTER -->

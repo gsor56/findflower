@@ -1,6 +1,8 @@
 // scripts/search.js — the dashboard search palette (window.ffSearch).
 //
-// Ctrl+K, or the field at the top of /dashboard. Three sources, and every one
+// Ctrl+K, or the #ffSearchOpen trigger on the pages that carry one — the
+// dashboard, and /404 where a search is the fastest way out. Three sources, and
+// every one
 // of them is real data this site already has:
 //
 //   your scans   ffStore.listSpecies() — the distinct species in your history,
@@ -55,6 +57,12 @@
     var MAX_LIVE = 8;
     var MAX_PAGES = 8;
     var MAX_USERS = 5;
+
+    // What the field claims to cover. The dashboard loads storage.js and so has
+    // scans and botanists to offer; a page that does not can name its own scope
+    // with data-placeholder on the trigger, rather than promise a section the
+    // palette will have no data for.
+    var PLACEHOLDER = 'Search species, your scans and pages';
 
     // Routes that exist. Every one of these answers 200 — the harness checks
     // that separately, and nothing gets added here without a page behind it.
@@ -241,7 +249,7 @@
                     '<input id="ffCmdInput" class="ff-cmd__input" type="text" role="combobox" ' +
                         'aria-expanded="true" aria-controls="ffCmdList" aria-autocomplete="list" ' +
                         'autocomplete="off" autocapitalize="none" spellcheck="false" ' +
-                        'placeholder="Search species, your scans and pages">' +
+                        'placeholder="' + esc(PLACEHOLDER) + '">' +
                     '<button type="button" class="ff-cmd__close" data-cmd-close ' +
                         'aria-label="Close search">' + CLOSE_ICON + '</button>' +
                 '</div>' +
@@ -421,6 +429,10 @@
         if (isOpen || !trigger() || blocked()) return;
         ensure();
         isOpen = true;
+        // Per open, not per build: the overlay is built once and outlives a
+        // client-side route, so a page with a narrower scope must not leave its
+        // placeholder behind on the next page's palette.
+        input.placeholder = trigger().getAttribute('data-placeholder') || PLACEHOLDER;
         savedFocus = document.activeElement;
         savedOverflow = document.body.style.overflow;
         document.body.style.overflow = 'hidden';

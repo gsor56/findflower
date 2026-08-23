@@ -201,7 +201,7 @@
         function showSkeletons(n) {
             var cells = '';
             for (var i = 0; i < n; i++) {
-                cells += '<div class="ff-skel bg-white border border-neutral-200 rounded-3xl overflow-hidden">' +
+                cells += '<div class="ff-skel bg-white border border-neutral-200 rounded-lg overflow-hidden">' +
                     '<div class="aspect-[4/5] skeleton"></div>' +
                     '<div class="p-4 space-y-2"><div class="h-3 skeleton rounded"></div>' +
                     '<div class="h-3 w-2/3 skeleton rounded"></div></div></div>';

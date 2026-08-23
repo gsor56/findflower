@@ -146,7 +146,7 @@
         show($('pfBadgesEmpty'), !earned.length);
         host.innerHTML = earned.map(function (b) {
             return '<div class="border border-sage-200 bg-white rounded p-3 text-center" title="' + esc(b.description) + '">' +
-                '<div class="text-2xl" aria-hidden="true">' + b.icon + '</div>' +
+                '<div class="text-2xl" aria-hidden="true">' + window.ffStore.badgeIcon(b.icon) + '</div>' +
                 '<p class="text-xs font-medium text-neutral-900 mt-1.5">' + esc(b.name) + '</p>' +
                 '</div>';
         }).join('');
@@ -265,8 +265,7 @@
         return '<ul class="list-none flex flex-wrap gap-1.5">' + rows.map(function (r) {
             var name = titleCase(r.name);
             return '<li><a href="/species?name=' + encodeURIComponent(name) + '" ' +
-                'class="inline-flex items-baseline gap-2 text-sm text-neutral-700 hover:text-neutral-900 ' +
-                'hover:bg-neutral-50 border border-neutral-200 rounded px-2.5 py-1.5 transition">' +
+                'class="inline-flex items-baseline gap-2 text-sm text-neutral-700 hover:text-neutral-900 ' + 'hover:bg-neutral-50 border border-neutral-200 rounded px-2.5 py-1.5 transition">' +
                 esc(name) + '<span class="text-xs text-neutral-400 tabular-nums">' + r.count +
                 '</span></a></li>';
         }).join('') + '</ul>';
@@ -287,11 +286,7 @@
             strip.innerHTML = lists.tabs.map(function (id) {
                 var on = id === lists.active;
                 return '<button type="button" role="tab" id="pfTab-' + id + '" data-tab="' + id + '" ' +
-                    'aria-selected="' + (on ? 'true' : 'false') + '" class="text-sm px-3 py-1.5 rounded ' +
-                    'border transition ' + (on
-                        ? 'bg-sage-50 border-sage-200 text-sage-700'
-                        : 'border-neutral-200 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50') +
-                    '">' + esc(TAB_LABEL[id]) + '</button>';
+                    'aria-selected="' + (on ? 'true' : 'false') + '" class="text-sm px-3 py-1.5 rounded ' + 'border transition ' + (on ? 'bg-sage-50 border-sage-200 text-sage-700' : 'border-neutral-200 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-50') + '">' + esc(TAB_LABEL[id]) + '</button>';
             }).join('');
         }
         var panel = $('pfPanel');

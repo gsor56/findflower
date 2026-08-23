@@ -139,21 +139,21 @@
     {
       id: "first-discovery",
       name: "First Bloom",
-      icon: "🌱",
+      icon: '<path d="M12 20v-9"/><path d="M12 13c0-2.6 2.1-4.3 5-4.3-.2 2.8-2.3 4.3-5 4.3Z"/><path d="M12 16.5c-2.3 0-3.9-1.4-4-3.6 2.4 0 4 1.3 4 3.6Z"/><path d="M6 20h12"/>',
       description: "Identify your first flower.",
       test: (s) => s.stats.totalScans >= 1,
     },
     {
       id: "streak-5",
       name: "5 Day Streak",
-      icon: "🔥",
+      icon: '<path d="M12 22a6 6 0 0 0 6-6c0-4.2-3-6.6-6-11.5-3 4.9-6 7.3-6 11.5a6 6 0 0 0 6 6Z"/><path d="M12 22a2.6 2.6 0 0 0 2.6-2.6c0-1.8-1.3-2.9-2.6-5-1.3 2.1-2.6 3.2-2.6 5A2.6 2.6 0 0 0 12 22Z"/>',
       description: "Identify a flower five days running.",
       test: (s) => s.stats.currentStreak >= 5,
     },
     {
       id: "night-explorer",
       name: "Nightshade",
-      icon: "🌙",
+      icon: '<path d="M19.5 14.8A8.2 8.2 0 0 1 9.2 4.5 7.5 7.5 0 1 0 19.5 14.8Z"/>',
       description: "Identify a flower between 10 at night and 4 in the morning.",
       needs: "nightSeen",
       test: (s) => s.nightSeen === true,
@@ -161,7 +161,7 @@
     {
       id: "collector-10",
       name: "Collector",
-      icon: "🧺",
+      icon: '<path d="M3.5 9.5h17"/><path d="M5.5 9.5 6.8 19a2 2 0 0 0 2 1.7h6.4a2 2 0 0 0 2-1.7l1.3-9.5"/><path d="M8 9.5a4 4 0 0 1 8 0"/>',
       description: "Identify 10 different species.",
       needs: "uniqueSpecies",
       test: (s) => s.uniqueSpecies >= 10,
@@ -169,7 +169,7 @@
     {
       id: "botanist-25",
       name: "Field Botanist",
-      icon: "🔬",
+      icon: '<path d="M3 22h18"/><path d="M6 18h8"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3.5a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1V6"/>',
       description: "Log 25 identifications.",
       test: (s) => s.stats.totalScans >= 25,
     },
@@ -181,7 +181,7 @@
     {
       id: "dawn-patrol",
       name: "Dawn Patrol",
-      icon: "🌅",
+      icon: '<path d="M3 20h18"/><path d="M8 20a4 4 0 0 1 8 0"/><path d="M12 14.5V12"/><path d="M7.5 16.5 6 15"/><path d="M16.5 16.5 18 15"/>',
       description: "Identify a flower between 5 and 8 in the morning.",
       needs: "dawnSeen",
       test: (s) => s.dawnSeen === true,
@@ -189,7 +189,7 @@
     {
       id: "season-10",
       name: "Ten Days Out",
-      icon: "🗓️",
+      icon: '<rect x="3.5" y="5.5" width="17" height="15" rx="2"/><path d="M3.5 10.5h17"/><path d="M8.5 3.5v4"/><path d="M15.5 3.5v4"/>',
       description: "Log a flower on ten different days.",
       needs: "daysLogged",
       test: (s) => s.daysLogged >= 10,
@@ -197,7 +197,7 @@
     {
       id: "collector-50",
       name: "Herbarium",
-      icon: "📗",
+      icon: '<path d="M6.5 2.5H20v19H6.5A2.5 2.5 0 0 1 4 19v-14a2.5 2.5 0 0 1 2.5-2.5Z"/><path d="M4 19a2.5 2.5 0 0 1 2.5-2.5H20"/>',
       description: "Identify 50 different species.",
       needs: "uniqueSpecies",
       test: (s) => s.uniqueSpecies >= 50,
@@ -205,7 +205,7 @@
     {
       id: "botanist-100",
       name: "Hundred Finds",
-      icon: "📔",
+      icon: '<rect x="4.5" y="3" width="14" height="18" rx="1.5"/><path d="M8 3v18"/><path d="M11 8.5h4.5"/><path d="M11 12.5h4.5"/><path d="M11 16.5h2.5"/>',
       description: "Log 100 identifications.",
       test: (s) => s.stats.totalScans >= 100,
     },
@@ -214,12 +214,19 @@
     {
       id: "archivist",
       name: "Archivist",
-      icon: "🗃️",
+      icon: '<rect x="3" y="4" width="18" height="4.5" rx="1"/><path d="M5 8.5v10.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V8.5"/><path d="M10 12.5h4"/>',
       description: "Write your first community post.",
       needs: "postCount",
       test: (s) => s.postCount >= 1,
     },
   ];
+
+  /* The icon field above holds the children of a 24px line-art svg, the same
+     way nav.js carries its tab icons: the catalogue names the glyph, the caller
+     decides the size and the colour. */
+  const badgeIcon = (icon) =>
+    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + icon + '</svg>';
 
   // No `key` here on purpose: the key IS the user id, supplied at write time.
   const DEFAULT_STATS = {
@@ -1355,6 +1362,7 @@
     refreshUser,
     // exported for the dashboard + tests
     BADGES,
+    badgeIcon,
     UNCLAIMED,
     dayKey,
     dayDiff,

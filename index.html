@@ -117,28 +117,6 @@
         }
         .active .draw-path { stroke-dashoffset: 0; }
 
-        /* The hover half is gated because a phone has no hover to leave: without
-           the gate the tapped card keeps the lift until you tap something else.
-           app.css:1157 already does this for .soft-click. .hover-lift only ever
-           lands on the <a> the directory preview builds, so :active fires on iOS
-           too, which it would not on a bare <div>. */
-        .hover-lift {
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.5s ease;
-        }
-        @media (hover: hover) {
-            .hover-lift:hover {
-                transform: translateY(-6px);
-                box-shadow: 0 20px 50px -20px rgba(23, 23, 23, 0.14);
-                border-color: rgba(95, 122, 99, 0.4);
-            }
-        }
-        .hover-lift:active,
-        .hover-lift:focus-visible {
-            transform: translateY(-3px);
-            box-shadow: 0 14px 34px -18px rgba(23, 23, 23, 0.16);
-            border-color: rgba(95, 122, 99, 0.4);
-        }
-
         .ff-vglass {
             border: 1px solid #E5E5E5;
             background-color: #FFFFFF;
@@ -480,10 +458,15 @@
 
                 <div class="ff-hero-copy">
                     <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 mb-6">
-                        Name the flower <span class="font-serif italic font-normal text-sage-600">in front of you</span>.
+                        Name the flower in front of you
                     </h1>
-                    <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-500 max-w-xl leading-relaxed mb-10 font-light">
-                        Photograph it. A Vision Transformer on our server, running under ONNX Runtime, returns a species and how confident it is. Wikidata and Trefle fill in the family and growing habit.
+                    <p class="reveal-up delay-200 font-serif italic text-xl md:text-2xl text-sage-700 max-w-xl leading-snug mb-6">
+                        Photograph it and read back a species, a confidence score, and what else
+                        it could have been.
+                    </p>
+                    <p class="reveal-up delay-200 text-base text-neutral-500 max-w-xl leading-relaxed mb-10 font-light">
+                        A Vision Transformer on the server, running under ONNX Runtime, does the
+                        identifying. Wikidata and Trefle fill in the family and growing habit.
                     </p>
 
                     <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -587,10 +570,10 @@
                 <div class="max-w-2xl">
                     <span class="text-sm font-medium text-sage-600 mb-4 block">The directory</span>
                     <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                        Browse the <span class="font-serif italic font-normal text-sage-600">botanical</span> library.
+                        Browse the botanical library
                     </h2>
                     <p class="mt-4 text-base text-neutral-500 font-light leading-relaxed">
-                        A curated set of common flowering species, each enriched live from Wikipedia. Open any one for its scientific name, family, and full profile.
+                        A set of common flowering species, each filled in live from Wikipedia. Open any one for its scientific name, family, and full profile.
                     </p>
                 </div>
                 <a href="/directory" class="hidden md:inline-flex items-center text-sm font-medium text-neutral-900 whitespace-nowrap hover:text-sage-600 transition-colors">
@@ -869,20 +852,16 @@
         </section>
 
         <section class="max-w-7xl mx-auto px-6 mb-24">
-            <div class="reveal-up relative bg-neutral-900 rounded-lg p-12 md:p-20 text-center flex flex-col items-center overflow-hidden">
-                <svg class="absolute -bottom-6 -right-6 text-white/5 float-slower" width="220" height="220" viewBox="0 0 150 200" fill="none"><path d="M75 195C75 150 75 110 75 70M75 70C75 35 105 12 145 14C142 55 108 74 75 70ZM75 70C75 35 45 12 5 14C8 55 42 74 75 70ZM75 120C75 98 92 84 120 86C118 112 98 122 75 120ZM75 120C75 98 58 84 30 86C32 112 52 122 75 120Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-
-                <div class="relative">
-                    <h2 class="text-3xl md:text-5xl font-medium tracking-tight text-white mb-6">
-                        Try it on the nearest flower.
-                    </h2>
-                    <p class="text-neutral-400 text-lg mb-10 max-w-xl mx-auto font-light">
-                        The scanner runs in the browser. Free for the whole of the beta, with no account, no install and nothing to cancel.
-                    </p>
-                    <a href="/try" class="inline-flex items-center text-base font-medium bg-white text-neutral-900 px-8 py-3.5 rounded-md hover:bg-neutral-100 transition-colors">
-                        Open the scanner
-                    </a>
-                </div>
+            <div class="reveal-up border-t border-neutral-200 pt-10 max-w-2xl">
+                <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-4">
+                    Try it on the nearest flower
+                </h2>
+                <p class="text-base text-neutral-600 mb-8 font-light leading-relaxed">
+                    No account, nothing to install, and free for the whole of the beta.
+                </p>
+                <a href="/try" class="soft-click inline-flex items-center text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition">
+                    Open the scanner
+                </a>
             </div>
         </section>
 
@@ -1399,7 +1378,7 @@
         function buildCard(seed) {
             const a = document.createElement('a');
             a.href = '/species?name=' + encodeURIComponent(seed.q);
-            a.className = 'card-in group flex flex-col bg-white border border-neutral-200 rounded-lg overflow-hidden hover-lift';
+            a.className = 'card-in group flex flex-col bg-white border border-neutral-200 rounded-lg overflow-hidden hover:border-neutral-300 transition-colors';
             a.innerHTML =
                 '<div class="relative aspect-[4/3] bg-neutral-100 overflow-hidden">' +
                     '<div class="ph skeleton absolute inset-0"></div>' +

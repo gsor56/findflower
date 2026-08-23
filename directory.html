@@ -109,7 +109,7 @@
 </head>
 <body class="font-sans antialiased">
 
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-200/60">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-200/60">
         <div class="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
             <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-sage-600">
@@ -129,9 +129,8 @@
             </nav>
             <div class="flex items-center gap-3">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
@@ -141,13 +140,13 @@
         <div class="max-w-7xl mx-auto px-5 sm:px-8">
 
             <section class="max-w-2xl mb-10">
-                <span class="text-sm font-medium text-sage-600 mb-3 block">Encyclopedia</span>
-                <h1 class="text-3xl sm:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-4">
-                    The flowering plant <span class="font-serif italic font-normal text-sage-600">directory</span>.
+                <span class="text-sm font-medium text-sage-600 mb-6 block">Encyclopedia</span>
+                <h1 class="text-3xl sm:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                    The flowering plant directory
                 </h1>
-                <p class="text-base sm:text-lg text-neutral-500 font-light leading-relaxed">
-                    Thousands of species across twenty major families, pulled live from open botanical
-                    databases. Scroll to keep loading.
+                <p class="font-serif italic text-xl sm:text-2xl text-sage-700 leading-snug">
+                    Thousands of species across twenty major families, pulled live from open
+                    botanical databases. Scroll to keep loading.
                 </p>
             </section>
 
@@ -165,9 +164,9 @@
                 </div>
             </div>
 
-            <div id="dirError" class="hidden border border-neutral-200 rounded-2xl p-8 text-center">
+            <div id="dirError" class="hidden border border-neutral-200 rounded-lg p-8 text-center">
                 <p class="text-neutral-600 text-sm mb-4">The species catalogue isn't responding right now.</p>
-                <button id="dirRetry" class="soft-click tap px-5 bg-neutral-900 text-white text-sm font-medium rounded-full hover:bg-neutral-800 transition">Try again</button>
+                <button id="dirRetry" class="soft-click tap px-5 bg-neutral-900 text-white text-sm font-medium rounded-md hover:bg-neutral-800 transition">Try again</button>
             </div>
 
             <p id="dirEnd" class="hidden text-center text-sm text-neutral-400 py-8">That's every species in this set.</p>

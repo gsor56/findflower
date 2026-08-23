@@ -246,18 +246,26 @@
     <!-- data-ff-page: lives outside <main>, so the router carries it across a
          swap explicitly (see EXTRA in scripts/router.js). Without that the
          page's inline init() would call $('authWall') on a null node. -->
-    <div id="authWall" data-ff-page class="hidden fixed inset-0 z-[60] flex items-center justify-center px-5 bg-[#FCFCFC]/85 backdrop-blur-md">
-        <div class="reveal-up active w-full max-w-md bg-white border border-neutral-200 rounded-lg p-8 sm:p-10 text-center">
-            <div class="w-14 h-14 mx-auto rounded-lg bg-sage-100 border border-sage-200 flex items-center justify-center mb-6">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" class="text-sage-700"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div id="authWall" data-ff-page class="hidden fixed inset-0 z-[60] overflow-y-auto flex items-center bg-[#FCFCFC]">
+        <div class="reveal-up active w-full max-w-6xl mx-auto px-5 sm:px-8 py-24">
+            <div class="max-w-lg">
+                <span class="text-sm font-medium text-sage-600 block mb-6">Dashboard</span>
+                <h1 class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                    Sign in to see your scans
+                </h1>
+                <p class="font-serif italic text-xl md:text-2xl text-sage-700 leading-snug mb-12">
+                    Your history is already in this browser. Signing in decides which of those
+                    records are yours on this machine.
+                </p>
+                <button id="wallSignIn" data-haptic class="soft-click tap text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition inline-flex items-center">
+                    Continue with Auth0
+                </button>
+                <p class="text-base text-neutral-600 font-light leading-relaxed mt-8">
+                    The scanner needs no account at all &mdash;
+                    <a href="/try" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">identify a flower</a>
+                    or <a href="/" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">go back home</a>.
+                </p>
             </div>
-            <h1 class="font-serif text-2xl sm:text-3xl text-neutral-900 mb-3">Your botanical history</h1>
-            <p class="text-neutral-500 leading-relaxed mb-8">Sign in with your email to view and save your botanical history.</p>
-            <button id="wallSignIn" data-haptic class="soft-click tap w-full flex items-center justify-center gap-2 bg-neutral-900 text-white text-sm font-medium px-6 py-3.5 rounded-md hover:bg-neutral-800 transition">
-                Sign in with email
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            </button>
-            <a href="/" class="inline-block mt-4 text-sm text-neutral-400 hover:text-neutral-600 transition-colors">Back to home</a>
         </div>
     </div>
 

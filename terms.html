@@ -71,7 +71,7 @@
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
     <!-- HEADER -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC]/80 backdrop-blur-md border-b border-neutral-100">
+    <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/" class="flex items-center gap-2 text-lg font-medium tracking-tight text-neutral-900">
@@ -90,9 +90,8 @@
             </nav>
             <div class="flex items-center gap-4">
                 <a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>
-                <a href="/try" class="group text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-full hover:bg-neutral-800 transition-colors flex items-center gap-1.5">
+                <a href="/try" class="text-sm font-medium bg-neutral-900 text-white px-5 py-2 rounded-md hover:bg-neutral-800 transition-colors flex items-center">
                     Try Now
-                    <svg class="cta-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
         </div>
@@ -103,12 +102,12 @@
         <!-- HEADER BLOCK -->
         <section class="max-w-7xl mx-auto px-6 mb-16">
             <div class="max-w-3xl">
-                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Legal</span>
+                <span class="reveal-up text-sm font-medium text-sage-600 mb-6 block">Legal</span>
                 <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">Terms of Service</h1>
-                <p class="reveal-up text-lg md:text-xl text-neutral-500 font-light leading-relaxed">
-                    A clear agreement, written to be read. These terms explain what FindFlower is, what it isn’t, and how to use it responsibly.
+                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug">
+                    What FindFlower is, what it is not, and what you agree to by using it.
                 </p>
-                <p class="reveal-up text-sm text-neutral-400 font-light mt-6">Last updated 8 July 2026 · Applies to the FindFlower Beta</p>
+                <p class="reveal-up text-sm text-neutral-500 font-light mt-6">Last updated 8 July 2026 &middot; Applies to the FindFlower Beta</p>
             </div>
         </section>
 
@@ -129,17 +128,16 @@
             <!-- CONTENT -->
             <div class="lg:col-span-9 space-y-16">
 
-                <!-- Critical notice card -->
-                <div class="reveal-up bg-neutral-900 rounded-[2rem] p-8 md:p-10">
-                    <div class="flex items-start gap-4">
-                        <div class="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" class="text-sage-400"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-medium text-white mb-2">Please read this first</h2>
-                            <p class="text-neutral-400 font-light leading-relaxed">FindFlower is a helpful identification aid, not a definitive authority. It can be wrong. Never rely on it alone for decisions about edibility, medicinal use, toxicity, or safety. When it matters, confirm with a qualified expert.</p>
-                        </div>
-                    </div>
+                <!-- The one thing on this page that must not be skimmed. It gets
+                     weight from a heavy rule and larger type, not from a dark
+                     panel with an icon in the corner. -->
+                <div class="reveal-up border-l-2 border-neutral-900 pl-6 md:pl-8">
+                    <h2 class="text-2xl font-medium tracking-tight text-neutral-900 mb-3">Read this first</h2>
+                    <p class="text-lg text-neutral-700 font-light leading-relaxed max-w-2xl">
+                        FindFlower is an identification aid, not an authority. It can be wrong.
+                        Never rely on it alone for a decision about edibility, medicinal use,
+                        toxicity or safety. When it matters, confirm with someone qualified.
+                    </p>
                 </div>
 
                 <section id="aid" class="reveal-up scroll-mt-24">
@@ -171,11 +169,11 @@
                     <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
                         <p>We ask that you use FindFlower fairly and lawfully. In particular, please do not:</p>
                     </div>
-                    <ul class="mt-5 space-y-3">
-                        <li class="flex items-start gap-3 text-neutral-600 font-light text-lg"><span class="w-1.5 h-1.5 rounded-full bg-sage-500 mt-3 flex-shrink-0"></span>Upload content you don’t have the right to use, or that is unlawful or harmful.</li>
-                        <li class="flex items-start gap-3 text-neutral-600 font-light text-lg"><span class="w-1.5 h-1.5 rounded-full bg-sage-500 mt-3 flex-shrink-0"></span>Attempt to disrupt, overload, reverse-engineer, or misuse the service or its API.</li>
-                        <li class="flex items-start gap-3 text-neutral-600 font-light text-lg"><span class="w-1.5 h-1.5 rounded-full bg-sage-500 mt-3 flex-shrink-0"></span>Present FindFlower’s output as certified or authoritative identification.</li>
-                        <li class="flex items-start gap-3 text-neutral-600 font-light text-lg"><span class="w-1.5 h-1.5 rounded-full bg-sage-500 mt-3 flex-shrink-0"></span>Use the product to break any applicable law or the rights of others.</li>
+                    <ul class="mt-5 space-y-3 text-neutral-600 font-light text-lg list-disc pl-5 marker:text-sage-400">
+                        <li>Upload content you don’t have the right to use, or that is unlawful or harmful.</li>
+                        <li>Attempt to disrupt, overload, reverse-engineer, or misuse the service or its API.</li>
+                        <li>Present FindFlower’s output as certified or authoritative identification.</li>
+                        <li>Use the product to break any applicable law or the rights of others.</li>
                     </ul>
                 </section>
 
@@ -188,11 +186,11 @@
                 </section>
 
                 <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-4">
-                    <a href="/privacy" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-full hover:bg-neutral-50 transition-colors">
+                    <a href="/privacy" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 transition-colors">
                         Read the Privacy Policy
                         <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
-                    <a href="/contact" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-full hover:text-neutral-900 transition-colors">Ask a question</a>
+                    <a href="/contact" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-md hover:text-neutral-900 transition-colors">Ask a question</a>
                 </div>
 
             </div>
