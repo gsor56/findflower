@@ -15,6 +15,7 @@
         { label: 'Try Now',       href: '/try',       key: 'try.html' },
         { label: 'Directory',     href: '/directory', key: 'directory.html' },
         { label: 'How it works',  href: '/how',       key: 'how.html' },
+        { label: 'Docs',          href: '/docs',      key: 'docs.html' },
         { label: 'Pricing',       href: '/pricing',   key: 'pricing.html' },
         { label: 'API',           href: '/api',       key: 'api.html' },
         { label: 'Data',          href: '/data',      key: 'data.html' },
@@ -51,7 +52,7 @@
 
     function column(title, items) {
         return '<div>' +
-            '<h5 class="text-sm font-medium text-neutral-900 mb-4">' + title + '</h5>' +
+            '<h2 class="text-sm font-medium text-neutral-900 mb-4">' + title + '</h2>' +
             '<ul class="space-y-3 text-sm text-neutral-500 font-light">' +
             items.map(function (i) {
                 var on = isActive(i);
@@ -72,9 +73,7 @@
         return '<div class="flex flex-col md:flex-row items-center justify-between pt-8 ' + 'border-t border-neutral-100 text-xs text-neutral-400 font-light">' +
                 '<p data-ff-credit>' + creditLine() + '</p>' +
                 '<div class="flex gap-4 mt-4 md:mt-0">' +
-                    '<span class="flex items-center gap-1.5">' +
-                        '<span class="w-1.5 h-1.5 rounded-full bg-sage-500"></span>' +
-                        'Vision Transformer &middot; 116 classes</span>' +
+                    '<span>Vision Transformer &middot; 116 classes</span>' +
                     '<span>ONNX Runtime &middot; fp32 weights</span>' +
                 '</div>' +
             '</div>';
