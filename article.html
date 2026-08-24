@@ -52,7 +52,7 @@
         .ff-meta { font-size:0.75rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:#A3A3A3; }
 
         .ff-body p { line-height:1.75; }
-        .ff-body h3 { font-size:1.125rem; font-weight:500; color:#171717; margin-top:2.5rem; margin-bottom:0.75rem; }
+        .ff-body h2 { font-size:1.125rem; font-weight:500; color:#171717; margin-top:2.5rem; margin-bottom:0.75rem; }
         .ff-body p + p { margin-top:1rem; }
 
         @media (prefers-reduced-motion: reduce) {
@@ -128,7 +128,7 @@
                         whether it is finished or not.
                     </p>
 
-                    <h3>Splitting the work the obvious way is wrong</h3>
+                    <h2>Splitting the work the obvious way is wrong</h2>
                     <p>
                         Five notebooks, each handed 300 species: worker 0 takes the first 300 in the
                         list, worker 1 the next 300, and so on. It took one run to see why that
@@ -152,7 +152,7 @@
                         classes of each other since.
                     </p>
 
-                    <h3>Coordination, or the lack of it</h3>
+                    <h2>Coordination, or the lack of it</h2>
                     <p>
                         Five workers filling one dataset need to know what the others have already
                         done. The tempting answer is a small service holding a queue &mdash; and then
@@ -186,7 +186,7 @@
                         answer is never ambiguous.
                     </p>
 
-                    <h3>The bug that refetched everything</h3>
+                    <h2>The bug that refetched everything</h2>
                     <p>
                         Two weeks in, the counts stopped adding up. Workers were finishing classes,
                         the image total was climbing, and the number of classes marked complete was
@@ -222,7 +222,7 @@
                         the repository, finished, unrecorded and being refetched.
                     </p>
 
-                    <h3>The notebook carries its own input</h3>
+                    <h2>The notebook carries its own input</h2>
                     <p>
                         A smaller thing that saved more time than it should have. The 1,500-species
                         manifest started life as a Kaggle dataset attached to each notebook. Five
@@ -238,7 +238,7 @@
                         either has the right list or does not run.
                     </p>
 
-                    <h3>Where it stands, and the 172 folders</h3>
+                    <h2>Where it stands, and the 172 folders</h2>
                     <p>
                         831 classes are collected and verified &mdash; 87,520 images. 669 are still in
                         the queue. The last of them will be the slowest: they are the species where
@@ -260,7 +260,7 @@
                         publishes 831, with the 172 broken out on its own line, for that reason.
                     </p>
 
-                    <h3>What I would do differently</h3>
+                    <h2>What I would do differently</h2>
                     <p>
                         Almost nothing about the sharding, which has held up better than expected for
                         five processes with no shared state. Two things, though.
@@ -326,9 +326,9 @@
             if (missing) missing.hidden = !!shown;
             if (shown) {
                 const h1 = shown.querySelector('h1');
-                if (h1) document.title = h1.textContent.trim() + ' — FindFlower';
+                if (h1) document.title = h1.textContent.trim() + ' | FindFlower';
             } else {
-                document.title = 'Field log — FindFlower';
+                document.title = 'Field log | FindFlower';
             }
 
             const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });

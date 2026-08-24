@@ -15,7 +15,7 @@
     },
     LOW_MESSAGE:
       "Unable to clearly identify a flower. Please move closer and ensure good lighting.",
-    UNCERTAIN_PROMPT: "Uncertain match — does it look like one of these?",
+    UNCERTAIN_PROMPT: "Uncertain match. Does it look like one of these?",
   };
 
   const PROBE_TIMEOUT_MS = 8000;

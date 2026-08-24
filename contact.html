@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Contact | Report a Misidentified Flower or Request API Access — FindFlower</title>
+    <title>Contact | Report a Misidentified Flower or Request API Access | FindFlower</title>
     <meta name="description" content="Get in touch about a bug, a wrong identification, a feature request, or API beta access. Messages are read and answered by the developer.">
     <link rel="canonical" href="https://findflower.me/contact">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/contact">
-    <meta property="og:title" content="Contact | Report a Misidentified Flower or Request API Access — FindFlower">
+    <meta property="og:title" content="Contact | Report a Misidentified Flower or Request API Access | FindFlower">
     <meta property="og:description" content="Get in touch about a bug, a wrong identification, a feature request, or API beta access. Messages are read and answered by the developer.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Contact | Report a Misidentified Flower or Request API Access — FindFlower">
+    <meta name="twitter:title" content="Contact | Report a Misidentified Flower or Request API Access | FindFlower">
     <meta name="twitter:description" content="Get in touch about a bug, a wrong identification, a feature request, or API beta access. Messages are read and answered by the developer.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -92,11 +92,11 @@
             <div class="max-w-xl">
                 <span class="reveal-up text-sm font-medium text-sage-600 block mb-6">Contact</span>
                 <h1 class="reveal-up text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
-                    Tell me what broke
+                    Report a problem
                 </h1>
-                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug mb-12">
-                    A bug, a wrong identification, a missing feature, a question about
-                    the API. One person reads these, and that person is me.
+                <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed mb-10">
+                    A bug, a wrong identification, a missing feature, or a question about the
+                    API. One person reads every message.
                 </p>
 
                 <form id="contactForm" class="reveal-up space-y-6">
@@ -202,8 +202,8 @@
                 const email = document.getElementById('email').value.trim();
                 const topic = document.getElementById('topic').value;
                 const message = document.getElementById('message').value.trim();
-                const subject = encodeURIComponent('[' + topic + '] FindFlower — ' + name);
-                const body = encodeURIComponent(message + '\n\n— ' + name + '\n' + email);
+                const subject = encodeURIComponent('[' + topic + '] FindFlower: ' + name);
+                const body = encodeURIComponent(message + '\n\n' + name + '\n' + email);
                 window.location.href = 'mailto:support@findflower.me?subject=' + subject + '&body=' + body;
                 form.classList.add('hidden');
                 document.getElementById('contactDone').classList.remove('hidden');

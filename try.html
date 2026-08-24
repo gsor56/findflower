@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Flower Scanner | Identify Any Flower With Your Camera — FindFlower</title>
+    <title>Flower Scanner | Identify Any Flower With Your Camera | FindFlower</title>
     <meta name="description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
     <link rel="canonical" href="https://findflower.me/try">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/try">
-    <meta property="og:title" content="Flower Scanner | Identify Any Flower With Your Camera — FindFlower">
+    <meta property="og:title" content="Flower Scanner | Identify Any Flower With Your Camera | FindFlower">
     <meta property="og:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Flower Scanner | Identify Any Flower With Your Camera — FindFlower">
+    <meta name="twitter:title" content="Flower Scanner | Identify Any Flower With Your Camera | FindFlower">
     <meta name="twitter:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -304,14 +304,14 @@
 
         <section class="max-w-7xl mx-auto px-6 mb-12 md:mb-16">
             <div class="reveal-up max-w-2xl">
-                <span class="text-sm font-medium text-sage-600 block mb-6">The workspace</span>
+                <span class="text-sm font-medium text-sage-600 block mb-6">Scanner</span>
                 <h1 class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
                     Identify a flower
                 </h1>
-                <p class="font-serif italic text-xl md:text-2xl text-sage-700 leading-snug">
-                    Camera, a photo you already have, or a link. The image goes to the inference
-                    service and comes back as a species, a confidence score, and what Wikipedia
-                    says about the plant.
+                <p class="text-base text-neutral-500 font-light leading-relaxed">
+                    Use the camera, a photo on this device, or an image link. The photo is sent to
+                    the inference service and returns a species, a confidence score and the
+                    matching Wikipedia entry.
                 </p>
             </div>
         </section>
@@ -468,7 +468,7 @@
                                         Uncertain Match
                                     </span>
                                 </div>
-                                <h3 class="text-lg font-medium tracking-tight text-neutral-900 leading-snug">Uncertain match — does it look like one of these?</h3>
+                                <h3 class="text-lg font-medium tracking-tight text-neutral-900 leading-snug">Uncertain match. Does it look like one of these?</h3>
                                 <p class="text-sm text-neutral-500 font-light mt-1">Pick the closest match to save it, or retake the photo from a different angle.</p>
                             </div>
                         </div>
@@ -653,9 +653,9 @@
         <section class="max-w-7xl mx-auto px-6 mt-24">
             <div class="reveal-up flex items-end justify-between gap-4 mb-8">
                 <div>
-                    <span class="text-sm font-medium text-sage-600 mb-2 block">While you’re here</span>
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900">Explore the flora</h2>
-                    <p class="text-neutral-500 font-light mt-2 max-w-xl">A living sample from the botanical directory — real species, real photographs. Tap any card to read more.</p>
+                    <span class="text-sm font-medium text-sage-600 mb-2 block">Directory</span>
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900">Species from the directory</h2>
+                    <p class="text-neutral-500 font-light mt-2 max-w-xl">A sample of the catalogue. Open any card for the full record.</p>
                 </div>
                 <a href="/directory" class="group hidden sm:inline-flex items-center gap-1.5 text-sm font-medium text-sage-700 hover:text-sage-600 transition-colors flex-shrink-0">
                     Full directory
@@ -730,7 +730,7 @@
             if (!SEND_AUTH_TOKEN) return {};
             if (typeof window.ffAuthHeader !== 'function') {
                 console.error(
-                    'FindFlower: SEND_AUTH_TOKEN is true but auth.js is not loaded — ' +
+                    'FindFlower: SEND_AUTH_TOKEN is true but auth.js is not loaded. ' +
                     'scans will be sent with no Authorization header. Restore the ' +
                     'auth0-spa-js and auth.js <script> tags in try.html.');
                 return {};
@@ -1006,9 +1006,9 @@
 
         const LOAD_STAGES = [
             { at: 0,     main: 'Analyzing image…',        sub: '' },
-            { at: 6000,  main: 'Analyzing image…',        sub: 'Waking up the model — this can take a moment on the first try.' },
+            { at: 6000,  main: 'Analyzing image…',        sub: 'Waking up the model. The first try can take a moment.' },
             { at: 20000, main: 'Still working…',          sub: 'The model was asleep and is starting up. Hang tight.' },
-            { at: 45000, main: 'Almost there…',           sub: 'Cold start is taking longer than usual — nearly ready.' },
+            { at: 45000, main: 'Almost there…',           sub: 'Cold start is taking longer than usual, but it is nearly ready.' },
         ];
         const REQUEST_TIMEOUT_MS = 95000;
 
@@ -1068,7 +1068,7 @@
                     }
                     if (res.status === 403) {
                         console.error('Proxy refused the origin (403):', detail);
-                        showError('The identifier is not accepting requests from this site right now. That is a configuration problem on our end, not something you did — please try again later.');
+                        showError('The identifier is not accepting requests from this site right now. That is a configuration problem on our end, not something you did. Please try again later.');
                         return;
                     }
                     throw new Error(`Server returned ${res.status}. ${detail}`);
@@ -1175,7 +1175,7 @@
                 `<img src="${previewImg.src}" alt="" class="w-11 h-11 rounded-md object-cover flex-shrink-0 bg-neutral-100" />` +
                 '<span class="flex-1 min-w-0">' +
                     `<span class="block text-sm font-medium text-neutral-900 capitalize truncate">${cleanName(top.name)}</span>` +
-                    '<span class="block text-xs text-neutral-500 font-light">Most likely — tap to accept</span>' +
+                    '<span class="block text-xs text-neutral-500 font-light">Most likely. Tap to accept</span>' +
                 '</span>' +
                 `<span class="text-xs font-medium text-neutral-500 shrink-0">${(top.p * 100).toFixed(1)}%</span>`;
             leadBtn.addEventListener('click', () => pickCandidate(top));
@@ -1237,8 +1237,8 @@
 
             const note = $('resConfNote');
             if (pct >= 70) note.textContent = 'High confidence match.';
-            else if (pct >= 40) note.textContent = 'Moderate confidence — compare with the possibilities below.';
-            else note.textContent = 'Low confidence — this may be a species outside the current Beta set.';
+            else if (pct >= 40) note.textContent = 'Moderate confidence. Compare with the possibilities below.';
+            else note.textContent = 'Low confidence. This may be a species outside the current Beta set.';
 
             const alts = ranked.slice(1, 4);
             const altsWrap = $('resAlts'), altsList = $('resAltsList');
@@ -1357,7 +1357,7 @@
             }
             $('resCompareHint').textContent =
                 'Your photo against ' + (info.lookalikeName || 'a commonly confused species') +
-                '. Drag the divider to compare — check the details that differ before you trust the match.';
+                '. Drag the divider to compare, and check the details that differ before you trust the match.';
             mount.appendChild(buildCompare({
                 leftSrc: previewImg.src,
                 leftLabel: 'Your photo',

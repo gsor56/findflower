@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>FindFlower — Identify a flower from a photograph</title>
+    <title>FindFlower | Identify a flower from a photograph</title>
     <meta name="description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
     <link rel="canonical" href="https://findflower.me/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/">
-    <meta property="og:title" content="FindFlower — Identify a flower from a photograph">
+    <meta property="og:title" content="FindFlower | Identify a flower from a photograph">
     <meta property="og:description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="FindFlower — Identify a flower from a photograph">
+    <meta name="twitter:title" content="FindFlower | Identify a flower from a photograph">
     <meta name="twitter:description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -108,19 +108,6 @@
             transition: stroke-dashoffset 2.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .active .draw-path { stroke-dashoffset: 0; }
-
-        .ff-vglass {
-            border: 1px solid #E5E5E5;
-            background-color: #FFFFFF;
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                        border-color 0.5s ease;
-        }
-        @media (hover: hover) {
-            .ff-vglass:hover {
-                transform: translateY(-6px);
-                border-color: #C9D6CB;
-            }
-        }
 
         .ff-sample-tab {
             font-size: 0.875rem;
@@ -375,15 +362,16 @@
 
                 <div class="ff-hero-copy">
                     <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 mb-6">
-                        Name the flower in front of you
+                        Identify flowers from a photo
                     </h1>
-                    <p class="reveal-up delay-200 font-serif italic text-xl md:text-2xl text-sage-700 max-w-xl leading-snug mb-6">
-                        Photograph it and read back a species, a confidence score, and what else
-                        it could have been.
+                    <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-700 max-w-xl leading-relaxed mb-6">
+                        Upload or capture a photo to identify the plant species and view
+                        confidence ratings.
                     </p>
                     <p class="reveal-up delay-200 text-base text-neutral-500 max-w-xl leading-relaxed mb-10 font-light">
-                        A Vision Transformer on the server, running under ONNX Runtime, does the
-                        identifying. Wikidata and Trefle fill in the family and growing habit.
+                        The photo is sent to a Vision Transformer on the server, running under
+                        ONNX Runtime. Family, growth habit and reference photos come from Wikidata,
+                        Trefle and Wikipedia.
                     </p>
 
                     <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
@@ -394,7 +382,7 @@
                             Browse the directory
                         </a>
                     </div>
-                    <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">Runs in any browser. Nothing to install, and free while it is in beta.</p>
+                    <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">Works in any browser. No install, no account, free during beta.</p>
                 </div>
 
                 <div id="heroPass" data-replay class="reveal-up delay-200 ff-glass-stage" aria-hidden="true">
@@ -482,12 +470,12 @@
         <section id="directory-preview" class="max-w-7xl mx-auto px-6 mb-32 scroll-mt-24">
             <div class="reveal-up flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
                 <div class="max-w-2xl">
-                    <span class="text-sm font-medium text-sage-600 mb-4 block">The directory</span>
+                    <span class="text-sm font-medium text-sage-600 mb-4 block">Directory</span>
                     <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                        Browse the botanical library
+                        Species directory
                     </h2>
                     <p class="mt-4 text-base text-neutral-500 font-light leading-relaxed">
-                        A set of common flowering species, each filled in live from Wikipedia. Open any one for its scientific name, family, and full profile.
+                        Common flowering species with scientific names, families and full profiles. Open any card to read its record.
                     </p>
                 </div>
                 <a href="/directory" class="hidden md:inline-flex items-center text-sm font-medium text-neutral-900 whitespace-nowrap hover:text-sage-600 transition-colors">
@@ -529,7 +517,7 @@
             <div class="reveal-up max-w-2xl mb-16">
                 <span class="text-sm font-medium text-sage-600 mb-4 block">How it works</span>
                 <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                    From a photograph to a named species, in three steps.
+                    How identification works
                 </h2>
             </div>
 
@@ -542,9 +530,9 @@
                         <li class="reveal-up flex gap-5">
                             <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-sm font-medium text-neutral-400">01</span>
                             <div class="min-w-0">
-                                <h4 class="text-lg font-medium text-neutral-900 mb-2">Capture or upload</h4>
+                                <h3 class="text-lg font-medium text-neutral-900 mb-2">Capture or upload</h3>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    Point your camera at a plant, or drop in a photo you already have. One clear frame of a bloom or a leaf is enough to begin. There is nothing to install and no account to make first.
+                                    Point your camera at a plant, or drop in a photo you already have. One clear frame of a bloom or a leaf is enough. No install and no account needed.
                                 </p>
                             </div>
                         </li>
@@ -552,9 +540,9 @@
                         <li class="reveal-up delay-100 flex gap-5">
                             <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-sm font-medium text-neutral-400">02</span>
                             <div class="min-w-0">
-                                <h4 class="text-lg font-medium text-neutral-900 mb-2">The model reads it</h4>
+                                <h3 class="text-lg font-medium text-neutral-900 mb-2">The model reads it</h3>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    Your photo is sent to a Vision Transformer running under ONNX Runtime, which returns a species and a confidence score. The image is used for that prediction and is not stored afterwards. The <a href="/privacy" class="text-sage-600 hover:text-sage-700 underline underline-offset-2 decoration-sage-200">privacy page</a> sets out what happens to it.
+                                    The photo is sent to a Vision Transformer running under ONNX Runtime, which returns a species and a confidence score. The image is used for that prediction and is not stored afterwards. The <a href="/privacy" class="text-sage-600 hover:text-sage-700 underline underline-offset-2 decoration-sage-200">privacy page</a> sets out what happens to it.
                                 </p>
                             </div>
                         </li>
@@ -562,9 +550,9 @@
                         <li class="reveal-up delay-200 flex gap-5">
                             <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-sm font-medium text-neutral-400">03</span>
                             <div class="min-w-0">
-                                <h4 class="text-lg font-medium text-neutral-900 mb-2">Learn the species</h4>
+                                <h3 class="text-lg font-medium text-neutral-900 mb-2">Read the record</h3>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    A name on its own teaches you nothing. Wikidata supplies the binomial and family, Trefle the growth habit and light needs, Wikipedia the plate and the article. Those four requests assemble into the record shown here.
+                                    Wikidata supplies the binomial and family, Trefle the growth habit and light needs, Wikipedia the reference photo and article. Those four requests assemble into the record shown here.
                                 </p>
                             </div>
                         </li>
@@ -643,7 +631,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 items-center">
                 <div class="reveal-up relative">
                     <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-8">
-                        A quiet tool for <br class="hidden md:block" />a complex world.
+                        About FindFlower
                     </h2>
                     <svg class="w-full max-w-sm text-sage-400" viewBox="0 0 400 220" fill="none">
                         <path class="draw-path" d="M40 200C40 150 60 120 100 110C70 108 50 88 52 58C82 62 100 84 100 110C102 74 128 50 168 52C166 88 140 110 100 110C140 112 168 138 168 176C132 172 108 148 100 110M100 110C160 120 200 90 210 40C250 60 250 110 210 130C176 146 130 138 100 110Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
@@ -651,13 +639,13 @@
                 </div>
                 <div class="reveal-up delay-100 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                     <p>
-                        FindFlower exists to close a small, ordinary gap: you can see a plant perfectly clearly and still have no way to name it. Give it one photograph and it returns a species, a confidence score, and the botanical record standing behind them.
+                        FindFlower names the plant in a photo. Submit one image and it returns a species, a confidence score, and the botanical record behind them.
                     </p>
                     <p>
-                        It is one screen and one answer. The confidence figure and the next-best guesses are shown alongside the name, because a name on its own gives you no way to tell a good identification from a poor one.
+                        The confidence score and the next-best matches are shown next to the name so you can judge how reliable the identification is.
                     </p>
                     <p>
-                        The record is assembled from Wikidata, Trefle and Wikipedia at the moment you ask for it. Where a source has nothing for a field, the row is left out rather than filled with a guess.
+                        Records are assembled from Wikidata, Trefle and Wikipedia when you request them. Fields a source has no data for are left out rather than filled with a guess.
                     </p>
                 </div>
             </div>
@@ -665,54 +653,41 @@
 
         <section id="architecture" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
             <div class="reveal-up max-w-2xl mb-14">
-                <span class="text-sm font-medium text-sage-600 mb-4 block">Why FindFlower</span>
+                <span class="text-sm font-medium text-sage-600 mb-4 block">Architecture</span>
                 <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                    Built out of things you can check.
+                    What runs it
                 </h2>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                <div class="reveal-up ff-vglass flex flex-col rounded-lg p-8">
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Vision Transformer pipeline</h4>
-                    <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        The classifier is a Vision Transformer exported to ONNX and served through ONNX Runtime, across 116 botanical classes. Every prediction comes back with its confidence and its closest alternatives, not a single unexplained answer.
+            <div class="reveal-up border-t border-b border-neutral-200">
+                <div class="py-6 sm:grid sm:grid-cols-3 sm:gap-8 border-t border-neutral-100 first:border-t-0">
+                    <h3 class="text-base font-medium text-neutral-900 mb-2 sm:mb-0">Classifier</h3>
+                    <p class="sm:col-span-2 text-base text-neutral-500 font-light leading-relaxed">
+                        A Vision Transformer exported to ONNX and served through ONNX Runtime, covering 116 botanical classes. Each prediction returns a confidence score and its closest alternatives.
                     </p>
                 </div>
-
-                <div class="reveal-up delay-100 ff-vglass flex flex-col rounded-lg p-8">
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">Wikidata, Trefle and Wikipedia</h4>
-                    <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        A name is where the work starts. Wikidata contributes the structured taxonomy, Trefle the growing data, Wikipedia the plate and the article. Each is fetched when you ask for it, not frozen into a copy that quietly ages.
+                <div class="py-6 sm:grid sm:grid-cols-3 sm:gap-8 border-t border-neutral-100 first:border-t-0">
+                    <h3 class="text-base font-medium text-neutral-900 mb-2 sm:mb-0">Species data</h3>
+                    <p class="sm:col-span-2 text-base text-neutral-500 font-light leading-relaxed">
+                        Wikidata for taxonomy, Trefle for growing conditions, Wikipedia for the reference photo and article. Each source is queried when you open a record, so nothing is served from a stale copy.
                     </p>
                 </div>
-
-                <div class="reveal-up delay-200 ff-vglass flex flex-col rounded-lg p-8">
-                    <h4 class="text-lg font-medium text-neutral-900 mb-3">No account needed</h4>
-                    <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        No account, no API key, no install. Open the scanner and identify. The only record kept is the scan history your own browser holds, and you can clear it whenever you like.
+                <div class="py-6 sm:grid sm:grid-cols-3 sm:gap-8 border-t border-neutral-100 first:border-t-0">
+                    <h3 class="text-base font-medium text-neutral-900 mb-2 sm:mb-0">Accounts</h3>
+                    <p class="sm:col-span-2 text-base text-neutral-500 font-light leading-relaxed">
+                        Not required. Open the scanner and identify. Scan history is kept in your own browser and you can clear it at any time.
                     </p>
                 </div>
-
-            </div>
-        </section>
-
-        <section class="max-w-4xl mx-auto px-6 mb-40 text-center">
-            <div class="reveal-up">
-                <svg class="mx-auto mb-8 text-sage-400" width="32" height="32" viewBox="0 0 24 24" fill="none"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                <p class="text-2xl md:text-4xl font-serif font-normal text-neutral-800 leading-snug tracking-tight">
-                    I wanted one page that names the flower, says how sure it is, and admits what else it could be.
-                </p>
             </div>
         </section>
 
         <section class="max-w-7xl mx-auto px-6 mb-24">
             <div class="reveal-up border-t border-neutral-200 pt-10 max-w-2xl">
                 <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-4">
-                    Try it on the nearest flower
+                    Identify a flower
                 </h2>
                 <p class="text-base text-neutral-600 mb-8 font-light leading-relaxed">
-                    No account, nothing to install, and free for the whole of the beta.
+                    No account, no install, free during the beta.
                 </p>
                 <a href="/try" class="soft-click inline-flex items-center text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition">
                     Open the scanner
@@ -1157,7 +1132,7 @@
                     '<img class="thumb w-full h-full object-cover opacity-0 transition-opacity duration-700" alt="' + seed.common + '" loading="lazy" />' +
                 '</div>' +
                 '<div class="p-4 flex-1 flex flex-col">' +
-                    '<h4 class="cname text-base font-medium text-neutral-900 leading-tight">' + seed.common + '</h4>' +
+                    '<h3 class="cname text-base font-medium text-neutral-900 leading-tight">' + seed.common + '</h3>' +
                     '<p class="sname text-sm font-light text-sage-600 italic mt-1 min-h-5">' +
                         '<span class="inline-block w-24 h-3 rounded skeleton align-middle"></span>' +
                     '</p>' +
@@ -1180,7 +1155,7 @@
                 } else if (info && info.description) {
                     sname.innerHTML = ''; sname.textContent = info.description; sname.classList.remove('italic');
                 } else {
-                    sname.innerHTML = ''; sname.textContent = '—';
+                    sname.innerHTML = ''; sname.textContent = '';
                     sname.classList.remove('italic'); sname.classList.add('text-neutral-400');
                 }
                 if (info && info.title && info.found) cname.textContent = info.title;
@@ -1194,7 +1169,7 @@
                     ph.innerHTML = '<div class="w-full h-full flex items-center justify-center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" class="text-sage-300"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>';
                 }
             } catch (e) {
-                sname.innerHTML = ''; sname.textContent = '—'; sname.classList.remove('italic');
+                sname.innerHTML = ''; sname.textContent = ''; sname.classList.remove('italic');
                 if (ph) { ph.classList.remove('skeleton'); ph.classList.add('bg-neutral-100'); }
             } finally {
                 if (!('IntersectionObserver' in window)) {

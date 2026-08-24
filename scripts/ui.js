@@ -39,7 +39,7 @@
             '<a href="' + esc(l.href) + '"' + l.attrs + ' class="block">' +
                 '<div class="aspect-[4/5] bg-neutral-100 overflow-hidden">' + media + '</div>' +
                 '<div class="p-3.5 sm:p-4">' +
-                    '<h3 class="font-medium text-sm sm:text-base text-neutral-900 leading-snug italic truncate" title="' + esc(plant.name) + '">' + esc(plant.name) + '</h3>' +
+                    '<h2 class="font-medium text-sm sm:text-base text-neutral-900 leading-snug italic truncate" title="' + esc(plant.name) + '">' + esc(plant.name) + '</h2>' +
                     (plant.family ? '<p class="text-xs text-neutral-400 mt-1 truncate">' + esc(plant.family) + '</p>' : '') +
                 '</div>' +
             '</a>' +
@@ -129,10 +129,10 @@
 
     function moistureText(m) {
         if (m === null || m === undefined || typeof m !== 'number') return '';
-        if (m >= 8) return 'High water use — keep consistently moist.';
-        if (m >= 5) return 'Moderate water use — water when the top of the soil dries.';
-        if (m >= 3) return 'Low water use — let the soil dry between waterings.';
-        return 'Very low water use — drought tolerant once established.';
+        if (m >= 8) return 'High water use. Keep the soil consistently moist.';
+        if (m >= 5) return 'Moderate water use. Water when the top of the soil dries.';
+        if (m >= 3) return 'Low water use. Let the soil dry between waterings.';
+        return 'Very low water use. Drought tolerant once established.';
     }
 
     window.ffUi = {

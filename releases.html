@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Release Notes | Model Updates and Changelog — FindFlower</title>
+    <title>Release Notes | Model Updates and Changelog | FindFlower</title>
     <meta name="description" content="Every change to the FindFlower scanner, identification model, and species directory, newest first.">
     <link rel="canonical" href="https://findflower.me/releases">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/releases">
-    <meta property="og:title" content="Release Notes | Model Updates and Changelog — FindFlower">
+    <meta property="og:title" content="Release Notes | Model Updates and Changelog | FindFlower">
     <meta property="og:description" content="Every change to the FindFlower scanner, identification model, and species directory, newest first.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Release Notes | Model Updates and Changelog — FindFlower">
+    <meta name="twitter:title" content="Release Notes | Model Updates and Changelog | FindFlower">
     <meta name="twitter:description" content="Every change to the FindFlower scanner, identification model, and species directory, newest first.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -91,7 +91,7 @@
         <section class="relative max-w-7xl mx-auto px-6 mb-20">
             <div class="max-w-3xl">
                 <span class="reveal-up text-sm font-medium text-sage-600 mb-6 block">Release notes</span>
-                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">What changed, and when</h1>
+                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">Release history</h1>
                 <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug">
                     The model, the interface and the data the app keeps, newest first.
                     Removals are listed next to the additions.
@@ -113,7 +113,7 @@
                         <div>
                             <p class="text-sm font-medium text-sage-600 mb-3">Dataset &amp; model infrastructure</p>
                             <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
-                                <li>The species list for the next model is settled: 1,500 flowering plants, ranked by observation count out of 5,458 candidates. Collection is well along — 1,003 species and 104,720 verified photos so far, no class under 100 images.</li>
+                                <li>The species list for the next model is settled: 1,500 flowering plants, ranked by observation count out of 5,458 candidates. Collection is well along, with 1,003 species and 104,720 verified photos so far and no class under 100 images.</li>
                                 <li>Collection runs as five Kaggle shard workers in parallel. Deduplication, quality filtering and the 100-image floor per class happen in the pipeline, so one shard can be re-run without disturbing the other four.</li>
                             </ul>
                         </div>
@@ -159,7 +159,7 @@
                         <div>
                             <p class="text-sm font-medium text-sage-600 mb-3">Model improvements</p>
                             <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
-                                <li>New Vision Transformer model, now served from a secure hosted endpoint instead of downloading to the browser. Your photo is sent for processing and only the result comes back — this changes the privacy model, so see the <a href="/privacy" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">privacy page</a>.</li>
+                                <li>New Vision Transformer model, now served from a secure hosted endpoint instead of downloading to the browser. Your photo is sent for processing and only the result comes back. This changes the privacy model, so see the <a href="/privacy" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">privacy page</a>.</li>
                                 <li>Expanded coverage to 116 botanical classes.</li>
                                 <li>Steadier confidence scoring, with clearer separation between close look-alikes.</li>
                             </ul>
@@ -198,7 +198,7 @@
                         <div>
                             <p class="text-sm font-medium text-sage-600 mb-3">Model improvements</p>
                             <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
-                                <li>Fully in-browser inference — images no longer leave the device.</li>
+                                <li>Fully in-browser inference, so images no longer leave the device.</li>
                             </ul>
                         </div>
                         <div>
@@ -231,7 +231,7 @@
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-white border-2 border-dashed border-neutral-300 ring-4 ring-[#FCFCFC]"></span>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <h2 class="text-2xl font-medium tracking-tight text-neutral-400">On the horizon</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-neutral-400">Planned</h2>
                     </div>
                     <div class="border-t border-neutral-200 pt-6">
                         <ul class="space-y-2.5 text-neutral-500 font-light list-disc pl-5 marker:text-sage-400">

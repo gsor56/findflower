@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>How It Works | Vision Transformer Flower Identification Explained — FindFlower</title>
+    <title>How It Works | Vision Transformer Flower Identification Explained | FindFlower</title>
     <meta name="description" content="How FindFlower identifies a flower from one photo: a fine-tuned Vision Transformer, 116 species, confidence scores, and why images never leave the pipeline.">
     <link rel="canonical" href="https://findflower.me/how">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/how">
-    <meta property="og:title" content="How It Works | Vision Transformer Flower Identification Explained — FindFlower">
+    <meta property="og:title" content="How It Works | Vision Transformer Flower Identification Explained | FindFlower">
     <meta property="og:description" content="How FindFlower identifies a flower from one photo: a fine-tuned Vision Transformer, 116 species, confidence scores, and why images never leave the pipeline.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="How It Works | Vision Transformer Flower Identification Explained — FindFlower">
+    <meta name="twitter:title" content="How It Works | Vision Transformer Flower Identification Explained | FindFlower">
     <meta name="twitter:description" content="How FindFlower identifies a flower from one photo: a fine-tuned Vision Transformer, 116 species, confidence scores, and why images never leave the pipeline.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -132,11 +132,10 @@
                 </div>
                 <div class="lg:col-span-8">
                     <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
-                        Photograph a flower,<br class="hidden sm:block"> read what it is
+                        How FindFlower works
                     </h1>
                     <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug max-w-2xl mb-10">
-                        Three steps, no account, and a confidence score attached to every
-                        guess so you can see how sure it actually is.
+                        Three steps, no account, and a confidence score on every prediction.
                     </p>
                     <a href="/try" class="reveal-up group inline-flex items-center gap-2 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors">
                         Identify a flower
@@ -177,8 +176,7 @@
                     <h3 class="text-2xl font-medium tracking-tight text-neutral-900 mt-2 mb-3">Wikipedia fills in the rest</h3>
                     <p class="text-base text-neutral-600 font-light leading-relaxed">
                         Each match pulls a short summary and a reference image from Wikipedia,
-                        with a link to the full article. The identification is a name; the
-                        article is where the plant becomes interesting.
+                        with a link to the full article.
                     </p>
                 </div>
             </div>
@@ -187,13 +185,13 @@
         <section class="max-w-7xl mx-auto px-6 mb-40 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
             <div class="lg:col-span-4">
                 <h2 class="reveal-up text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                    What does<br class="hidden lg:block"> the identifying
+                    What runs the<br class="hidden lg:block"> identification
                 </h2>
             </div>
             <div class="lg:col-span-7 lg:col-start-6 divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
                 <div class="reveal-up py-6">
                     <p class="font-medium text-neutral-900 mb-1">A fine-tuned Vision Transformer</p>
-                    <p class="text-neutral-600 font-light leading-relaxed">Trained on a curated flower set and served as ONNX. It returns a ranked guess, not a verdict.</p>
+                    <p class="text-neutral-600 font-light leading-relaxed">Trained on a curated flower set and served as ONNX. It returns ranked candidates with a confidence score for each.</p>
                 </div>
                 <div class="reveal-up py-6">
                     <p class="font-medium text-neutral-900 mb-1">116 botanical classes</p>
@@ -222,7 +220,7 @@
                     <p>
                         The pipeline that would train on those corrections does not exist yet.
                         When it does, it will be described here and on the releases page before
-                        a single record is collected. Until then the log belongs to you — your
+                        a single record is collected. Until then the log belongs to you. Your
                         dashboard counts it, exports it, and erases it on request.
                     </p>
                     <p>

@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>FindFlower — Sign in</title>
+    <title>Sign in | FindFlower</title>
     <meta name="description" content="Sign in to keep your scans, streak and badges under your own account. They stay in this browser, and the scanner works without an account.">
     <link rel="canonical" href="https://findflower.me/login">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/login">
-    <meta property="og:title" content="FindFlower — Sign in">
+    <meta property="og:title" content="Sign in | FindFlower">
     <meta property="og:description" content="Sign in to keep your scans, streak and badges under your own account. They stay in this browser, and the scanner works without an account.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="FindFlower — Sign in">
+    <meta name="twitter:title" content="Sign in | FindFlower">
     <meta name="twitter:description" content="Sign in to keep your scans, streak and badges under your own account. They stay in this browser, and the scanner works without an account.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -110,10 +110,10 @@
             <div class="max-w-lg">
                 <span id="authKicker" class="text-sm font-medium text-sage-600 block mb-6">Sign in</span>
                 <h1 id="authTitle" class="text-4xl md:text-5xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
-                    Your finds, kept under your own name
+                    Sign in to save and manage your plant history
                 </h1>
-                <p id="authBlurb" class="font-serif italic text-xl md:text-2xl text-sage-700 leading-snug mb-12">
-                    Signing in separates your records from anyone else who uses this browser. It uploads nothing.
+                <p id="authBlurb" class="text-lg text-neutral-600 font-light leading-relaxed mb-10">
+                    Signing in keeps your records separate from anyone else using this browser. Nothing is uploaded.
                 </p>
 
                 <div id="authLoading" class="flex items-center gap-3">
@@ -162,7 +162,7 @@
 
                 <div class="mt-16 pt-8 border-t border-neutral-200 space-y-6 text-base text-neutral-600 font-light leading-relaxed">
                     <p>
-                        Your scans, streak and badges live in this browser, signed in or not. There is no copy on a server and no sync between devices — clear your browser data and the history is gone with it.
+                        Your scans, streak and badges live in this browser, signed in or not. There is no copy on a server and no sync between devices. Clear your browser data and the history is gone with it.
                     </p>
                     <p>
                         Signing in only decides which of those records are yours on this machine. The scanner never asks for an account, and no copy of your photo is kept.
@@ -207,7 +207,7 @@
                 document.getElementById('userEmail').textContent = user.email || '';
                 document.getElementById('authKicker').textContent = 'Account';
                 document.getElementById('authTitle').textContent = 'Signed in';
-                document.getElementById('authBlurb').textContent = 'What you save in this browser is now filed under this account.';
+                document.getElementById('authBlurb').textContent = 'Scans saved in this browser are now filed under this account.';
                 show(signedIn);
                 const dest = localStorage.getItem('ff_return_to');
                 if (dest) { localStorage.removeItem('ff_return_to'); window.location.href = dest; }

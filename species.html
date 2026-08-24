@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Species Profile | Botanical Name, Family and Toxicity — FindFlower</title>
-    <meta name="description" content="A live botanical profile — scientific name, family, toxicity, growing conditions and related species, enriched from Wikipedia and Wikidata.">
+    <title>Species Profile | Botanical Name, Family and Toxicity | FindFlower</title>
+    <meta name="description" content="A live botanical profile with the scientific name, family, toxicity, growing conditions and related species, enriched from Wikipedia and Wikidata.">
     <link rel="canonical" href="https://findflower.me/species">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/species">
-    <meta property="og:title" content="Species Profile | Botanical Name, Family and Toxicity — FindFlower">
-    <meta property="og:description" content="A live botanical profile — scientific name, family, toxicity, growing conditions and related species, enriched from Wikipedia and Wikidata.">
+    <meta property="og:title" content="Species Profile | Botanical Name, Family and Toxicity | FindFlower">
+    <meta property="og:description" content="A live botanical profile with the scientific name, family, toxicity, growing conditions and related species, enriched from Wikipedia and Wikidata.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Species Profile | Botanical Name, Family and Toxicity — FindFlower">
-    <meta name="twitter:description" content="A live botanical profile — scientific name, family, toxicity, growing conditions and related species, enriched from Wikipedia and Wikidata.">
+    <meta name="twitter:title" content="Species Profile | Botanical Name, Family and Toxicity | FindFlower">
+    <meta name="twitter:description" content="A live botanical profile with the scientific name, family, toxicity, growing conditions and related species, enriched from Wikipedia and Wikidata.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=9">
@@ -355,10 +355,10 @@
         }
 
         function setPageMeta(name, info) {
-            const title = name + ' | Botanical Profile, Family and Toxicity — FindFlower';
+            const title = name + ' | Botanical Profile, Family and Toxicity | FindFlower';
             const desc = (info && info.summary)
                 ? String(info.summary).replace(/\s+/g, ' ').slice(0, 155).trim()
-                : name + ' — scientific name, family, toxicity and growing conditions, enriched from Wikipedia and Wikidata.';
+                : name + ': scientific name, family, toxicity and growing conditions, enriched from Wikipedia and Wikidata.';
             const url = 'https://findflower.me/species?name=' + encodeURIComponent(name);
 
             document.title = title;

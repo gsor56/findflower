@@ -26,7 +26,7 @@
         start: {
             id: 'camStart', n: 1, of: 3,
             title: 'Tap <b>Start camera</b>',
-            body: 'Your phone will ask for permission — choose <b>Allow</b>. ' +
+            body: 'Your phone will ask for permission. Choose <b>Allow</b>. ' +
                   'No camera? Scroll up and tap <b>Upload</b> to use a photo you already have.'
         },
         capture: {

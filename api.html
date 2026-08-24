@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>API Reference | Identify Flowers Programmatically — FindFlower</title>
+    <title>API Reference | Identify Flowers Programmatically | FindFlower</title>
     <meta name="description" content="Developer documentation for the FindFlower identification API: authentication, the identify endpoints, feedback and Wikipedia helpers, and a working code example for the endpoint that is live today.">
     <link rel="canonical" href="https://findflower.me/api">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/api">
-    <meta property="og:title" content="API Reference | Identify Flowers Programmatically — FindFlower">
+    <meta property="og:title" content="API Reference | Identify Flowers Programmatically | FindFlower">
     <meta property="og:description" content="Developer documentation for the FindFlower identification API: authentication, the identify endpoints, feedback and Wikipedia helpers, and a working code example for the endpoint that is live today.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="API Reference | Identify Flowers Programmatically — FindFlower">
+    <meta name="twitter:title" content="API Reference | Identify Flowers Programmatically | FindFlower">
     <meta name="twitter:description" content="Developer documentation for the FindFlower identification API: authentication, the identify endpoints, feedback and Wikipedia helpers, and a working code example for the endpoint that is live today.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -160,7 +160,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 border-t border-neutral-200">
                 <div class="reveal-up pt-8 pb-2 md:pr-12">
                     <div class="flex items-center gap-3 mb-3">
-                        <h3 class="text-2xl font-medium tracking-tight text-neutral-900">Direct endpoint</h3>
+                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Direct endpoint</h2>
                         <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Working now</span>
                     </div>
                     <p class="text-base text-neutral-600 font-light leading-relaxed">
@@ -172,7 +172,7 @@
                 </div>
                 <div class="reveal-up pt-8 pb-2 border-t border-neutral-200 md:border-t-0 md:border-l md:border-neutral-200 md:pl-12">
                     <div class="flex items-center gap-3 mb-3">
-                        <h3 class="text-2xl font-medium tracking-tight text-neutral-900">Hosted REST API</h3>
+                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Hosted REST API</h2>
                         <span class="text-xs font-medium text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-full">Not serving yet</span>
                     </div>
                     <p class="text-base text-neutral-600 font-light leading-relaxed">
@@ -275,13 +275,13 @@
                         Submit a photo file and receive the ranked species predictions. This is the primary endpoint for gallery uploads and drag-and-drop.
                     </p>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · multipart/form-data</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · multipart/form-data</h3>
                     <div class="code p-5 mb-6"><span class="tok-com"># field name: image (JPG, PNG or WEBP, up to 10 MB)</span>
 curl -X POST https://api.findflower.me/v1/identify \
   -H <span class="tok-str">"Authorization: Bearer ff_preview_your_key_here"</span> \
   -F <span class="tok-str">"image=@sunflower.jpg"</span></div>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
   <span class="tok-key">"top"</span>: {
     <span class="tok-key">"name"</span>: <span class="tok-str">"sunflowers"</span>,
@@ -312,7 +312,7 @@ curl -X POST https://api.findflower.me/v1/identify \
                         Camera frames captured in the browser are most easily sent as a base64 data URL. The same endpoint accepts a JSON body with an <span class="font-mono text-sm text-neutral-700">image</span> string, so you don’t need to build a multipart request from a canvas.
                     </p>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h3>
                     <div class="code p-5 mb-6"><span class="tok-com">// capture a frame, then POST it as a data URL</span>
 <span class="tok-key">const</span> dataUrl = canvas.toDataURL(<span class="tok-str">"image/jpeg"</span>, <span class="tok-num">0.92</span>);
 
@@ -325,7 +325,7 @@ curl -X POST https://api.findflower.me/v1/identify \
   <span class="tok-key">body</span>: JSON.stringify({ <span class="tok-key">image</span>: dataUrl })
 });</div>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
   <span class="tok-key">"top"</span>: { <span class="tok-key">"name"</span>: <span class="tok-str">"rose"</span>, <span class="tok-key">"confidence"</span>: <span class="tok-num">0.712</span> },
   <span class="tok-key">"predictions"</span>: [ <span class="tok-mut">/* ...ranked list... */</span> ],
@@ -348,13 +348,13 @@ curl -X POST https://api.findflower.me/v1/identify \
                         Pass a link to an image, or a YouTube URL. The service resolves a still frame (for YouTube, the thumbnail) server-side, which side-steps the browser’s cross-origin limits.
                     </p>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h3>
                     <div class="code p-5 mb-6">curl -X POST https://api.findflower.me/v1/identify/url \
   -H <span class="tok-str">"Authorization: Bearer ff_preview_your_key_here"</span> \
   -H <span class="tok-str">"Content-Type: application/json"</span> \
   -d <span class="tok-str">'{ "url": "https://example.com/tulip.jpg" }'</span></div>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
   <span class="tok-key">"source"</span>: <span class="tok-str">"https://example.com/tulip.jpg"</span>,
   <span class="tok-key">"top"</span>: { <span class="tok-key">"name"</span>: <span class="tok-str">"tulips"</span>, <span class="tok-key">"confidence"</span>: <span class="tok-num">0.883</span> },
@@ -378,7 +378,7 @@ curl -X POST https://api.findflower.me/v1/identify \
                         Report whether a prediction was correct, and optionally the true species. These signals feed directly into future model versions.
                     </p>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h3>
                     <div class="code p-5 mb-6">{
   <span class="tok-key">"predicted"</span>: <span class="tok-str">"rose"</span>,
   <span class="tok-key">"confidence"</span>: <span class="tok-num">0.712</span>,
@@ -386,7 +386,7 @@ curl -X POST https://api.findflower.me/v1/identify \
   <span class="tok-key">"correction"</span>: <span class="tok-str">"peruvian lily"</span>
 }</div>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 202 Accepted</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 202 Accepted</h3>
                     <div class="code p-5 mb-6">{
   <span class="tok-key">"received"</span>: <span class="tok-num">true</span>,
   <span class="tok-key">"id"</span>: <span class="tok-str">"fb_8f21c4"</span>
@@ -405,14 +405,14 @@ curl -X POST https://api.findflower.me/v1/identify \
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Wikipedia info retrieval</h2>
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        A convenience endpoint that returns the Wikipedia summary and lead image for a species name — the same context shown in the FindFlower workspace.
+                        A convenience endpoint that returns the Wikipedia summary and lead image for a species name, the same context shown in the FindFlower workspace.
                     </p>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request</h3>
                     <div class="code p-5 mb-6">curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower</span> \
   -H <span class="tok-str">"Authorization: Bearer ff_preview_your_key_here"</span></div>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
   <span class="tok-key">"title"</span>: <span class="tok-str">"Common sunflower"</span>,
   <span class="tok-key">"extract"</span>: <span class="tok-str">"The common sunflower (Helianthus annuus) is..."</span>,
@@ -432,10 +432,10 @@ curl -X POST https://api.findflower.me/v1/identify \
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Direct endpoint</h2>
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        The quickest way to integrate today. POST an image to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download — sign in and send the photo with your access token in the <span class="font-mono text-sm text-neutral-700">Authorization</span> header.
+                        The quickest way to integrate today. POST an image to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download. Sign in and send the photo with your access token in the <span class="font-mono text-sm text-neutral-700">Authorization</span> header.
                     </p>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Identify an image</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Identify an image</h3>
                     <div class="code p-5 mb-6"><span class="tok-com">// send the image as multipart/form-data under the "file" field</span>
 <span class="tok-com">// the endpoint requires a signed-in session: pass the Auth0 access token</span>
 <span class="tok-key">async function</span> identify(fileOrBlob, accessToken) {
@@ -452,7 +452,7 @@ curl -X POST https://api.findflower.me/v1/identify \
   <span class="tok-key">return</span> res.json();
 }</div>
 
-                    <h4 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h4>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
   <span class="tok-key">"flower"</span>: <span class="tok-str">"sunflower"</span>,
   <span class="tok-key">"confidence"</span>: <span class="tok-num">0.9412</span>,
@@ -469,17 +469,16 @@ curl -X POST https://api.findflower.me/v1/identify \
                     </div>
                     <div class="flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                        <p>The current Beta model recognises 116 botanical classes. Predictions are a best guess — always surface the confidence score and the runners-up so your users can judge for themselves.</p>
+                        <p>The current Beta model recognises 116 botanical classes. Predictions are a best guess, so always surface the confidence score and the runners-up so your users can judge for themselves.</p>
                     </div>
                 </section>
 
                 <section class="scroll-mt-24 border-t border-neutral-200 pt-10">
                     <div class="max-w-xl">
-                        <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Building something with this?</h2>
+                        <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Questions about the API</h2>
                         <p class="text-base text-neutral-600 font-light leading-relaxed mb-8">
                             Ask about a class the model does not know, a field you need in the response,
-                            or anything above that reads wrong. One person answers, and it is the person
-                            who wrote it.
+                            or anything above that reads wrong. One person answers these.
                         </p>
                         <a href="/contact" class="group inline-flex items-center gap-2 text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors">
                             Send a message
