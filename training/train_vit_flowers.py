@@ -70,6 +70,19 @@ def _read_hf_token():
     tok = (os.environ.get("HF_TOKEN") or "").strip()
     if tok:
         return tok, "environment"
+    # Fallback for unattended Kaggle runs when the Secrets API is unavailable.
+    # The credential is supplied by the private `ibhxbg/my-secrets` dataset and
+    # is never included in this kernel package or printed to logs.
+    for path in (
+        "/kaggle/input/my-secrets/credential.txt",
+        "/kaggle/input/my_secrets/credential.txt",
+    ):
+        try:
+            tok = open(path, encoding="utf-8").read().strip()
+            if tok:
+                return tok, "attached credential dataset"
+        except OSError:
+            pass
     try:
         from kaggle_secrets import UserSecretsClient
         tok = (UserSecretsClient().get_secret("HF_TOKEN") or "").strip()
@@ -279,6 +292,8 @@ MIN_IMAGES_LARGE = 100     # retain every one of the 1,500 balanced classes
 # is roughly 8-12x the cost per image of ViT-B/16 at 224px, so expect single-digit
 # epochs per session, not all 50 at once.
 EPOCHS_PER_RUN = 50
+EARLY_STOP_PATIENCE = 5       # validation-loss epochs without improvement
+EARLY_STOP_MIN_DELTA = 1e-4   # ignore insignificant floating-point noise
 BATCH_SIZE = 4             # conservative per-device batch for MaxViT-base at 384px
 GRAD_ACCUM_STEPS = 16      # 4 x 16 = an effective batch of 64, same as the 224 run
 LEARNING_RATE = 1.5e-4     # lower resumed-head lr reduces late-epoch oscillation
@@ -312,6 +327,7 @@ STEP_CHECKPOINT_EVERY = 1500        # mid-epoch weight saves; a 4h epoch is too
 QUANT_MAX_ACC_LOSS = 0.01   # 1%: above this, selective quantization is triggered
 QUANT_EVAL_MAX = 400        # bounded CPU eval so ONNX finalization fits the session
 ONNX_OPSET = 14
+MAX_SERVER_ONNX_MB = 480      # leave headroom below the 512 MB backend limit
 ONNX_FP32_PATH = "findflower_vit_fp32.onnx"
 ONNX_INT8_PATH = "findflower_vit.onnx"    # the INT8 artefact named in the brief
 BEST_MODEL_PATH = "best_model.pth"
@@ -901,16 +917,25 @@ def count_local_images(label):
     d = species_dir(label)
     return len([f for f in os.listdir(d) if f.lower().endswith((".jpg", ".jpeg", ".png"))])
 
-def pull_data_repo():
-    """Restore previously-downloaded images from the HF dataset repo into
-    DATA_DIR. This is what makes downloads survive a wiped Kaggle session."""
+def pull_data_repo(copy_to_work=False):
+    """Materialize the Hub snapshot once and optionally copy it for collection.
+
+    Training reads the immutable snapshot in the Hugging Face cache directly.
+    Copying 150,000 images into /kaggle/working duplicates the whole dataset,
+    exhausts Kaggle disk, and also publishes the copy as kernel output. Only the
+    iNaturalist collector path needs a writable DATA_DIR copy.
+    """
     try:
         local = snapshot_download(
             repo_id=HF_DATA_REPO, repo_type="dataset", token=HF_TOKEN,
             allow_patterns=["*/*.jpg", "*/*.jpeg", "*/*.png"])
     except Exception as e:
         print(f"[data] nothing to restore yet ({e})")
-        return
+        return None
+    if not copy_to_work:
+        free_gb = shutil.disk_usage(local).free / (1024 ** 3)
+        print(f"[data] using Hub snapshot in-place: {local} ({free_gb:.1f} GB free)")
+        return local
     n = 0
     for root, _, files in os.walk(local):
         for f in files:
@@ -923,6 +948,7 @@ def pull_data_repo():
                 shutil.copy2(os.path.join(root, f), dst)
                 n += 1
     print(f"[data] restored {n} images from {HF_DATA_REPO}")
+    return DATA_DIR
 
 def push_species_images(label):
     """Persist one species' images to the dataset repo. Called right after a
@@ -1118,12 +1144,14 @@ print(f"[data] DATA_MODE = {DATA_MODE}")
 # ------------------------------------------------------------------------------
 if DATA_MODE == "hub":
     print("\n[phase] RESTORE")
-    pull_data_repo()
+    CLASS_TREE = pull_data_repo(copy_to_work=False)
+    if not CLASS_TREE:
+        raise SystemExit("[data] Hub snapshot could not be materialized")
 
 elif DATA_MODE == "inat":
     print("\n[phase] DOWNLOAD")
     # Restore any images collected on previous runs before deciding what's missing.
-    pull_data_repo()
+    pull_data_repo(copy_to_work=True)
     # A species needs downloading if it doesn't yet have enough images ON DISK
     # (after the restore above), regardless of manifest flags -- this is robust to
     # a wiped Kaggle session and to newly-added species.
@@ -1296,7 +1324,7 @@ if os.path.isfile(INDEX_CACHE):
         print(f"[index] cache unusable ({type(e).__name__}); rebuilding")
 
 if samples_by_label is None:
-    samples_by_label = (build_index_local(CLASS_TREE) if DATA_MODE == "local"
+    samples_by_label = (build_index_local(CLASS_TREE) if CLASS_TREE
                         else build_index_from_data_dir())
     try:
         with open(INDEX_CACHE, "w") as f:
@@ -2434,18 +2462,23 @@ def evaluate(loader=None, limit=None, tag="val"):
     loader = loader or val_loader
     model.eval()
     acc = MetricAccumulator(num_labels, DEVICE)
+    loss_sum = 0.0
     t0 = time.monotonic()
     for x, y in loader:
         x = x.to(DEVICE, non_blocking=True)
         y = y.to(DEVICE, non_blocking=True)
         with amp_autocast():
             logits = forward_logits(model, x)
+        batch_loss = criterion(logits, y)
+        loss_sum += float(batch_loss.detach()) * y.size(0)
         acc.update(logits.float(), y)
         if limit and acc.total >= limit:
             break
     r = acc.result()
+    r["val_loss"] = loss_sum / max(1, r["n"])
     r["seconds"] = time.monotonic() - t0
-    print(f"[eval:{tag}] top1={r['top1']*100:.2f}%  top3={r['top3']*100:.2f}%  "
+    print(f"[eval:{tag}] loss={r['val_loss']:.5f}  "
+          f"top1={r['top1']*100:.2f}%  top3={r['top3']*100:.2f}%  "
           f"macroF1={r['macro_f1']:.4f}  (n={r['n']:,} over "
           f"{r['classes_present']:,} classes, {hms(r['seconds'])})")
     return r
@@ -2490,6 +2523,8 @@ bomb_fired = False
 stop_reason = "completed all planned epochs"
 global_step = 0
 train_seconds = 0.0
+best_val_loss = float("inf")
+bad_val_epochs = 0
 
 def _oom_backoff():
     """
@@ -2579,6 +2614,7 @@ for epoch in range(1, planned_epochs + 1):
     manifest["trained_epochs"] = manifest.get("trained_epochs", 0) + 1
     manifest["last_val_accuracy"] = metrics["top1"]
     print(f"[epoch {epoch}] train_loss={running/max(1,seen):.3f}  "
+          f"val_loss={metrics['val_loss']:.5f}  "
           f"top1={metrics['top1']*100:.2f}%  top3={metrics['top3']*100:.2f}%  "
           f"macroF1={metrics['macro_f1']:.4f}  ({hms(time.monotonic()-t0)})")
 
@@ -2595,11 +2631,20 @@ for epoch in range(1, planned_epochs + 1):
         print(f"[best] e{epoch} did not improve accuracy "
               f"(top1={metrics['top1']:.4f}, top3={metrics['top3']:.4f})")
 
+    if metrics["val_loss"] < best_val_loss - EARLY_STOP_MIN_DELTA:
+        best_val_loss = metrics["val_loss"]
+        bad_val_epochs = 0
+    else:
+        bad_val_epochs += 1
+        print(f"[early-stop] no validation-loss improvement for "
+              f"{bad_val_epochs}/{EARLY_STOP_PATIENCE} epoch(s)")
+
     manifest["classes"] = classes
     manifest.setdefault("history", []).append({
         "run": manifest.get("runs", 0) + 1, "epoch": manifest["trained_epochs"],
         "top1": metrics["top1"], "top3": metrics["top3"],
-        "macro_f1": metrics["macro_f1"], "seconds": round(time.monotonic() - t0),
+        "macro_f1": metrics["macro_f1"], "val_loss": metrics["val_loss"],
+        "seconds": round(time.monotonic() - t0),
     })
     try:
         push_checkpoint(f"epoch checkpoint (top1={metrics['top1']:.3f}, "
@@ -2620,6 +2665,11 @@ for epoch in range(1, planned_epochs + 1):
     if epoch_broken:
         bomb_fired = True
         stop_reason = (f"tail reserve at {hms(bomb_elapsed())} during epoch {epoch}")
+        break
+    if bad_val_epochs >= EARLY_STOP_PATIENCE:
+        stop_reason = (f"early stopping after {bad_val_epochs} epochs without "
+                       "validation-loss improvement")
+        print(f"[early-stop] {stop_reason}")
         break
 
 # If no epoch ever improved (e.g. a single epoch that crashed evaluation), there
@@ -3091,6 +3141,9 @@ if ONNX_OK:
     try:
         fp32_mb = export_fp32()
         print(f"[onnx] exported FP32: {ONNX_FP32_PATH} ({fp32_mb:.1f} MB)")
+        if fp32_mb > MAX_SERVER_ONNX_MB:
+            print(f"[onnx] FP32 artifact exceeds {MAX_SERVER_ONNX_MB} MB; "
+                  "the INT8 export will be required for deployment")
         onnx_fp32 = eval_onnx(FP32_PATH, "fp32")
 
         q_nodes = matmul_nodes(FP32_PATH)
@@ -3153,6 +3206,13 @@ if ONNX_OK:
             onnx_mb = quantize(exclude, INT8_PATH)
             onnx_int8 = eval_onnx(INT8_PATH, f"int8 r{bestr['rung']} (final)")
             chosen_rung = bestr["rung"]
+
+        if onnx_mb is not None and onnx_mb > MAX_SERVER_ONNX_MB:
+            quant_note = (quant_note + "; " if quant_note else "") + (
+                f"no ONNX artifact is under {MAX_SERVER_ONNX_MB} MB "
+                f"(selected {onnx_mb:.1f} MB)")
+            print(f"[onnx] WARNING: selected artifact is {onnx_mb:.1f} MB; "
+                  f"backend target is {MAX_SERVER_ONNX_MB} MB")
 
         # Upload both: FP32 is what the next quantization experiment starts from,
         # INT8 is what the server loads.
