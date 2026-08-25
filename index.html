@@ -185,15 +185,6 @@
             align-items: center;
         }
 
-        .ff-pollen {
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
         .ff-hero-inner {
             position: relative;
             z-index: 2;
@@ -225,61 +216,17 @@
             text-wrap: balance;
         }
 
-        .ff-glass-stage {
-            position: relative;
-            width: min(100%, 30rem);
-            margin-inline: auto;
-            aspect-ratio: 5 / 6;
-        }
-        .ff-glass-panel {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 0.5rem;
-            border: 1px solid #E5E5E5;
-            background-color: #FFFFFF;
-            overflow: hidden;
-        }
+        .ff-hero-art { display: flex; justify-content: center; }
+        .ff-sprig { width: min(100%, 26rem); height: auto; }
 
-        .ff-panel-note {
-            position: absolute;
-            left: 1rem;
-            bottom: 1rem;
-            z-index: 2;
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #737373;
-        }
+        /* Both leaves meet the stem at 12,12, so they pivot there rather than at
+           their own centres. Periods differ so the two never sway in lockstep. */
+        .ff-leaf { transform-box: view-box; transform-origin: 12px 12px; }
+        .ff-leaf-r { animation: ff-leaf-r 6s ease-in-out infinite; }
+        .ff-leaf-l { animation: ff-leaf-l 7.2s ease-in-out infinite; }
 
-        .ff-pass { width: 84%; height: auto; max-height: 92%; overflow: visible; }
-
-        .ff-pass-grid { stroke-dasharray: 1; stroke-dashoffset: 0; }
-        .ff-pass-cell,
-        .ff-pass-crop { transform-box: fill-box; transform-origin: center; opacity: 1; transform: scale(1); }
-        .ff-pass-rise { opacity: 1; transform: translateY(0); }
-        .ff-pass-fill { transform-box: fill-box; transform-origin: left center; transform: scaleX(var(--w, 1)); }
-
-        .is-running .ff-pass-grid { animation: ff-pass-draw var(--dur, 800ms) cubic-bezier(0.16, 1, 0.3, 1) var(--d, 200ms) both; }
-        .is-running .ff-pass-cell { animation: ff-pass-cell 420ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 1s) both; }
-        .is-running .ff-pass-crop { animation: ff-pass-crop 620ms cubic-bezier(0.16, 1, 0.3, 1) 2200ms both; }
-        .is-running .ff-pass-rise { animation: ff-pass-rise 520ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 2600ms) both; }
-        .is-running .ff-pass-fill { animation: ff-pass-fill 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 3s) both; }
-
-        .is-running .ff-pass-cell,
-        .is-running .ff-pass-crop,
-        .is-running .ff-pass-fill { will-change: transform, opacity; }
-
-        @keyframes ff-pass-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-        @keyframes ff-pass-cell { from { opacity: 0; transform: scale(0.82); } to { opacity: 1; transform: scale(1); } }
-        @keyframes ff-pass-crop { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: scale(1); } }
-        @keyframes ff-pass-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes ff-pass-fill { from { transform: scaleX(0); } to { transform: scaleX(var(--w, 1)); } }
-
-        @media (hover: hover) {
-            [data-replay] { cursor: pointer; }
-        }
+        @keyframes ff-leaf-r { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(1.8deg); } }
+        @keyframes ff-leaf-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-1.8deg); } }
 
         .ff-scroll-cue {
             display: flex;
@@ -315,10 +262,6 @@
             .reveal-up { opacity: 1; transform: none; }
             .card-in { opacity: 1; transform: none; }
             .draw-path { stroke-dashoffset: 0; }
-            .ff-pass-grid { stroke-dashoffset: 0; }
-            .ff-pass-cell, .ff-pass-crop { opacity: 1; transform: scale(1); }
-            .ff-pass-rise { opacity: 1; transform: translateY(0); }
-            .ff-pass-fill { transform: scaleX(var(--w, 1)); }
         }
     
         @media (pointer: coarse) {
@@ -381,8 +324,6 @@
         </div>
 
         <section class="ff-hero mb-28 md:mb-32">
-            <canvas id="pollenCanvas" class="ff-pollen" aria-hidden="true"></canvas>
-
             <div class="ff-hero-inner">
 
                 <div class="ff-hero-copy">
@@ -415,78 +356,14 @@
                     </a>
                 </div>
 
-                <div id="heroPass" data-replay class="reveal-up delay-200 ff-glass-stage" aria-hidden="true">
-                    <div class="ff-glass-panel">
-                        <svg class="ff-pass" viewBox="0 0 400 500" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                                <clipPath id="ffPassFrame"><rect x="40" y="44" width="320" height="256" rx="14"/></clipPath>
-                                <linearGradient id="ffPassPlate" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0" stop-color="#F8FBF8"/>
-                                    <stop offset="1" stop-color="#E7EFE9"/>
-                                </linearGradient>
-                            </defs>
-
-                            <rect x="40" y="44" width="320" height="256" rx="14" fill="url(#ffPassPlate)"/>
-
-                            <g clip-path="url(#ffPassFrame)">
-                                <g stroke="#4C6650" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M200 298C200 262 198 226 200 188" stroke-width="3"/>
-                                    <path d="M200 206C216 203 231 195 244 182" stroke-width="2"/>
-                                    <path d="M200 264C200 238 222 219 254 220C250 247 228 264 200 264Z" fill="#CFDCD2" stroke-width="2"/>
-                                    <path d="M200 264C214 254 232 238 254 220" stroke-width="1.1" stroke-opacity="0.55"/>
-                                    <path d="M200 236C200 210 178 191 146 192C150 219 172 236 200 236Z" fill="#CFDCD2" stroke-width="2"/>
-                                    <path d="M200 236C186 226 168 210 146 192" stroke-width="1.1" stroke-opacity="0.55"/>
-                                    <path d="M244 182C237 171 239 158 250 152C258 161 256 175 244 182Z" fill="#FFFFFF" stroke-width="2"/>
-                                    <g fill="#FFFFFF" stroke-width="2">
-                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z"/>
-                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z" transform="rotate(72 200 142)"/>
-                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z" transform="rotate(144 200 142)"/>
-                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z" transform="rotate(216 200 142)"/>
-                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z" transform="rotate(288 200 142)"/>
-                                    </g>
-                                    <circle cx="200" cy="142" r="13" fill="#FFFFFF" stroke-width="2"/>
-                                    <circle cx="200" cy="142" r="4.5" fill="#4C6650" stroke="none"/>
-                                </g>
-
-                                <rect class="ff-pass-cell" style="--d:1000ms" x="120" y="108" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
-                                <rect class="ff-pass-cell" style="--d:1080ms" x="200" y="108" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
-                                <rect class="ff-pass-cell" style="--d:1240ms" x="120" y="172" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
-                                <rect class="ff-pass-cell" style="--d:1320ms" x="200" y="172" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
-                                <rect class="ff-pass-cell" style="--d:1480ms" x="120" y="236" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
-                                <rect class="ff-pass-cell" style="--d:1560ms" x="200" y="236" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
-
-                                <path class="ff-pass-grid" pathLength="1" d="M120 44V300M200 44V300M280 44V300M40 108H360M40 172H360M40 236H360"
-                                    stroke="#4C6650" stroke-opacity="0.38" stroke-width="1.1"/>
-                            </g>
-
-                            <g class="ff-pass-crop" stroke="#3D5341" stroke-width="2.2" stroke-linecap="round">
-                                <path d="M120 124V108H136"/>
-                                <path d="M264 108H280V124"/>
-                                <path d="M280 284V300H264"/>
-                                <path d="M136 300H120V284"/>
-                            </g>
-
-                            <text class="ff-pass-rise" style="--d:2600ms" x="40" y="330" font-family="Fraunces, serif" font-style="italic" font-size="21" fill="#3D5341">Rudbeckia hirta</text>
-                            <text class="ff-pass-rise" style="--d:2720ms" x="40" y="350" font-family="Inter, sans-serif" font-size="12.5" fill="#737373">Asteraceae</text>
-
-                            <rect x="40" y="366" width="260" height="7" rx="3.5" fill="#E4EBE5"/>
-                            <rect class="ff-pass-fill" style="--d:3000ms; --w:0.914" x="40" y="366" width="260" height="7" rx="3.5" fill="#4C6650"/>
-                            <text class="ff-pass-rise" style="--d:3200ms" x="360" y="373" text-anchor="end" font-family="Inter, sans-serif" font-size="15" font-weight="500" fill="#171717">91.4%</text>
-
-                            <text class="ff-pass-rise" style="--d:3400ms" x="40" y="398" font-family="Inter, sans-serif" font-size="9.5" letter-spacing="0.1em" fill="#A3A3A3">ALSO CONSIDERED</text>
-
-                            <text class="ff-pass-rise" style="--d:3500ms" x="40" y="418" font-family="Fraunces, serif" font-style="italic" font-size="12.5" fill="#737373">Rudbeckia fulgida</text>
-                            <rect x="40" y="428" width="260" height="4" rx="2" fill="#EFF3EF"/>
-                            <rect class="ff-pass-fill" style="--d:3560ms; --w:0.052" x="40" y="428" width="260" height="4" rx="2" fill="#7C9781"/>
-                            <text class="ff-pass-rise" style="--d:3560ms" x="360" y="432" text-anchor="end" font-family="Inter, sans-serif" font-size="11" fill="#A3A3A3">5.2%</text>
-
-                            <text class="ff-pass-rise" style="--d:3620ms" x="40" y="446" font-family="Fraunces, serif" font-style="italic" font-size="12.5" fill="#737373">Helianthus annuus</text>
-                            <rect x="40" y="456" width="260" height="4" rx="2" fill="#EFF3EF"/>
-                            <rect class="ff-pass-fill" style="--d:3700ms; --w:0.018" x="40" y="456" width="260" height="4" rx="2" fill="#7C9781"/>
-                            <text class="ff-pass-rise" style="--d:3700ms" x="360" y="460" text-anchor="end" font-family="Inter, sans-serif" font-size="11" fill="#A3A3A3">1.8%</text>
-                        </svg>
-                    </div>
-                    <span class="ff-panel-note">Illustrative preview</span>
+                <div class="reveal-up delay-200 ff-hero-art" aria-hidden="true">
+                    <svg class="ff-sprig" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <g stroke="#5F7A63" stroke-width="0.16" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21c0-4 0-7 0-9"/>
+                            <path class="ff-leaf ff-leaf-r" d="M12 12c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Z"/>
+                            <path class="ff-leaf ff-leaf-l" d="M12 12c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/>
+                        </g>
+                    </svg>
                 </div>
 
             </div>
@@ -520,7 +397,7 @@
         <section class="max-w-7xl mx-auto px-6 mb-36">
             <div id="statsStrip" class="reveal-up grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 border-y border-neutral-200 py-12">
                 <div class="text-center md:border-r border-neutral-200">
-                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2"><span class="ff-count" data-countup="116">116</span></div>
+                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2"><span class="ff-count">116</span></div>
                     <div class="text-sm text-neutral-500 font-light">Botanical classes</div>
                 </div>
                 <div class="text-center md:border-r border-neutral-200">
@@ -629,22 +506,22 @@
                             </div>
                         </article>
 
-                        <div id="sampleTrace" data-replay class="reveal-up delay-200 mt-6 px-1">
+                        <div id="sampleTrace" class="reveal-up delay-200 mt-6 px-1">
                             <svg class="ff-trace" viewBox="0 0 320 100" fill="none" aria-hidden="true">
-                <text class="ff-pass-rise" style="--d:0ms" x="40" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIDATA</text>
-                <text class="ff-pass-rise" style="--d:120ms" x="160" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">TREFLE</text>
-                <text class="ff-pass-rise" style="--d:240ms" x="280" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIPEDIA</text>
-                <circle class="ff-pass-cell" style="--d:200ms" cx="40" cy="26" r="4.5" fill="#5F7A63"/>
-                <circle class="ff-pass-cell" style="--d:500ms" cx="160" cy="26" r="4.5" fill="#5F7A63"/>
-                <circle class="ff-pass-cell" style="--d:800ms" cx="280" cy="26" r="4.5" fill="#5F7A63"/>
-                <text class="ff-pass-rise" style="--d:780ms" x="40" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">binomial, family</text>
-                <text class="ff-pass-rise" style="--d:1080ms" x="160" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">habit, light, water</text>
-                <text class="ff-pass-rise" style="--d:1380ms" x="280" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">plate, article</text>
-                <path class="ff-pass-grid" style="--d:260ms; --dur:520ms" pathLength="1" d="M40 50C40 68 100 70 150 78" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
-                <path class="ff-pass-grid" style="--d:560ms; --dur:520ms" pathLength="1" d="M160 50C160 62 160 70 160 77" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
-                <path class="ff-pass-grid" style="--d:860ms; --dur:520ms" pathLength="1" d="M280 50C280 68 220 70 170 78" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
-                <rect class="ff-pass-rise" style="--d:1320ms" x="112" y="78" width="96" height="18" rx="9" fill="#F2F5F2" stroke="#C9D6CB" stroke-width="1"/>
-                <text class="ff-pass-rise" style="--d:1380ms" x="160" y="90" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" font-weight="500" letter-spacing="0.08em" fill="#3D5341">ONE RECORD</text>
+                <text x="40" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIDATA</text>
+                <text x="160" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">TREFLE</text>
+                <text x="280" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIPEDIA</text>
+                <circle cx="40" cy="26" r="4.5" fill="#5F7A63"/>
+                <circle cx="160" cy="26" r="4.5" fill="#5F7A63"/>
+                <circle cx="280" cy="26" r="4.5" fill="#5F7A63"/>
+                <text x="40" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">binomial, family</text>
+                <text x="160" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">habit, light, water</text>
+                <text x="280" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">plate, article</text>
+                <path d="M40 50C40 68 100 70 150 78" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M160 50C160 62 160 70 160 77" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M280 50C280 68 220 70 170 78" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="112" y="78" width="96" height="18" rx="9" fill="#F2F5F2" stroke="#C9D6CB" stroke-width="1"/>
+                <text x="160" y="90" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" font-weight="500" letter-spacing="0.08em" fill="#3D5341">ONE RECORD</text>
                             </svg>
                         </div>
                     </div>
@@ -671,6 +548,9 @@
                     </p>
                     <p>
                         Records are assembled from Wikidata, Trefle and Wikipedia when you request them. Fields a source has no data for are left out rather than filled with a guess.
+                    </p>
+                    <p>
+                        <a href="/docs" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">The guide</a> covers the parts you cannot see from the screen, like why a first scan is slow and what signing in changes.
                     </p>
                 </div>
             </div>
@@ -734,395 +614,6 @@
             <p class="mt-3">&copy; 2026 FindFlower &middot; Open botanical reference</p>
         </footer>
     </noscript></div>
-
-    <script>
-    (function () {
-        'use strict';
-        var stage = document.getElementById('heroPass');
-        if (!stage) return;
-
-        if (typeof window.ffStopHeroPass === 'function') {
-            try { window.ffStopHeroPass(); } catch (e) { }
-        }
-
-        if (window.matchMedia &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-        var CYCLE = 6000;
-        var timer = null;
-        var io = null;
-        var dead = false;
-
-        function run() {
-            stage.classList.remove('is-running');
-            void stage.offsetWidth;
-            stage.classList.add('is-running');
-        }
-
-        function stopTimer() {
-            if (timer) { clearTimeout(timer); timer = null; }
-        }
-
-        function tick() {
-            run();
-            timer = setTimeout(tick, CYCLE);
-        }
-
-        function start() {
-            if (dead || timer) return;
-            tick();
-        }
-
-        function onVisibility() {
-            if (document.hidden) stopTimer();
-            else start();
-        }
-
-        function onReplay() {
-            stopTimer();
-            tick();
-            if (typeof window.ffHaptic === 'function') window.ffHaptic(20);
-        }
-
-        function stop() {
-            dead = true;
-            stopTimer();
-            stage.removeEventListener('click', onReplay);
-            document.removeEventListener('visibilitychange', onVisibility);
-            if (io) { try { io.disconnect(); } catch (e) { } io = null; }
-            if (window.ffStopHeroPass === stop) window.ffStopHeroPass = null;
-        }
-        window.ffStopHeroPass = stop;
-
-        stage.addEventListener('click', onReplay);
-        document.addEventListener('visibilitychange', onVisibility);
-
-        if ('IntersectionObserver' in window) {
-            io = new IntersectionObserver(function (entries) {
-                if (entries[entries.length - 1].isIntersecting) start();
-                else stopTimer();
-            }, { threshold: 0 });
-            io.observe(stage);
-        } else {
-            start();
-        }
-    })();
-    </script>
-
-    <script>
-    (function () {
-        'use strict';
-        var trace = document.getElementById('sampleTrace');
-        if (!trace) return;
-
-        if (typeof window.ffStopTrace === 'function') {
-            try { window.ffStopTrace(); } catch (e) { }
-        }
-
-        if (window.matchMedia &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-        function rows() { return document.querySelectorAll('#sampleFields .ff-sample-row'); }
-        function plate() {
-            var ph = document.getElementById('samplePh');
-            return ph ? ph.parentNode : null;
-        }
-
-        var LANDINGS = [
-            [780, function () { return [rows()[0]]; }],
-            [1080, function () { var r = rows(); return [r[1], r[2], r[3], r[4]]; }],
-            [1380, function () { return [plate()]; }]
-        ];
-
-        var timers = [];
-        var io = null;
-        var dead = false;
-
-        function flash(el) {
-            if (!el) return;
-            el.classList.remove('ff-fade-in');
-            void el.offsetWidth;
-            el.classList.add('ff-fade-in');
-        }
-
-        function clearTimers() {
-            for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]);
-            timers.length = 0;
-        }
-
-        function run() {
-            if (dead) return;
-            clearTimers();
-            trace.classList.remove('is-running');
-            void trace.offsetWidth;
-            trace.classList.add('is-running');
-            for (var i = 0; i < LANDINGS.length; i++) {
-                (function (at, pick) {
-                    timers.push(setTimeout(function () {
-                        var targets = pick();
-                        for (var j = 0; j < targets.length; j++) flash(targets[j]);
-                    }, at));
-                })(LANDINGS[i][0], LANDINGS[i][1]);
-            }
-        }
-
-        function onReplay() {
-            run();
-            if (typeof window.ffHaptic === 'function') window.ffHaptic(20);
-        }
-
-        function stop() {
-            dead = true;
-            clearTimers();
-            trace.removeEventListener('click', onReplay);
-            if (io) { try { io.disconnect(); } catch (e) { } io = null; }
-            if (window.ffStopTrace === stop) window.ffStopTrace = null;
-        }
-        window.ffStopTrace = stop;
-
-        trace.addEventListener('click', onReplay);
-
-        if ('IntersectionObserver' in window) {
-            io = new IntersectionObserver(function (entries, obs) {
-                if (!entries[entries.length - 1].isIntersecting) return;
-                obs.disconnect();
-                io = null;
-                run();
-            }, { threshold: 0.4 });
-            io.observe(trace);
-        } else {
-            run();
-        }
-    })();
-    </script>
-
-    <script>
-    (function () {
-        'use strict';
-        var strip = document.getElementById('statsStrip');
-        if (!strip) return;
-        var el = strip.querySelector('[data-countup]');
-        if (!el) return;
-
-        if (typeof window.ffStopCount === 'function') {
-            try { window.ffStopCount(); } catch (e) { }
-        }
-
-        var target = parseInt(el.getAttribute('data-countup'), 10);
-        if (isNaN(target)) return;
-        if (typeof requestAnimationFrame !== 'function') return;
-
-        var raf = null;
-
-        function onEnd(e) {
-            if (e.target !== strip || e.propertyName !== 'opacity') return;
-
-            if (!strip.classList.contains('active')) return;
-
-            strip.removeEventListener('transitionend', onEnd);
-
-            el.style.minWidth = el.offsetWidth + 'px';
-
-            var t0 = null;
-            var DUR = 900;
-            function frame(now) {
-                if (t0 === null) t0 = now;
-                var t = Math.min(1, (now - t0) / DUR);
-                var eased = 1 - Math.pow(1 - t, 3);
-                el.textContent = String(Math.round(target * eased));
-                if (t < 1) raf = requestAnimationFrame(frame);
-                else { raf = null; el.textContent = String(target); }
-            }
-            el.textContent = '0';
-            raf = requestAnimationFrame(frame);
-        }
-
-        function stop() {
-            if (raf) { cancelAnimationFrame(raf); raf = null; }
-            strip.removeEventListener('transitionend', onEnd);
-            el.textContent = String(target);
-            if (window.ffStopCount === stop) window.ffStopCount = null;
-        }
-        window.ffStopCount = stop;
-
-        strip.addEventListener('transitionend', onEnd);
-    })();
-    </script>
-
-    <script>
-    (function () {
-        'use strict';
-        var canvas = document.getElementById('pollenCanvas');
-        if (!canvas || typeof canvas.getContext !== 'function') return;
-        var ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        if (typeof window.ffStopPollen === 'function') {
-            try { window.ffStopPollen(); } catch (e) { }
-        }
-
-        var TAU = Math.PI * 2;
-        var reduce = !!(window.matchMedia &&
-            window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-
-        var grains = [];
-        var dpr = 1, w = 0, h = 0;
-        var raf = 0, last = 0, visible = true, pending = false, dead = false;
-        var io = null, ro = null;
-
-        function rand(lo, hi) { return lo + Math.random() * (hi - lo); }
-
-        function seedGrain(g, spread) {
-            g.x = rand(0, w);
-            g.y = spread ? rand(0, h) : h + rand(4, 48);
-            g.r = rand(1.1, 2.8);
-            g.rise = rand(6, 18);
-            g.sway = rand(6, 22);
-            g.freq = rand(0.05, 0.2);
-            g.phase = rand(0, TAU);
-            g.alpha = rand(0.1, 0.22);
-            g.warm = Math.random() < 0.45;
-        }
-
-        function wantCount() { return w < 560 ? 22 : (w < 900 ? 34 : 48); }
-
-        function populate() {
-            grains.length = 0;
-            for (var i = 0, n = wantCount(); i < n; i++) {
-                var g = {};
-                seedGrain(g, true);
-                grains.push(g);
-            }
-        }
-
-        function fit() {
-            var rect = canvas.getBoundingClientRect();
-            var nw = Math.max(1, Math.round(rect.width));
-            var nh = Math.max(1, Math.round(rect.height));
-            if (nw === w && nh === h) return false;
-            w = nw;
-            h = nh;
-            dpr = Math.min(2, window.devicePixelRatio || 1);
-            canvas.width = Math.round(w * dpr);
-            canvas.height = Math.round(h * dpr);
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            return true;
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, w, h);
-            for (var i = 0; i < grains.length; i++) {
-                var g = grains[i];
-                var x = g.x + Math.sin(g.phase) * g.sway;
-                ctx.beginPath();
-                ctx.arc(x, g.y, g.r * 2.8, 0, TAU);
-                ctx.fillStyle = g.warm
-                    ? 'rgba(213, 168, 75, ' + (g.alpha * 0.5) + ')'
-                    : 'rgba(124, 151, 129, ' + (g.alpha * 0.5) + ')';
-                ctx.fill();
-                ctx.beginPath();
-                ctx.arc(x, g.y, g.r, 0, TAU);
-                ctx.fillStyle = g.warm
-                    ? 'rgba(190, 151, 76, ' + g.alpha + ')'
-                    : 'rgba(95, 122, 99, ' + g.alpha + ')';
-                ctx.fill();
-            }
-        }
-
-        function step(now) {
-            raf = 0;
-            if (dead) return;
-            if (!last) last = now;
-            var dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
-            last = now;
-            for (var i = 0; i < grains.length; i++) {
-                var g = grains[i];
-                g.y -= g.rise * dt;
-                g.phase += g.freq * dt * TAU;
-                if (g.y < -8) seedGrain(g, false);
-            }
-            draw();
-            schedule();
-        }
-
-        function schedule() {
-            if (dead || raf || !visible || document.hidden) return;
-            raf = window.requestAnimationFrame(step);
-        }
-
-        function pause() {
-            if (!raf) return;
-            window.cancelAnimationFrame(raf);
-            raf = 0;
-        }
-
-        function resume() {
-            last = 0;
-            schedule();
-        }
-
-        function onResize() {
-            if (dead || pending) return;
-            pending = true;
-            window.requestAnimationFrame(function () {
-                pending = false;
-                if (dead) return;
-                var was = grains.length;
-                if (!fit()) return;
-                if (was !== wantCount()) {
-                    populate();
-                } else {
-                    for (var i = 0; i < grains.length; i++) {
-                        if (grains[i].x > w) grains[i].x = rand(0, w);
-                        if (grains[i].y > h + 48) grains[i].y = rand(0, h);
-                    }
-                }
-                draw();
-            });
-        }
-
-        function onVisibility() {
-            if (document.hidden) pause();
-            else resume();
-        }
-
-        function stop() {
-            dead = true;
-            pause();
-            window.removeEventListener('resize', onResize);
-            window.removeEventListener('orientationchange', onResize);
-            document.removeEventListener('visibilitychange', onVisibility);
-            if (io) { try { io.disconnect(); } catch (e) { } io = null; }
-            if (ro) { try { ro.disconnect(); } catch (e) { } ro = null; }
-            if (window.ffStopPollen === stop) window.ffStopPollen = null;
-        }
-        window.ffStopPollen = stop;
-
-        fit();
-        populate();
-        draw();
-
-        window.addEventListener('resize', onResize);
-        window.addEventListener('orientationchange', onResize);
-        if (typeof ResizeObserver === 'function') {
-            ro = new ResizeObserver(onResize);
-            ro.observe(canvas);
-        }
-
-        if (reduce) return;
-
-        document.addEventListener('visibilitychange', onVisibility);
-
-        if ('IntersectionObserver' in window) {
-            io = new IntersectionObserver(function (entries) {
-                visible = entries[entries.length - 1].isIntersecting;
-                if (visible) resume(); else pause();
-            }, { threshold: 0 });
-            io.observe(canvas);
-        }
-        resume();
-    })();
-    </script>
 
     <script>
     (function () {
