@@ -158,6 +158,26 @@
     var navSeq = 0;
     var inFlight = false;
 
+    // The Play CDN writes utility rules for freshly swapped markup a frame or
+    // two after it lands, so the first scrollIntoView aims at a short layout
+    // and a smooth scroll stops early. Re-aim while the destination moves.
+    function reanchor(id) {
+        var last = -1;
+        var tries = 0;
+        (function again() {
+            var el = document.getElementById(id);
+            if (!el) return;
+            var margin = parseFloat(getComputedStyle(el).scrollMarginTop) || 0;
+            var want = Math.round(el.getBoundingClientRect().top + window.scrollY - margin);
+            if (want !== last) {
+                last = want;
+                try { el.scrollIntoView({ block: 'start', behavior: 'instant' }); }
+                catch (e) { el.scrollIntoView(); }
+            }
+            if (++tries < 5) setTimeout(again, 140);
+        })();
+    }
+
     async function navigate(url, push) {
         var key = pageKey(url.pathname);
         var seq = ++navSeq;
@@ -212,6 +232,7 @@
                 try { window.ffFooterSetActive(key); } catch (e) { }
             }
             await mountFor(key);
+            if (url.hash) reanchor(url.hash.slice(1));
         } catch (e) {
             console.error('router: falling back to full load —', e.message);
             hardLoad(url.href);

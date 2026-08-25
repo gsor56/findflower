@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Data &amp; Integrations | Dataset, taxonomy and API &mdash; FindFlower</title>
+    <title>Data and integrations | Dataset, taxonomy and API | FindFlower</title>
     <meta name="description" content="The FindFlower dataset and API in one place: the ImageFolder layout, the class index and taxonomy files, per-image licence metadata, and how to call the identification endpoint.">
     <link rel="canonical" href="https://findflower.me/data">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/data">
-    <meta property="og:title" content="Data &amp; Integrations | Dataset, taxonomy and API &mdash; FindFlower">
+    <meta property="og:title" content="Data and integrations | Dataset, taxonomy and API | FindFlower">
     <meta property="og:description" content="The FindFlower dataset and API in one place: the ImageFolder layout, the class index and taxonomy files, per-image licence metadata, and how to call the identification endpoint.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Data &amp; Integrations | Dataset, taxonomy and API &mdash; FindFlower">
+    <meta name="twitter:title" content="Data and integrations | Dataset, taxonomy and API | FindFlower">
     <meta name="twitter:description" content="The FindFlower dataset and API in one place: the ImageFolder layout, the class index and taxonomy files, per-image licence metadata, and how to call the identification endpoint.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -48,7 +48,6 @@
         .reveal-up.active { opacity:1; transform:translateY(0); }
         .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
         .group:hover .cta-arrow { transform:translateX(4px); }
-        .toc-link.active { color:#171717; font-weight:500; }
         .prose p { line-height:1.75; }
 
         .snip { background:#FAFAFA; border:1px solid #E5E5E5; border-radius:0.375rem; padding:1rem 1.125rem; overflow-x:auto; font-size:0.875rem; line-height:1.7; tab-size:2; white-space:pre; }
@@ -131,7 +130,7 @@
                 <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
                     A plain ImageFolder tree. One directory per species, 100 JPEGs inside, filenames
                     prefixed with their rank in the class so ordering is stable across clones. No
-                    parquet, no shards, no loader script &mdash; it opens with anything that can read a
+                    parquet, no shards, no loader script. It opens with anything that can read a
                     folder of images.
                 </p>
                 <div class="reveal-up snip font-mono text-neutral-700 mb-6">Achillea_millefolium/
@@ -157,7 +156,7 @@ README.md</div>
                     </div>
                     <div class="border-l-2 border-sage-400 pl-5">
                         <p class="text-sm font-medium text-neutral-900 mb-1">File names</p>
-                        <p class="text-base text-neutral-600 font-light"><span class="font-mono text-neutral-900">NNN_&lt;photo id&gt;.jpg</span> &mdash; a three-digit rank by the composite selection score, then the iNaturalist photo id it came from.</p>
+                        <p class="text-base text-neutral-600 font-light"><span class="font-mono text-neutral-900">NNN_&lt;photo id&gt;.jpg</span>. The three digits rank the image by its composite selection score, and the rest is the iNaturalist photo id it came from.</p>
                     </div>
                     <div class="border-l-2 border-sage-400 pl-5">
                         <p class="text-sm font-medium text-neutral-900 mb-1">Licences</p>
@@ -167,7 +166,7 @@ README.md</div>
             </section>
 
             <section class="mb-16">
-                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">classes.json &mdash; index to species</h2>
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">The classes.json index</h2>
                 <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
                     A model outputs an integer. This file is what turns it back into a plant. Keys are
                     the class index as a string, in the order the folders are enumerated, so the map is
@@ -188,8 +187,8 @@ README.md</div>
                 <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed mb-8 max-w-2xl">
                     <span class="font-mono text-neutral-900">folder</span> is the directory on disk,
                     <span class="font-mono text-neutral-900">scientific_name</span> is the binomial to cite.
-                    Read the index as an integer if you sort the keys &mdash; JSON object keys are strings,
-                    and string ordering puts class 10 before class 2.
+                    Read the index as an integer if you sort the keys, because JSON object keys are
+                    strings and string ordering puts class 10 before class 2.
                 </p>
 
                 <h3 class="reveal-up text-lg font-medium text-neutral-900 mb-3">The richer taxonomy file</h3>
@@ -242,7 +241,7 @@ README.md</div>
                     </div>
                     <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
                         <p class="font-mono text-sm text-neutral-900 mb-1 sm:mb-0">conservation_status</p>
-                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Present when iNaturalist has one, <span class="font-mono text-neutral-900">null</span> otherwise &mdash; which is most of the list, because abundant species rarely carry a status.</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Present when iNaturalist has one, <span class="font-mono text-neutral-900">null</span> otherwise, which is most of the list, because abundant species rarely carry a status.</p>
                     </div>
                 </div>
             </section>
@@ -283,8 +282,8 @@ README.md</div>
 ]</div>
                 <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed max-w-2xl">
                     The measurement fields are kept deliberately. They let you re-derive why an image
-                    was selected, or filter harder than the curation did &mdash; a stricter blur threshold,
-                    say &mdash; without refetching anything.
+                    was selected, or filter harder than the curation did (a stricter blur threshold,
+                    say) without refetching anything.
                 </p>
             </section>
 
@@ -295,7 +294,7 @@ README.md</div>
                     dataset above targets 1,500 species and nothing has been trained on it yet. The
                     model behind the identification endpoint today recognises
                     <span class="text-neutral-900 font-normal">116</span> species, and its class list is
-                    a flat array of English common names in output order &mdash; not the binomials above.
+                    a flat array of English common names in output order, not the binomials above.
                 </p>
                 <div class="reveal-up snip font-mono text-neutral-700 mb-6">[
   <span class="s">"common dandelion"</span>,
@@ -316,8 +315,8 @@ README.md</div>
             <section class="mb-16">
                 <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Calling the endpoint</h2>
                 <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
-                    One POST, one image, one JSON body back. The full reference &mdash; keys, limits,
-                    errors, the Wikipedia and plant-detail helpers &mdash; is on the
+                    One POST, one image, one JSON body back. The full reference (keys, limits,
+                    errors, the Wikipedia and plant-detail helpers) is on the
                     <a href="/api" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">API page</a>.
                     The shape, so you can judge it from here:
                 </p>
@@ -358,7 +357,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev \
                 <div class="reveal-up border-t border-b border-neutral-200">
                     <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
                         <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">The photographs</p>
-                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Belong to the naturalists who took them, under the licence each one chose. FindFlower selected and measured them; it holds no rights over them and cannot relicense them. Honour the per-image <span class="font-mono text-neutral-900">license_code</span> and <span class="font-mono text-neutral-900">attribution</span> &mdash; that is why both are shipped beside every class.</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Belong to the naturalists who took them, under the licence each one chose. FindFlower selected and measured them; it holds no rights over them and cannot relicense them. Honour the per-image <span class="font-mono text-neutral-900">license_code</span> and <span class="font-mono text-neutral-900">attribution</span>, which is why both are shipped beside every class.</p>
                     </div>
                     <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
                         <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">Commercial use</p>
@@ -366,7 +365,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev \
                     </div>
                     <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
                         <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">The taxonomy and counts</p>
-                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Derived from iNaturalist&rsquo;s public API. Cite iNaturalist as the source of the observation data, and the date the snapshot was taken &mdash; 16 August 2026 &mdash; because the counts move.</p>
+                        <p class="sm:col-span-2 text-base text-neutral-600 font-light">Derived from iNaturalist&rsquo;s public API. Cite iNaturalist as the source of the observation data, and the date the snapshot was taken, 16 August 2026, because the counts move.</p>
                     </div>
                     <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
                         <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">The application code</p>

@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Five notebooks, 375,000 photographs, and no coordinator &mdash; FindFlower</title>
+    <title>Five notebooks, 375,000 photographs, and no coordinator | FindFlower</title>
     <meta name="description" content="Filling 1,500 species to exactly 100 checked images each means inspecting nearly four times that many, on free hardware that stops after twelve hours. How the work was split, and the bug that quietly refetched thousands of images.">
     <link rel="canonical" href="https://findflower.me/article?id=shards">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/article?id=shards">
-    <meta property="og:title" content="Five notebooks, 375,000 photographs, and no coordinator &mdash; FindFlower">
+    <meta property="og:title" content="Five notebooks, 375,000 photographs, and no coordinator | FindFlower">
     <meta property="og:description" content="Filling 1,500 species to exactly 100 checked images each means inspecting nearly four times that many, on free hardware that stops after twelve hours.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Five notebooks, 375,000 photographs, and no coordinator &mdash; FindFlower">
+    <meta name="twitter:title" content="Five notebooks, 375,000 photographs, and no coordinator | FindFlower">
     <meta name="twitter:description" content="Filling 1,500 species to exactly 100 checked images each means inspecting nearly four times that many, on free hardware that stops after twelve hours.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -106,7 +106,7 @@
 
             <article data-entry="shards" class="reveal-up">
                 <header class="mb-10 pb-8 border-b border-neutral-200">
-                    <p class="ff-meta mb-4">Entry 01 &middot; Engineering &middot; 20 August 2026 &middot; 7 min read</p>
+                    <p class="ff-meta mb-4">Engineering &middot; 20 August 2026 &middot; 7 min read</p>
                     <h1 class="text-3xl md:text-5xl font-medium tracking-tight text-neutral-900 leading-tight mb-4">Five notebooks, 375,000 photographs, and no coordinator</h1>
                     <p class="font-serif italic text-lg md:text-xl text-sage-700 leading-snug">
                         The dataset needs 150,000 images. Getting them means looking at closer to
@@ -118,7 +118,7 @@
                     <p>
                         The arithmetic is the whole problem. 1,500 flowering species, exactly 100
                         images each, and roughly three in five candidates fail the quality filters
-                        &mdash; so the pipeline fetches up to 250 per class and expects to throw most
+                        so the pipeline fetches up to 250 per class and expects to throw most
                         of them away. That is 375,000 photographs to download, decode, measure,
                         hash and embed, to keep 150,000.
                     </p>
@@ -141,7 +141,7 @@
                         a herbarium sheet, or the same flower six times. Contiguous blocks meant
                         worker 0 got the abundant end and sailed through its 300 classes, while
                         worker 4 spent the same twelve hours fetching 250 candidates per class,
-                        watching most of them fail the gates, and finishing almost nothing &mdash;
+                        watching most of them fail the gates, and finishing almost nothing,
                         because a class that cannot reach 100 usable images is not written at all.
                     </p>
                     <p>
@@ -155,7 +155,7 @@
                     <h2>Coordination, or the lack of it</h2>
                     <p>
                         Five workers filling one dataset need to know what the others have already
-                        done. The tempting answer is a small service holding a queue &mdash; and then
+                        done. The tempting answer is a small service holding a queue, and then
                         the pipeline has an uptime requirement, a second thing to deploy, and a
                         single point of failure that is not the notebooks.
                     </p>
@@ -195,10 +195,10 @@
                     <p>
                         The order of operations was the problem. A worker uploads a batch of five
                         finished classes and then writes its progress file. Between those two commits
-                        there is a window &mdash; a few seconds, sometimes a minute for a large batch
-                        &mdash; and a session that hits its deadline, loses its network, or gets
-                        evicted inside that window leaves the images in the repository and no record
-                        that they exist. The next worker reads the progress files, sees nothing for
+                        there is a window, a few seconds and sometimes a minute for a large batch.
+                        A session that hits its deadline, loses its network, or gets evicted inside
+                        that window leaves the images in the repository and no record that they
+                        exist. The next worker reads the progress files, sees nothing for
                         that class, and starts again from 250 raw candidates.
                     </p>
                     <p>
@@ -227,7 +227,7 @@
                         A smaller thing that saved more time than it should have. The 1,500-species
                         manifest started life as a Kaggle dataset attached to each notebook. Five
                         notebooks, cloned and re-cloned as shards were rebuilt, and eventually one of
-                        them was running against an older attached copy &mdash; same script, same shard
+                        them was running against an older attached copy: same script, same shard
                         index, different species list. Nothing errored. The output was just subtly
                         wrong.
                     </p>
@@ -240,15 +240,15 @@
 
                     <h2>Where it stands, and the 172 folders</h2>
                     <p>
-                        831 classes are collected and verified &mdash; 87,520 images. 669 are still in
+                        831 classes are collected and verified, which is 87,520 images. 669 are still in
                         the queue. The last of them will be the slowest: they are the species where
                         250 candidates do not contain 100 that pass, and some of them never will.
                     </p>
                     <p>
                         There is also a row of the ledger that is nobody&rsquo;s fault but mine. An early
                         version of the target list was drawn from Plantae as a whole instead of
-                        flowering plants, and it produced 172 complete class folders &mdash; ferns,
-                        conifers, mosses &mdash; that are correctly filtered and have no place in this
+                        flowering plants, and it produced 172 complete class folders of ferns,
+                        conifers and mosses that are correctly filtered and have no place in this
                         dataset. They are still in the repository, because deleting 17,200 files from
                         the only copy is not a thing to do casually at the end of a long evening.
                     </p>
@@ -281,8 +281,8 @@
 
                 <footer class="mt-12 pt-8 border-t border-neutral-200">
                     <p class="text-base text-neutral-500 font-light leading-relaxed">
-                        Every threshold mentioned here &mdash; the gates, the hash distance, the
-                        outlier cutoffs &mdash; is written out on
+                        Every threshold mentioned here (the gates, the hash distance, the
+                        outlier cutoffs) is written out on
                         <a href="/research" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Research</a>,
                         and the file layout it produces is documented on
                         <a href="/data" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Data &amp; integrations</a>.
@@ -296,6 +296,8 @@
             <p data-entry-missing hidden class="reveal-up">
                 <span class="block text-lg text-neutral-600 font-light mb-3">No entry with that name.</span>
                 <a href="/blogs" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">See what has been written</a>
+                <span class="text-neutral-300 mx-2" aria-hidden="true">&middot;</span>
+                <a href="/docs#routing" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Why a link breaks</a>
             </p>
 
         </div>

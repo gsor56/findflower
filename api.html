@@ -232,12 +232,12 @@
 
                         <div id="keyPanel" class="hidden max-w-xl">
                             <div class="mb-6">
-                                <p class="text-base font-medium text-neutral-900" id="devName">&mdash;</p>
-                                <p class="text-sm text-neutral-500 font-light" id="devEmail">&mdash;</p>
+                                <p class="text-base font-medium text-neutral-900" id="devName"></p>
+                                <p class="text-sm text-neutral-500 font-light" id="devEmail"></p>
                             </div>
                             <label class="text-sm font-medium text-neutral-900 mb-2 block">Derived key</label>
                             <div class="flex gap-3">
-                                <code id="apiKey" class="min-w-0 flex-1 font-mono text-sm bg-white border border-neutral-200 rounded-md px-4 py-3 text-neutral-800 truncate">&mdash;</code>
+                                <code id="apiKey" class="min-w-0 flex-1 font-mono text-sm bg-white border border-neutral-200 rounded-md px-4 py-3 text-neutral-800 truncate"></code>
                                 <button id="copyKey" data-haptic class="soft-click shrink-0 text-base font-medium border border-neutral-200 text-neutral-700 px-4 rounded-md hover:bg-neutral-50 transition">Copy</button>
                             </div>
                             <p class="text-base text-neutral-500 font-light mt-4 leading-relaxed">
@@ -465,7 +465,7 @@ curl -X POST https://api.findflower.me/v1/identify \
 
                     <div class="flex items-start gap-2 text-sm text-neutral-500 font-light mb-3">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>
-                        <p>The endpoint is a lightweight proxy in front of a hosted model server. If it has been idle it can cold-start (roughly 30–90s on the first request), so allow a generous timeout and show a friendly loading state.</p>
+                        <p>The endpoint is a lightweight proxy in front of a hosted model server. If it has been idle it can cold-start (roughly 30–90s on the first request), so allow a generous timeout and show a friendly loading state. Users hit the same wait, described in <a href="/docs#cold-start" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">the guide</a>.</p>
                     </div>
                     <div class="flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
