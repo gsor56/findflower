@@ -48,9 +48,6 @@
         .reveal-up.active { opacity:1; transform:translateY(0); }
         .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
         .group:hover .cta-arrow { transform:translateX(4px); }
-        .toc-link.active { color:#171717; font-weight:500; }
-        .toc-link.active .toc-dot { background:#5F7A63; }
-        .prose p { line-height:1.75; }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
     
         @media (pointer: coarse) {
@@ -91,103 +88,92 @@
 
     <main class="pt-32 pb-24">
 
-        <section class="max-w-7xl mx-auto px-6 mb-16">
-            <div class="max-w-3xl">
-                <span class="reveal-up text-sm font-medium text-sage-600 mb-6 block">Legal</span>
-                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">Privacy at FindFlower</h1>
-                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug">
-                    What is collected, what is kept, and where your photo goes.
-                </p>
-                <p class="reveal-up text-base text-neutral-600 font-light leading-relaxed mt-6">
-                    Identification runs on a server, not on your device. That changes what leaves
-                    your browser, so it is spelled out below rather than buried.
-                </p>
-                <p class="reveal-up text-sm text-neutral-500 font-light mt-6">Last updated 8 July 2026 &middot; Applies to the FindFlower Beta</p>
-            </div>
-        </section>
-
-        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
-
-            <aside class="hidden lg:block lg:col-span-3">
-                <nav class="sticky top-24 space-y-1 text-sm">
-                    <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">On this page</p>
-                    <a href="#collect" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>What we collect</a>
-                    <a href="#images" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>How images are handled</a>
-                    <a href="#feedback" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Feedback data</a>
-                    <a href="#sharing" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Third parties</a>
-                    <a href="#control" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Your control</a>
-                </nav>
-            </aside>
-
-            <div class="lg:col-span-9 space-y-16">
-
-                <div class="reveal-up border-l-2 border-sage-400 pl-6 md:pl-8">
-                    <h2 class="text-lg font-medium text-neutral-900 mb-5">The short version</h2>
-                    <ul class="space-y-4">
-                        <li class="flex items-start gap-3">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-sage-600 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
-                            <p class="text-neutral-600 font-light">To identify a flower, your photo is sent to our inference service to be analysed. It is used only to return a prediction and is not stored afterwards.</p>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-sage-600 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
-                            <p class="text-neutral-600 font-light">Feedback is only ever sent when you choose to send it.</p>
-                        </li>
-                        <li class="flex items-start gap-3">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" class="text-sage-600 mt-0.5 flex-shrink-0"><path d="M20 6 9 17l-5-5"/></svg>
-                            <p class="text-neutral-600 font-light">We don’t sell your data, and we don’t use it for advertising.</p>
-                        </li>
-                    </ul>
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12 mb-24">
+                <div class="lg:col-span-4">
+                    <span class="reveal-up text-sm font-medium text-sage-600 block lg:mt-3">Legal</span>
                 </div>
+                <div class="lg:col-span-8">
+                    <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                        Privacy at FindFlower
+                    </h1>
+                    <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug max-w-2xl">
+                        What is collected, what is kept, and where your photo goes.
+                    </p>
+                </div>
+            </div>
+        </div>
 
-                <section id="collect" class="reveal-up scroll-mt-24 prose">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">What we collect</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg">
-                        <p>FindFlower is designed to collect as little as possible. During the Beta, the core identification experience requires no account and no personal information.</p>
-                        <p>We collect three narrow categories of data, and only in specific circumstances: <span class="text-neutral-900 font-normal">account details</span> if you sign in for developer access (handled by Auth0, such as your name and email), <span class="text-neutral-900 font-normal">feedback you deliberately submit</span>, and <span class="text-neutral-900 font-normal">basic, anonymous usage information</span> a browser naturally exposes when loading a page. We do not build advertising profiles.</p>
-                    </div>
-                </section>
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-y-16 lg:gap-x-12">
 
-                <section id="images" class="reveal-up scroll-mt-24 prose">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">How uploaded images are handled</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg">
-                        <p>When you capture, upload, or link an image, it is sent to our inference service to be analyzed. The service returns a prediction and the image is <span class="text-neutral-900 font-normal">not stored afterwards</span>. The model weights and training data remain private on the server, and only the predicted species and confidence score come back to your browser.</p>
-                        <p>Your photos are used only to produce the identification you requested. We hold no copy after the prediction is returned. The one exception is if you deliberately attach a photo to a feedback submission, described next.</p>
-                    </div>
-                </section>
+            <div class="lg:col-span-4">
+                <p class="reveal-up text-sm text-neutral-400 font-light leading-relaxed">
+                    Last updated 8 July 2026<br>Applies to the FindFlower Beta
+                </p>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">
+                    Identification runs on a server, not on your device. That changes what leaves
+                    your browser, so it is spelled out below rather than buried. A shorter, plainer
+                    list of where each thing lives is in <a href="/docs#storage" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">the guide</a>.
+                </p>
+                <p class="reveal-up border-l-2 border-sage-400 pl-6 text-base">
+                    The short version: your photo is sent to the inference service, used to return a
+                    prediction, and not kept afterwards. Feedback leaves your device only when you
+                    press send. Nothing here is sold, and none of it is used for advertising.
+                </p>
+            </div>
 
-                <section id="feedback" class="reveal-up scroll-mt-24 prose">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Whether feedback is saved, and why</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg">
-                        <p>Feedback is optional and always initiated by you. During the Beta, the feedback you provide is stored locally on your device so the experience keeps working offline and privately.</p>
-                        <p>If a training pipeline is ever built, submitted corrections, and any photo you choose to attach, would be used for one thing: <span class="text-neutral-900 font-normal">making future model versions more accurate</span>. That pipeline does not exist yet, and this page will say so before it does. That data is never sold or used for advertising.</p>
-                    </div>
-                </section>
+            <div class="lg:col-span-4">
+                <h2 id="collect" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">What we collect</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">FindFlower is designed to collect as little as possible. During the Beta, the core identification experience requires no account and no personal information.</p>
+                <p class="reveal-up">We collect three narrow categories of data, and only in specific circumstances: <span class="text-neutral-900 font-normal">account details</span> if you sign in for developer access (handled by Auth0, such as your name and email), <span class="text-neutral-900 font-normal">feedback you deliberately submit</span>, and <span class="text-neutral-900 font-normal">basic, anonymous usage information</span> a browser naturally exposes when loading a page. We do not build advertising profiles.</p>
+            </div>
 
-                <section id="sharing" class="reveal-up scroll-mt-24 prose">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Sharing with third parties</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg">
-                        <p>We do not sell your personal data. We rely on a small number of trusted services strictly to operate the product: <span class="text-neutral-900 font-normal">Auth0</span> for secure sign-in, and <span class="text-neutral-900 font-normal">Wikipedia</span> to fetch the reference summaries shown alongside a result. When context is loaded, a request for the species name is made to Wikipedia, subject to their own privacy terms.</p>
-                        <p>Beyond these operational providers, your data is not shared. We may disclose information only where genuinely required by law.</p>
-                    </div>
-                </section>
+            <div class="lg:col-span-4">
+                <h2 id="images" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">How uploaded images are handled</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">When you capture, upload, or link an image, it is sent to our inference service to be analyzed. The service returns a prediction and the image is <span class="text-neutral-900 font-normal">not stored afterwards</span>. The model weights and training data remain private on the server, and only the predicted species and confidence score come back to your browser.</p>
+                <p class="reveal-up">Your photos are used only to produce the identification you requested. We hold no copy after the prediction is returned. The one exception is if you deliberately attach a photo to a feedback submission, described next.</p>
+            </div>
 
-                <section id="control" class="reveal-up scroll-mt-24 prose">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Your privacy, in your control</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg">
-                        <p>You decide what to share. Feedback is never sent quietly in the background. Everything stored locally can be exported as JSON or erased from your <a href="/dashboard" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">dashboard</a> at any time.</p>
-                        <p>If anything here is unclear, we’d rather you ask than wonder. Reach us through the <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> and a person will respond.</p>
-                    </div>
-                </section>
+            <div class="lg:col-span-4">
+                <h2 id="feedback" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Whether feedback is saved, and why</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">Feedback is optional and always initiated by you. During the Beta, the feedback you provide is stored locally on your device so the experience keeps working offline and privately.</p>
+                <p class="reveal-up">If a training pipeline is ever built, submitted corrections, and any photo you choose to attach, would be used for one thing: <span class="text-neutral-900 font-normal">making future model versions more accurate</span>. That pipeline does not exist yet, and this page will say so before it does. That data is never sold or used for advertising.</p>
+            </div>
 
-                <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-4">
+            <div class="lg:col-span-4">
+                <h2 id="sharing" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Sharing with third parties</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">We do not sell your personal data. We rely on a small number of trusted services strictly to operate the product: <span class="text-neutral-900 font-normal">Auth0</span> for secure sign-in, and <span class="text-neutral-900 font-normal">Wikipedia</span> to fetch the reference summaries shown alongside a result. When context is loaded, a request for the species name is made to Wikipedia, subject to their own privacy terms.</p>
+                <p class="reveal-up">Beyond these operational providers, your data is not shared. We may disclose information only where genuinely required by law.</p>
+            </div>
+
+            <div class="lg:col-span-4">
+                <h2 id="control" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Your privacy, in your control</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">You decide what to share. Feedback is never sent quietly in the background. Everything stored locally can be exported as JSON or erased from your <a href="/dashboard" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">dashboard</a> at any time.</p>
+                <p class="reveal-up">If anything here is unclear, we&rsquo;d rather you ask than wonder. Reach us through the <a href="/contact" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">contact page</a> and a person will respond.</p>
+            </div>
+
+            <div class="lg:col-span-7 lg:col-start-6">
+                <div class="reveal-up flex flex-col sm:flex-row gap-3">
                     <a href="/terms" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 transition-colors">
                         Read the Terms of Service
                         <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
                     <a href="/contact" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-md hover:text-neutral-900 transition-colors">Contact us about privacy</a>
                 </div>
-
             </div>
+
         </div>
 
     </main>
@@ -209,13 +195,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
             document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
-
-            const links = [...document.querySelectorAll('.toc-link')];
-            const map = new Map(links.map(l => [l.getAttribute('href').slice(1), l]));
-            const secObs = new IntersectionObserver((entries) => {
-                entries.forEach(e => { if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); const l = map.get(e.target.id); if (l) l.classList.add('active'); } });
-            }, { rootMargin: '-20% 0px -70% 0px' });
-            map.forEach((_, id) => { const el = document.getElementById(id); if (el) secObs.observe(el); });
         });
     </script>
 </body>

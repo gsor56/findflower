@@ -4,16 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>Blogs | Field Logs &amp; Engineering &mdash; FindFlower</title>
+    <title>Blogs | Field logs and engineering | FindFlower</title>
     <meta name="description" content="Field logs and engineering notes from building FindFlower: how the training set is filtered, what the model gets wrong, and what changed between releases.">
     <link rel="canonical" href="https://findflower.me/blogs">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/blogs">
-    <meta property="og:title" content="Blogs | Field Logs &amp; Engineering &mdash; FindFlower">
+    <meta property="og:title" content="Blogs | Field logs and engineering | FindFlower">
     <meta property="og:description" content="Field logs and engineering notes from building FindFlower: how the training set is filtered, what the model gets wrong, and what changed between releases.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Blogs | Field Logs &amp; Engineering &mdash; FindFlower">
+    <meta name="twitter:title" content="Blogs | Field logs and engineering | FindFlower">
     <meta name="twitter:description" content="Field logs and engineering notes from building FindFlower: how the training set is filtered, what the model gets wrong, and what changed between releases.">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,7 +52,6 @@
         .ff-index { border-top:1px dotted #D4D4D4; }
         .ff-entry { border-bottom:1px dotted #D4D4D4; }
         .ff-entry a:hover .ff-entry-title { color:#171717; }
-        .ff-entry-no { font-variant-numeric:tabular-nums; }
 
         .ff-meta { font-size:0.75rem; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:#A3A3A3; }
 
@@ -99,40 +98,41 @@
 
     <main class="pt-32 pb-24">
 
-        <div class="max-w-3xl mx-auto px-6">
-
-            <header class="mb-16">
-                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Field logs</span>
-                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-4">Notes from building this</h1>
-                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 mb-8">Engineering write-ups and field notes</p>
-                <p class="reveal-up text-lg text-neutral-500 font-light leading-relaxed">
-                    Not announcements: what broke, what it cost, and what the fix turned out to
-                    be. Written when there is something to say rather than on a schedule, which is
-                    why the index below is short.
-                </p>
-            </header>
-
-            <ol class="reveal-up ff-index list-none">
-                <li class="ff-entry">
-                    <a href="/article?id=shards" class="group block py-6">
-                        <p class="ff-meta mb-2">20 August 2026 &middot; Engineering &middot; 7 min read</p>
-                        <div class="flex gap-4 sm:gap-6">
-                            <span class="ff-entry-no text-sm font-medium text-neutral-300 pt-1">01</span>
-                            <div>
-                                <h2 class="ff-entry-title text-xl md:text-2xl font-medium tracking-tight text-neutral-700 transition-colors mb-2">Five notebooks, 375,000 photographs, and no coordinator</h2>
-                                <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    Filling 1,500 species to exactly 100 checked images each means
-                                    inspecting nearly four times that many. It does not fit in one
-                                    session, so it runs as five that never speak to each other. What
-                                    that costs, and the bug that quietly refetched thousands of images.
-                                </p>
-                            </div>
-                        </div>
-                    </a>
-                </li>
-            </ol>
-
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12 mb-20">
+                <div class="lg:col-span-4">
+                    <span class="reveal-up text-sm font-medium text-sage-600 block lg:mt-3">Field logs</span>
+                </div>
+                <div class="lg:col-span-8">
+                    <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-4">
+                        Notes from building this
+                    </h1>
+                    <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 mb-8">Engineering write-ups and field notes</p>
+                    <p class="reveal-up text-lg text-neutral-500 font-light leading-relaxed max-w-2xl">
+                        Not announcements: what broke, what it cost, and what the fix turned out to
+                        be. Written when there is something to say rather than on a schedule, which is
+                        why the index below is short.
+                    </p>
+                </div>
+            </div>
         </div>
+
+        <ol class="reveal-up ff-index list-none max-w-7xl mx-auto px-6">
+            <li class="ff-entry">
+                <a href="/article?id=shards" class="group block py-8 grid grid-cols-1 lg:grid-cols-12 gap-y-2 lg:gap-x-12">
+                    <p class="ff-meta lg:col-span-4 lg:mt-1.5">20 August 2026 &middot; Engineering &middot; 7 min read</p>
+                    <div class="lg:col-span-7 lg:col-start-6">
+                        <h2 class="ff-entry-title text-xl md:text-2xl font-medium tracking-tight text-neutral-700 transition-colors mb-2">Five notebooks, 375,000 photographs, and no coordinator</h2>
+                        <p class="text-base text-neutral-500 font-light leading-relaxed">
+                            Filling 1,500 species to exactly 100 checked images each means
+                            inspecting nearly four times that many. It does not fit in one
+                            session, so it runs as five that never speak to each other. What
+                            that costs, and the bug that quietly refetched thousands of images.
+                        </p>
+                    </div>
+                </a>
+            </li>
+        </ol>
 
     </main>
 

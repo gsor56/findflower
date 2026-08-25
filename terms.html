@@ -48,8 +48,6 @@
         .reveal-up.active { opacity:1; transform:translateY(0); }
         .cta-arrow { transition:transform .35s cubic-bezier(0.16,1,0.3,1); }
         .group:hover .cta-arrow { transform:translateX(4px); }
-        .toc-link.active { color:#171717; font-weight:500; }
-        .toc-link.active .toc-dot { background:#5F7A63; }
         @media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation:none!important;transition:none!important} .reveal-up{opacity:1;transform:none} }
     
         @media (pointer: coarse) {
@@ -90,95 +88,92 @@
 
     <main class="pt-32 pb-24">
 
-        <section class="max-w-7xl mx-auto px-6 mb-16">
-            <div class="max-w-3xl">
-                <span class="reveal-up text-sm font-medium text-sage-600 mb-6 block">Legal</span>
-                <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">Terms of Service</h1>
-                <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug">
-                    What FindFlower is, what it is not, and what you agree to by using it.
-                </p>
-                <p class="reveal-up text-sm text-neutral-500 font-light mt-6">Last updated 8 July 2026 &middot; Applies to the FindFlower Beta</p>
-            </div>
-        </section>
-
-        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
-
-            <aside class="hidden lg:block lg:col-span-3">
-                <nav class="sticky top-24 space-y-1 text-sm">
-                    <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">On this page</p>
-                    <a href="#aid" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>An identification aid</a>
-                    <a href="#accuracy" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Accuracy &amp; limits</a>
-                    <a href="#responsibility" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Your responsibility</a>
-                    <a href="#acceptable" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Acceptable use</a>
-                    <a href="#changes" class="toc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="toc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Changes to these terms</a>
-                </nav>
-            </aside>
-
-            <div class="lg:col-span-9 space-y-16">
-
-                <div class="reveal-up border-l-2 border-neutral-900 pl-6 md:pl-8">
-                    <h2 class="text-2xl font-medium tracking-tight text-neutral-900 mb-3">Read this first</h2>
-                    <p class="text-lg text-neutral-700 font-light leading-relaxed max-w-2xl">
-                        FindFlower is an identification aid, not an authority. It can be wrong.
-                        Never rely on it alone for a decision about edibility, medicinal use,
-                        toxicity or safety. When it matters, confirm with someone qualified.
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12 mb-24">
+                <div class="lg:col-span-4">
+                    <span class="reveal-up text-sm font-medium text-sage-600 block lg:mt-3">Legal</span>
+                </div>
+                <div class="lg:col-span-8">
+                    <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
+                        Terms of Service
+                    </h1>
+                    <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug max-w-2xl">
+                        What FindFlower is, what it is not, and what you agree to by using it.
                     </p>
                 </div>
+            </div>
+        </div>
 
-                <section id="aid" class="reveal-up scroll-mt-24">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">FindFlower is an identification aid</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
-                        <p>FindFlower helps you recognise flowers from a photograph and learn about them. It is a supportive tool for curiosity and learning, a starting point for understanding the plant life around you, not a certified botanical authority.</p>
-                        <p>By using FindFlower, you agree to these terms. If you do not agree, please don’t use the product.</p>
-                    </div>
-                </section>
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-y-16 lg:gap-x-12">
 
-                <section id="accuracy" class="reveal-up scroll-mt-24">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Predictions may be wrong</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
-                        <p>Machine identification is probabilistic. Results are a best estimate, expressed with a confidence score and a set of alternatives precisely because they are not guaranteed to be correct.</p>
-                        <p>The current Beta model recognises a limited set of botanical classes. A flower outside that set may be misidentified or matched to the closest thing the model knows. Treat every result as a considered suggestion to verify, not a fact.</p>
-                    </div>
-                </section>
+            <div class="lg:col-span-4">
+                <p class="reveal-up text-sm text-neutral-400 font-light leading-relaxed">
+                    Last updated 8 July 2026<br>Applies to the FindFlower Beta
+                </p>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up border-l-2 border-neutral-900 pl-6 text-neutral-700">
+                    Read this first. FindFlower is an identification aid, not an authority. It can be
+                    wrong. Never rely on it alone for a decision about edibility, medicinal use,
+                    toxicity or safety. When it matters, confirm with someone qualified.
+                </p>
+            </div>
 
-                <section id="responsibility" class="reveal-up scroll-mt-24">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Your responsibility when using results</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
-                        <p>You are responsible for how you act on FindFlower’s output. Because a mistaken identification can have real consequences, you agree not to rely on it for any decision affecting health or safety, such as whether a plant is safe to touch, eat, or use, unless an expert has confirmed the identification independently.</p>
-                        <p>To the extent permitted by law, FindFlower and its developer are not liable for outcomes arising from reliance on the product’s predictions.</p>
-                    </div>
-                </section>
+            <div class="lg:col-span-4">
+                <h2 id="aid" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">FindFlower is an identification aid</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">FindFlower helps you recognise flowers from a photograph and learn about them. It is a supportive tool for curiosity and learning, a starting point for understanding the plant life around you, not a certified botanical authority.</p>
+                <p class="reveal-up">By using FindFlower, you agree to these terms. If you do not agree, please don&rsquo;t use the product.</p>
+            </div>
 
-                <section id="acceptable" class="reveal-up scroll-mt-24">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Acceptable use</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
-                        <p>We ask that you use FindFlower fairly and lawfully. In particular, please do not:</p>
-                    </div>
-                    <ul class="mt-5 space-y-3 text-neutral-600 font-light text-lg list-disc pl-5 marker:text-sage-400">
-                        <li>Upload content you don’t have the right to use, or that is unlawful or harmful.</li>
-                        <li>Attempt to disrupt, overload, reverse-engineer, or misuse the service or its API.</li>
-                        <li>Present FindFlower’s output as certified or authoritative identification.</li>
-                        <li>Use the product to break any applicable law or the rights of others.</li>
-                    </ul>
-                </section>
+            <div class="lg:col-span-4">
+                <h2 id="accuracy" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Predictions may be wrong</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">Machine identification is probabilistic. Results are a best estimate, expressed with a confidence score and a set of alternatives precisely because they are not guaranteed to be correct.</p>
+                <p class="reveal-up">The current Beta model recognises a limited set of botanical classes. A flower outside that set may be misidentified or matched to the closest thing the model knows. Treat every result as a considered suggestion to verify, not a fact.</p>
+            </div>
 
-                <section id="changes" class="reveal-up scroll-mt-24">
-                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Changes to these terms</h2>
-                    <div class="space-y-4 text-neutral-600 font-light text-lg leading-relaxed">
-                        <p>As FindFlower evolves, these terms may be updated. Material changes will be reflected here with a revised date. Continued use after an update means you accept the revised terms.</p>
-                        <p>Questions about anything here? The <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">contact page</a> reaches a real person.</p>
-                    </div>
-                </section>
+            <div class="lg:col-span-4">
+                <h2 id="responsibility" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Your responsibility when using results</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">You are responsible for how you act on FindFlower&rsquo;s output. Because a mistaken identification can have real consequences, you agree not to rely on it for any decision affecting health or safety, such as whether a plant is safe to touch, eat, or use, unless an expert has confirmed the identification independently.</p>
+                <p class="reveal-up">To the extent permitted by law, FindFlower and its developer are not liable for outcomes arising from reliance on the product&rsquo;s predictions.</p>
+            </div>
 
-                <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-4">
+            <div class="lg:col-span-4">
+                <h2 id="acceptable" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Acceptable use</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">We ask that you use FindFlower fairly and lawfully. In particular, please do not:</p>
+                <ul class="reveal-up space-y-3 list-disc pl-5 marker:text-sage-400">
+                    <li>Upload content you don&rsquo;t have the right to use, or that is unlawful or harmful.</li>
+                    <li>Attempt to disrupt, overload, reverse-engineer, or misuse the service or its API.</li>
+                    <li>Present FindFlower&rsquo;s output as certified or authoritative identification.</li>
+                    <li>Use the product to break any applicable law or the rights of others.</li>
+                </ul>
+            </div>
+
+            <div class="lg:col-span-4">
+                <h2 id="changes" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Changes to these terms</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">As FindFlower evolves, these terms may be updated. Material changes will be reflected here with a revised date. Continued use after an update means you accept the revised terms.</p>
+                <p class="reveal-up">Questions about anything here? The <a href="/contact" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">contact page</a> reaches a real person.</p>
+            </div>
+
+            <div class="lg:col-span-7 lg:col-start-6">
+                <div class="reveal-up flex flex-col sm:flex-row gap-3">
                     <a href="/privacy" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 transition-colors">
                         Read the Privacy Policy
                         <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
                     <a href="/contact" class="inline-flex items-center gap-2 text-sm font-medium text-neutral-500 px-6 py-3 rounded-md hover:text-neutral-900 transition-colors">Ask a question</a>
                 </div>
-
             </div>
+
         </div>
 
     </main>
@@ -200,13 +195,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
             document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
-
-            const links = [...document.querySelectorAll('.toc-link')];
-            const map = new Map(links.map(l => [l.getAttribute('href').slice(1), l]));
-            const secObs = new IntersectionObserver((entries) => {
-                entries.forEach(e => { if (e.isIntersecting) { links.forEach(l => l.classList.remove('active')); const l = map.get(e.target.id); if (l) l.classList.add('active'); } });
-            }, { rootMargin: '-20% 0px -70% 0px' });
-            map.forEach((_, id) => { const el = document.getElementById(id); if (el) secObs.observe(el); });
         });
     </script>
 </body>
