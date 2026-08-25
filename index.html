@@ -281,6 +281,31 @@
             [data-replay] { cursor: pointer; }
         }
 
+        .ff-scroll-cue {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.625rem;
+            margin-top: 2rem;
+            color: #A3A3A3;
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .ff-scroll-cue:hover { color: #737373; }
+        .ff-scroll-line {
+            display: block;
+            width: 1px;
+            height: 2.25rem;
+            background: linear-gradient(#D4D4D4, rgba(212, 212, 212, 0));
+            animation: ff-scroll-nudge 2.6s ease-in-out infinite;
+        }
+        @keyframes ff-scroll-nudge {
+            0%, 100% { transform: translateY(0); opacity: 0.55; }
+            50% { transform: translateY(5px); opacity: 1; }
+        }
+
         .ff-trace { display: block; width: 100%; max-width: 27rem; height: auto; margin-inline: auto; }
 
         .ff-count { font-variant-numeric: tabular-nums; display: inline-block; }
@@ -383,6 +408,11 @@
                         </a>
                     </div>
                     <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">Works in any browser. No install, no account, free during beta.</p>
+
+                    <a href="#directory-preview" class="ff-scroll-cue reveal-up delay-400 lg:hidden">
+                        Scroll
+                        <span class="ff-scroll-line" aria-hidden="true"></span>
+                    </a>
                 </div>
 
                 <div id="heroPass" data-replay class="reveal-up delay-200 ff-glass-stage" aria-hidden="true">
@@ -394,34 +424,29 @@
                                     <stop offset="0" stop-color="#F8FBF8"/>
                                     <stop offset="1" stop-color="#E7EFE9"/>
                                 </linearGradient>
-                                <radialGradient id="ffCoreGrad" cx="0.4" cy="0.35" r="0.75">
-                                    <stop offset="0" stop-color="#7C9781" stop-opacity="0.85"/>
-                                    <stop offset="1" stop-color="#4C6650" stop-opacity="0"/>
-                                </radialGradient>
                             </defs>
 
                             <rect x="40" y="44" width="320" height="256" rx="14" fill="url(#ffPassPlate)"/>
 
                             <g clip-path="url(#ffPassFrame)">
-                                <path d="M200 292C200 256 199 220 200 184" stroke="#4C6650" stroke-width="3" stroke-linecap="round"/>
-                                <path d="M200 246C176 242 152 226 136 190C170 194 196 216 200 246Z" fill="#6E8B74"/>
-                                <path d="M200 280C224 276 248 260 264 222C230 226 204 250 200 280Z" fill="#5F7A63"/>
-                                <g>
-                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#AEC4B3"/>
-                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#9BB6A2" transform="rotate(45 200 184)"/>
-                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#AEC4B3" transform="rotate(90 200 184)"/>
-                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#9BB6A2" transform="rotate(135 200 184)"/>
-                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#AEC4B3" transform="rotate(180 200 184)"/>
-                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#9BB6A2" transform="rotate(225 200 184)"/>
-                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#AEC4B3" transform="rotate(270 200 184)"/>
-                                    <ellipse cx="200" cy="150" rx="16" ry="34" fill="#9BB6A2" transform="rotate(315 200 184)"/>
+                                <g stroke="#4C6650" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M200 298C200 262 198 226 200 188" stroke-width="3"/>
+                                    <path d="M200 206C216 203 231 195 244 182" stroke-width="2"/>
+                                    <path d="M200 264C200 238 222 219 254 220C250 247 228 264 200 264Z" fill="#CFDCD2" stroke-width="2"/>
+                                    <path d="M200 264C214 254 232 238 254 220" stroke-width="1.1" stroke-opacity="0.55"/>
+                                    <path d="M200 236C200 210 178 191 146 192C150 219 172 236 200 236Z" fill="#CFDCD2" stroke-width="2"/>
+                                    <path d="M200 236C186 226 168 210 146 192" stroke-width="1.1" stroke-opacity="0.55"/>
+                                    <path d="M244 182C237 171 239 158 250 152C258 161 256 175 244 182Z" fill="#FFFFFF" stroke-width="2"/>
+                                    <g fill="#FFFFFF" stroke-width="2">
+                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z"/>
+                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z" transform="rotate(72 200 142)"/>
+                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z" transform="rotate(144 200 142)"/>
+                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z" transform="rotate(216 200 142)"/>
+                                        <path d="M200 142C185 131 184 110 200 94C216 110 215 131 200 142Z" transform="rotate(288 200 142)"/>
+                                    </g>
+                                    <circle cx="200" cy="142" r="13" fill="#FFFFFF" stroke-width="2"/>
+                                    <circle cx="200" cy="142" r="4.5" fill="#4C6650" stroke="none"/>
                                 </g>
-                                <circle cx="200" cy="184" r="22" fill="#4C6650"/>
-                                <circle cx="200" cy="184" r="22" fill="url(#ffCoreGrad)"/>
-                                <circle cx="193" cy="177" r="2.4" fill="#2E3F32" fill-opacity="0.5"/>
-                                <circle cx="206" cy="179" r="2.4" fill="#2E3F32" fill-opacity="0.5"/>
-                                <circle cx="197" cy="190" r="2.4" fill="#2E3F32" fill-opacity="0.5"/>
-                                <circle cx="208" cy="192" r="2.4" fill="#2E3F32" fill-opacity="0.5"/>
 
                                 <rect class="ff-pass-cell" style="--d:1000ms" x="120" y="108" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>
                                 <rect class="ff-pass-cell" style="--d:1080ms" x="200" y="108" width="80" height="64" fill="#4C6650" fill-opacity="0.14" stroke="#4C6650" stroke-opacity="0.5" stroke-width="1.2"/>

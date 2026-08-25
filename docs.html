@@ -123,15 +123,20 @@
 
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <p>
-                    Read this when something looks wrong and you want to know whether the problem is
-                    your connection, your browser, or the server. Every number on this page is the
-                    number the code actually uses, so if the site behaves differently from what is
-                    written here, the page is out of date and worth reporting.
+                    Nearly everything that goes wrong here is one of four things. The model was
+                    asleep. The browser you are in is not the browser your scans are in. A link points
+                    at a page that no longer exists. Or there is no connection at all. This page is
+                    those four written out, with the numbers the code actually uses rather than round
+                    ones.
                 </p>
                 <p>
-                    It does not explain the model. <a href="/how" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">How it works</a>
-                    covers that, and <a href="/privacy" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Privacy</a>
-                    covers what happens to a photo once you send it.
+                    It is a troubleshooting page and not an explanation of the model.
+                    <a href="/how" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">How it works</a>
+                    covers that, and
+                    <a href="/privacy" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Privacy</a>
+                    covers what becomes of a photo after you send it. If the site behaves differently
+                    from what is written below, this page is the thing that is out of date, and it is
+                    worth telling me.
                 </p>
             </div>
 
@@ -140,11 +145,12 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <p class="reveal-up">
-                    Above the upload frame on the
+                    There is a small dot above the upload frame on the
                     <a href="/try" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">scan page</a>
-                    sits a small dot with a label beside it. It reports one thing: whether the machine
-                    that runs the model answered a health check. The page asks once when it loads, and
-                    <span class="text-neutral-900 font-normal">stops waiting after 8 seconds</span>.
+                    with a word or two beside it. It answers one question, asked once when the page
+                    loads: did the machine that runs the model reply to a health check. The page gives
+                    that question <span class="text-neutral-900 font-normal">8 seconds</span> and then
+                    stops waiting. Four answers are possible.
                 </p>
                 <dl class="reveal-up divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
                     <div class="py-5 sm:grid sm:grid-cols-3 sm:gap-8">
@@ -153,8 +159,8 @@
                             <code class="font-mono text-sm text-neutral-900">Checking scanner…</code>
                         </dt>
                         <dd class="sm:col-span-2">
-                            The state the page opens in, while the health check is still out. On a
-                            normal connection it lasts well under a second.
+                            Where the page starts, with the check still out. You will rarely catch it
+                            for more than a fraction of a second.
                         </dd>
                     </div>
                     <div class="py-5 sm:grid sm:grid-cols-3 sm:gap-8">
@@ -163,8 +169,8 @@
                             <code class="font-mono text-sm text-neutral-900">Ready to identify</code>
                         </dt>
                         <dd class="sm:col-span-2">
-                            The check came back in under 1.5 seconds, so the model is already running.
-                            Expect a result a second or two after you send a photo.
+                            The reply came back inside 1.5 seconds, so the model is already loaded. A
+                            photo sent now comes back in a second or two.
                         </dd>
                     </div>
                     <div class="py-5 sm:grid sm:grid-cols-3 sm:gap-8">
@@ -173,10 +179,10 @@
                             <code class="font-mono text-sm text-neutral-900">Waking up the model…</code>
                         </dt>
                         <dd class="sm:col-span-2">
-                            Either the check took longer than 1.5 seconds, or it answered with a server
-                            error. The host suspends the model when nobody has used it for a while, so
-                            the first scan after a quiet spell has to start it up again. Send your photo
-                            anyway. It will go through, it just takes longer.
+                            The reply took longer than 1.5 seconds, or it came back as a server error.
+                            The host puts the model to sleep when nobody has used it for a while, and
+                            whoever arrives next pays for waking it up. Send the photo anyway. It goes
+                            through. It is just slow.
                         </dd>
                     </div>
                     <div class="py-5 sm:grid sm:grid-cols-3 sm:gap-8">
@@ -185,10 +191,10 @@
                             <code class="font-mono text-sm text-neutral-900">Scanner offline</code>
                         </dt>
                         <dd class="sm:col-span-2">
-                            Nothing came back at all. Most of the time that is the connection at your
-                            end. If your connection is fine the service is probably restarting, so wait
-                            a few minutes and reload. Everything you have already identified is held in
-                            this browser and stays readable in the meantime.
+                            Nothing came back at all. Usually that is the connection at your end. If
+                            everything else on the internet loads, the service is restarting, and a few
+                            minutes plus a reload is the whole fix. Scans you already have sit in this
+                            browser and read normally while you wait.
                         </dd>
                     </div>
                 </dl>
@@ -199,32 +205,34 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <p class="reveal-up">
-                    A model that is already running answers in about a second. One that has been
-                    suspended has to load its weights first, and that is the wait people notice.
-                    Rather than leave you watching a spinner, the page rewrites its own message on a
-                    fixed schedule, so you can tell slow apart from stuck.
+                    A model that is awake answers in about a second. One that has been asleep has to
+                    load its weights before it can look at anything, and that is the wait people
+                    notice and reasonably assume is a bug. So the page keeps changing what it says on
+                    a fixed schedule instead of spinning in silence.
                 </p>
                 <dl class="reveal-up ff-facts text-base text-neutral-600 font-light mt-8">
                     <dt>Straight away</dt>
                     <dd>The photo has gone and the page says it is analysing.</dd>
                     <dt>At 6 seconds</dt>
-                    <dd>Longer than a warm request should take, so the wording changes to warn you that a first try can be slow.</dd>
+                    <dd>Longer than a warm request takes. The wording changes to warn you a first try can be slow.</dd>
                     <dt>At 20 seconds</dt>
-                    <dd>By now it is clearly a cold start, and it says so plainly instead of pretending otherwise.</dd>
+                    <dd>This is a cold start. The page says so rather than pretending everything is normal.</dd>
                     <dt>At 45 seconds</dt>
-                    <dd>Slower than a cold start normally runs, but still worth waiting out.</dd>
+                    <dd>Slower than a cold start usually runs. Still worth waiting out.</dd>
                     <dt>At 95 seconds</dt>
                     <dd class="text-neutral-900">The request is cancelled and you get an error.</dd>
                 </dl>
                 <p class="reveal-up">
-                    If it does time out, try once more before deciding it is broken. The attempt that
-                    failed usually leaves the model running, which makes the second one quick.
+                    Try once more before deciding it is broken. The attempt that failed normally
+                    leaves the model awake behind it, so the second one is quick.
                 </p>
                 <p class="reveal-up">
-                    Your photo reaches the model through a small proxy rather than going straight to
-                    the host, so a request can be held up in the middle without either end being
-                    down. The <a href="/api" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">API reference</a>
-                    has the endpoint and the response shape if you would rather call it yourself.
+                    Your photo does not go straight to the host. It passes through a small proxy on
+                    the way, so a request can be stuck in the middle while both ends are perfectly
+                    healthy. The
+                    <a href="/api" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">API reference</a>
+                    has the endpoint and the response shape if you would rather skip the page and call
+                    it yourself.
                 </p>
             </div>
 
@@ -233,46 +241,47 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <p class="reveal-up">
-                    This is the part people most often expect to work differently than it does, so it
-                    is worth being blunt about.
+                    An account here does less than an account usually does, and the gap between what
+                    people expect and what it actually is causes more confusion than anything else on
+                    the site. So, plainly.
                 </p>
                 <dl class="reveal-up divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
                     <div class="py-5">
-                        <dt class="font-normal text-neutral-900 mb-2">Do I need an account to identify a flower?</dt>
+                        <dt class="font-normal text-neutral-900 mb-2">Scanning does not need one</dt>
                         <dd>
-                            No. The scanner works signed out, and a scan you make as a guest is saved
-                            exactly the way a signed-in one is.
+                            The scanner works signed out, and a scan made as a guest is saved exactly
+                            the way a signed-in one is. Nothing is held back for members.
                         </dd>
                     </div>
                     <div class="py-5">
-                        <dt class="font-normal text-neutral-900 mb-2">Then what does signing in change?</dt>
+                        <dt class="font-normal text-neutral-900 mb-2">What it actually changes</dt>
                         <dd>
                             It keeps records apart. Scans made while you are signed in are filed under
-                            your account, so if somebody else uses the same browser their history and
-                            yours do not run together. Auth0 handles the sign-in itself, which is why
-                            FindFlower never sees your password. It also gets you a handle to post with
-                            in the <a href="/community" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">community</a>.
+                            your account, so two people sharing a laptop do not end up sharing a
+                            history. It also gets you a handle to post with in the
+                            <a href="/community" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">community</a>.
+                            Auth0 runs the sign-in itself, so FindFlower never sees your password.
                         </dd>
                     </div>
                     <div class="py-5">
-                        <dt class="font-normal text-neutral-900 mb-2">Will my history follow me to another device?</dt>
+                        <dt class="font-normal text-neutral-900 mb-2">It does not carry your history to another device</dt>
                         <dd>
-                            <span class="text-neutral-900">No, and this is the one to remember.</span>
-                            Your scans, thumbnails, streak and badges are written to this browser and
-                            nowhere else. Signing in somewhere else gives you the same account with an
+                            <span class="text-neutral-900">This is the one to remember.</span>
+                            Scans, thumbnails, streak and badges are written to this browser and
+                            nowhere else. Sign in on your phone and you get the same account with an
                             empty history, because there is no copy on a server to pull down.
                             <a href="/login" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">The sign-in page</a>
                             says as much before you commit to it.
                         </dd>
                     </div>
                     <div class="py-5">
-                        <dt class="font-normal text-neutral-900 mb-2">Can I get my data out?</dt>
+                        <dt class="font-normal text-neutral-900 mb-2">Your data comes out as a file</dt>
                         <dd>
-                            Yes. Your
+                            The
                             <a href="/dashboard" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">dashboard</a>
-                            will write the whole lot to a JSON file in your downloads. Treat it as a
-                            copy to keep or to read yourself. There is no import to match it, so it
-                            will not refill another browser for you.
+                            writes the whole lot to a JSON file in your downloads. Keep it, or read it
+                            yourself. There is no import to match it, so it will not refill another
+                            browser for you.
                         </dd>
                     </div>
                 </dl>
@@ -283,41 +292,40 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <p class="reveal-up">
-                    Two places hold data, and nearly every question about a missing record comes down
-                    to which of them you are looking at.
+                    Data lives in two places. Almost every message about a record that has vanished
+                    turns out to be a question of which of the two it was in.
                 </p>
                 <dl class="reveal-up ff-facts text-base text-neutral-600 font-light mt-8">
                     <dt>Scans, thumbnails</dt>
                     <dd>
                         A browser database named <code class="font-mono text-sm text-neutral-800">findflower</code>,
-                        on this machine. Photos are shrunk to 320 pixels on the long edge before they
-                        are stored, so a long history stays small. Streaks and species counts are added
-                        up from those rows whenever a page needs them, which is why deleting a scan
-                        changes the numbers straight away.
+                        on this machine. Photos are shrunk to 320 pixels on the long edge before being
+                        stored, so a long history stays small. Streaks and species counts are added up
+                        from those rows each time a page needs them. Delete a scan and the numbers move
+                        immediately, because nothing was being kept on the side.
                     </dd>
                     <dt>Unsent feedback</dt>
                     <dd>Local storage in this browser, until you decide to send it. Nothing goes anywhere on its own.</dd>
                     <dt>Community post text</dt>
                     <dd>
-                        <span class="text-neutral-900">The FindFlower server.</span> This is the one
-                        thing here that leaves your machine on purpose, and it has to, or nobody else
-                        could read what you wrote. For the same reason it is the one thing that does
-                        follow you to another device.
+                        <span class="text-neutral-900">The FindFlower server.</span> The one thing on
+                        this list that leaves your machine on purpose. It has to, or nobody else could
+                        read what you wrote, and for the same reason it is the one thing that does show
+                        up on your other devices.
                     </dd>
                     <dt>Photos on a post</dt>
                     <dd>Not uploaded. A post carries its text; the identification behind it and its thumbnail stay local.</dd>
                 </dl>
                 <p class="reveal-up">
-                    So clearing your site data, or opening FindFlower in a different browser, a
-                    different profile, or a private window, empties the local half of that list. Posts
-                    you have already published are unaffected and load as usual, because they were
-                    never sitting here to begin with.
+                    Clear your site data, or open FindFlower in another browser, another profile, or a
+                    private window, and the local half of that list is empty. Posts you have already
+                    published come back as normal. They were never sitting here to begin with.
                 </p>
                 <p class="reveal-up">
-                    If a post will not send, it is nearly always one of two things: you are signed out,
+                    A post that will not send is nearly always one of two things: you are signed out,
                     or you have not claimed a handle yet. The community server sleeps when it is idle
-                    too, so the first load of the feed after a quiet spell can sit empty for a moment
-                    before anything shows up.
+                    as well, so the feed can sit empty for a moment on the first load after a quiet
+                    spell.
                     <a href="/community" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">The community page</a>
                     goes into its own storage in more detail.
                 </p>
@@ -328,51 +336,53 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <p class="reveal-up">
-                    FindFlower is a set of static files. A path like <code class="font-mono text-base text-neutral-700">/pricing</code>
-                    is served from <code class="font-mono text-base text-neutral-700">pricing.html</code>, and both spellings of
-                    the address reach the same page. When there is no file behind a path you get the
+                    FindFlower is a folder of static files. <code class="font-mono text-base text-neutral-700">/pricing</code>
+                    is served out of <code class="font-mono text-base text-neutral-700">pricing.html</code>,
+                    and both spellings of the address land on the same page. Where there is no file
+                    behind a path you get the
                     <a href="/404" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">not-found page</a>,
-                    which has a working search on it. A mistyped address, or a link from an older
-                    version of the site, is almost always the cause.
+                    which has a search on it that works. A typo, or a link from an older version of the
+                    site, accounts for almost all of those.
                 </p>
                 <p class="reveal-up">
-                    Not every dead end is a 404, though, and the difference tells you where to look.
+                    Not every dead end is a 404, and the difference tells you where to look.
                 </p>
                 <dl class="reveal-up divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
                     <div class="py-5">
                         <dt class="font-normal text-neutral-900 mb-2">A species page that shows almost nothing</dt>
                         <dd>
-                            Species profiles are filled in from Wikipedia and Wikidata as you open them
-                            rather than being baked into the page. If a name cannot be matched there,
-                            the profile still loads with whatever is available and offers you a
-                            Wikipedia search instead. Sparse, but not an error.
+                            Species profiles are filled in from Wikipedia and Wikidata as you open
+                            them rather than being written into the page in advance. When a name cannot
+                            be matched there, the profile loads with whatever it did find and offers a
+                            Wikipedia search instead. Thin, but not broken.
                         </dd>
                     </div>
                     <div class="py-5">
                         <dt class="font-normal text-neutral-900 mb-2">An article link that says there is no entry</dt>
                         <dd>
-                            Written entries are looked up by an id in the address. An id that no longer
-                            exists gets you that message on the article page rather than a 404, with a
-                            link back to everything that has been published.
+                            Written entries are looked up by an id in the address. An id that no
+                            longer exists gets you that message on the article page instead of a 404,
+                            with a link back to everything that has been published.
                         </dd>
                     </div>
                     <div class="py-5">
                         <dt class="font-normal text-neutral-900 mb-2">A scan that has gone from your history</dt>
                         <dd>
-                            Check you are in the same browser, and the same profile, that made it.
-                            Scans are never fetched from anywhere, so one that is missing means the
-                            local database is not the one you have in mind.
+                            Check you are in the browser, and the profile, that made it. Scans are
+                            never fetched from anywhere. A missing one means you are looking at a
+                            different local database than the one you are thinking of.
                         </dd>
                     </div>
                 </dl>
                 <p class="reveal-up">
-                    Moving between pages does not usually reload the browser. A link is caught in the
-                    page, the next document is fetched, and its main content replaces what was there,
-                    with the title and the address updated to match. If any step of that fails the site
-                    stops being clever and performs an ordinary full load of the same URL, so a failure
-                    costs you a slower page change rather than a blank screen. Two pages always load
-                    in full: the scanner, which is holding a live camera stream, and sign-in, which has
-                    to catch a redirect back from Auth0. Neither one survives being swapped in halfway.
+                    Moving between pages does not usually reload the browser. The click is caught in
+                    the page, the next document is fetched, and its main content is swapped in with the
+                    title and the address brought along to match. If any part of that fails the site
+                    stops being clever and does an ordinary full load of the same address, so the worst
+                    case is a slower page change rather than a blank screen. Two pages always load in
+                    full. The scanner, because it is holding a live camera stream, and sign-in, because
+                    it has to catch a redirect back from Auth0. Neither survives being swapped in
+                    halfway.
                 </p>
             </div>
 
@@ -380,17 +390,16 @@
                 <h2 id="offline" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Working without a connection</h2>
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
-                <div class="reveal-up border border-neutral-200 rounded-lg p-6 space-y-3 text-base">
+                <div class="reveal-up border-l-2 border-sage-400 pl-6 space-y-3 text-base">
                     <p class="text-neutral-900 font-normal">You cannot use FindFlower offline. Nothing is cached for it.</p>
                     <p>
-                        Loading or reloading any page needs the network, and a new scan needs it twice
-                        over, since the model runs on a server rather than in your browser. It is
-                        better to say that here than to let you find out halfway up a hillside with no
-                        signal.
+                        Opening or reloading any page needs the network, and a scan needs it twice over,
+                        because the model runs on a server rather than in your browser. Better to read
+                        that here than to work it out halfway up a hillside with no signal.
                     </p>
                     <p>
-                        Your saved history is not lost while you are offline. It is sitting in the
-                        browser database and reads back normally as soon as a page can load again.
+                        Nothing you have saved is lost in the meantime. It is sitting in the browser
+                        database and reads back as usual the moment a page can load again.
                     </p>
                 </div>
                 <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-2">

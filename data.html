@@ -114,7 +114,7 @@
                 </p>
             </div>
 
-            <div class="reveal-up border border-neutral-200 rounded-lg p-6 mb-16">
+            <div class="reveal-up border-l-2 border-sage-400 pl-6 mb-16">
                 <p class="text-sm font-medium text-neutral-900 mb-2">Access, honestly</p>
                 <p class="text-base text-neutral-600 font-light leading-relaxed">
                     The image dataset is on a private repository while per-image licence attribution
@@ -147,19 +147,19 @@ curation_manifest.json
 progress/shard-00-of-05.json
 README.md</div>
                 <div class="reveal-up grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                    <div class="border border-neutral-200 rounded-lg p-5">
+                    <div class="border-l-2 border-sage-400 pl-5">
                         <p class="text-sm font-medium text-neutral-900 mb-1">Images per class</p>
                         <p class="text-base text-neutral-600 font-light">Exactly 100. A directory holding any other number is not a finished class and should be treated as absent.</p>
                     </div>
-                    <div class="border border-neutral-200 rounded-lg p-5">
+                    <div class="border-l-2 border-sage-400 pl-5">
                         <p class="text-sm font-medium text-neutral-900 mb-1">Folder names</p>
                         <p class="text-base text-neutral-600 font-light">The scientific name with every character outside <span class="font-mono text-neutral-900">A&ndash;Z a&ndash;z 0&ndash;9 . _ -</span> replaced by an underscore, truncated at 180 characters.</p>
                     </div>
-                    <div class="border border-neutral-200 rounded-lg p-5">
+                    <div class="border-l-2 border-sage-400 pl-5">
                         <p class="text-sm font-medium text-neutral-900 mb-1">File names</p>
                         <p class="text-base text-neutral-600 font-light"><span class="font-mono text-neutral-900">NNN_&lt;photo id&gt;.jpg</span> &mdash; a three-digit rank by the composite selection score, then the iNaturalist photo id it came from.</p>
                     </div>
-                    <div class="border border-neutral-200 rounded-lg p-5">
+                    <div class="border-l-2 border-sage-400 pl-5">
                         <p class="text-sm font-medium text-neutral-900 mb-1">Licences</p>
                         <p class="text-base text-neutral-600 font-light">CC0, CC&nbsp;BY and CC&nbsp;BY-NC only, recorded per image. Mixed, so the set as a whole is non-commercial.</p>
                     </div>
@@ -335,11 +335,11 @@ curl -X POST https://findflower-proxy.fofi.workers.dev \
   ]
 }</div>
                 <div class="reveal-up grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="border border-neutral-200 rounded-lg p-5">
+                    <div class="border-l-2 border-sage-400 pl-5">
                         <p class="text-sm font-medium text-neutral-900 mb-1">Five results, always</p>
                         <p class="text-base text-neutral-600 font-light"><span class="font-mono text-neutral-900">top_k</span> holds five entries, softmax probabilities over the 116 classes, descending. <span class="font-mono text-neutral-900">flower</span> and <span class="font-mono text-neutral-900">confidence</span> are the first of them, repeated for convenience.</p>
                     </div>
-                    <div class="border border-neutral-200 rounded-lg p-5">
+                    <div class="border-l-2 border-sage-400 pl-5">
                         <p class="text-sm font-medium text-neutral-900 mb-1">Liveness without a token</p>
                         <p class="text-base text-neutral-600 font-light">A <span class="font-mono text-neutral-900">GET</span> on the same URL returns <span class="font-mono text-neutral-900">{ status: "ok" }</span> and needs no credentials. Use it to check the service is up; it tells you nothing else.</p>
                     </div>
