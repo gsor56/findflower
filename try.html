@@ -27,7 +27,7 @@
     <script src="species.js?v=2"></script>
     <script src="prefs.js?v=1"></script>
     <script src="scripts/vendor/tf.min.js?v=4.22.0"></script>
-    <script src="scripts/lite.js?v=1"></script>
+    <script src="scripts/lite.js?v=2"></script>
     <script src="storage.js"></script>
     <script src="blur.js?v=1"></script>
     <script src="main.js?v=2"></script>
@@ -311,9 +311,8 @@
                     Identify a flower
                 </h1>
                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                    Use the camera, a photo on this device, or an image link. The photo is sent to
-                    the inference service and returns a species, a confidence score and the
-                    matching Wikipedia entry.
+                    Use the camera, a photo on this device, or an image link. Lite identifies locally;
+                    Standard uses the FindFlower server for the wider ViT-116 taxonomy.
                 </p>
             </div>
         </section>
@@ -327,6 +326,14 @@
                         <div id="modelStatus" class="flex items-center gap-2 text-xs font-medium text-neutral-500">
                             <span id="modelDot" class="w-1.5 h-1.5 rounded-full bg-neutral-300"></span>
                             <span id="modelStatusText">Ready to identify</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-3 mb-5 rounded-md border border-neutral-200 bg-neutral-50 p-1.5">
+                        <span class="pl-2 text-xs font-medium text-neutral-500">Engine</span>
+                        <div id="scannerTierSelector" role="radiogroup" aria-label="Identification engine" class="flex gap-1">
+                            <button type="button" data-engine-tier="lite" role="radio" aria-checked="false" class="min-h-9 rounded px-3 text-xs font-medium transition-colors">Lite · local</button>
+                            <button type="button" data-engine-tier="standard" role="radio" aria-checked="true" class="min-h-9 rounded px-3 text-xs font-medium transition-colors">Standard · ViT</button>
                         </div>
                     </div>
 
@@ -721,9 +728,7 @@
 
         const ENGINES = { standard: API_URL };
 
-        function engineUrl() {
-            return ENGINES[pref('modelTier', 'standard')] || API_URL;
-        }
+        function engineUrl() { return ENGINES.standard; }
 
         const SEND_AUTH_TOKEN = false;
         const REQUIRE_SIGN_IN = false;
@@ -857,8 +862,37 @@
                 label: modelStatusText,
                 onChange: () => refreshIdentifyState(),
             });
-            ffStatus.probe(API_URL);
+            updateEngineStatus(pref('modelTier', 'standard'));
             refreshIdentifyState();
+        }
+        function updateEngineStatus(tier) {
+            paintEngineSelector(tier);
+            if (tier === 'lite') {
+                ffStatus.markReady();
+                modelStatusText.textContent = 'Lite ready · on-device';
+                return;
+            }
+            ffStatus.probe(API_URL);
+        }
+        function paintEngineSelector(tier) {
+            document.querySelectorAll('[data-engine-tier]').forEach(function (button) {
+                const active = button.dataset.engineTier === tier;
+                button.setAttribute('aria-checked', active ? 'true' : 'false');
+                button.classList.toggle('bg-white', active);
+                button.classList.toggle('text-sage-700', active);
+                button.classList.toggle('shadow-sm', active);
+                button.classList.toggle('text-neutral-500', !active);
+            });
+        }
+        document.querySelectorAll('[data-engine-tier]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (window.ffPrefs) window.ffPrefs.set('modelTier', button.dataset.engineTier);
+            });
+        });
+        if (window.ffPrefs && typeof window.ffPrefs.subscribe === 'function') {
+            window.ffPrefs.subscribe(function (key) {
+                if (key === 'modelTier' || key === null) updateEngineStatus(pref('modelTier', 'standard'));
+            });
         }
         initStatus();
 
@@ -1007,7 +1041,7 @@
             softScrollTo(resultPanel);
         }
 
-        const LOAD_STAGES = [
+        const STANDARD_LOAD_STAGES = [
             { at: 0,     main: 'Analyzing image…',        sub: '' },
             { at: 6000,  main: 'Analyzing image…',        sub: 'Waking up the model. The first try can take a moment.' },
             { at: 20000, main: 'Still working…',          sub: 'The model was asleep and is starting up. Hang tight.' },
@@ -1016,10 +1050,14 @@
         const REQUEST_TIMEOUT_MS = 95000;
 
         let loadTimers = [];
-        function startLoadingMessages() {
+        function startLoadingMessages(tier) {
             const mainEl = $('resLoadingMain'), subEl = $('resLoadingSub');
+            const stages = tier === 'lite'
+                ? [{ at: 0, main: 'Analyzing on this device...', sub: 'Your photo stays in this browser.' },
+                   { at: 5000, main: 'Loading the Lite model...', sub: 'The first local scan may take a moment; later scans are faster.' }]
+                : STANDARD_LOAD_STAGES;
             loadTimers.forEach(clearTimeout);
-            loadTimers = LOAD_STAGES.map(stage =>
+            loadTimers = stages.map(stage =>
                 setTimeout(() => { mainEl.textContent = stage.main; subEl.textContent = stage.sub; }, stage.at)
             );
         }
@@ -1046,7 +1084,7 @@
             }
 
             showState('loading');
-            startLoadingMessages();
+            startLoadingMessages(selectedTier);
             previewScan.classList.remove('hidden');
             identifyBtn.disabled = true;
             identifyLabel.textContent = 'Analyzing…';
@@ -1055,7 +1093,6 @@
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-            let liteFallbackAttempted = false;
             try {
                 if (selectedTier === 'lite') {
                     const ranked = await ffLite.predict(currentBlob, 5);
@@ -1093,32 +1130,6 @@
                 ffStatus.markReady();
                 await handlePrediction(ranked);
             } catch (err) {
-                // Lite is an optional offline accelerator. If its TFJS assets
-                // are unavailable (blocked CDN, stale cache, or an older
-                // browser), transparently retry through the Standard server.
-                if (selectedTier === 'lite' && !liteFallbackAttempted) {
-                    liteFallbackAttempted = true;
-                    try {
-                        const fallbackForm = new FormData();
-                        fallbackForm.append('file', currentBlob, 'flower.jpg');
-                        const fallbackRes = await fetch(API_URL, {
-                            method: 'POST',
-                            headers: {},
-                            body: fallbackForm,
-                            signal: controller.signal,
-                        });
-                        if (!fallbackRes.ok) throw new Error(`Standard fallback returned ${fallbackRes.status}.`);
-                        const fallbackData = await fallbackRes.json();
-                        if (!fallbackData.top_k || !fallbackData.top_k.length) throw new Error('Empty fallback prediction.');
-                        const fallbackRanked = fallbackData.top_k.map(x => ({ name: x.name, p: x.confidence }));
-                        lastPrediction = fallbackRanked[0];
-                        ffStatus.markReady();
-                        await handlePrediction(fallbackRanked);
-                        return;
-                    } catch (fallbackErr) {
-                        console.warn('Lite and Standard fallback failed:', fallbackErr);
-                    }
-                }
                 console.error(err);
                 if (err.name === 'AbortError') {
                     ffStatus.markColdStart();
@@ -1234,7 +1245,9 @@
                 btn.addEventListener('click', () => pickCandidate(c));
                 list.appendChild(btn);
 
-                loadCandidateThumb(btn.querySelector('.ff-candidate__thumb'), c.name);
+                if (pref('modelTier', 'standard') !== 'lite') {
+                    loadCandidateThumb(btn.querySelector('.ff-candidate__thumb'), c.name);
+                }
             });
 
             const heading = list.previousElementSibling;
@@ -1301,7 +1314,14 @@
             $('resImg').src = previewImg.src;
 
             showState('content');
-            loadSpeciesPanel(cleanName(top.name));
+            if (pref('modelTier', 'standard') === 'lite') {
+                showDetailFallback({
+                    articleUrl: 'https://en.wikipedia.org/wiki/Special:Search?search=' + encodeURIComponent(cleanName(top.name)),
+                    attribution: 'On-device Lite model'
+                });
+            } else {
+                loadSpeciesPanel(cleanName(top.name));
+            }
         }
 
         const UNKNOWN = (typeof window.FF_SPECIES_UNKNOWN === 'string')

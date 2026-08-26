@@ -116,9 +116,8 @@
         {
             id: 'lite',
             name: 'Lite (CNN)',
-            note: 'Would identify on this device, with no photo leaving the browser.',
-            ready: false,
-            why: 'The browser weights are not published with the site, so there is nothing to load.'
+            note: 'Identifies on this device. Your photo stays in this browser and is never sent to the server.',
+            ready: true
         },
         {
             id: 'standard',
@@ -149,7 +148,7 @@
         return '' +
         '<button type="button" role="radio" data-tier="' + t.id + '" data-haptic' +
                 ' aria-checked="' + (active ? 'true' : 'false') + '"' +
-                ' class="tap w-full text-left px-4 py-3 border-b border-neutral-100 last:border-b-0 ' + (active ? 'bg-sage-50' : 'hover:bg-neutral-50') + ' transition-colors' + ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-inset">' +
+                ' class="tap cursor-pointer w-full text-left px-4 py-3 border-b border-neutral-100 last:border-b-0 ' + (active ? 'bg-sage-50' : 'hover:bg-neutral-50') + ' transition-colors' + ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage-500 focus-visible:ring-inset">' +
             '<span class="flex items-baseline justify-between gap-3">' + head +
                 '<span class="text-xs ' + (active ? 'text-sage-700' : 'text-neutral-400') + '">' +
                     (active ? 'in use' : 'use this') + '</span>' +
@@ -229,6 +228,7 @@
             if (!e.target.closest) return;
             var tier = e.target.closest('[data-tier]');
             if (tier && host.contains(tier)) {
+                e.preventDefault();
                 var stored = window.ffPrefs.set('modelTier', tier.getAttribute('data-tier'));
                 paintPrefs(host);
                 if (!stored) $('prefWarn').classList.remove('hidden');
