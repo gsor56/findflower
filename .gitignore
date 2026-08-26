@@ -70,8 +70,17 @@ Thumbs.db
 # published them. The dataset itself lives in the HF repo, not here.
 .ffpatch/
 .kaggle-log-only/
+.kaggle-log-latest/
+.kaggle-output-v8/
 curation/
 hf_*.json
+/cnn_class_names.json
+/flower_model/
+/find10k_output/
+/remote_find10k/
+/secret_meta/
+/find10k_kaggle_log*.txt
+/kaggle_logs*.txt
 /scripts/build_curation_shards.py
 /scripts/build_top_plantae_manifest.py
 /scripts/validate_premium_dataset.py

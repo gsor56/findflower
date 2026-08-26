@@ -26,6 +26,8 @@
     <script src="scripts/ui.js?v=1"></script>
     <script src="species.js?v=2"></script>
     <script src="prefs.js?v=1"></script>
+    <script src="scripts/vendor/tf.min.js?v=4.22.0"></script>
+    <script src="scripts/lite.js?v=1"></script>
     <script src="storage.js"></script>
     <script src="blur.js?v=1"></script>
     <script src="main.js?v=2"></script>
@@ -1030,7 +1032,8 @@
         identifyBtn.addEventListener('click', async () => {
             if (!currentBlob) return;
 
-            const authHeaders = await inferencePreflight();
+            const selectedTier = pref('modelTier', 'standard');
+            const authHeaders = selectedTier === 'lite' ? {} : await inferencePreflight();
             if (!authHeaders) return;
 
             if (window.ffBlur && previewImg.src && !previewImg.classList.contains('hidden') && previewImg.complete) {
@@ -1052,7 +1055,15 @@
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+            let liteFallbackAttempted = false;
             try {
+                if (selectedTier === 'lite') {
+                    const ranked = await ffLite.predict(currentBlob, 5);
+                    lastPrediction = ranked[0];
+                    ffStatus.markReady();
+                    await handlePrediction(ranked);
+                    return;
+                }
                 const form = new FormData();
                 form.append('file', currentBlob, 'flower.jpg');
                 const res = await fetch(engineUrl(), {
@@ -1082,6 +1093,32 @@
                 ffStatus.markReady();
                 await handlePrediction(ranked);
             } catch (err) {
+                // Lite is an optional offline accelerator. If its TFJS assets
+                // are unavailable (blocked CDN, stale cache, or an older
+                // browser), transparently retry through the Standard server.
+                if (selectedTier === 'lite' && !liteFallbackAttempted) {
+                    liteFallbackAttempted = true;
+                    try {
+                        const fallbackForm = new FormData();
+                        fallbackForm.append('file', currentBlob, 'flower.jpg');
+                        const fallbackRes = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {},
+                            body: fallbackForm,
+                            signal: controller.signal,
+                        });
+                        if (!fallbackRes.ok) throw new Error(`Standard fallback returned ${fallbackRes.status}.`);
+                        const fallbackData = await fallbackRes.json();
+                        if (!fallbackData.top_k || !fallbackData.top_k.length) throw new Error('Empty fallback prediction.');
+                        const fallbackRanked = fallbackData.top_k.map(x => ({ name: x.name, p: x.confidence }));
+                        lastPrediction = fallbackRanked[0];
+                        ffStatus.markReady();
+                        await handlePrediction(fallbackRanked);
+                        return;
+                    } catch (fallbackErr) {
+                        console.warn('Lite and Standard fallback failed:', fallbackErr);
+                    }
+                }
                 console.error(err);
                 if (err.name === 'AbortError') {
                     ffStatus.markColdStart();

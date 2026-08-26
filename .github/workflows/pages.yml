@@ -35,6 +35,7 @@ jobs:
           # tab bar and sidebar dumped as raw blocks at the foot of the page.
           cp *.html *.css *.js *.svg _site/
           cp trefle-data.json _site/
+          cp -R models _site/
           cp CNAME .nojekyll _site/
           # These globs are FLAT — *.js does not descend into scripts/. That
           # directory went unpublished for its whole existence: api.js, ui.js,
@@ -57,6 +58,7 @@ jobs:
           # rather than 15 pages with a slightly worse one.
           for f in app.css nav.js footer.js \
                    scripts/api.js scripts/ui.js scripts/router.js \
+                   scripts/lite.js scripts/vendor/tf.min.js \
                    scripts/ux.js \
                    scripts/views/home.js scripts/views/directory.js \
                    scripts/views/dashboard.js scripts/views/scanner.js; do
