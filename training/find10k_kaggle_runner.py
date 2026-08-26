@@ -116,6 +116,10 @@ def main() -> int:
             print(f"[auth] credential discovered at {secret_path}", flush=True)
     if not hf_token:
         raise SystemExit("[auth] HF_TOKEN unavailable")
+    # Pass the discovered secret to child phase processes without persisting it
+    # in artifacts or source files. Kaggle mounts credential datasets under a
+    # normalized path, so the child cannot reliably rediscover the file itself.
+    os.environ["HF_TOKEN"] = hf_token
     api = HfApi(token=hf_token)
     model_repo = os.environ.get("HF_MODEL_REPO", "timm/eva02_large_patch14_clip_336.merged2b_ft_inat21")
     run_ingestion = os.environ.get("FIND10K_RUN_INGESTION", "1") == "1"
