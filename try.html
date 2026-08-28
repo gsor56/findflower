@@ -19,7 +19,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=10">
     <script src="nav.js?v=4" defer></script>
-    <script src="footer.js?v=1" defer></script>
+    <script src="footer.js?v=2" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="directory.js" defer></script>
     <script src="scripts/api.js?v=1"></script>
@@ -311,8 +311,10 @@
                     Identify a flower
                 </h1>
                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                    Use the camera, a photo on this device, or an image link. Lite identifies locally;
-                    Standard uses the FindFlower server for the wider ViT-116 taxonomy.
+                    Use the camera, a photo on this device, or an image link. Standard knows more
+                    species and does the work on the server; Lite knows fewer and never sends your
+                    photo anywhere.
+                    <a href="/how#modes" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Which to pick</a>.
                 </p>
             </div>
         </section>

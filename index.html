@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <title>FindFlower | Identify a flower from a photograph</title>
-    <meta name="description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
+    <title>Identify flowers from a photo | FindFlower</title>
+    <meta name="description" content="Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.">
     <link rel="canonical" href="https://findflower.me/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/">
-    <meta property="og:title" content="FindFlower | Identify a flower from a photograph">
-    <meta property="og:description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
+    <meta property="og:title" content="Identify flowers from a photo | FindFlower">
+    <meta property="og:description" content="Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.">
     <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="FindFlower | Identify a flower from a photograph">
-    <meta name="twitter:description" content="Photograph a flower and FindFlower returns a species, a confidence score and the botanical record behind it. 116 species, no account needed.">
+    <meta name="twitter:title" content="Identify flowers from a photo | FindFlower">
+    <meta name="twitter:description" content="Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=10">
@@ -22,7 +22,7 @@
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js" defer></script>
     <script src="auth.js?v=3" defer></script>
     <script src="nav.js?v=4" defer></script>
-    <script src="footer.js?v=1" defer></script>
+    <script src="footer.js?v=2" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="species.js"></script>
     <script src="scripts/views/home.js" defer></script>
@@ -216,11 +216,15 @@
             text-wrap: balance;
         }
 
-        .ff-hero-art { display: flex; justify-content: center; }
-        .ff-sprig { width: min(100%, 26rem); height: auto; }
+        .ff-hero-art { display: none; justify-content: center; }
+        @media (min-width: 768px) {
+            .ff-hero-art { display: flex; }
+        }
+        .ff-sprig { width: min(62%, 15rem); height: auto; }
+        @media (min-width: 1024px) {
+            .ff-sprig { width: min(100%, 26rem); }
+        }
 
-        /* Both leaves meet the stem at 12,12, so they pivot there rather than at
-           their own centres. Periods differ so the two never sway in lockstep. */
         .ff-leaf { transform-box: view-box; transform-origin: 12px 12px; }
         .ff-leaf-r { animation: ff-leaf-r 6s ease-in-out infinite; }
         .ff-leaf-l { animation: ff-leaf-l 7.2s ease-in-out infinite; }
@@ -252,10 +256,6 @@
             0%, 100% { transform: translateY(0); opacity: 0.55; }
             50% { transform: translateY(5px); opacity: 1; }
         }
-
-        .ff-trace { display: block; width: 100%; max-width: 27rem; height: auto; margin-inline: auto; }
-
-        .ff-count { font-variant-numeric: tabular-nums; display: inline-block; }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -305,7 +305,6 @@
     </header>
 
     <main class="relative pt-32 pb-24 overflow-hidden">
-
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
             <svg class="hidden lg:block absolute left-[-2.5rem] top-[20%] text-sage-200 opacity-70 float-slow" width="120" height="250" viewBox="0 0 120 260" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M60 255C60 205 58 150 60 40"/>
@@ -331,28 +330,31 @@
                         Identify flowers from a photo
                     </h1>
                     <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-700 max-w-xl leading-relaxed mb-6">
-                        Upload or capture a photo to identify the plant species and view
-                        confidence ratings.
+                        Take a photo of a flower, or upload one you already have. You get the
+                        species name, how confident the answer is, and a botanical record you can
+                        actually read.
                     </p>
                     <p class="reveal-up delay-200 text-base text-neutral-500 max-w-xl leading-relaxed mb-10 font-light">
-                        The photo is sent to a Vision Transformer on the server, running under
-                        ONNX Runtime. Family, growth habit and reference photos come from Wikidata,
-                        Trefle and Wikipedia.
+                        No install, no account, free while this is in beta.
                     </p>
 
                     <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                         <a href="/try" class="lift-btn soft-click w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-md hover:bg-neutral-800 transition flex items-center justify-center">
-                            Identify a flower
+                            Identify a flower now
                         </a>
                         <a href="/directory" class="soft-click w-full sm:w-auto text-base font-medium text-neutral-700 border border-neutral-200 bg-white px-8 py-3.5 rounded-md hover:border-sage-200 hover:text-sage-700 transition flex items-center justify-center">
                             Browse the directory
                         </a>
                     </div>
-                    <p class="reveal-up delay-400 mt-6 text-xs text-neutral-400 font-light">Works in any browser. No install, no account, free during beta.</p>
+                    <p class="reveal-up delay-400 mt-6 text-xs text-neutral-500 font-light max-w-sm leading-relaxed">
+                        Works in any browser. The photo is sent to the server to be identified and
+                        is not kept afterwards.
+                        <a href="/privacy#images" class="text-sage-600 border-b border-sage-200 hover:border-sage-500 transition-colors">What happens to it</a>.
+                    </p>
 
-                    <a href="#directory-preview" class="ff-scroll-cue reveal-up delay-400 lg:hidden">
-                        PAGE UP
-                        <span class="hidden" aria-hidden="true"></span>
+                    <a href="#how" class="ff-scroll-cue reveal-up delay-400 lg:hidden">
+                        How it works
+                        <span class="ff-scroll-line" aria-hidden="true"></span>
                     </a>
                 </div>
 
@@ -369,57 +371,11 @@
             </div>
         </section>
 
-        <section id="directory-preview" class="max-w-7xl mx-auto px-6 mb-32 scroll-mt-24">
-            <div class="reveal-up flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
-                <div class="max-w-2xl">
-                    <span class="text-sm font-medium text-sage-600 mb-4 block">Directory</span>
-                    <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                        Species directory
-                    </h2>
-                    <p class="mt-4 text-base text-neutral-500 font-light leading-relaxed">
-                        Common flowering species with scientific names, families and full profiles. Open any card to read its record.
-                    </p>
-                </div>
-                <a href="/directory" class="hidden md:inline-flex items-center text-sm font-medium text-neutral-900 whitespace-nowrap hover:text-sage-600 transition-colors">
-                    View full directory
-                </a>
-            </div>
-
-            <div id="previewGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-
-            <div class="reveal-up mt-10 flex md:hidden">
-                <a href="/directory" class="inline-flex items-center text-sm font-medium bg-neutral-900 text-white px-6 py-3 rounded-md hover:bg-neutral-800 transition-colors">
-                    View full directory
-                </a>
-            </div>
-        </section>
-
-        <section class="max-w-7xl mx-auto px-6 mb-36">
-            <div id="statsStrip" class="reveal-up grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-6 border-y border-neutral-200 py-12">
-                <div class="text-center md:border-r border-neutral-200">
-                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2"><span class="ff-count">116</span></div>
-                    <div class="text-sm text-neutral-500 font-light">Botanical classes</div>
-                </div>
-                <div class="text-center md:border-r border-neutral-200">
-                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">ViT</div>
-                    <div class="text-sm text-neutral-500 font-light">Vision Transformer pipeline</div>
-                </div>
-                <div class="text-center md:border-r border-neutral-200">
-                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">Free</div>
-                    <div class="text-sm text-neutral-500 font-light">During the Beta</div>
-                </div>
-                <div class="text-center">
-                    <div class="text-4xl md:text-5xl font-medium tracking-tight text-neutral-900 mb-2">0</div>
-                    <div class="text-sm text-neutral-500 font-light">Accounts required</div>
-                </div>
-            </div>
-        </section>
-
         <section id="how" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
             <div class="reveal-up max-w-2xl mb-16">
                 <span class="text-sm font-medium text-sage-600 mb-4 block">How it works</span>
                 <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                    How identification works
+                    Three steps, about ten seconds
                 </h2>
             </div>
 
@@ -432,9 +388,9 @@
                         <li class="reveal-up flex gap-5">
                             <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-sm font-medium text-neutral-400">01</span>
                             <div class="min-w-0">
-                                <h3 class="text-lg font-medium text-neutral-900 mb-2">Capture or upload</h3>
+                                <h3 class="text-lg font-medium text-neutral-900 mb-2">Take or upload a photo</h3>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    Point your camera at a plant, or drop in a photo you already have. One clear frame of a bloom or a leaf is enough. No install and no account needed.
+                                    Point the camera at a bloom, pick a photo already on your phone, or paste a link to one. One clear shot of the flower is enough, and close beats wide.
                                 </p>
                             </div>
                         </li>
@@ -442,9 +398,9 @@
                         <li class="reveal-up delay-100 flex gap-5">
                             <span class="relative z-10 flex-shrink-0 w-10 h-10 rounded-full bg-white border border-neutral-200 flex items-center justify-center text-sm font-medium text-neutral-400">02</span>
                             <div class="min-w-0">
-                                <h3 class="text-lg font-medium text-neutral-900 mb-2">The model reads it</h3>
+                                <h3 class="text-lg font-medium text-neutral-900 mb-2">Get a name and a score</h3>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    The photo is sent to a Vision Transformer running under ONNX Runtime, which returns a species and a confidence score. The image is used for that prediction and is not stored afterwards. The <a href="/privacy" class="text-sage-600 hover:text-sage-700 underline underline-offset-2 decoration-sage-200">privacy page</a> sets out what happens to it.
+                                    The species comes back with a confidence figure beside it and the next closest matches underneath. A low figure means it is unsure, which is worth seeing before you believe it.
                                 </p>
                             </div>
                         </li>
@@ -454,11 +410,17 @@
                             <div class="min-w-0">
                                 <h3 class="text-lg font-medium text-neutral-900 mb-2">Read the record</h3>
                                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                                    Wikidata supplies the binomial and family, Trefle the growth habit and light needs, Wikipedia the reference photo and article. Those four requests assemble into the record shown here.
+                                    Family, growth habit, how much light and water it wants, a reference photo and a link to the full article. Anything a source has no data for is left out rather than guessed.
                                 </p>
                             </div>
                         </li>
                     </ol>
+
+                    <p class="reveal-up delay-200 mt-10 text-sm text-neutral-500 font-light leading-relaxed max-w-lg">
+                        The longer version, including which model reads your photo and why the first
+                        scan of the day is slower, is on
+                        <a href="/how" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">how it works</a>.
+                    </p>
                 </div>
 
                 <div class="md:col-span-5 md:sticky md:top-28">
@@ -506,25 +468,74 @@
                             </div>
                         </article>
 
-                        <div id="sampleTrace" class="reveal-up delay-200 mt-6 px-1">
-                            <svg class="ff-trace" viewBox="0 0 320 100" fill="none" aria-hidden="true">
-                <text x="40" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIDATA</text>
-                <text x="160" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">TREFLE</text>
-                <text x="280" y="12" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.5" font-weight="500" letter-spacing="0.09em" fill="#A3A3A3">WIKIPEDIA</text>
-                <circle cx="40" cy="26" r="4.5" fill="#5F7A63"/>
-                <circle cx="160" cy="26" r="4.5" fill="#5F7A63"/>
-                <circle cx="280" cy="26" r="4.5" fill="#5F7A63"/>
-                <text x="40" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">binomial, family</text>
-                <text x="160" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">habit, light, water</text>
-                <text x="280" y="43" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" fill="#C0CCC2">plate, article</text>
-                <path d="M40 50C40 68 100 70 150 78" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
-                <path d="M160 50C160 62 160 70 160 77" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
-                <path d="M280 50C280 68 220 70 170 78" stroke="#7C9781" stroke-opacity="0.75" stroke-width="1.4" stroke-linecap="round"/>
-                <rect x="112" y="78" width="96" height="18" rx="9" fill="#F2F5F2" stroke="#C9D6CB" stroke-width="1"/>
-                <text x="160" y="90" text-anchor="middle" font-family="Inter, sans-serif" font-size="8" font-weight="500" letter-spacing="0.08em" fill="#3D5341">ONE RECORD</text>
-                            </svg>
-                        </div>
+                        <p class="reveal-up delay-200 mt-5 px-1 text-sm text-neutral-500 font-light leading-relaxed">
+                            The same card a scan produces, with the same fields, read from the same
+                            catalogue.
+                            <a href="/how#sources" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Where each field comes from</a>.
+                        </p>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="directory-preview" class="max-w-7xl mx-auto px-6 mb-32 scroll-mt-24">
+            <div class="reveal-up flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
+                <div class="max-w-2xl">
+                    <span class="text-sm font-medium text-sage-600 mb-4 block">Directory</span>
+                    <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
+                        Or look one up without a photo
+                    </h2>
+                    <p class="mt-4 text-base text-neutral-500 font-light leading-relaxed">
+                        Common flowering species with their scientific names, families and full records. Open any card to read one.
+                    </p>
+                </div>
+                <a href="/directory" class="hidden md:inline-flex items-center text-sm font-medium text-neutral-900 whitespace-nowrap hover:text-sage-600 transition-colors">
+                    View full directory
+                </a>
+            </div>
+
+            <div id="previewGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+
+            <div class="reveal-up mt-10 flex md:hidden">
+                <a href="/directory" class="inline-flex items-center text-sm font-medium bg-neutral-900 text-white px-6 py-3 rounded-md hover:bg-neutral-800 transition-colors">
+                    View full directory
+                </a>
+            </div>
+        </section>
+
+        <section id="why" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
+            <div class="lg:col-span-4">
+                <h2 class="reveal-up text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
+                    Why this one
+                </h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 divide-y divide-neutral-200 border-t border-b border-neutral-200">
+                <div class="reveal-up py-6">
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">It only does flowers</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed">
+                        No leaf keys, no bird calls, no general plant scanner with flowers bolted on the side. Flowering species photographed outdoors is the one thing it tries to be good at.
+                    </p>
+                </div>
+                <div class="reveal-up py-6">
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">Free while it is in beta</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed">
+                        No trial to start, no card to enter, no upgrade prompt halfway through a scan. What might eventually cost money is
+                        <a href="/pricing" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">already written down</a>.
+                    </p>
+                </div>
+                <div class="reveal-up py-6">
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">No account, nothing installed</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed">
+                        Open the scanner and use it. Scans you keep are stored in this browser rather than on a server, which also means they will not be waiting for you on another phone.
+                        <a href="/docs#storage" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Where each thing is kept</a>.
+                    </p>
+                </div>
+                <div class="reveal-up py-6">
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">It admits when it is unsure</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed">
+                        Every answer carries a confidence figure and its runners-up, because a wrong name given confidently is worse than an uncertain one. Model versions are
+                        <a href="/releases" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">listed as they ship</a>.
+                    </p>
                 </div>
             </div>
         </section>
@@ -535,52 +546,24 @@
                     <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-8">
                         About FindFlower
                     </h2>
-                    <svg class="w-full max-w-sm text-sage-400" viewBox="0 0 400 220" fill="none">
+                    <svg class="w-full max-w-sm text-sage-400" viewBox="0 0 400 220" fill="none" aria-hidden="true">
                         <path class="draw-path" d="M40 200C40 150 60 120 100 110C70 108 50 88 52 58C82 62 100 84 100 110C102 74 128 50 168 52C166 88 140 110 100 110C140 112 168 138 168 176C132 172 108 148 100 110M100 110C160 120 200 90 210 40C250 60 250 110 210 130C176 146 130 138 100 110Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </div>
                 <div class="reveal-up delay-100 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                     <p>
-                        FindFlower names the plant in a photo. Submit one image and it returns a species, a confidence score, and the botanical record behind them.
+                        FindFlower is an independent project rather than a company, and it is not
+                        trying to become one. It is free to use, and the parts that are still
+                        missing are described rather than hidden.
                     </p>
                     <p>
-                        The confidence score and the next-best matches are shown next to the name so you can judge how reliable the identification is.
+                        There are no ads, no trackers and no analytics of any kind, which has a real
+                        cost: nobody here knows how many people use this, and that is the trade
+                        being made.
                     </p>
                     <p>
-                        Records are assembled from Wikidata, Trefle and Wikipedia when you request them. Fields a source has no data for are left out rather than filled with a guess.
-                    </p>
-                    <p>
-                        <a href="/docs" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">The guide</a> covers the parts you cannot see from the screen, like why a first scan is slow and what signing in changes.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <section id="architecture" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24">
-            <div class="reveal-up max-w-2xl mb-14">
-                <span class="text-sm font-medium text-sage-600 mb-4 block">Architecture</span>
-                <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                    What runs it
-                </h2>
-            </div>
-
-            <div class="reveal-up border-t border-b border-neutral-200">
-                <div class="py-6 sm:grid sm:grid-cols-3 sm:gap-8 border-t border-neutral-100 first:border-t-0">
-                    <h3 class="text-base font-medium text-neutral-900 mb-2 sm:mb-0">Classifier</h3>
-                    <p class="sm:col-span-2 text-base text-neutral-500 font-light leading-relaxed">
-                        A Vision Transformer exported to ONNX and served through ONNX Runtime, covering 116 botanical classes. Each prediction returns a confidence score and its closest alternatives.
-                    </p>
-                </div>
-                <div class="py-6 sm:grid sm:grid-cols-3 sm:gap-8 border-t border-neutral-100 first:border-t-0">
-                    <h3 class="text-base font-medium text-neutral-900 mb-2 sm:mb-0">Species data</h3>
-                    <p class="sm:col-span-2 text-base text-neutral-500 font-light leading-relaxed">
-                        Wikidata for taxonomy, Trefle for growing conditions, Wikipedia for the reference photo and article. Each source is queried when you open a record, so nothing is served from a stale copy.
-                    </p>
-                </div>
-                <div class="py-6 sm:grid sm:grid-cols-3 sm:gap-8 border-t border-neutral-100 first:border-t-0">
-                    <h3 class="text-base font-medium text-neutral-900 mb-2 sm:mb-0">Accounts</h3>
-                    <p class="sm:col-span-2 text-base text-neutral-500 font-light leading-relaxed">
-                        Not required. Open the scanner and identify. Scan history is kept in your own browser and you can clear it at any time.
+                        <a href="/about" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">More about the project</a>,
+                        including what it is not and what it will not do.
                     </p>
                 </div>
             </div>
@@ -597,9 +580,14 @@
                 <a href="/try" class="soft-click inline-flex items-center text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition">
                     Open the scanner
                 </a>
+                <p class="reveal-up mt-10 text-sm text-neutral-500 font-light leading-relaxed">
+                    If a scan hangs, or the camera will not open, or a result looks plainly wrong,
+                    <a href="/docs" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">the guide</a>
+                    lists what to check first. A misidentification is genuinely useful to hear about, so
+                    <a href="/contact" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">send it over</a>.
+                </p>
             </div>
         </section>
-
     </main>
 
     <div id="ff-footer"><noscript>

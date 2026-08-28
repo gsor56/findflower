@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="app.css?v=10">
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
-    <script src="footer.js?v=1" defer></script>
+    <script src="footer.js?v=2" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
@@ -145,7 +145,7 @@
             </div>
         </section>
 
-        <section class="max-w-7xl mx-auto px-6 mb-40 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
+        <section id="steps" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
             <div class="lg:col-span-4">
                 <h2 class="reveal-up text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
                     Three steps,<br class="hidden lg:block"> start to finish
@@ -182,29 +182,97 @@
             </div>
         </section>
 
-        <section class="max-w-7xl mx-auto px-6 mb-40 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
+        <section id="modes" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
             <div class="lg:col-span-4">
                 <h2 class="reveal-up text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
-                    What runs the<br class="hidden lg:block"> identification
+                    Which model reads<br class="hidden lg:block"> your photo
                 </h2>
             </div>
-            <div class="lg:col-span-7 lg:col-start-6 divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
-                <div class="reveal-up py-6">
-                    <p class="font-medium text-neutral-900 mb-1">A fine-tuned Vision Transformer</p>
-                    <p class="text-neutral-600 font-light leading-relaxed">Trained on a curated flower set and served as ONNX. It returns ranked candidates with a confidence score for each.</p>
+            <div class="lg:col-span-7 lg:col-start-6">
+                <p class="reveal-up text-base text-neutral-600 font-light leading-relaxed mb-8">
+                    There is an engine switch above the camera. Standard is chosen for you, and most
+                    people never need to touch it.
+                </p>
+                <div class="reveal-up divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
+                    <div class="py-6">
+                        <p class="font-medium text-neutral-900 mb-1">Lite, on this device</p>
+                        <p class="text-neutral-600 font-light leading-relaxed">
+                            A small convolutional model that runs inside the browser tab and knows 107
+                            species. Nothing is uploaded, which is the whole reason it exists. The first
+                            scan waits while the model downloads; after that it is quick, and it works
+                            with the tab offline.
+                        </p>
+                    </div>
+                    <div class="py-6">
+                        <p class="font-medium text-neutral-900 mb-1">Standard, on the server</p>
+                        <p class="text-neutral-600 font-light leading-relaxed">
+                            A fine-tuned Vision Transformer covering 116 species, served as ONNX on a
+                            CPU. The photo is uploaded, classified and dropped, and the five best
+                            candidates come back with a confidence figure each. This is the default.
+                        </p>
+                    </div>
+                    <div class="py-6">
+                        <p class="font-medium text-neutral-900 mb-1">Pro, not yet</p>
+                        <p class="text-neutral-600 font-light leading-relaxed">
+                            A wider vocabulary on the same server path. The dashboard lists it as
+                            unavailable because it has not been trained, and it is named here so the
+                            gap is visible instead of implied.
+                        </p>
+                    </div>
                 </div>
-                <div class="reveal-up py-6">
-                    <p class="font-medium text-neutral-900 mb-1">116 botanical classes</p>
-                    <p class="text-neutral-600 font-light leading-relaxed">Anything outside those classes comes back as the nearest match it knows, which is why the runners-up are always shown.</p>
+                <p class="reveal-up text-base text-neutral-600 font-light leading-relaxed mt-8">
+                    Both working engines choose from a fixed list of species. A flower outside that
+                    list still gets an answer, and that answer will be the closest thing the model
+                    knows, which is the other reason the runners-up are always on screen.
+                </p>
+                <p class="reveal-up text-sm text-neutral-500 font-light leading-relaxed mt-4">
+                    A first scan after a quiet spell is slow because the server has to wake up first.
+                    <a href="/docs#cold-start" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">What that looks like</a>.
+                </p>
+            </div>
+        </section>
+        <section id="sources" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
+            <div class="lg:col-span-4">
+                <h2 class="reveal-up text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
+                    Where a record<br class="hidden lg:block"> comes from
+                </h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6">
+                <p class="reveal-up text-base text-neutral-600 font-light leading-relaxed mb-8">
+                    The model gives a name. Everything under the name is fetched from three open
+                    catalogues at the moment you ask for it, so a record is assembled rather than
+                    stored here.
+                </p>
+                <div class="reveal-up divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
+                    <div class="py-6">
+                        <p class="font-medium text-neutral-900 mb-1">Wikidata</p>
+                        <p class="text-neutral-600 font-light leading-relaxed">The scientific name, the family it sits in, and the related species listed beside it. Also the poisonous flag, when one exists.</p>
+                    </div>
+                    <div class="py-6">
+                        <p class="font-medium text-neutral-900 mb-1">Trefle</p>
+                        <p class="text-neutral-600 font-light leading-relaxed">The growing side: growth habit, how much sun it wants, and the light and humidity figures out of ten.</p>
+                    </div>
+                    <div class="py-6">
+                        <p class="font-medium text-neutral-900 mb-1">Wikipedia</p>
+                        <p class="text-neutral-600 font-light leading-relaxed">The plate at the top of the card, the paragraph of description, and the link out to the full article.</p>
+                    </div>
                 </div>
-                <div class="reveal-up py-6">
-                    <p class="font-medium text-neutral-900 mb-1">A hosted endpoint, not your device</p>
-                    <p class="text-neutral-600 font-light leading-relaxed">The weights stay on the server. The photo is uploaded, analysed, and dropped.</p>
+                <div class="reveal-up border-l-2 border-sage-400 pl-6 mt-8 space-y-3 text-base text-neutral-600 font-light leading-relaxed">
+                    <p class="text-neutral-900">A field with no data is left out, not filled in.</p>
+                    <p>
+                        A short record means the catalogues are thin on that species, not that the
+                        identification failed. Where two sources disagree, both are shown saying so.
+                        Nothing about edibility is ever asserted from a missing value.
+                    </p>
                 </div>
+                <p class="reveal-up text-sm text-neutral-500 font-light leading-relaxed mt-6">
+                    Which catalogue supplies what, and the licences that come with them, are set out on
+                    <a href="/data" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">data and integrations</a>.
+                </p>
             </div>
         </section>
 
-        <section class="max-w-7xl mx-auto px-6 mb-40 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
+        <section id="corrections" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
             <div class="lg:col-span-4">
                 <span class="reveal-up text-sm font-medium text-sage-600 block lg:mt-3">Corrections</span>
             </div>
@@ -232,7 +300,7 @@
             </div>
         </section>
 
-        <section class="max-w-7xl mx-auto px-6 mb-40 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
+        <section id="photo" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
             <div class="lg:col-span-4">
                 <span class="reveal-up text-sm font-medium text-sage-600 block lg:mt-3">Your photo</span>
             </div>
