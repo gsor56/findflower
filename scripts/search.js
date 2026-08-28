@@ -8,7 +8,9 @@
     };
 
     function titleCase(s) {
-        return String(s || '').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        return String(s || '').replace(/(^|\s)(\w)/g, function (m, pre, c) {
+            return pre + c.toUpperCase();
+        });
     }
 
     function fold(s) {

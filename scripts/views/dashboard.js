@@ -8,7 +8,9 @@
     };
 
     function titleCase(s) {
-        return String(s || '').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        return String(s || '').replace(/(^|\s)(\w)/g, function (m, pre, c) {
+            return pre + c.toUpperCase();
+        });
     }
 
     function relTime(iso) {
@@ -32,25 +34,26 @@
         var pct = typeof scan.confidence === 'number'
             ? Math.round(scan.confidence * 100) + '%' : '';
         var thumb = scan.imageBase64
-            ? '<img src="' + esc(scan.imageBase64) + '" alt="" class="w-full h-full object-cover">'
+            ? '<img src="' + esc(scan.imageBase64) + '" alt="" class="w-full h-full object-cover ' +
+                  'group-hover:scale-[1.03] transition-transform duration-500 ease-out">'
             : '<div class="w-full h-full flex items-center justify-center bg-sage-50">' +
               '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
               'stroke-width="1.4" class="text-sage-400"><path d="' + FLOWER_PATH + '"/></svg></div>';
 
         var name = titleCase(scan.species);
-        return '<article class="bg-white border border-neutral-200 rounded-lg overflow-hidden">' +
+        return '<article class="group bg-white border border-neutral-200 rounded-lg overflow-hidden">' +
             '<a href="/species?name=' + encodeURIComponent(name) + '" class="block">' +
-                '<div class="aspect-square bg-neutral-100">' + thumb + '</div>' +
-            '</a>' +
-            '<div class="p-3">' +
-                '<h3 class="font-medium text-sm text-neutral-900 leading-snug line-clamp-2">' +
-                    esc(name) + '</h3>' +
-                '<div class="flex items-center justify-between mt-1.5">' +
-                    '<span class="text-xs text-neutral-400">' + esc(relTime(scan.timestamp)) + '</span>' +
-                    (pct ? '<span class="text-xs font-medium text-sage-700 bg-sage-50 px-1.5 py-0.5 rounded">' +
-                        esc(pct) + '</span>' : '') +
+                '<div class="aspect-square bg-neutral-100 overflow-hidden">' + thumb + '</div>' +
+                '<div class="p-3">' +
+                    '<h3 class="font-medium text-sm text-neutral-900 leading-snug line-clamp-2">' +
+                        esc(name) + '</h3>' +
+                    '<div class="flex items-center justify-between mt-1.5">' +
+                        '<span class="text-xs text-neutral-400">' + esc(relTime(scan.timestamp)) + '</span>' +
+                        (pct ? '<span class="text-xs font-medium text-sage-700 bg-sage-50 px-1.5 py-0.5 rounded">' +
+                            esc(pct) + '</span>' : '') +
+                    '</div>' +
                 '</div>' +
-            '</div>' +
+            '</a>' +
         '</article>';
     }
 
