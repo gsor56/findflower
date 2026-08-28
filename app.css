@@ -916,3 +916,86 @@ html.ff-reduce-motion .reveal-up {
     opacity: 1;
     transform: none;
 }
+
+/* Command palette. Any page that loads scripts/search.js gets it, so the
+   rules belong here rather than in one page's <style>. */
+.ff-cmd {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 4.5rem 1rem 1rem;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity .16s ease, visibility 0s linear .16s;
+}
+.ff-cmd.active { visibility: visible; opacity: 1; transition: opacity .16s ease; }
+.ff-cmd__scrim { position: absolute; inset: 0; background: rgba(23, 23, 23, .18); }
+.ff-cmd__panel {
+    position: relative;
+    width: 100%;
+    max-width: 34rem;
+    display: flex;
+    flex-direction: column;
+    background: #FFFFFF;
+    border: 1px solid #E5E5E5;
+    border-radius: 4px;
+    box-shadow: 0 20px 60px -18px rgba(23, 23, 23, 0.15);
+    overflow: hidden;
+}
+.ff-cmd__head {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0 0.75rem;
+    border-bottom: 1px solid #F5F5F5;
+}
+.ff-cmd__input {
+    flex: 1;
+    min-width: 0;
+    font-size: 1rem;
+    line-height: 1.5;
+    padding: 0.875rem 0;
+    border: 0;
+    background: transparent;
+    color: #171717;
+}
+.ff-cmd__input::placeholder { color: #A3A3A3; }
+.ff-cmd__input:focus { outline: none; }
+.ff-cmd__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 4px;
+    color: #A3A3A3;
+    background: transparent;
+}
+.ff-cmd__close:hover { color: #171717; background: #F5F5F5; }
+.ff-cmd__list { max-height: min(60vh, 26rem); overflow-y: auto; overscroll-behavior: contain; }
+.ff-cmd__row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.625rem;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border-left: 2px solid transparent;
+}
+.ff-cmd__row > span { min-width: 0; }
+.ff-cmd__row > span:first-child { flex: 0 0 auto; max-width: 60%; }
+.ff-cmd__row > span:last-child:not(:first-child) { flex: 1 1 auto; text-align: right; }
+.ff-cmd__row[aria-selected="true"] { background: #F2F5F2; border-left-color: #5F7A63; }
+.ff-cmd__foot {
+    display: none;
+    padding: 0.625rem 1rem;
+    border-top: 1px solid #F5F5F5;
+    font-size: 0.75rem;
+    color: #A3A3A3;
+}
+@media (min-width: 640px) { .ff-cmd__foot { display: block; } }
+@media (prefers-reduced-motion: reduce) {
+    .ff-cmd, .ff-cmd.active { transition: none; }
+}
