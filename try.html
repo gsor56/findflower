@@ -17,10 +17,11 @@
     <meta name="twitter:description" content="Point your camera at a flower and identify it in seconds. Free botanical scanner covering 116 species, with confidence scores and no sign-up required.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=10">
+    <link rel="stylesheet" href="app.css?v=11">
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=2" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
+    <script src="scripts/search.js?v=1" defer></script>
     <script src="directory.js" defer></script>
     <script src="scripts/api.js?v=1"></script>
     <script src="scripts/ui.js?v=1"></script>
@@ -311,10 +312,10 @@
                     Identify a flower
                 </h1>
                 <p class="text-base text-neutral-500 font-light leading-relaxed">
-                    Use the camera, a photo on this device, or an image link. Standard knows more
-                    species and does the work on the server; Lite knows fewer and never sends your
-                    photo anywhere.
-                    <a href="/how#modes" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Which to pick</a>.
+                    Use the camera, a photo on this device, or an image link.
+                    <span id="engineBlurb">Flora-Flash is reading your photos: it knows 116 species and runs on the server, so the picture is uploaded, read, and dropped.</span>
+                    <a href="/dashboard#prefsSection" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Pick a different one</a>
+                    or read <a href="/how#modes" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">how they differ</a>.
                 </p>
             </div>
         </section>
@@ -331,12 +332,13 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-between gap-3 mb-5 rounded-md border border-neutral-200 bg-neutral-50 p-1.5">
-                        <span class="pl-2 text-xs font-medium text-neutral-500">Engine</span>
-                        <div id="scannerTierSelector" role="radiogroup" aria-label="Identification engine" class="flex gap-1">
-                            <button type="button" data-engine-tier="lite" role="radio" aria-checked="false" class="min-h-9 rounded px-3 text-xs font-medium transition-colors">Lite · local</button>
-                            <button type="button" data-engine-tier="standard" role="radio" aria-checked="true" class="min-h-9 rounded px-3 text-xs font-medium transition-colors">Standard · ViT</button>
-                        </div>
+                    <div class="flex items-center justify-between gap-3 mb-5 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2">
+                        <span class="text-xs font-medium text-neutral-500">Engine</span>
+                        <a href="/dashboard#prefsSection" class="inline-flex items-center gap-2 text-xs font-medium text-neutral-900 hover:text-sage-700 transition-colors">
+                            <span id="engineName">Flora-Flash</span>
+                            <span class="font-normal text-neutral-400">change</span>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                        </a>
                     </div>
 
                     <div class="relative bg-neutral-100 rounded-sm p-1 flex mb-6 text-sm font-medium">
@@ -674,6 +676,15 @@
                     <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                 </a>
             </div>
+            <button type="button" id="ffSearchOpen" data-haptic
+                    aria-haspopup="dialog" aria-expanded="false"
+                    class="soft-click w-full flex items-center gap-2.5 mb-6 px-3.5 py-3 text-left bg-white border border-neutral-200 rounded hover:border-neutral-300 transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="text-neutral-400 shrink-0" aria-hidden="true">
+                    <circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/>
+                </svg>
+                <span class="flex-1 min-w-0 text-sm text-neutral-400 truncate">Search species, your scans and pages</span>
+                <span class="hidden sm:inline text-xs font-medium text-neutral-400 shrink-0">Ctrl K</span>
+            </button>
             <div id="miniGrid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5"></div>
             <div id="miniError" class="hidden border border-dashed border-neutral-300 rounded-lg p-8 text-center mt-4">
                 <p class="text-neutral-500 text-sm">Couldn’t reach the live directory just now.</p>
@@ -870,44 +881,38 @@
         let engineStatusRequest = 0;
         async function updateEngineStatus(tier) {
             const requestId = ++engineStatusRequest;
-            paintEngineSelector(tier);
+            paintEngineChoice(tier);
             if (tier === 'lite') {
                 ffStatus.markColdStart();
-                modelStatusText.textContent = 'Loading Lite model...';
+                modelStatusText.textContent = 'Loading Flora-Micro...';
                 try {
                     await ffLite.load();
                     if (requestId !== engineStatusRequest || pref('modelTier', 'standard') !== 'lite') return;
                     ffStatus.markReady();
-                    modelStatusText.textContent = 'Lite ready · on-device';
+                    modelStatusText.textContent = 'Flora-Micro ready · on-device';
                 } catch (err) {
-                    console.error('Lite model failed to load:', err);
+                    console.error('Flora-Micro failed to load:', err);
                     if (requestId !== engineStatusRequest || pref('modelTier', 'standard') !== 'lite') return;
                     ffStatus.markOffline();
-                    modelStatusText.textContent = 'Lite unavailable · tap to retry';
+                    modelStatusText.textContent = 'Flora-Micro unavailable · tap to retry';
                 }
                 return;
             }
             ffStatus.probe(API_URL);
         }
-        function paintEngineSelector(tier) {
-            document.querySelectorAll('[data-engine-tier]').forEach(function (button) {
-                const active = button.dataset.engineTier === tier;
-                button.setAttribute('aria-checked', active ? 'true' : 'false');
-                button.classList.toggle('bg-white', active);
-                button.classList.toggle('text-sage-700', active);
-                button.classList.toggle('shadow-sm', active);
-                button.classList.toggle('text-neutral-500', !active);
-            });
+        // The engine is chosen on the dashboard, not here. This page only reports
+        // which one is in force, in the nameplate and in the paragraph up top, both
+        // read from the one description list in prefs.js.
+        function paintEngineChoice(tier) {
+            const engine = window.ffPrefs && typeof window.ffPrefs.engine === 'function'
+                ? window.ffPrefs.engine(tier)
+                : null;
+            if (!engine) return;
+            const nameEl = document.getElementById('engineName');
+            const blurbEl = document.getElementById('engineBlurb');
+            if (nameEl) nameEl.textContent = engine.name;
+            if (blurbEl && engine.blurb) blurbEl.textContent = engine.blurb;
         }
-        document.querySelectorAll('[data-engine-tier]').forEach(function (button) {
-            button.addEventListener('click', function () {
-                if (window.ffPrefs) {
-                    const current = pref('modelTier', 'standard');
-                    window.ffPrefs.set('modelTier', button.dataset.engineTier);
-                    if (button.dataset.engineTier === 'lite' && current === 'lite') updateEngineStatus('lite');
-                }
-            });
-        });
         if (window.ffPrefs && typeof window.ffPrefs.subscribe === 'function') {
             window.ffPrefs.subscribe(function (key) {
                 if (key === 'modelTier' || key === null) updateEngineStatus(pref('modelTier', 'standard'));
@@ -1073,7 +1078,7 @@
             const mainEl = $('resLoadingMain'), subEl = $('resLoadingSub');
             const stages = tier === 'lite'
                 ? [{ at: 0, main: 'Analyzing on this device...', sub: 'Your photo stays in this browser.' },
-                   { at: 5000, main: 'Loading the Lite model...', sub: 'The first local scan may take a moment; later scans are faster.' }]
+                   { at: 5000, main: 'Loading Flora-Micro...', sub: 'The first local scan may take a moment; later scans are faster.' }]
                 : STANDARD_LOAD_STAGES;
             loadTimers.forEach(clearTimeout);
             loadTimers = stages.map(stage =>
@@ -1336,7 +1341,7 @@
             if (pref('modelTier', 'standard') === 'lite') {
                 showDetailFallback({
                     articleUrl: 'https://en.wikipedia.org/wiki/Special:Search?search=' + encodeURIComponent(cleanName(top.name)),
-                    attribution: 'On-device Lite model'
+                    attribution: 'On-device Flora-Micro'
                 });
             } else {
                 loadSpeciesPanel(cleanName(top.name));

@@ -15,6 +15,36 @@
         modelTier: ['lite', 'standard', 'pro']
     };
 
+    var ENGINES = [
+        {
+            id: 'lite',
+            name: 'Flora-Micro',
+            note: 'Identifies on this device. Your photo stays in this browser and is never sent to the server.',
+            blurb: 'Flora-Micro is reading your photos: it works inside this tab, knows 107 species, and the picture never leaves the browser.',
+            ready: true
+        },
+        {
+            id: 'standard',
+            name: 'Flora-Flash',
+            note: '116 species. The scanner sends the photo to the FindFlower server and gets the top five back.',
+            blurb: 'Flora-Flash is reading your photos: it knows 116 species and runs on the server, so the picture is uploaded, read, and dropped.',
+            ready: true
+        },
+        {
+            id: 'pro',
+            name: 'Flora-Ultra',
+            note: 'A wider vocabulary, on the same server path as Flora-Flash.',
+            blurb: '',
+            ready: false,
+            why: 'Not trained yet.'
+        }
+    ];
+
+    function engine(id) {
+        for (var e = 0; e < ENGINES.length; e++) if (ENGINES[e].id === id) return ENGINES[e];
+        return ENGINES[1];
+    }
+
     var MOTION_CLASS = 'ff-reduce-motion';
 
     var listeners = [];
@@ -108,6 +138,8 @@
     window.ffPrefs = {
         DEFAULTS: DEFAULTS,
         CHOICES: CHOICES,
+        ENGINES: ENGINES,
+        engine: engine,
         KEY: KEY,
         MOTION_CLASS: MOTION_CLASS,
         all: all,

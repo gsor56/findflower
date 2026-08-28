@@ -17,7 +17,9 @@
     }
 
     function titleCase(s) {
-        return String(s || '').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        return String(s || '').replace(/(^|\s)(\w)/g, function (m, pre, c) {
+            return pre + c.toUpperCase();
+        });
     }
 
     function fmtBytes(n) {
@@ -112,27 +114,12 @@
         }
     ];
 
-    var TIERS = [
-        {
-            id: 'lite',
-            name: 'Lite (CNN)',
-            note: 'Identifies on this device. Your photo stays in this browser and is never sent to the server.',
-            ready: true
-        },
-        {
-            id: 'standard',
-            name: 'Standard (ViT-116)',
-            note: '116 species. The scanner sends the photo to the FindFlower server and gets the top five back.',
-            ready: true
-        },
-        {
-            id: 'pro',
-            name: 'Pro (MaxViT-1500)',
-            note: 'A wider vocabulary, on the same server path as Standard.',
-            ready: false,
-            why: 'Not trained yet.'
-        }
-    ];
+    // The three engines are described once, in prefs.js, beside the modelTier
+    // choice they belong to. The scanner names the active one from the same list,
+    // so a rename here cannot leave /try calling it something else.
+    function tiers() {
+        return (window.ffPrefs && window.ffPrefs.ENGINES) || [];
+    }
 
     function tierRow(t, active) {
         var head = '<span class="text-sm font-medium text-neutral-900">' + esc(t.name) + '</span>';
@@ -166,7 +153,7 @@
             '</p>' +
             '<div id="modelTiers" role="radiogroup" aria-labelledby="tierLabel" ' +
                     'class="border border-neutral-200 rounded-md overflow-hidden bg-white">' +
-                TIERS.map(function (t) { return tierRow(t, t.id === current); }).join('') +
+                tiers().map(function (t) { return tierRow(t, t.id === current); }).join('') +
             '</div>' +
         '</div>';
     }
@@ -195,8 +182,8 @@
             tierBlock(values.modelTier) +
             '<div id="prefRows">' + rows + '</div>' +
             '<p id="prefWarn" class="hidden text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-4">' +
-                'This browser refused to store the setting. It applies for now but will be forgotten on reload — ' +
-                'private windows and full storage both do this.' +
+                'This browser refused to store the setting. It applies for now but will be ' +
+                'forgotten on reload. Private windows and full storage both do this.' +
             '</p>' +
             '<div class="flex items-center justify-between gap-4 pt-4 mt-2 border-t border-neutral-100">' +
                 '<p class="text-xs text-neutral-400">Stored on this device only, so it does not follow your account to another browser.</p>' +

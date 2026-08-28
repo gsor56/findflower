@@ -17,7 +17,7 @@
     <meta name="twitter:description" content="How FindFlower identifies a flower from one photo: a fine-tuned Vision Transformer, 116 species, confidence scores, and why images never leave the pipeline.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=10">
+    <link rel="stylesheet" href="app.css?v=11">
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=2" defer></script>
@@ -190,12 +190,14 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6">
                 <p class="reveal-up text-base text-neutral-600 font-light leading-relaxed mb-8">
-                    There is an engine switch above the camera. Standard is chosen for you, and most
-                    people never need to touch it.
+                    The engine is picked once, in
+                    <a href="/dashboard#prefsSection" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">your dashboard</a>,
+                    and the scanner reads that choice on every capture. Flora-Flash is chosen for you,
+                    and most people never need to change it.
                 </p>
                 <div class="reveal-up divide-y divide-neutral-200 border-t border-b border-neutral-200 text-base">
                     <div class="py-6">
-                        <p class="font-medium text-neutral-900 mb-1">Lite, on this device</p>
+                        <p class="font-medium text-neutral-900 mb-1">Flora-Micro, on this device</p>
                         <p class="text-neutral-600 font-light leading-relaxed">
                             A small convolutional model that runs inside the browser tab and knows 107
                             species. Nothing is uploaded, which is the whole reason it exists. The first
@@ -204,7 +206,7 @@
                         </p>
                     </div>
                     <div class="py-6">
-                        <p class="font-medium text-neutral-900 mb-1">Standard, on the server</p>
+                        <p class="font-medium text-neutral-900 mb-1">Flora-Flash, on the server</p>
                         <p class="text-neutral-600 font-light leading-relaxed">
                             A fine-tuned Vision Transformer covering 116 species, served as ONNX on a
                             CPU. The photo is uploaded, classified and dropped, and the five best
@@ -212,7 +214,7 @@
                         </p>
                     </div>
                     <div class="py-6">
-                        <p class="font-medium text-neutral-900 mb-1">Pro, not yet</p>
+                        <p class="font-medium text-neutral-900 mb-1">Flora-Ultra, not yet</p>
                         <p class="text-neutral-600 font-light leading-relaxed">
                             A wider vocabulary on the same server path. The dashboard lists it as
                             unavailable because it has not been trained, and it is named here so the
