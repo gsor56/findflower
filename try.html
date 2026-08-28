@@ -27,7 +27,7 @@
     <script src="species.js?v=2"></script>
     <script src="prefs.js?v=1"></script>
     <script src="scripts/vendor/tf.min.js?v=4.22.0"></script>
-    <script src="scripts/lite.js?v=2"></script>
+    <script src="scripts/lite.js?v=4"></script>
     <script src="storage.js"></script>
     <script src="blur.js?v=1"></script>
     <script src="main.js?v=2"></script>
@@ -865,11 +865,24 @@
             updateEngineStatus(pref('modelTier', 'standard'));
             refreshIdentifyState();
         }
-        function updateEngineStatus(tier) {
+        let engineStatusRequest = 0;
+        async function updateEngineStatus(tier) {
+            const requestId = ++engineStatusRequest;
             paintEngineSelector(tier);
             if (tier === 'lite') {
-                ffStatus.markReady();
-                modelStatusText.textContent = 'Lite ready · on-device';
+                ffStatus.markColdStart();
+                modelStatusText.textContent = 'Loading Lite model...';
+                try {
+                    await ffLite.load();
+                    if (requestId !== engineStatusRequest || pref('modelTier', 'standard') !== 'lite') return;
+                    ffStatus.markReady();
+                    modelStatusText.textContent = 'Lite ready · on-device';
+                } catch (err) {
+                    console.error('Lite model failed to load:', err);
+                    if (requestId !== engineStatusRequest || pref('modelTier', 'standard') !== 'lite') return;
+                    ffStatus.markOffline();
+                    modelStatusText.textContent = 'Lite unavailable · tap to retry';
+                }
                 return;
             }
             ffStatus.probe(API_URL);
@@ -886,7 +899,11 @@
         }
         document.querySelectorAll('[data-engine-tier]').forEach(function (button) {
             button.addEventListener('click', function () {
-                if (window.ffPrefs) window.ffPrefs.set('modelTier', button.dataset.engineTier);
+                if (window.ffPrefs) {
+                    const current = pref('modelTier', 'standard');
+                    window.ffPrefs.set('modelTier', button.dataset.engineTier);
+                    if (button.dataset.engineTier === 'lite' && current === 'lite') updateEngineStatus('lite');
+                }
             });
         });
         if (window.ffPrefs && typeof window.ffPrefs.subscribe === 'function') {
