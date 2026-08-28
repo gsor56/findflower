@@ -29,6 +29,10 @@
         var thumbWidth = opts.thumbWidth || 500;
         var onCount  = typeof opts.onCount === 'function' ? opts.onCount : null;
         var onError  = typeof opts.onError === 'function' ? opts.onError : null;
+        // A sessionStorage key turns on the return trip. Only the full directory
+        // sets one: the small grids on the homepage and /try are eight cards that
+        // never leave the fold, so there is nothing to come back to.
+        var restoreKey = opts.restore || null;
 
         var buffer = [];
         var fetchOffset = 0;
@@ -39,6 +43,9 @@
         var prefetch = null;
         var seen = new Set();
         var io = null;
+        var shown = [];
+        var RESTORE_MAX = 600;
+        var RESTORE_TTL = 30 * 60 * 1000;
 
         var engine = (opts.source !== 'wikidata' &&
             typeof ffApi.fetchTrefleBatch === 'function') ? 'trefle' : 'wikidata';
@@ -50,12 +57,16 @@
             return { href: '/species?name=' + encodeURIComponent(s.name), attrs: '' };
         }
 
+        function keyOf(it) {
+            return it.qid || ('n:' + String(it.name).trim().toLowerCase());
+        }
+
         function dedupe(items) {
             var out = [];
             for (var i = 0; i < items.length; i++) {
                 var it = items[i];
                 if (!it || !it.name) continue;
-                var key = it.qid || ('n:' + String(it.name).trim().toLowerCase());
+                var key = keyOf(it);
                 if (seen.has(key)) continue;
                 seen.add(key);
                 out.push(it);
@@ -117,6 +128,7 @@
             var slice = buffer.splice(0, Math.min(BATCH, room));
             if (!slice.length) return 0;
             grid.insertAdjacentHTML('beforeend', slice.map(cardHTML).join(''));
+            if (restoreKey) shown.push.apply(shown, slice);
             rendered += slice.length;
             if (countEl) countEl.textContent = rendered + ' species';
             if (onCount) onCount(rendered);
@@ -156,6 +168,96 @@
                     img.setAttribute('src', img.dataset.src);
                 }
             }
+        }
+
+        // Coming back from a species page. The catalogue is paged, so the honest
+        // way to put the reader where they were is to keep the cards themselves
+        // rather than replay the fetches: sixty species of JSON is a few tens of
+        // kilobytes, and the thumbnails come back out of the browser cache.
+        //
+        // Everything needed to carry on paging travels with them, the pending
+        // buffer included, so no species is skipped on the far side. Past
+        // RESTORE_MAX cards nothing new is written and the last snapshot stands,
+        // which is a bounded lie about where you were rather than an unbounded
+        // amount of storage.
+        function saveState() {
+            if (!restoreKey || !shown.length || shown.length > RESTORE_MAX) return;
+            try {
+                sessionStorage.setItem(restoreKey, JSON.stringify({
+                    at: Date.now(),
+                    y: Math.round(window.scrollY || window.pageYOffset || 0),
+                    engine: engine,
+                    fetchOffset: fetchOffset,
+                    treflePage: treflePage,
+                    exhausted: exhausted,
+                    items: shown,
+                    buffer: buffer
+                }));
+            } catch (e) { }
+        }
+
+        function readState() {
+            if (!restoreKey) return null;
+            var raw = null;
+            try { raw = sessionStorage.getItem(restoreKey); } catch (e) { return null; }
+            if (!raw) return null;
+            var state = null;
+            try { state = JSON.parse(raw); } catch (e) { }
+            if (!state || !state.items || !state.items.length) return null;
+            if (!state.at || Date.now() - state.at > RESTORE_TTL) return null;
+            return state;
+        }
+
+        function restore() {
+            var state = readState();
+            if (!state) return false;
+            var items = state.items;
+            var i;
+            for (i = 0; i < items.length; i++) seen.add(keyOf(items[i]));
+            buffer = Array.isArray(state.buffer) ? state.buffer : [];
+            for (i = 0; i < buffer.length; i++) seen.add(keyOf(buffer[i]));
+            grid.insertAdjacentHTML('beforeend', items.map(cardHTML).join(''));
+            shown = items.slice();
+            rendered = items.length;
+            engine = state.engine || engine;
+            fetchOffset = state.fetchOffset || 0;
+            treflePage = state.treflePage || 0;
+            exhausted = !!state.exhausted;
+            if (countEl) countEl.textContent = rendered + ' species';
+            if (onCount) onCount(rendered);
+            if (endNote && done() && exhausted) endNote.classList.remove('hidden');
+            settle(state.y || 0);
+            return true;
+        }
+
+        // Cards near the fold size themselves once they are on screen, so the
+        // document is shorter than its final height for a frame or two and one
+        // scrollTo lands short. Keep asking until the number sticks, and give up
+        // the moment the reader touches anything, because fighting a live scroll
+        // is worse than landing in the wrong place.
+        function settle(y) {
+            if (!y) return;
+            var live = true;
+            function release() { live = false; }
+            var events = ['wheel', 'touchstart', 'keydown', 'pointerdown'];
+            for (var i = 0; i < events.length; i++) {
+                window.addEventListener(events[i], release, { once: true, passive: true });
+            }
+            function land() {
+                if (!live) return;
+                if (Math.abs((window.scrollY || 0) - y) > 2) window.scrollTo(0, y);
+            }
+            land();
+            requestAnimationFrame(function () {
+                land();
+                requestAnimationFrame(land);
+            });
+            setTimeout(land, 150);
+            setTimeout(function () {
+                land();
+                live = false;
+                if (cull) cullOffscreen();
+            }, 450);
         }
 
         function done() {
@@ -208,7 +310,11 @@
         var cullTimer = null;
         function onScroll() {
             if (cullTimer) return;
-            cullTimer = setTimeout(function () { cullTimer = null; cullOffscreen(); }, 250);
+            cullTimer = setTimeout(function () {
+                cullTimer = null;
+                cullOffscreen();
+                saveState();
+            }, 250);
         }
 
         async function fill() {
@@ -227,7 +333,10 @@
                 });
             }
             if (infinite && cull) window.addEventListener('scroll', onScroll, { passive: true });
+            var resumed = restore();
+            if (restoreKey) window.addEventListener('pagehide', saveState);
             initObserver();
+            if (resumed) return;
             if (infinite) await loadMore();
             else await fill();
         }
@@ -235,6 +344,10 @@
         function stop() {
             if (io) io.disconnect();
             if (infinite && cull) window.removeEventListener('scroll', onScroll);
+            if (restoreKey) {
+                saveState();
+                window.removeEventListener('pagehide', saveState);
+            }
         }
 
         return { start: start, stop: stop, loadMore: loadMore };

@@ -17,13 +17,14 @@
     <meta name="twitter:description" content="Browse an open encyclopedia of flowering plant species with photographs and botanical names, sourced live from Wikidata and Wikipedia.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=10">
+    <link rel="stylesheet" href="app.css?v=11">
     <script src="prefs.js?v=1"></script>
     <script src="nav.js?v=4" defer></script>
     <script src="footer.js?v=2" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="scripts/api.js?v=1" defer></script>
     <script src="scripts/ui.js?v=1" defer></script>
+    <script src="scripts/search.js?v=1" defer></script>
     <script src="directory.js" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/views/directory.js" defer></script>
@@ -136,6 +137,17 @@
                     and if a page will not load,
                     <a href="/docs#offline" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">what still works offline</a>.
                 </p>
+
+                <button type="button" id="ffSearchOpen" data-haptic
+                        aria-haspopup="dialog" aria-expanded="false"
+                        data-placeholder="Search species and pages"
+                        class="soft-click w-full flex items-center gap-2.5 mt-8 px-3.5 py-3 text-left bg-white border border-neutral-200 rounded hover:border-neutral-300 transition">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" class="text-neutral-400 shrink-0" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"/><path d="m20 20-3.4-3.4"/>
+                    </svg>
+                    <span class="flex-1 min-w-0 text-sm text-neutral-400 truncate">Search species and pages</span>
+                    <span class="hidden sm:inline text-xs font-medium text-neutral-400 shrink-0">Ctrl K</span>
+                </button>
             </section>
 
             <div class="flex items-center justify-between mb-5 text-sm">
@@ -197,6 +209,7 @@
                 infinite:   true,
                 link:       'species',
                 thumbWidth: 400,
+                restore:    'ff_dir_scroll',
                 onCount: function (n) {
                     if (countEl) countEl.textContent = n + ' species loaded';
                 },

@@ -24,6 +24,7 @@
             countEl:  o.countEl  || document.getElementById('dirCount'),
             infinite: true,
             link:     'species',
+            restore:  'ff_dir_scroll',
         });
         await handle.start();
         return handle;
