@@ -19,7 +19,9 @@
     }
 
     function titleCase(s) {
-        return String(s || '').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+        return String(s || '').replace(/(^|\s)(\w)/g, function (m, pre, c) {
+            return pre + c.toUpperCase();
+        });
     }
 
     function longDate(iso) {
@@ -331,7 +333,7 @@
             'Reported at: ' + new Date().toISOString() + '\n' +
             'Reported by: ' + (viewer || 'not signed in') + '\n\n' +
             'What happened:\n';
-        window.location.href = 'mailto:support@findflower.me' +
+        window.location.href = 'mailto:ibhx800@gmail.com' +
             '?subject=' + encodeURIComponent('Report: ' + wanted) +
             '&body=' + encodeURIComponent(body);
     }
