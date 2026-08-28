@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
-"""Stream iNaturalist-2021 images into a bounded Find10K Hub dataset.
+"""Curate Find10K images through the paginated iNaturalist Node API.
 
-The archive is never downloaded to disk. ``requests`` exposes the response
-body to ``tarfile`` in ``r|gz`` mode, while only the current normalized JPEG
-batch is staged under ``/kaggle/working``. This worker is CPU/I/O-bound and is
-intended for a Kaggle CPU session with internet enabled.
-
-The input taxonomy/head artifacts are produced by ``find10k_phase1_taxonomy``:
-``botanical_head_indices.json`` (local -> iNat21 global id) and
-``botanical_classes.json`` (ordered class records). The archive's numeric class
-directory is matched to the global id, never to a guessed alphabetical order.
+Taxa are processed sequentially, and only the current normalized JPEG batch is
+staged under ``/kaggle/working``. Every accepted sample comes from a distinct
+research-grade observation with an open photo license. Hub progress, API page
+cursors, resolved iNaturalist taxon IDs, and immutable dedup journals make the
+CPU worker resumable across Kaggle sessions and transient network failures.
 """
 
 from __future__ import annotations
@@ -22,15 +18,14 @@ import json
 import os
 import re
 import shutil
-import tarfile
-import tempfile
 import time
 from collections import Counter, defaultdict
 from pathlib import Path
-from typing import BinaryIO
 
 import requests
 from PIL import Image, ImageOps
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 try:
     import cv2
@@ -38,11 +33,14 @@ except Exception:  # pragma: no cover - Kaggle image normally includes OpenCV
     cv2 = None
 
 
-ARCHIVE_URL = "https://ml-inat-competition-datasets.s3.amazonaws.com/2021/train.tar.gz"
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+INAT_API_URL = "https://api.inaturalist.org/v1/observations"
+INAT_TAXA_URL = "https://api.inaturalist.org/v1/taxa"
 PROGRESS_PATH = "pipeline/find10k_ingestion_progress.json"
-MAX_RETRIES = 5
-CLASS_RE = re.compile(r"(?:^|/)(\d{1,6})(?:/|_|-)")
+MAX_RETRIES = 7
+HUB_RETRIES = 7
+RETRYABLE_STATUS = (429, 500, 502, 503, 504)
+ALLOWED_LICENSES = {"cc0", "cc-by", "cc-by-nc"}
+MAX_IMAGE_BYTES = 25 * 1024 * 1024
 
 
 def read_json(path: Path):
@@ -192,13 +190,22 @@ def token() -> str:
 
 def hub_progress(api, repo_id: str, hf_token: str) -> dict:
     from huggingface_hub import hf_hub_download
-    try:
-        path = hf_hub_download(repo_id, PROGRESS_PATH, repo_type="dataset", token=hf_token, force_download=True)
-        data = read_json(Path(path))
-        data["counts"] = {str(k): int(v) for k, v in (data.get("counts") or {}).items()}
-        return data
-    except Exception:
-        return {"version": 1, "counts": {}, "commits": [], "accepted": 0}
+    from huggingface_hub.errors import EntryNotFoundError
+    for attempt in range(1, HUB_RETRIES + 1):
+        try:
+            path = hf_hub_download(repo_id, PROGRESS_PATH, repo_type="dataset", token=hf_token, force_download=True)
+            data = read_json(Path(path))
+            data["counts"] = {str(k): int(v) for k, v in (data.get("counts") or {}).items()}
+            return data
+        except EntryNotFoundError:
+            # A newly-created repository has no checkpoint yet. This is the
+            # only case where an empty state is safe.
+            return {"version": 1, "counts": {}, "commits": [], "accepted": 0}
+        except Exception as exc:
+            if attempt == HUB_RETRIES:
+                raise RuntimeError(f"unable to read Hub progress after {HUB_RETRIES} attempts") from exc
+            time.sleep(min(60, 5 * attempt))
+    raise AssertionError("unreachable")
 
 
 def restore_dedup(api, repo_id: str, hf_token: str, progress: dict, dedup: Deduplicator) -> None:
@@ -206,7 +213,14 @@ def restore_dedup(api, repo_id: str, hf_token: str, progress: dict, dedup: Dedup
     from huggingface_hub import hf_hub_download
     journals = list(progress.get("dedup_journals", []))
     for number, path_in_repo in enumerate(journals, 1):
-        local = hf_hub_download(repo_id, path_in_repo, repo_type="dataset", token=hf_token)
+        for attempt in range(1, HUB_RETRIES + 1):
+            try:
+                local = hf_hub_download(repo_id, path_in_repo, repo_type="dataset", token=hf_token)
+                break
+            except Exception as exc:
+                if attempt == HUB_RETRIES:
+                    raise RuntimeError(f"unable to restore dedup journal {path_in_repo}") from exc
+                time.sleep(min(60, 5 * attempt))
         with gzip.open(local, "rt", encoding="utf-8") as handle:
             for line in handle:
                 row = json.loads(line)
@@ -223,28 +237,38 @@ def restore_dedup(api, repo_id: str, hf_token: str, progress: dict, dedup: Dedup
             print(f"[resume] restored dedup journal {number}/{len(journals)}", flush=True)
 
 
-def upload_dedup_journal(api, repo_id: str, rows: list[dict], batch_index: int, output: Path) -> str:
+def stage_dedup_journal(rows: list[dict], batch_index: int, batch_root: Path) -> str:
     relative = f"pipeline/dedup/batch-{batch_index:06d}.jsonl.gz"
-    local = output / f"dedup-{batch_index:06d}.jsonl.gz"
+    local = batch_root / relative
+    local.parent.mkdir(parents=True, exist_ok=True)
     with gzip.open(local, "wt", encoding="utf-8", compresslevel=6) as handle:
         for row in rows:
             handle.write(json.dumps(row, separators=(",", ":")) + "\n")
-    api.upload_file(
-        repo_id=repo_id, repo_type="dataset", path_or_fileobj=str(local),
-        path_in_repo=relative, commit_message=f"dedup: immutable hash journal {batch_index:06d}",
-    )
-    local.unlink(missing_ok=True)
     return relative
+
+
+def stage_progress(progress: dict, batch_root: Path) -> None:
+    progress["updated_at_unix"] = int(time.time())
+    path = batch_root / PROGRESS_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(progress, indent=2, sort_keys=True), encoding="utf-8")
 
 
 def commit_progress(api, repo_id: str, progress: dict, output: Path) -> None:
     progress["updated_at_unix"] = int(time.time())
     path = output / "find10k_ingestion_progress.json"
     path.write_text(json.dumps(progress, indent=2, sort_keys=True), encoding="utf-8")
-    api.upload_file(
-        repo_id=repo_id, repo_type="dataset", path_or_fileobj=str(path),
-        path_in_repo=PROGRESS_PATH, commit_message="progress: Find10K streaming ingestion checkpoint",
-    )
+    for attempt in range(1, HUB_RETRIES + 1):
+        try:
+            api.upload_file(
+                repo_id=repo_id, repo_type="dataset", path_or_fileobj=str(path),
+                path_in_repo=PROGRESS_PATH, commit_message="progress: Find10K API ingestion checkpoint",
+            )
+            return
+        except Exception as exc:
+            if attempt == HUB_RETRIES:
+                raise RuntimeError("unable to upload Hub progress checkpoint") from exc
+            time.sleep(min(60, 5 * attempt))
 
 
 def upload_batch(api, repo_id: str, batch_root: Path, label: str) -> None:
@@ -252,7 +276,7 @@ def upload_batch(api, repo_id: str, batch_root: Path, label: str) -> None:
         try:
             api.upload_folder(
                 repo_id=repo_id, repo_type="dataset", folder_path=str(batch_root),
-                path_in_repo="images", commit_message=f"images: Find10K {label}",
+                path_in_repo=None, commit_message=f"images: Find10K {label}",
             )
             return
         except Exception:
@@ -261,9 +285,156 @@ def upload_batch(api, repo_id: str, batch_root: Path, label: str) -> None:
             time.sleep(20 * attempt)
 
 
-def source_class(member_name: str) -> int | None:
-    match = CLASS_RE.search(member_name.replace("\\", "/"))
-    return int(match.group(1)) if match else None
+def build_session() -> requests.Session:
+    retry = Retry(
+        total=3,
+        connect=3,
+        read=3,
+        status=3,
+        backoff_factor=1.0,
+        status_forcelist=RETRYABLE_STATUS,
+        allowed_methods=frozenset({"GET"}),
+        respect_retry_after_header=True,
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=8, pool_maxsize=8)
+    session = requests.Session()
+    session.trust_env = False
+    session.headers.update({"User-Agent": "FindFlower-Find10K/2.0 (dataset curation)"})
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    return session
+
+
+def backoff(attempt: int, cap: int = 120) -> None:
+    time.sleep(min(cap, 2 ** attempt))
+
+
+def retryable_request_error(exc: requests.RequestException) -> bool:
+    response = getattr(exc, "response", None)
+    return response is None or response.status_code in RETRYABLE_STATUS
+
+
+def get_json(session: requests.Session, url: str, params: dict) -> dict:
+    last_error: Exception | None = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with session.get(url, params=params, timeout=(20, 90)) as response:
+                response.raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    raise ValueError(f"unexpected JSON response from {url}")
+                return payload
+        except requests.RequestException as exc:
+            if not retryable_request_error(exc):
+                raise
+            last_error = exc
+            if attempt == MAX_RETRIES:
+                break
+            print(
+                f"[network] JSON request failed ({attempt}/{MAX_RETRIES}): "
+                f"{type(exc).__name__}: {exc}",
+                flush=True,
+            )
+            backoff(attempt)
+        except ValueError as exc:
+            last_error = exc
+            if attempt == MAX_RETRIES:
+                break
+            backoff(attempt)
+    raise RuntimeError(f"request failed after {MAX_RETRIES} attempts: {url}") from last_error
+
+
+def explicit_taxon_id(record: dict, class_id: int) -> int | None:
+    for key in ("inat_taxon_id", "taxon_id", "inaturalist_taxon_id", "iNaturalistTaxonId"):
+        value = record.get(key)
+        if value not in (None, ""):
+            return int(value)
+    nested = record.get("taxon")
+    if isinstance(nested, dict) and nested.get("id") not in (None, ""):
+        return int(nested["id"])
+    # Official iNat21 category IDs are contiguous model-head indices, not Node
+    # API taxon IDs. Only accept a bare record ID when it differs from that
+    # class index; otherwise resolve the scientific name through /v1/taxa.
+    value = record.get("id")
+    if value not in (None, "") and int(value) != class_id:
+        return int(value)
+    return None
+
+
+def resolve_taxon_id(session: requests.Session, record: dict, class_id: int) -> int:
+    direct = explicit_taxon_id(record, class_id)
+    if direct is not None:
+        return direct
+    scientific_name = str(record["name"])
+    payload = get_json(session, INAT_TAXA_URL, {
+        "q": scientific_name,
+        "per_page": 30,
+    })
+    results = payload.get("results") or []
+    exact = [
+        row for row in results
+        if scientific_name.casefold() in {
+            str(row.get("name") or "").casefold(),
+            str(row.get("matched_term") or "").casefold(),
+        }
+    ]
+    if not exact:
+        raise LookupError(f"no exact iNaturalist taxon match for {scientific_name!r}")
+    return int(exact[0]["id"])
+
+
+def api_observations(session: requests.Session, taxon_id: int, page: int, per_page: int) -> list[dict]:
+    payload = get_json(session, INAT_API_URL, {
+        "taxon_id": taxon_id,
+        "quality_grade": "research",
+        "photos": "true",
+        "photo_license": ",".join(sorted(ALLOWED_LICENSES)),
+        "per_page": min(200, max(1, per_page)),
+        "page": page,
+        "order_by": "id",
+        "order": "desc",
+    })
+    results = payload.get("results") or []
+    if not isinstance(results, list):
+        raise ValueError("iNaturalist observations response has no result list")
+    return results
+
+
+def observation_matches_taxon(observation: dict, taxon_id: int) -> bool:
+    taxon = observation.get("taxon") or {}
+    observed_id = taxon.get("id")
+    ancestors = taxon.get("ancestor_ids") or []
+    return observed_id is not None and (int(observed_id) == taxon_id or taxon_id in {int(x) for x in ancestors})
+
+
+def download_photo(session: requests.Session, url: str) -> bytes:
+    last_error: Exception | None = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with session.get(url, stream=True, timeout=(20, 120)) as response:
+                response.raise_for_status()
+                content_length = int(response.headers.get("content-length") or 0)
+                if content_length > MAX_IMAGE_BYTES:
+                    raise OverflowError(f"image exceeds {MAX_IMAGE_BYTES} bytes")
+                buffer = io.BytesIO()
+                for chunk in response.iter_content(chunk_size=128 * 1024):
+                    if not chunk:
+                        continue
+                    buffer.write(chunk)
+                    if buffer.tell() > MAX_IMAGE_BYTES:
+                        raise OverflowError(f"image exceeds {MAX_IMAGE_BYTES} bytes")
+                return buffer.getvalue()
+        except OverflowError:
+            raise
+        except requests.RequestException as exc:
+            if not retryable_request_error(exc):
+                raise
+            last_error = exc
+            if attempt == MAX_RETRIES:
+                break
+            backoff(attempt, cap=60)
+    raise RuntimeError(f"image download failed after {MAX_RETRIES} attempts: {url}") from last_error
 
 
 def main() -> int:
@@ -271,36 +442,47 @@ def main() -> int:
     ap.add_argument("--head-indices", required=True, type=Path)
     ap.add_argument("--botanical-classes", required=True, type=Path)
     ap.add_argument("--dataset-repo", default=os.environ.get("HF_DATASET_REPO", "gsor56/findflower-find10k"))
-    ap.add_argument("--archive-url", default=os.environ.get("INAT_TRAIN_URL", ARCHIVE_URL))
     ap.add_argument("--output", type=Path, default=Path("/kaggle/working/find10k-ingestion"))
     ap.add_argument("--images-per-class", type=int, default=300)
-    ap.add_argument("--commit-files", type=int, default=4000)
+    # Two metadata files (progress + dedup journal) share each atomic commit,
+    # keeping the total at the requested 4,000-file ceiling.
+    ap.add_argument("--commit-files", type=int, default=3998)
     ap.add_argument("--min-side", type=int, default=224)
     ap.add_argument("--blur-floor", type=float, default=40.0)
     ap.add_argument("--dhash-threshold", type=int, default=8)
+    ap.add_argument(
+        "--max-runtime-seconds", type=int, default=30_000,
+        help="curation budget; leaves roughly 100 minutes for final Hub uploads and Kaggle shutdown",
+    )
+    ap.add_argument("--api-max-pages", type=int, default=50)
+    ap.add_argument("--api-page-size", type=int, default=200)
     args = ap.parse_args()
 
-    if args.images_per_class <= 0 or args.commit_files <= 0:
-        raise SystemExit("images-per-class and commit-files must be positive")
-    ids = load_global_ids(args.head_indices)
+    if args.images_per_class <= 0 or args.commit_files <= 0 or args.api_page_size <= 0:
+        raise SystemExit("images-per-class, commit-files, and api-page-size must be positive")
+    class_ids = load_global_ids(args.head_indices)
     names, records = class_records(args.botanical_classes)
-    if len(ids) != len(records):
-        raise SystemExit(f"head index count {len(ids)} does not match class count {len(records)}")
-    global_to_local = {global_id: local for local, global_id in enumerate(ids)}
-    labels = {global_id: safe_label(names[local]) for global_id, local in global_to_local.items()}
+    if len(class_ids) != len(records):
+        raise SystemExit(f"head index count {len(class_ids)} does not match class count {len(records)}")
+    class_to_local = {class_id: local for local, class_id in enumerate(class_ids)}
+    labels = {class_id: safe_label(names[local]) for class_id, local in class_to_local.items()}
     hf_token = token()
     if not hf_token:
         raise SystemExit("[auth] HF_TOKEN unavailable")
     from huggingface_hub import HfApi
     api = HfApi(token=hf_token)
-    api.create_repo(args.dataset_repo, repo_type="dataset", private=False, exist_ok=True)
+    for attempt in range(1, HUB_RETRIES + 1):
+        try:
+            api.create_repo(args.dataset_repo, repo_type="dataset", private=False, exist_ok=True)
+            break
+        except Exception as exc:
+            if attempt == HUB_RETRIES:
+                raise RuntimeError("unable to access the Hub dataset repository") from exc
+            time.sleep(min(60, 5 * attempt))
     progress = hub_progress(api, args.dataset_repo, hf_token)
     counts = Counter({int(k): int(v) for k, v in progress.get("counts", {}).items()})
-    committed_processed = Counter({int(k): int(v) for k, v in progress.get("processed", {}).items()})
-    # ``processed`` is a stream cursor, not merely an accepted-image count.
-    # Count members seen in this fresh archive traversal so a restart skips the
-    # exact prefix recorded by the previous checkpoint.
-    session_processed = Counter()
+    api_pages = Counter({int(k): int(v) for k, v in progress.get("api_pages", {}).items()})
+    api_taxon_ids = {int(k): int(v) for k, v in (progress.get("api_taxon_ids") or {}).items()}
     accepted = int(progress.get("accepted", 0))
     rejected = Counter(progress.get("rejected", {}))
     dedup = Deduplicator(args.dhash_threshold)
@@ -318,99 +500,178 @@ def main() -> int:
             return
         batch_root = args.output / "batch-images"
         batch_index = len(progress.get("commits", [])) + 1
-        upload_batch(api, args.dataset_repo, batch_root, f"batch {batch_index:06d}; {accepted:,} accepted")
-        journal = upload_dedup_journal(api, args.dataset_repo, batch_hashes, batch_index, args.output)
-        shutil.rmtree(batch_root, ignore_errors=True)
+        journal = stage_dedup_journal(batch_hashes, batch_index, batch_root)
         progress["counts"] = {str(k): int(v) for k, v in sorted(counts.items())}
         progress["accepted"] = accepted
         progress["rejected"] = dict(rejected)
         progress["commits"] = list(progress.get("commits", [])) + [accepted]
         progress["dedup_journals"] = list(progress.get("dedup_journals", [])) + [journal]
-        progress["processed"] = {str(k): int(v) for k, v in sorted(session_processed.items())}
-        commit_progress(api, args.dataset_repo, progress, args.output)
+        progress["api_pages"] = {str(k): int(v) for k, v in sorted(api_pages.items())}
+        progress["api_taxon_ids"] = {str(k): int(v) for k, v in sorted(api_taxon_ids.items())}
+        stage_progress(progress, batch_root)
+        upload_batch(api, args.dataset_repo, batch_root, f"batch {batch_index:06d}; {accepted:,} accepted")
+        shutil.rmtree(batch_root)
         staged = 0
         batch_hashes = []
 
-    session = requests.Session()
-    session.trust_env = False
-    session.headers.update({"User-Agent": "FindFlower-Find10K/1.0"})
-    print(f"[stream] opening {args.archive_url}", flush=True)
-    with session.get(args.archive_url, stream=True, timeout=(30, 600)) as response:
-        response.raise_for_status()
-        response.raw.decode_content = True
-        with tarfile.open(fileobj=response.raw, mode="r|gz") as archive:
-            for member in archive:
-                if not member.isfile() or Path(member.name).suffix.lower() not in IMAGE_EXTENSIONS:
-                    continue
-                global_id = source_class(member.name)
-                local = global_to_local.get(global_id) if global_id is not None else None
-                if local is None:
-                    continue
-                stream_seen = session_processed[global_id] + 1
-                session_processed[global_id] = stream_seen
-                if stream_seen <= committed_processed[global_id]:
-                    continue
-                if counts[global_id] >= args.images_per_class:
-                    continue
-                stream: BinaryIO | None = archive.extractfile(member)
-                if stream is None:
-                    rejected["missing_member_stream"] += 1
-                    continue
-                raw = stream.read()
-                normalized, quality_info = quality_and_normalize(raw, args.min_side, args.blur_floor)
-                if normalized is None:
-                    rejected[quality_info.get("reason", "quality")] += 1
-                    continue
-                digest = md5_bytes(raw)
-                with Image.open(io.BytesIO(normalized)) as normalized_image:
-                    perceptual = dhash256(normalized_image)
-                if dedup.seen(digest, perceptual):
-                    rejected["duplicate"] += 1
-                    continue
-                label = labels[global_id]
-                filename = f"{digest[:16]}_{Path(member.name).stem}.jpg"
-                target = args.output / "batch-images" / "train" / label / filename
-                target.parent.mkdir(parents=True, exist_ok=True)
-                target.write_bytes(normalized)
-                records_file.write(json.dumps({
-                    "label": names[local], "local_index": local, "inat21_id": global_id,
-                    "member": member.name, "md5": digest, "dhash256": str(perceptual),
-                    "split": "train", "quality": quality_info,
-                }, separators=(",", ":")) + "\n")
-                records_file.flush()
-                counts[global_id] += 1
-                accepted += 1
-                staged += 1
-                batch_hashes.append({"md5": digest, "dhash256": str(perceptual)})
-                if staged >= args.commit_files:
-                    flush_batch()
-                if accepted and accepted % 1000 == 0:
-                    print(f"[stream] accepted={accepted:,} classes={sum(v >= args.images_per_class for v in counts.values()):,}/{len(ids):,}", flush=True)
-                if len(counts) == len(ids) and all(counts[x] >= args.images_per_class for x in ids):
+    session = build_session()
+    deadline = start_time + max(600, args.max_runtime_seconds)
+    timed_out = False
+    for class_id in class_ids:
+        if counts[class_id] >= args.images_per_class:
+            continue
+        local = class_to_local[class_id]
+        scientific_name = names[local]
+        try:
+            taxon_id = api_taxon_ids.get(class_id) or resolve_taxon_id(session, records[local], class_id)
+            api_taxon_ids[class_id] = taxon_id
+        except Exception as exc:
+            rejected["taxon_resolution"] += 1
+            print(
+                f"[api] taxon unresolved class={class_id} name={scientific_name}: "
+                f"{type(exc).__name__}: {exc}",
+                flush=True,
+            )
+            continue
+
+        page = api_pages[class_id] + 1
+        while counts[class_id] < args.images_per_class and page <= args.api_max_pages:
+            if time.time() >= deadline:
+                timed_out = True
+                break
+            try:
+                observations = api_observations(session, taxon_id, page, args.api_page_size)
+            except Exception as exc:
+                rejected["api_page_error"] += 1
+                print(
+                    f"[api] page deferred class={class_id} taxon={taxon_id} page={page}: "
+                    f"{type(exc).__name__}: {exc}",
+                    flush=True,
+                )
+                break
+            if not observations:
+                api_pages[class_id] = page
+                break
+
+            for observation in observations:
+                if counts[class_id] >= args.images_per_class:
                     break
+                if not observation_matches_taxon(observation, taxon_id):
+                    rejected["taxon_mismatch"] += 1
+                    continue
+                observation_id = observation.get("id")
+                accepted_from_observation = False
+                for photo in observation.get("photos") or []:
+                    license_code = str(photo.get("license_code") or "").lower()
+                    if license_code not in ALLOWED_LICENSES:
+                        rejected["license"] += 1
+                        continue
+                    photo_url = str(photo.get("url") or "")
+                    if not photo_url:
+                        rejected["missing_photo_url"] += 1
+                        continue
+                    photo_url = photo_url.replace("/square.", "/large.")
+                    try:
+                        raw = download_photo(session, photo_url)
+                    except Exception as exc:
+                        rejected["photo_download"] += 1
+                        print(
+                            f"[image] skipped observation={observation_id}: "
+                            f"{type(exc).__name__}: {exc}",
+                            flush=True,
+                        )
+                        continue
+                    normalized, quality_info = quality_and_normalize(raw, args.min_side, args.blur_floor)
+                    if normalized is None:
+                        rejected[quality_info.get("reason", "quality")] += 1
+                        continue
+                    digest = md5_bytes(raw)
+                    with Image.open(io.BytesIO(normalized)) as normalized_image:
+                        perceptual = dhash256(normalized_image)
+                    if dedup.seen(digest, perceptual):
+                        rejected["duplicate"] += 1
+                        continue
+
+                    photo_id = photo.get("id") or digest[:16]
+                    filename = f"inat-{observation_id}-{photo_id}.jpg"
+                    target = args.output / "batch-images" / "images" / "train" / labels[class_id] / filename
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_bytes(normalized)
+                    records_file.write(json.dumps({
+                        "label": scientific_name,
+                        "local_index": local,
+                        "inat21_class_id": class_id,
+                        "inat_taxon_id": taxon_id,
+                        "observation_id": observation_id,
+                        "photo_id": photo_id,
+                        "source_url": photo_url,
+                        "md5": digest,
+                        "dhash256": str(perceptual),
+                        "license": license_code,
+                        "split": "train",
+                        "quality": quality_info,
+                    }, separators=(",", ":")) + "\n")
+                    records_file.flush()
+                    counts[class_id] += 1
+                    accepted += 1
+                    staged += 1
+                    batch_hashes.append({"md5": digest, "dhash256": str(perceptual)})
+                    accepted_from_observation = True
+                    if staged >= args.commit_files:
+                        flush_batch()
+                    break
+                if accepted_from_observation and counts[class_id] >= args.images_per_class:
+                    break
+            api_pages[class_id] = page
+            page += 1
+            time.sleep(0.25)
+
+        print(
+            f"[api] class={class_id} taxon={taxon_id} name={scientific_name} "
+            f"count={counts[class_id]}/{args.images_per_class} "
+            f"complete={sum(counts[x] >= args.images_per_class for x in class_ids):,}/{len(class_ids):,}",
+            flush=True,
+        )
+        if timed_out:
+            break
+
     records_file.close()
     flush_batch()
-    # Persist an end-of-stream cursor even when the last portion accepted no
-    # images, otherwise a sparse class would be rescanned on every continuation.
-    progress["processed"] = {str(k): int(v) for k, v in sorted(session_processed.items())}
+    session.close()
+    progress["api_pages"] = {str(k): int(v) for k, v in sorted(api_pages.items())}
+    progress["api_taxon_ids"] = {str(k): int(v) for k, v in sorted(api_taxon_ids.items())}
     progress["counts"] = {str(k): int(v) for k, v in sorted(counts.items())}
     progress["accepted"] = accepted
     progress["rejected"] = dict(rejected)
     commit_progress(api, args.dataset_repo, progress, args.output)
-    short = {str(global_id): int(args.images_per_class - counts[global_id]) for global_id in ids if counts[global_id] < args.images_per_class}
+    short = {
+        str(class_id): int(args.images_per_class - counts[class_id])
+        for class_id in class_ids if counts[class_id] < args.images_per_class
+    }
     audit = {
-        "archive_url": args.archive_url, "target_classes": len(ids),
-        "images_per_class": args.images_per_class, "accepted_images": accepted,
-        "complete_classes": sum(v >= args.images_per_class for v in counts.values()),
-        "short_classes": short, "rejected": dict(rejected),
+        "source": "inaturalist_node_api",
+        "target_classes": len(class_ids),
+        "images_per_class": args.images_per_class,
+        "accepted_images": accepted,
+        "complete_classes": sum(counts[x] >= args.images_per_class for x in class_ids),
+        "resolved_taxa": len(api_taxon_ids),
+        "short_classes": short,
+        "rejected": dict(rejected),
         "elapsed_seconds": round(time.time() - start_time, 2),
-        "status": "complete" if not short else "partial",
+        "status": "complete" if not short else ("checkpointed" if timed_out else "partial"),
     }
     audit_path = args.output / "ingestion_audit.json"
     audit_path.write_text(json.dumps(audit, indent=2), encoding="utf-8")
-    api.upload_file(repo_id=args.dataset_repo, repo_type="dataset", path_or_fileobj=str(audit_path), path_in_repo="ingestion_audit.json", commit_message="metadata: Find10K ingestion audit")
+    for attempt in range(1, HUB_RETRIES + 1):
+        try:
+            api.upload_file(repo_id=args.dataset_repo, repo_type="dataset", path_or_fileobj=str(audit_path), path_in_repo="ingestion_audit.json", commit_message="metadata: Find10K API ingestion audit")
+            break
+        except Exception as exc:
+            if attempt == HUB_RETRIES:
+                raise RuntimeError("unable to upload API ingestion audit") from exc
+            time.sleep(min(60, 5 * attempt))
     print(json.dumps(audit, indent=2))
-    return 0 if not short else 2
+    return 0
 
 
 if __name__ == "__main__":

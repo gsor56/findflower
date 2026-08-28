@@ -84,3 +84,6 @@ hf_*.json
 /scripts/build_curation_shards.py
 /scripts/build_top_plantae_manifest.py
 /scripts/validate_premium_dataset.py
+
+# a scratch worktree used for pushes, never part of a commit
+.push-worktree/

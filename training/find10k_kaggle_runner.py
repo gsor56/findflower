@@ -178,7 +178,7 @@ def main() -> int:
     if run_ingestion:
         subprocess.run(ingest, check=True)
     else:
-        print("[preflight] skipping 240GB archive stream")
+        print("[preflight] skipping iNaturalist API curation")
     print(f"[done] artifacts: {work}")
     return 0
 
