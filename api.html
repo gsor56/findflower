@@ -92,9 +92,6 @@
         .code::-webkit-scrollbar { height: 8px; }
         .code::-webkit-scrollbar-thumb { background: #404040; border-radius: 8px; }
 
-        .doc-link.active { color: #171717; font-weight: 500; }
-        .doc-link.active .doc-dot { background: #5F7A63; }
-
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
             .reveal-up { opacity: 1; transform: none; }
@@ -140,12 +137,11 @@
 
     <main class="pt-32 pb-24">
 
-        <section class="max-w-7xl mx-auto px-6 mb-16">
-            <div class="max-w-3xl">
-                <div class="reveal-up flex items-center gap-3 mb-6">
-                    <span class="text-sm font-medium text-sage-600">Developers</span>
-                    <span class="text-xs font-mono font-medium text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">v1</span>
-                </div>
+        <section class="max-w-7xl mx-auto px-6 mb-16 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+            <div class="lg:col-span-4">
+                <span class="reveal-up text-sm font-medium text-sage-600 block lg:mt-3">Developers &middot; v1</span>
+            </div>
+            <div class="lg:col-span-8">
                 <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-6">
                     The FindFlower API
                 </h1>
@@ -156,57 +152,50 @@
             </div>
         </section>
 
-        <section class="max-w-7xl mx-auto px-6 mb-20">
-            <div class="grid grid-cols-1 md:grid-cols-2 border-t border-neutral-200">
-                <div class="reveal-up pt-8 pb-2 md:pr-12">
-                    <div class="flex items-center gap-3 mb-3">
-                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Direct endpoint</h2>
-                        <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Working now</span>
+        <section class="max-w-7xl mx-auto px-6 mb-24 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+            <div class="lg:col-span-4">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">
+                    What answers today
+                </h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6">
+                <div class="reveal-up divide-y divide-neutral-200 border-t border-b border-neutral-200">
+                    <div class="py-6">
+                        <div class="flex flex-wrap items-baseline gap-3 mb-1">
+                            <h3 class="text-base font-medium text-neutral-900">Direct endpoint</h3>
+                            <span class="text-xs font-medium tracking-widest text-sage-700 uppercase">Working now</span>
+                        </div>
+                        <p class="text-base text-neutral-600 font-light leading-relaxed">
+                            POST a photo to the hosted endpoint from any web or server app and get
+                            the species, a confidence score and ranked alternatives back as JSON.
+                            It takes an Auth0 access token, and it is free.
+                            <a href="#sdk" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Jump to the quickstart</a>.
+                        </p>
                     </div>
-                    <p class="text-base text-neutral-600 font-light leading-relaxed">
-                        POST a photo to the hosted endpoint from any web or server app and get
-                        the species, a confidence score and ranked alternatives back as JSON.
-                        It takes an Auth0 access token, and it is free.
-                    </p>
-                    <a href="#sdk" class="inline-flex items-center mt-5 text-base text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Jump to the quickstart</a>
-                </div>
-                <div class="reveal-up pt-8 pb-2 border-t border-neutral-200 md:border-t-0 md:border-l md:border-neutral-200 md:pl-12">
-                    <div class="flex items-center gap-3 mb-3">
-                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Hosted REST API</h2>
-                        <span class="text-xs font-medium text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-full">Not serving yet</span>
+                    <div class="py-6">
+                        <div class="flex flex-wrap items-baseline gap-3 mb-1">
+                            <h3 class="text-base font-medium text-neutral-900">Hosted REST API</h3>
+                            <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Not serving yet</span>
+                        </div>
+                        <p class="text-base text-neutral-600 font-light leading-relaxed">
+                            A stateless HTTPS API for server-side use. The shape below is what it
+                            will answer with; nothing behind it accepts requests today, so read
+                            that part as a specification rather than a service.
+                            <a href="#endpoints" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Read the endpoints</a>.
+                        </p>
                     </div>
-                    <p class="text-base text-neutral-600 font-light leading-relaxed">
-                        A stateless HTTPS API for server-side use. The shape below is what it
-                        will answer with; nothing behind it accepts requests today, so treat
-                        this section as a specification rather than a service.
-                    </p>
-                    <a href="#endpoints" class="inline-flex items-center mt-5 text-base text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Read the endpoints</a>
                 </div>
             </div>
         </section>
 
-        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-y-20 lg:gap-x-12">
 
-            <aside class="hidden lg:block lg:col-span-3">
-                <nav class="sticky top-24 space-y-1 text-sm">
-                    <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3">Reference</p>
-                    <a href="#credentials" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Authentication</a>
-                    <a href="#base" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Base URL &amp; format</a>
-                    <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3 mt-6">Endpoints</p>
-                    <a href="#identify-upload" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Identify · upload</a>
-                    <a href="#identify-camera" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Identify · camera</a>
-                    <a href="#identify-url" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Identify · URL</a>
-                    <a href="#feedback" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Feedback</a>
-                    <a href="#wikipedia" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Wikipedia info</a>
-                    <p class="text-xs font-medium tracking-widest text-neutral-400 uppercase mb-3 mt-6">Integrate</p>
-                    <a href="#sdk" class="doc-link flex items-center gap-2.5 py-1.5 text-neutral-500 hover:text-neutral-900 transition-colors"><span class="doc-dot w-1.5 h-1.5 rounded-full bg-neutral-300"></span>Direct endpoint</a>
-                </nav>
-            </aside>
 
-            <div class="lg:col-span-9 space-y-24">
-
-                <section id="credentials" class="scroll-mt-24">
+                <section id="credentials" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Authentication</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-10 max-w-2xl">
                         The direct endpoint takes your Auth0 access token as a bearer token, and that
                         is the only authentication in use today. The hosted API is written to read a
@@ -217,7 +206,7 @@
                     <div class="border-t border-neutral-200 pt-6">
                         <div class="flex items-center justify-between mb-6">
                             <span class="text-sm font-medium text-neutral-900">Your placeholder key</span>
-                            <span id="keyBadge" class="text-xs font-medium text-neutral-500 bg-neutral-100 px-2.5 py-1 rounded-full">Sign in required</span>
+                            <span id="keyBadge" class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Sign in required</span>
                         </div>
 
                         <div id="keyGate">
@@ -237,7 +226,7 @@
                             </div>
                             <label class="text-sm font-medium text-neutral-900 mb-2 block">Derived key</label>
                             <div class="flex gap-3">
-                                <code id="apiKey" class="min-w-0 flex-1 font-mono text-sm bg-white border border-neutral-200 rounded-md px-4 py-3 text-neutral-800 truncate"></code>
+                                <code id="apiKey" class="min-w-0 flex-1 font-mono text-sm border-b border-neutral-200 px-1 py-3 text-neutral-800 truncate"></code>
                                 <button id="copyKey" data-haptic class="soft-click shrink-0 text-base font-medium border border-neutral-200 text-neutral-700 px-4 rounded-md hover:bg-neutral-50 transition">Copy</button>
                             </div>
                             <p class="text-base text-neutral-500 font-light mt-4 leading-relaxed">
@@ -246,10 +235,14 @@
                             </p>
                         </div>
                     </div>
+                    </div>
                 </section>
 
-                <section id="base" class="scroll-mt-24">
+                <section id="base" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Base URL &amp; format</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
                         All hosted endpoints are versioned and served over HTTPS. Requests and responses are JSON, except image uploads which use <span class="font-mono text-sm text-neutral-700">multipart/form-data</span>.
                     </p>
@@ -261,16 +254,20 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                         <p>The base host is a placeholder during preview. The request and response shapes below are stabilising; the direct endpoint quickstart lower down works against the live Beta today.</p>
                     </div>
+                    </div>
                 </section>
 
                 <div id="endpoints"></div>
 
-                <section id="identify-upload" class="scroll-mt-24">
+                <section id="identify-upload" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <span class="text-xs font-mono font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-md">POST</span>
+                        <span class="text-xs font-mono font-medium tracking-widest text-sage-700 uppercase">POST</span>
                         <code class="font-mono text-sm text-neutral-800">/v1/identify</code>
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Identify by image upload</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
                         Submit a photo file and receive the ranked species predictions. This is the primary endpoint for gallery uploads and drag-and-drop.
                     </p>
@@ -295,19 +292,23 @@ curl -X POST https://api.findflower.me/v1/identify \
   <span class="tok-key">"model_version"</span>: <span class="tok-str">"beta-0.9.4"</span>
 }</div>
 
-                    <div class="border-l-2 border-neutral-200 pl-5 py-1">
+                    <div class="border-l-2 border-sage-400 pl-6 py-1">
                         <p class="text-sm font-medium text-neutral-900 mb-1.5">Example use case</p>
                         <p class="text-sm text-neutral-500 font-light leading-relaxed">A nature journaling app lets users attach a photo to an entry; on save, it calls this endpoint and stores the top species and confidence alongside the note.</p>
                     </div>
+                    </div>
                 </section>
 
-                <section id="identify-camera" class="scroll-mt-24">
+                <section id="identify-camera" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <span class="text-xs font-mono font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-md">POST</span>
+                        <span class="text-xs font-mono font-medium tracking-widest text-sage-700 uppercase">POST</span>
                         <code class="font-mono text-sm text-neutral-800">/v1/identify</code>
-                        <span class="text-xs font-medium text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded-full">base64 variant</span>
+                        <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">base64 variant</span>
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Identify by camera-captured image</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
                         Camera frames captured in the browser are most easily sent as a base64 data URL. The same endpoint accepts a JSON body with an <span class="font-mono text-sm text-neutral-700">image</span> string, so you don’t need to build a multipart request from a canvas.
                     </p>
@@ -332,18 +333,22 @@ curl -X POST https://api.findflower.me/v1/identify \
   <span class="tok-key">"model_version"</span>: <span class="tok-str">"beta-0.9.4"</span>
 }</div>
 
-                    <div class="border-l-2 border-neutral-200 pl-5 py-1">
+                    <div class="border-l-2 border-sage-400 pl-6 py-1">
                         <p class="text-sm font-medium text-neutral-900 mb-1.5">Example use case</p>
                         <p class="text-sm text-neutral-500 font-light leading-relaxed">A field-guide kiosk uses a live camera; each capture is sent as a data URL and the identification is shown on screen without ever writing a file to disk.</p>
                     </div>
+                    </div>
                 </section>
 
-                <section id="identify-url" class="scroll-mt-24">
+                <section id="identify-url" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <span class="text-xs font-mono font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-md">POST</span>
+                        <span class="text-xs font-mono font-medium tracking-widest text-sage-700 uppercase">POST</span>
                         <code class="font-mono text-sm text-neutral-800">/v1/identify/url</code>
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Identify by URL</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
                         Pass a link to an image, or a YouTube URL. The service resolves a still frame (for YouTube, the thumbnail) server-side, which side-steps the browser’s cross-origin limits.
                     </p>
@@ -362,18 +367,22 @@ curl -X POST https://api.findflower.me/v1/identify \
   <span class="tok-key">"model_version"</span>: <span class="tok-str">"beta-0.9.4"</span>
 }</div>
 
-                    <div class="border-l-2 border-neutral-200 pl-5 py-1">
+                    <div class="border-l-2 border-sage-400 pl-6 py-1">
                         <p class="text-sm font-medium text-neutral-900 mb-1.5">Example use case</p>
                         <p class="text-sm text-neutral-500 font-light leading-relaxed">A content tool lets editors paste a stock-photo or video link and automatically tags the botanical subject for their media library.</p>
                     </div>
+                    </div>
                 </section>
 
-                <section id="feedback" class="scroll-mt-24">
+                <section id="feedback" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <span class="text-xs font-mono font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-md">POST</span>
+                        <span class="text-xs font-mono font-medium tracking-widest text-sage-700 uppercase">POST</span>
                         <code class="font-mono text-sm text-neutral-800">/v1/feedback</code>
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Feedback submission</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
                         Report whether a prediction was correct, and optionally the true species. These signals feed directly into future model versions.
                     </p>
@@ -392,18 +401,22 @@ curl -X POST https://api.findflower.me/v1/identify \
   <span class="tok-key">"id"</span>: <span class="tok-str">"fb_8f21c4"</span>
 }</div>
 
-                    <div class="border-l-2 border-neutral-200 pl-5 py-1">
+                    <div class="border-l-2 border-sage-400 pl-6 py-1">
                         <p class="text-sm font-medium text-neutral-900 mb-1.5">Example use case</p>
                         <p class="text-sm text-neutral-500 font-light leading-relaxed">After showing a result, your app offers a &ldquo;Was this right?&rdquo; prompt and posts the answer here. Nothing is retrained from it yet; the endpoint records the verdict.</p>
                     </div>
+                    </div>
                 </section>
 
-                <section id="wikipedia" class="scroll-mt-24">
+                <section id="wikipedia" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
                     <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <span class="text-xs font-mono font-medium text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-md">GET</span>
+                        <span class="text-xs font-mono font-medium tracking-widest text-neutral-400 uppercase">GET</span>
                         <code class="font-mono text-sm text-neutral-800">/v1/wikipedia</code>
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Wikipedia info retrieval</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
                         A convenience endpoint that returns the Wikipedia summary and lead image for a species name, the same context shown in the FindFlower workspace.
                     </p>
@@ -420,17 +433,21 @@ curl -X POST https://api.findflower.me/v1/identify \
   <span class="tok-key">"url"</span>: <span class="tok-str">"https://en.wikipedia.org/wiki/Common_sunflower"</span>
 }</div>
 
-                    <div class="border-l-2 border-neutral-200 pl-5 py-1">
+                    <div class="border-l-2 border-sage-400 pl-6 py-1">
                         <p class="text-sm font-medium text-neutral-900 mb-1.5">Example use case</p>
                         <p class="text-sm text-neutral-500 font-light leading-relaxed">After identification, an app enriches the result card with a short description and image without integrating a separate encyclopedia source.</p>
                     </div>
+                    </div>
                 </section>
 
-                <section id="sdk" class="scroll-mt-24">
+                <section id="sdk" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
                     <div class="flex items-center gap-3 mb-4">
-                        <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Working now</span>
+                        <span class="text-xs font-medium tracking-widest text-sage-700 uppercase">Working now</span>
                     </div>
                     <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Direct endpoint</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
                         The quickest way to integrate today. POST an image to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download. Sign in and send the photo with your access token in the <span class="font-mono text-sm text-neutral-700">Authorization</span> header.
                     </p>
@@ -471,9 +488,10 @@ curl -X POST https://api.findflower.me/v1/identify \
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                         <p>The current Beta model recognises 116 botanical classes. Predictions are a best guess, so always surface the confidence score and the runners-up so your users can judge for themselves.</p>
                     </div>
+                    </div>
                 </section>
 
-                <section class="scroll-mt-24 border-t border-neutral-200 pt-10">
+                <section class="scroll-mt-24 lg:col-span-12 border-t border-neutral-200 pt-10">
                     <div class="max-w-xl">
                         <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-4">Questions about the API</h2>
                         <p class="text-base text-neutral-600 font-light leading-relaxed mb-8">
@@ -487,7 +505,6 @@ curl -X POST https://api.findflower.me/v1/identify \
                     </div>
                 </section>
 
-            </div>
         </div>
 
     </main>
@@ -512,19 +529,6 @@ curl -X POST https://api.findflower.me/v1/identify \
                 entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); });
             }, { threshold: 0.15 });
             document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
-
-            const links = [...document.querySelectorAll('.doc-link')];
-            const map = new Map(links.map(l => [l.getAttribute('href').slice(1), l]));
-            const secObs = new IntersectionObserver((entries) => {
-                entries.forEach(e => {
-                    if (e.isIntersecting) {
-                        links.forEach(l => l.classList.remove('active'));
-                        const l = map.get(e.target.id);
-                        if (l) l.classList.add('active');
-                    }
-                });
-            }, { rootMargin: '-20% 0px -70% 0px' });
-            map.forEach((_, id) => { const el = document.getElementById(id); if (el) secObs.observe(el); });
         });
 
         (async function () {
@@ -534,7 +538,7 @@ curl -X POST https://api.findflower.me/v1/identify \
             document.getElementById('keyGate').classList.add('hidden');
             document.getElementById('keyPanel').classList.remove('hidden');
             document.getElementById('keyBadge').textContent = 'Derived';
-            document.getElementById('keyBadge').className = 'text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full';
+            document.getElementById('keyBadge').className = 'text-xs font-medium tracking-widest text-sage-700 uppercase';
             document.getElementById('devName').textContent = user.name || user.nickname || 'Developer';
             document.getElementById('devEmail').textContent = user.email || '';
             const key = await ffDeriveKey(user.sub || user.email || 'anon');

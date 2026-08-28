@@ -100,9 +100,11 @@
 
     <main class="pt-32 pb-24">
 
-        <div class="max-w-5xl mx-auto px-6">
-            <div class="mb-16">
-                <span class="reveal-up text-sm font-medium text-sage-600 mb-5 block">Data &amp; integrations</span>
+        <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-y-20 lg:gap-x-12">
+            <div class="lg:col-span-4">
+                <span class="reveal-up text-sm font-medium text-sage-600 block lg:mt-3">Data &amp; integrations</span>
+            </div>
+            <div class="lg:col-span-8">
                 <h1 class="reveal-up text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 leading-[1.05] mb-4">Dataset, taxonomy and endpoint</h1>
                 <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 mb-8">What is available to build on, and what is not</p>
                 <p class="reveal-up text-lg text-neutral-500 font-light leading-relaxed max-w-2xl">
@@ -113,7 +115,7 @@
                 </p>
             </div>
 
-            <div class="reveal-up border-l-2 border-sage-400 pl-6 mb-16">
+            <div class="reveal-up lg:col-span-7 lg:col-start-6 border-l-2 border-sage-400 pl-6">
                 <p class="text-sm font-medium text-neutral-900 mb-2">Access, honestly</p>
                 <p class="text-base text-neutral-600 font-light leading-relaxed">
                     The image dataset is on a private repository while per-image licence attribution
@@ -125,8 +127,11 @@
                 </p>
             </div>
 
-            <section class="mb-16">
-                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">The dataset</h2>
+            <section class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                <div class="lg:col-span-4">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">The dataset</h2>
+                </div>
+                <div class="lg:col-span-7 lg:col-start-6">
                 <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
                     A plain ImageFolder tree. One directory per species, 100 JPEGs inside, filenames
                     prefixed with their rank in the class so ordering is stable across clones. No
@@ -163,10 +168,14 @@ README.md</div>
                         <p class="text-base text-neutral-600 font-light">CC0, CC&nbsp;BY and CC&nbsp;BY-NC only, recorded per image. Mixed, so the set as a whole is non-commercial.</p>
                     </div>
                 </div>
+                </div>
             </section>
 
-            <section class="mb-16">
-                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">The classes.json index</h2>
+            <section class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                <div class="lg:col-span-4">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">The classes.json index</h2>
+                </div>
+                <div class="lg:col-span-7 lg:col-start-6">
                 <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
                     A model outputs an integer. This file is what turns it back into a plant. Keys are
                     the class index as a string, in the order the folders are enumerated, so the map is
@@ -214,10 +223,14 @@ README.md</div>
     }
   }
 }</div>
+                </div>
             </section>
 
-            <section class="mb-16">
-                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Fields worth knowing</h2>
+            <section class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                <div class="lg:col-span-4">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Fields worth knowing</h2>
+                </div>
+                <div class="lg:col-span-7 lg:col-start-6">
                 <div class="reveal-up border-t border-b border-neutral-200 mb-8">
                     <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
                         <p class="font-mono text-sm text-neutral-900 mb-1 sm:mb-0">inat_taxon_id</p>
@@ -244,10 +257,14 @@ README.md</div>
                         <p class="sm:col-span-2 text-base text-neutral-600 font-light">Present when iNaturalist has one, <span class="font-mono text-neutral-900">null</span> otherwise, which is most of the list, because abundant species rarely carry a status.</p>
                     </div>
                 </div>
+                </div>
             </section>
 
-            <section class="mb-16">
-                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Per-image licences and attribution</h2>
+            <section class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                <div class="lg:col-span-4">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Per-image licences and attribution</h2>
+                </div>
+                <div class="lg:col-span-7 lg:col-start-6">
                 <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
                     Every class directory has a sibling metadata file holding one record per image, in
                     the same order as the filenames. This is the part that matters for reuse: the
@@ -285,10 +302,14 @@ README.md</div>
                     was selected, or filter harder than the curation did (a stricter blur threshold,
                     say) without refetching anything.
                 </p>
+                </div>
             </section>
 
-            <section class="mb-16">
-                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">The served model is smaller than the trained one</h2>
+            <section class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                <div class="lg:col-span-4">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">The served model is smaller than the trained one</h2>
+                </div>
+                <div class="lg:col-span-7 lg:col-start-6">
                 <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
                     Worth being unambiguous about, because the two class lists are easy to confuse. The
                     dataset above targets 1,500 species and nothing has been trained on it yet. The
@@ -310,10 +331,14 @@ README.md</div>
                     should be treated as a warning rather than an answer, which is the honest limit of
                     a closed-set classifier.
                 </p>
+                </div>
             </section>
 
-            <section class="mb-16">
-                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Calling the endpoint</h2>
+            <section class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                <div class="lg:col-span-4">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Calling the endpoint</h2>
+                </div>
+                <div class="lg:col-span-7 lg:col-start-6">
                 <p class="reveal-up text-lg text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
                     One POST, one image, one JSON body back. The full reference (keys, limits,
                     errors, the Wikipedia and plant-detail helpers) is on the
@@ -350,10 +375,14 @@ curl -X POST https://findflower-proxy.fofi.workers.dev \
                     Server-side calls, which send no <span class="font-mono text-neutral-900">Origin</span>,
                     are unaffected.
                 </p>
+                </div>
             </section>
 
-            <section class="mb-16">
-                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Reuse terms</h2>
+            <section class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                <div class="lg:col-span-4">
+                <h2 class="reveal-up text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Reuse terms</h2>
+                </div>
+                <div class="lg:col-span-7 lg:col-start-6">
                 <div class="reveal-up border-t border-b border-neutral-200">
                     <div class="field py-4 sm:grid sm:grid-cols-3 sm:gap-6">
                         <p class="text-sm font-medium text-neutral-900 mb-1 sm:mb-0">The photographs</p>
@@ -376,9 +405,10 @@ curl -X POST https://findflower-proxy.fofi.workers.dev \
                         <p class="sm:col-span-2 text-base text-neutral-600 font-light">A filtered dataset still contains mislabelled images, and a classifier trained on it will still be wrong sometimes. Do not build anything where a misidentified plant causes harm. The <a href="/terms" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Terms of Service</a> apply.</p>
                     </div>
                 </div>
+                </div>
             </section>
 
-            <div class="reveal-up flex flex-col sm:flex-row gap-3">
+            <div class="reveal-up lg:col-span-7 lg:col-start-6 flex flex-col sm:flex-row gap-3">
                 <a href="/api" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 transition-colors">
                     Full API reference
                     <svg class="cta-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
