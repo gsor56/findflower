@@ -102,13 +102,6 @@
         .float-slow { animation: float-slow 9s infinite ease-in-out; }
         .float-slower { animation: float-slow 13s infinite ease-in-out; }
 
-        .draw-path {
-            stroke-dasharray: 1200;
-            stroke-dashoffset: 1200;
-            transition: stroke-dashoffset 2.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .active .draw-path { stroke-dashoffset: 0; }
-
         .ff-sample-tab {
             font-size: 0.875rem;
             font-weight: 500;
@@ -249,7 +242,6 @@
             *, *::before, *::after { animation: none !important; transition: none !important; }
             .reveal-up { opacity: 1; transform: none; }
             .card-in { opacity: 1; transform: none; }
-            .draw-path { stroke-dashoffset: 0; }
         }
     
         @media (pointer: coarse) {
@@ -533,9 +525,15 @@
                     <h2 class="text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight mb-8">
                         About FindFlower
                     </h2>
-                    <svg class="w-full max-w-sm text-sage-400" viewBox="0 0 400 220" fill="none" aria-hidden="true">
-                        <path class="draw-path" d="M40 200C40 150 60 120 100 110C70 108 50 88 52 58C82 62 100 84 100 110C102 74 128 50 168 52C166 88 140 110 100 110C140 112 168 138 168 176C132 172 108 148 100 110M100 110C160 120 200 90 210 40C250 60 250 110 210 130C176 146 130 138 100 110Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <figure class="mt-2">
+                        <img src="/assets/scan-result.webp" width="1192" height="812" loading="lazy" decoding="async"
+                            alt="The scanner's result panel: a photograph of a bird of paradise flower beside the name Bird Of Paradise, a confidence figure of 98.4 percent, and three less likely names underneath at under one percent each."
+                            class="w-full rounded-lg border border-neutral-200 bg-white" />
+                        <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
+                            One answer exactly as it came out of the browser, runners-up and all.
+                            The photograph is public domain.
+                        </figcaption>
+                    </figure>
                 </div>
                 <div class="reveal-up delay-100 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                     <p>
