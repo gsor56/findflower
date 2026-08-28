@@ -788,6 +788,7 @@
 
         const $ = (id) => document.getElementById(id);
         const modelDot = $('modelDot'), modelStatusText = $('modelStatusText');
+        const modelStatus = $('modelStatus');
         const identifyBtn = $('identifyBtn'), identifyLabel = $('identifyLabel'), identifyArrow = $('identifyArrow');
         const previewImg = $('previewImg'), previewEmpty = $('previewEmpty'), previewHint = $('previewHint'), previewScan = $('previewScan');
         const previewBlock = $('previewBlock'), previewBox = $('previewBox'), resultPanel = $('resultPanel');
@@ -881,6 +882,7 @@
         let engineStatusRequest = 0;
         async function updateEngineStatus(tier) {
             const requestId = ++engineStatusRequest;
+            armRetry(false);
             paintEngineChoice(tier);
             if (tier === 'lite') {
                 ffStatus.markColdStart();
@@ -895,6 +897,7 @@
                     if (requestId !== engineStatusRequest || pref('modelTier', 'standard') !== 'lite') return;
                     ffStatus.markOffline();
                     modelStatusText.textContent = 'Flora-Micro unavailable · tap to retry';
+                    armRetry(true);
                 }
                 return;
             }
@@ -912,6 +915,28 @@
             const blurbEl = document.getElementById('engineBlurb');
             if (nameEl) nameEl.textContent = engine.name;
             if (blurbEl && engine.blurb) blurbEl.textContent = engine.blurb;
+        }
+        function armRetry(on) {
+            if (!modelStatus) return;
+            if (on) {
+                modelStatus.setAttribute('role', 'button');
+                modelStatus.setAttribute('tabindex', '0');
+                modelStatus.classList.add('cursor-pointer', 'hover:text-neutral-900');
+            } else {
+                modelStatus.removeAttribute('role');
+                modelStatus.removeAttribute('tabindex');
+                modelStatus.classList.remove('cursor-pointer', 'hover:text-neutral-900');
+            }
+        }
+        function retryEngine() {
+            if (!modelStatus || !modelStatus.hasAttribute('role')) return;
+            updateEngineStatus(pref('modelTier', 'standard'));
+        }
+        if (modelStatus) {
+            modelStatus.addEventListener('click', retryEngine);
+            modelStatus.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); retryEngine(); }
+            });
         }
         if (window.ffPrefs && typeof window.ffPrefs.subscribe === 'function') {
             window.ffPrefs.subscribe(function (key) {
