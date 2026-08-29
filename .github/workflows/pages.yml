@@ -37,6 +37,15 @@ jobs:
           cp trefle-data.json _site/
           cp -R models _site/
           cp CNAME .nojekyll _site/
+          # The icons, the manifest, robots, the sitemap, the card images and the
+          # Discord domain proof were never in the globs above. That went unnoticed
+          # while Pages still built this repo with the legacy Jekyll builder, which
+          # copies the whole checkout; the moment this workflow became the deploy
+          # source they all 404'd at once, which takes the install prompt, the tab
+          # icon, the crawl rules and every social preview with them.
+          cp favicon.ico *.png _site/
+          cp manifest.json robots.txt sitemap.xml _site/
+          cp -R assets .well-known _site/
           # These globs are FLAT — *.js does not descend into scripts/. That
           # directory went unpublished for its whole existence: api.js, ui.js,
           # router.js and all four view modules 404'd in production. It was
@@ -61,7 +70,11 @@ jobs:
                    scripts/lite.js scripts/vendor/tf.min.js \
                    scripts/ux.js \
                    scripts/views/home.js scripts/views/directory.js \
-                   scripts/views/dashboard.js scripts/views/scanner.js; do
+                   scripts/views/dashboard.js scripts/views/scanner.js \
+                   favicon.svg favicon.ico icon-192.png icon-512.png \
+                   icon-maskable-512.png apple-touch-icon.png \
+                   manifest.json robots.txt sitemap.xml \
+                   assets/og-cover.png .well-known/discord; do
             test -f "_site/$f" || { echo "FATAL: $f missing from _site"; exit 1; }
           done
           # Every same-origin src=/href= in the published HTML must resolve to a
