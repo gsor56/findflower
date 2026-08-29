@@ -1,0 +1,43 @@
+{
+    "id": "/",
+    "name": "FindFlower",
+    "short_name": "FindFlower",
+    "description": "Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.",
+    "lang": "en",
+    "dir": "ltr",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "theme_color": "#FCFCFC",
+    "background_color": "#FCFCFC",
+    "categories": ["education", "utilities", "photo"],
+    "icons": [
+        {
+            "src": "/assets/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/assets/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/assets/icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/assets/scan-result.webp",
+            "sizes": "1192x812",
+            "type": "image/webp",
+            "form_factor": "wide",
+            "label": "A finished scan showing the species, the confidence figure and the record behind it."
+        }
+    ]
+}

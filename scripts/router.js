@@ -99,12 +99,21 @@
         return captured;
     }
 
+    // Anything outside this set is data, not code. The structured-data block on
+    // the home page is application/ld+json, and handing its contents to a
+    // <script> throws on the first colon.
+    var JS_TYPE = {
+        '': 1, 'module': 1, 'text/javascript': 1, 'application/javascript': 1,
+        'text/ecmascript': 1, 'application/ecmascript': 1,
+    };
+
     async function runScripts(doc) {
         var tags = doc.querySelectorAll('script');
         var pending = [];
 
         for (var i = 0; i < tags.length; i++) {
             var tag = tags[i];
+            if (!JS_TYPE[(tag.getAttribute('type') || '').trim().toLowerCase()]) continue;
             var src = tag.getAttribute('src');
 
             if (src) {
