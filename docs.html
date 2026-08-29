@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#FCFCFC">
+    <meta name="application-name" content="FindFlower">
     <title>Docs | System Guide &amp; Troubleshooting | FindFlower</title>
     <meta name="description" content="What the scanner status dot means, why a first scan is slow, where your scans and community posts are kept, and why a page returns 404.">
     <link rel="canonical" href="https://findflower.me/docs">
@@ -406,11 +408,18 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <div class="reveal-up border-l-2 border-sage-400 pl-6 space-y-3 text-base">
-                    <p class="text-neutral-900 font-normal">You cannot use FindFlower offline. Nothing is cached for it.</p>
+                    <p class="text-neutral-900 font-normal">You cannot open FindFlower offline. Nothing is cached for it.</p>
                     <p>
-                        Opening or reloading any page needs the network, and a scan needs it twice over,
-                        because the model runs on a server rather than in your browser. Better to read
+                        Opening or reloading any page needs the network, and the model that reads your
+                        photos by default needs it a second time for the scan itself. Better to read
                         that here than to work it out halfway up a hillside with no signal.
+                    </p>
+                    <p>
+                        One tier is not like that.
+                        <a href="/how#modes" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Flora-Micro</a>
+                        downloads into the tab and classifies there, so once it has loaded it keeps
+                        answering after the signal goes and the photo never leaves the device. Reloading
+                        the page still needs a connection, and so does the written record behind a name.
                     </p>
                     <p>
                         Nothing you have saved is lost in the meantime. It is sitting in the browser

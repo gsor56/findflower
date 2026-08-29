@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" href="/favicon.ico" sizes="32x32">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#FCFCFC">
+    <meta name="application-name" content="FindFlower">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="FindFlower">
     <title>Identify flowers from a photo | FindFlower</title>
     <meta name="description" content="Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.">
-    <meta name="keywords" content="flower identifier, plant identification AI, offline botanical scanner, FindFlower PWA">
     <link rel="canonical" href="https://findflower.me/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
@@ -276,7 +277,7 @@
         "operatingSystem": "All (Web, Android, iOS, Windows, macOS, Linux)",
         "description": "High-speed botanical and flower identification powered by on-device Vision AI and cloud ViT architectures.",
         "featureList": [
-            "Instant Offline Scanning",
+            "On-Device Scanning With No Upload",
             "High-Accuracy Botanical Classifier",
             "Multi-Tier Flora Models"
         ],
@@ -298,6 +299,65 @@
         "sameAs": [
             "https://github.com/gsor56/findflower",
             "https://huggingface.co/gsor56"
+        ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://findflower.me/#website",
+        "url": "https://findflower.me/",
+        "name": "FindFlower",
+        "alternateName": "FindFlower AI",
+        "description": "Identify a flower from one photo and read the botanical record behind the name.",
+        "inLanguage": "en",
+        "about": { "@id": "https://findflower.me/#app" },
+        "publisher": {
+            "@type": "Person",
+            "name": "gsor56",
+            "url": "https://github.com/gsor56"
+        }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "@id": "https://findflower.me/#faq",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "How do I find out what a flower is?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Take a photo of it, or pick one you already have, and drop it into the scanner. Back comes the species name, a figure for how sure the model is, and the botanical record that name belongs to. One flower filling most of the frame works best, because outdoor photographs like that are what the model learned from."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is this a web app, or do I have to install something?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "It is a web page. It opens in the browser you already have, on a phone or a laptop, and there is nothing in any app store. On a phone you can add it to your home screen from the browser menu, and after that it opens in its own window with no address bar."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Does it work without a signal?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Half of it does, and it is worth knowing which half. Opening or reloading the page needs a connection, because nothing is cached for it yet. The smaller model that runs on your own device is a scanner preference on the dashboard, and setting it does need a sign-in, but once it is on the identifying happens inside the tab and your photo never leaves the phone. The written record that follows a result is fetched, so that part waits until you are back in range."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Which flowers does it know?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "116 species on the model that runs by default, and 107 on the smaller one that runs on your device. It is a fixed list of flowering plants rather than everything green, so a leaf, a tree or a vegetable will not get a useful answer out of it. The whole list is in the directory."
+                }
+            }
         ]
     }
     </script>
@@ -599,6 +659,57 @@
                     <p>
                         <a href="/about" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">More about the project</a>,
                         including what it is not and what it will not do.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="faq" class="max-w-7xl mx-auto px-6 mb-40 scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-y-8 lg:gap-x-12">
+            <div class="lg:col-span-4">
+                <h2 class="reveal-up text-3xl md:text-4xl font-medium tracking-tight text-neutral-900 leading-tight">
+                    Common questions
+                </h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 divide-y divide-neutral-200 border-t border-b border-neutral-200">
+                <div class="reveal-up py-6">
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">How do I find out what a flower is?</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed">
+                        Take a photo of it, or pick one you already have, and drop it into
+                        <a href="/try" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">the scanner</a>. Back comes the species name, a
+                        figure for how sure the model is, and the botanical record that name belongs
+                        to. One flower filling most of the frame works best, because outdoor
+                        photographs like that are what the model learned from.
+                    </p>
+                </div>
+                <div class="reveal-up py-6">
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">Is this a web app, or do I have to install something?</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed">
+                        It is a web page. It opens in the browser you already have, on a phone or a
+                        laptop, and there is nothing in any app store. On a phone you can add it to
+                        your home screen from the browser menu, and after that it opens in its own
+                        window with no address bar.
+                    </p>
+                </div>
+                <div class="reveal-up py-6">
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">Does it work without a signal?</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed">
+                        Half of it does, and it is worth knowing which half. Opening or reloading the
+                        page needs a connection, because nothing is cached for it yet. The
+                        <a href="/how#modes" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">smaller model that runs on your own device</a>
+                        is a scanner preference on the dashboard, and setting it does need a sign-in,
+                        but once it is on the identifying happens inside the tab and your photo never
+                        leaves the phone. The written record that follows a result is fetched, so that
+                        part waits until you are back in range.
+                    </p>
+                </div>
+                <div class="reveal-up py-6">
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">Which flowers does it know?</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed">
+                        116 species on the model that runs by default, and 107 on the smaller one that
+                        runs on your device. It is a fixed list of flowering plants rather than
+                        everything green, so a leaf, a tree or a vegetable will not get a useful answer
+                        out of it. The whole
+                        <a href="/directory" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">list is in the directory</a>.
                     </p>
                 </div>
             </div>
