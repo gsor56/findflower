@@ -188,6 +188,7 @@
         .ff-hero {
             position: relative;
             isolation: isolate;
+            overflow: hidden;
             margin-top: -4rem;
             min-height: calc(100svh - 4rem);
             display: flex;
@@ -208,7 +209,7 @@
             grid-template-columns: 1fr;
         }
         @media (min-width: 1024px) {
-            .ff-hero-inner { grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr); }
+            .ff-hero-inner { grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); }
         }
         @media (max-width: 767px) {
             .ff-hero { min-height: calc(100svh - 4rem - 56px); }
@@ -230,21 +231,15 @@
             text-wrap: balance;
         }
 
-        .ff-hero-art { display: none; justify-content: center; }
-        @media (min-width: 768px) {
-            .ff-hero-art { display: flex; }
+        /* The mark is one logo drawn near a thousand pixels wide, so its
+           stroke-width is read in viewBox units against that size: 24 units
+           across 1150px makes 0.8 land close to 40px on screen. */
+        .ff-mark-drift { animation: ff-mark-drift 60s linear infinite; }
+        @keyframes ff-mark-drift {
+            0%   { transform: translate3d(-3%, -1.5%, 0) rotate(-1.5deg) scale(1); }
+            50%  { transform: translate3d(3%, 1.5%, 0) rotate(1.5deg) scale(1.04); }
+            100% { transform: translate3d(-3%, -1.5%, 0) rotate(-1.5deg) scale(1); }
         }
-        .ff-sprig { width: min(62%, 15rem); height: auto; }
-        @media (min-width: 1024px) {
-            .ff-sprig { width: min(100%, 26rem); }
-        }
-
-        .ff-leaf { transform-box: view-box; transform-origin: 12px 12px; }
-        .ff-leaf-r { animation: ff-leaf-r 6s ease-in-out infinite; }
-        .ff-leaf-l { animation: ff-leaf-l 7.2s ease-in-out infinite; }
-
-        @keyframes ff-leaf-r { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(1.8deg); } }
-        @keyframes ff-leaf-l { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-1.8deg); } }
 
         .ff-scroll-cue {
             display: flex;
@@ -421,19 +416,24 @@
         </div>
 
         <section class="ff-hero mb-28 md:mb-32">
+            <div aria-hidden="true" class="absolute inset-y-0 -left-1/4 -z-10 pointer-events-none flex items-center -rotate-12 opacity-10">
+                <svg class="ff-mark-drift shrink-0 w-[150vw] md:w-[90vw] h-auto max-w-none" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z" stroke="#5F7A63" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
             <div class="ff-hero-inner">
 
                 <div class="ff-hero-copy">
-                    <h1 class="ff-hero-title reveal-up delay-100 text-3xl sm:text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 mb-6">
-                        The Botanical Web App for Flora Identification &amp; Exploration
+                    <h1 class="ff-hero-title reveal-up delay-100 text-5xl font-medium tracking-tighter text-neutral-900 mb-6">
+                        The botanical web app for flowers you cannot name
                     </h1>
                     <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-700 max-w-xl leading-relaxed mb-6">
                         Take a photo of a flower and get the species name, how sure the
                         answer is, and the record behind it.
                     </p>
                     <p class="reveal-up delay-200 text-base text-neutral-500 max-w-xl leading-relaxed mb-6 sm:mb-8 font-light">
-                        An installable Progressive Web App with on-device AI. Free while this is
-                        in beta.
+                        An installable Progressive Web App with on-device AI. Free in beta.
                     </p>
 
                     <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-4">
@@ -456,16 +456,6 @@
                     <a href="#how" class="ff-scroll-cue reveal-up delay-400 lg:hidden">
                         How it works
                     </a>
-                </div>
-
-                <div class="reveal-up delay-200 ff-hero-art" aria-hidden="true">
-                    <svg class="ff-sprig" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <g stroke="#5F7A63" stroke-width="0.16" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 21c0-4 0-7 0-9"/>
-                            <path class="ff-leaf ff-leaf-r" d="M12 12c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Z"/>
-                            <path class="ff-leaf ff-leaf-l" d="M12 12c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/>
-                        </g>
-                    </svg>
                 </div>
 
             </div>
