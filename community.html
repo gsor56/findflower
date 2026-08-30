@@ -35,16 +35,16 @@
     <script src="footer.js?v=3" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
-    <script src="auth.js?v=3"></script>
+    <script src="auth.js?v=4"></script>
     <script src="storage.js"></script>
     <script>
         if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
             window.FF_SOCIAL_API = 'https://findflower-social.onrender.com';
         }
     </script>
-    <script src="scripts/social.js?v=1" defer></script>
+    <script src="scripts/social.js?v=2" defer></script>
     <script src="scripts/composer.js?v=1" defer></script>
-    <script src="scripts/views/community.js" defer></script>
+    <script src="scripts/views/community.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -152,7 +152,7 @@
                         <h2 class="text-sm font-medium text-neutral-900">Pick a handle</h2>
                         <p class="text-xs text-neutral-500 leading-relaxed mt-1">
                             Posts on the server are signed with a handle, not with your email address.
-                            Three to twenty characters &mdash; lowercase letters, numbers and underscores.
+                            Three to twenty characters, using lowercase letters, numbers and underscores.
                         </p>
                         <div class="grid sm:grid-cols-2 gap-3 mt-3">
                             <div class="min-w-0">
@@ -193,6 +193,12 @@
                         Reading is open to anyone. To post, you need an account so the
                         post has an author.
                         <a href="/login" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Sign in</a>.
+                    </p>
+
+                    <p id="cmStale" class="hidden text-sm text-neutral-500 leading-relaxed">
+                        This browser is signed in, but the server would not take that
+                        sign-in. It runs out after a while.
+                        <a href="/login" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Sign in again</a>.
                     </p>
 
                     <section class="mt-8">

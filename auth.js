@@ -152,12 +152,41 @@ async function ffAuthHeader(audience) {
     return token ? { Authorization: "Bearer " + token } : {};
 }
 
+// The social API takes the ID token as its bearer, and getIdTokenClaims hands
+// back whichever one the SDK cached at sign-in: it reads that entry without
+// looking at exp, while isAuthenticated stays true for as long as the refresh
+// token lives. So a session older than the token's own lifetime keeps producing
+// a JWT the server refuses as expired, and only writes break, because reading
+// the feed allows anonymous callers. A silent call with the cache off runs the
+// refresh grant, and the SDK stores the new ID token that comes back with it.
+const FF_TOKEN_MARGIN_SECONDS = 120;
+
+function ffTokenExpired(raw) {
+    if (!raw) return true;
+    const part = String(raw).split(".")[1];
+    if (!part) return false;
+    let exp = 0;
+    try {
+        const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+        const claims = JSON.parse(atob(b64 + "===".slice((b64.length + 3) % 4)));
+        exp = typeof claims.exp === "number" ? claims.exp : 0;
+    } catch {
+        return false;
+    }
+    return exp > 0 && exp - FF_TOKEN_MARGIN_SECONDS <= Math.floor(Date.now() / 1000);
+}
+
 async function ffIdToken() {
     const client = await ffGetClient();
     if (!client) return null;
     try {
         if (!(await client.isAuthenticated())) return null;
-        const claims = await client.getIdTokenClaims();
+        let claims = await client.getIdTokenClaims();
+        if (ffTokenExpired(claims && claims.__raw)) {
+            await client.getTokenSilently({ cacheMode: "off" });
+            claims = await client.getIdTokenClaims();
+            if (ffTokenExpired(claims && claims.__raw)) return null;
+        }
         return (claims && claims.__raw) || null;
     } catch {
         return null;

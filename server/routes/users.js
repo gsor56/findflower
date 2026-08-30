@@ -2,14 +2,14 @@ import { Router } from 'express';
 import { User } from '../models/user.js';
 import { Post } from '../models/post.js';
 import { viewerSub } from '../auth.js';
-import { rateLimit, requireViewer } from '../lib.js';
+import { authRefusal, rateLimit, requireViewer } from '../lib.js';
 
 // Profiles. The brief lists no routes for these, but nothing else works without
 // them: a post needs an author row, and a browser cannot make one itself.
 
 const router = Router();
 
-/** GET /api/users/me — the caller's own row, privacy fields included. */
+/** GET /api/users/me returns the caller's own row, privacy fields included. */
 router.get('/me', requireViewer, (req, res) => {
     res.json({ user: req.viewer.toPublic() });
 });
@@ -22,7 +22,7 @@ router.get('/me', requireViewer, (req, res) => {
 router.post('/', rateLimit('user:upsert', 10 * 60_000, 20), async (req, res) => {
     const sub = await viewerSub(req);
     if (!sub) {
-        res.status(401).json({ error: req.authError ? `Invalid token: ${req.authError}` : 'Sign-in required.' });
+        res.status(401).json(authRefusal(req));
         return;
     }
     const body = req.body || {};
@@ -62,7 +62,7 @@ router.post('/', rateLimit('user:upsert', 10 * 60_000, 20), async (req, res) => 
     res.status(existing ? 200 : 201).json({ user: doc.toPublic() });
 });
 
-/** GET /api/users/:handle — the public card, plus a thread count for its tabs.
+/** GET /api/users/:handle returns the public card, plus a thread count for its tabs.
  *  A private profile answers with the name and nothing else: the search palette
  *  already offered the name, so hiding it here would only look broken. */
 router.get('/:handle', async (req, res) => {

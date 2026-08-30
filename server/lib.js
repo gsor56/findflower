@@ -61,13 +61,25 @@ export function rateLimit(name, windowMs, max) {
     };
 }
 
+/** The body for a 401. The verifier names the check that failed, which belongs
+ *  in the logs rather than in a sentence a reader is shown, so it travels as
+ *  `reason` and `error` says what to do about it. */
+export function authRefusal(req) {
+    const why = req.authError || '';
+    let error = 'Sign-in required.';
+    if (why === 'expired') error = 'That sign-in has expired. Sign in again.';
+    else if (why.startsWith('JWKS')) error = 'The sign-in check is not available right now. Try again shortly.';
+    else if (why) error = 'That sign-in was not accepted. Sign in again.';
+    return { error, reason: why || null };
+}
+
 /** Resolve the caller's profile row. Attaches req.viewer and calls next(), or
  *  answers 401/409 itself. 409 rather than 404 when the token is good but no
  *  profile exists yet: the fix is to claim a handle, not to sign in again. */
 export async function requireViewer(req, res, next) {
     const sub = await viewerSub(req);
     if (!sub) {
-        res.status(401).json({ error: req.authError ? `Invalid token: ${req.authError}` : 'Sign-in required.' });
+        res.status(401).json(authRefusal(req));
         return;
     }
     const user = await User.findOne({ authSub: sub });

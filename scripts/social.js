@@ -67,11 +67,22 @@
         var data = null;
         try { data = await res.json(); } catch (e) { data = null; }
         if (res.ok) return { ok: true, status: res.status, data: data, error: null };
+        var said = (data && data.error) || '';
+        // A refused token comes back naming the check that failed, which reads as
+        // a fault in the page. What the reader can actually do is sign in again.
+        var text = said || ('Request failed (' + res.status + ').');
+        if (res.status === 401) {
+            var why = said + ' ' + ((data && data.reason) || '');
+            text = /expired/i.test(why)
+                ? 'That sign-in has run out. Sign in again, then post.'
+                : 'The server would not take that sign-in. Sign in again.';
+        }
         return {
             ok: false,
             status: res.status,
             data: data,
-            error: (data && data.error) || ('Request failed (' + res.status + ').'),
+            error: text,
+            detail: said || null,
             needsHandle: !!(data && data.needsHandle)
         };
     }

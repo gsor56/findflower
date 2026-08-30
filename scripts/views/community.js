@@ -27,6 +27,7 @@
         waking: false,
         handle: null,
         needsHandle: false,
+        authStale: false,
         spaces: [],
         hasMore: false,
         single: false,
@@ -408,6 +409,7 @@
         if (state.waking) msg = 'The server is starting up. Showing this browser’s copy meanwhile.';
         else if (!state.remote) msg = 'Posts stay in this browser’s own storage.';
         else if (state.handle) msg = 'Posting as @' + state.handle + ' on the FindFlower server.';
+        else if (state.authStale) msg = 'The server would not take your sign-in. Sign in again to post.';
         else if (state.viewer) msg = 'Reading the FindFlower server. Pick a handle to post.';
         else msg = 'Reading the FindFlower server. Sign in to post.';
 
@@ -587,6 +589,7 @@
         if (state.remote) {
             if (!state.handle) {
                 showClaim(true);
+                claimNote('Pick a handle first. What you typed is kept.');
                 return;
             }
             if (btn) btn.disabled = true;
@@ -601,6 +604,7 @@
                 state.needsHandle = true;
                 syncNote();
                 showClaim(true);
+                claimNote('Pick a handle first. What you typed is kept.');
                 return;
             }
             if (!r.ok) {
@@ -738,6 +742,18 @@
         if (on && d && !d.value) d.value = state.viewerName || '';
     }
 
+    function claimNote(text) {
+        var msg = $('cmClaimNote');
+        if (!msg) return;
+        msg.textContent = text;
+        show(msg, true);
+    }
+
+    function showStale(on) {
+        show($('cmStale'), on);
+        if (on) show($('cmForm'), false);
+    }
+
     function suggestHandle() {
         var s = String(state.viewerName || '').toLowerCase()
             .replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 20);
@@ -776,6 +792,7 @@
         showClaim(false);
         show($('cmForm'), true);
         show($('cmSpaceNew'), true);
+        countChars();
         syncNote();
         await load();
     }
@@ -906,6 +923,9 @@
             }
         }
         state.waking = false;
+        // Nothing answered, so posting falls back to this browser's own store,
+        // which needs the composer that render() held back for the server.
+        if (state.viewer) show($('cmForm'), true);
         syncNote();
     }
 
@@ -932,12 +952,32 @@
 
         if (state.viewer) {
             var r = await window.ffSocial.me();
+            // One dropped request is not an answer, and the health probe answered
+            // moments ago, so a request that never arrived is worth asking twice.
+            if (!r.ok && r.status === 0) r = await window.ffSocial.me();
             if (r.ok && r.data && r.data.user) {
                 state.handle = r.data.user.handle;
                 state.needsHandle = false;
+                state.authStale = false;
             } else if (r.status === 409 || r.needsHandle) {
                 state.handle = null;
                 state.needsHandle = true;
+                state.authStale = false;
+            } else if (r.status === 401) {
+                state.handle = null;
+                state.needsHandle = false;
+                state.authStale = true;
+            } else {
+                // The server is up but would not say who this is, so every write
+                // below it would be refused. The local store is the honest place
+                // for a post until it will.
+                state.remote = false;
+                state.handle = null;
+                state.needsHandle = false;
+                show($('cmForm'), true);
+                syncNote();
+                await load();
+                return;
             }
         }
 
@@ -946,6 +986,7 @@
         fillSpaceSelect();
         syncNote();
         showClaim(state.needsHandle);
+        showStale(state.authStale);
         if (state.handle) show($('cmForm'), true);
         show($('cmSpaceNew'), !!state.handle);
         await load();
@@ -968,8 +1009,14 @@
             } catch (e) { }
         }
 
-        show($('cmForm'), !!state.viewer);
+        // With a server configured the composer waits for goRemote(): the server
+        // is what knows whether this account has a handle yet, and a box shown
+        // before that answer is a box the handle step takes away mid sentence.
+        var pending = !!(window.ffSocial && window.ffSocial.base());
+        state.authStale = false;
+        show($('cmForm'), !!state.viewer && !pending);
         show($('cmGuest'), !state.viewer);
+        show($('cmStale'), false);
 
         paintSpaces();
         fillSpaceSelect();
@@ -998,6 +1045,7 @@
             state.focus = null;
             state.hasMore = false;
             state.waking = false;
+            state.authStale = false;
             composer = null;
             if (window.ffHomeView && typeof window.ffHomeView.teardown === 'function') {
                 window.ffHomeView.teardown();
