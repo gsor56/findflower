@@ -187,8 +187,70 @@
                         drawerLink('About', '/#about', ICON_ABOUT) +
                     '</nav>' +
                 '</div>' +
+                '<section id="ffInstall" class="ff-drawer-install" hidden>' +
+                    '<p class="ff-drawer-account__note">Put FindFlower on your home screen and ' +
+                        'open it in its own window.</p>' +
+                    '<button id="ffInstallBtn" type="button" class="ff-drawer-button ff-drawer-button--quiet">' +
+                        'Install app</button>' +
+                '</section>' +
             '</aside>';
         return wrap;
+    }
+
+    // The browser shows its own install bar once and takes it away for months if
+    // it is dismissed, so this holds on to the event behind it. Keeping the event
+    // is the only way to reopen that dialog later: prompt() cannot be called from
+    // nothing, which is why the drawer row stays hidden until one arrives.
+    var installEvent = null;
+
+    function alreadyInstalled() {
+        if (navigator.standalone === true) return true;
+        return !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    }
+
+    function paintInstall() {
+        var row = document.getElementById('ffInstall');
+        if (!row) return;
+        row.hidden = !installEvent || alreadyInstalled();
+    }
+
+    function promptInstall() {
+        var evt = installEvent;
+        if (!evt) return;
+        installEvent = null;
+        var btn = document.getElementById('ffInstallBtn');
+        if (btn) btn.disabled = true;
+        function settle() {
+            if (btn) btn.disabled = false;
+            paintInstall();
+        }
+        try { evt.prompt(); } catch (e) { settle(); return; }
+        // A dismissed dialog leaves nothing to prompt with, so the row goes away
+        // until the browser hands over a fresh event on some later visit.
+        if (evt.userChoice && typeof evt.userChoice.then === 'function') {
+            evt.userChoice.then(settle, settle);
+        } else {
+            settle();
+        }
+    }
+
+    function wireInstall() {
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            installEvent = e;
+            paintInstall();
+        });
+        window.addEventListener('appinstalled', function () {
+            installEvent = null;
+            paintInstall();
+        });
+        if (!navigator.serviceWorker) return;
+        // No service worker means no beforeinstallprompt at all, so sw.js is what
+        // the row above depends on. Registered after load so it never competes
+        // with the page's own requests.
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function () { });
+        });
     }
 
     var sidebarFocus = null;
@@ -277,6 +339,7 @@
             if (!t || typeof t.closest !== 'function') return;
             if (t.closest('[data-toggle-sidebar], .ff-hamburger')) { e.preventDefault(); var sb = document.getElementById('ffSidebar'); setSidebar(!(sb && sb.classList.contains('active'))); return; }
             if (t.closest('#ffSidebarClose, #ffSidebarBackdrop')) { e.preventDefault(); setSidebar(false); return; }
+            if (t.closest('#ffInstallBtn')) { e.preventDefault(); promptInstall(); return; }
             if (t.closest('#ffSidebar a')) setSidebar(false);
         });
         document.addEventListener('keydown', function (e) {
@@ -337,6 +400,7 @@
         document.body.appendChild(buildSidebar());
         wireSidebar();
         renderDrawerAuth();
+        paintInstall();
 
         wireHeaderScroll(header);
 
@@ -378,6 +442,8 @@
 
     window.ffNavSetActive = setActive;
     window.ffNavCurrent = function () { return PAGE; };
+
+    wireInstall();
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', mount);

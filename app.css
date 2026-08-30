@@ -295,6 +295,15 @@ html.ff-routing main {
     gap: 0.1rem;
 }
 
+.ff-drawer-install {
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.9rem 1rem max(0.9rem, env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid #E5E5E5;
+}
+
+.ff-drawer-install[hidden] { display: none; }
+
 .ff-drawer-link {
     min-height: 44px;
     display: grid;

@@ -65,7 +65,10 @@ jobs:
           # header and the footer. Every page ships a bare <div id="ff-footer">
           # hook, so a missing footer.js publishes 15 pages with no footer at all
           # rather than 15 pages with a slightly worse one.
-          for f in app.css nav.js footer.js \
+          # sw.js is what makes the site installable: with no service worker the
+          # browser never fires beforeinstallprompt, so the Install app row in the
+          # drawer would never appear and the manifest would be decoration.
+          for f in app.css nav.js footer.js sw.js \
                    scripts/api.js scripts/ui.js scripts/router.js \
                    scripts/lite.js scripts/vendor/tf.min.js \
                    scripts/ux.js \
