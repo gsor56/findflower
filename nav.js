@@ -209,19 +209,27 @@
     }
 
     function paintInstall() {
+        var hide = !installEvent || alreadyInstalled();
         var row = document.getElementById('ffInstall');
-        if (!row) return;
-        row.hidden = !installEvent || alreadyInstalled();
+        if (row) row.hidden = hide;
+        // The homepage carries the same offer above the fold, so it comes and goes
+        // on the event the drawer row depends on.
+        var hero = document.getElementById('ffInstallHero');
+        if (hero) hero.hidden = hide;
     }
 
     function promptInstall() {
         var evt = installEvent;
         if (!evt) return;
         installEvent = null;
-        var btn = document.getElementById('ffInstallBtn');
-        if (btn) btn.disabled = true;
+        var btns = [document.getElementById('ffInstallBtn'),
+                    document.getElementById('ffInstallHero')];
+        function hold(on) {
+            for (var i = 0; i < btns.length; i++) if (btns[i]) btns[i].disabled = on;
+        }
+        hold(true);
         function settle() {
-            if (btn) btn.disabled = false;
+            hold(false);
             paintInstall();
         }
         try { evt.prompt(); } catch (e) { settle(); return; }
@@ -339,7 +347,7 @@
             if (!t || typeof t.closest !== 'function') return;
             if (t.closest('[data-toggle-sidebar], .ff-hamburger')) { e.preventDefault(); var sb = document.getElementById('ffSidebar'); setSidebar(!(sb && sb.classList.contains('active'))); return; }
             if (t.closest('#ffSidebarClose, #ffSidebarBackdrop')) { e.preventDefault(); setSidebar(false); return; }
-            if (t.closest('#ffInstallBtn')) { e.preventDefault(); promptInstall(); return; }
+            if (t.closest('#ffInstallBtn, #ffInstallHero')) { e.preventDefault(); promptInstall(); return; }
             if (t.closest('#ffSidebar a')) setSidebar(false);
         });
         document.addEventListener('keydown', function (e) {
@@ -438,6 +446,9 @@
             paintCachedHeader();
         }
         renderDrawerAuth();
+        // A router swap brings in a fresh homepage, install button and all, with the
+        // event already spent or still held from before the swap.
+        paintInstall();
     }
 
     window.ffNavSetActive = setActive;

@@ -2,7 +2,7 @@
     "id": "/",
     "name": "FindFlower",
     "short_name": "FindFlower",
-    "description": "Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.",
+    "description": "Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free while this is in beta.",
     "lang": "en",
     "dir": "ltr",
     "start_url": "/",
@@ -10,7 +10,7 @@
     "display": "standalone",
     "theme_color": "#FCFCFC",
     "background_color": "#FCFCFC",
-    "categories": ["education", "utilities", "photo"],
+    "categories": ["education", "photo"],
     "icons": [
         {
             "src": "/icon-192.png",

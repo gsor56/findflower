@@ -14,21 +14,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="FindFlower">
-    <title>FindFlower | Identify flowers from a photo</title>
-    <meta name="description" content="Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.">
+    <title>FindFlower | Botanical Web App &amp; AI Flora Platform</title>
+    <meta name="description" content="Explore and identify flora with FindFlower, an installable Progressive Web App featuring on-device AI classification and an extensive botanical species directory.">
     <link rel="canonical" href="https://findflower.me/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="FindFlower">
     <meta property="og:url" content="https://findflower.me/">
-    <meta property="og:title" content="FindFlower | Identify flowers from a photo">
-    <meta property="og:description" content="Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.">
+    <meta property="og:title" content="FindFlower | Botanical Web App &amp; AI Flora Platform">
+    <meta property="og:description" content="Explore and identify flora with FindFlower, an installable Progressive Web App featuring on-device AI classification and an extensive botanical species directory.">
     <meta property="og:image" content="https://findflower.me/assets/og-cover.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="A finished scan in FindFlower showing the species name, how confident the answer is, and the record behind it.">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="FindFlower | Identify flowers from a photo">
-    <meta name="twitter:description" content="Take a photo of a flower and get the species, how confident the answer is, and a botanical record you can read. Free, no install, no account.">
+    <meta name="twitter:title" content="FindFlower | Botanical Web App &amp; AI Flora Platform">
+    <meta name="twitter:description" content="Explore and identify flora with FindFlower, an installable Progressive Web App featuring on-device AI classification and an extensive botanical species directory.">
     <meta name="twitter:image" content="https://findflower.me/assets/og-cover.png">
     <meta name="twitter:image:alt" content="A finished scan in FindFlower showing the species name, how confident the answer is, and the record behind it.">
 
@@ -210,6 +210,11 @@
         @media (min-width: 1024px) {
             .ff-hero-inner { grid-template-columns: minmax(0, 1.04fr) minmax(0, 0.96fr); }
         }
+        @media (max-width: 767px) {
+            .ff-hero { min-height: calc(100svh - 4rem - 56px); }
+            .ff-hero-inner { padding-block: clamp(2rem, 5vh, 4rem); }
+            .ff-scroll-cue { margin-top: 1rem; }
+        }
 
         .ff-hero-copy {
             text-align: center;
@@ -245,7 +250,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin-top: 2rem;
+            margin-top: 1.5rem;
             color: #A3A3A3;
             font-size: 0.75rem;
             font-weight: 500;
@@ -274,13 +279,15 @@
         "@id": "https://findflower.me/#app",
         "name": "FindFlower",
         "url": "https://findflower.me",
-        "applicationCategory": "UtilitiesApplication",
+        "applicationCategory": "EducationalApplication",
+        "applicationSubCategory": "ScienceApplication",
         "operatingSystem": "All (Web, Android, iOS, Windows, macOS, Linux)",
-        "description": "High-speed botanical and flower identification powered by on-device Vision AI and cloud ViT architectures.",
+        "description": "An installable botanical progressive web application and flora encyclopedia. A Vision Transformer on the server identifies flowering plants from a photo, and a smaller model can run inside the browser tab instead.",
         "featureList": [
-            "On-Device Scanning With No Upload",
-            "High-Accuracy Botanical Classifier",
-            "Multi-Tier Flora Models"
+            "Installable Progressive Web App (PWA)",
+            "On-Device Vision Engine (Flora-Micro) That Keeps Answering Offline Once Loaded",
+            "Integrated Botanical Species Directory",
+            "Private Classification Workspace Held In Your Own Browser"
         ],
         "offers": {
             "@type": "Offer",
@@ -356,7 +363,7 @@
                 "name": "Which flowers does it know?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "116 species on the model that runs by default, and 107 on the smaller one that runs on your device. It is a fixed list of flowering plants rather than everything green, so a leaf, a tree or a vegetable will not get a useful answer out of it. The whole list is in the directory."
+                    "text": "116 species on the model that runs by default, and 107 on the smaller one that runs on your device. It is a fixed list of flowering plants rather than everything green, so a leaf, a tree or a vegetable will not get a useful answer out of it. The whole list is in the directory, alongside thousands more species you can read about without scanning anything."
                 }
             }
         ]
@@ -417,27 +424,30 @@
             <div class="ff-hero-inner">
 
                 <div class="ff-hero-copy">
-                    <h1 class="ff-hero-title reveal-up delay-100 text-5xl md:text-7xl font-medium tracking-tighter text-neutral-900 mb-6">
-                        Identify flowers from a photo
+                    <h1 class="ff-hero-title reveal-up delay-100 text-3xl sm:text-4xl md:text-6xl font-medium tracking-tighter text-neutral-900 mb-6">
+                        The Botanical Web App for Flora Identification &amp; Exploration
                     </h1>
                     <p class="reveal-up delay-200 text-lg md:text-xl text-neutral-700 max-w-xl leading-relaxed mb-6">
-                        Take a photo of a flower, or upload one you already have. You get the
-                        species name, how confident the answer is, and a botanical record you can
-                        actually read.
+                        Take a photo of a flower and get the species name, how sure the
+                        answer is, and the record behind it.
                     </p>
-                    <p class="reveal-up delay-200 text-base text-neutral-500 max-w-xl leading-relaxed mb-10 font-light">
-                        No install, no account, free while this is in beta.
+                    <p class="reveal-up delay-200 text-base text-neutral-500 max-w-xl leading-relaxed mb-6 sm:mb-8 font-light">
+                        An installable Progressive Web App with on-device AI. Free while this is
+                        in beta.
                     </p>
 
-                    <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                    <div class="reveal-up delay-300 w-full sm:w-auto flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2.5 sm:gap-4">
                         <a href="/try" class="lift-btn soft-click w-full sm:w-auto text-base font-medium bg-neutral-900 text-white px-8 py-3.5 rounded-md hover:bg-neutral-800 transition flex items-center justify-center">
-                            Identify a flower now
+                            Open the scanner
                         </a>
                         <a href="/directory" class="soft-click w-full sm:w-auto text-base font-medium text-neutral-700 border border-neutral-200 bg-white px-8 py-3.5 rounded-md hover:border-sage-200 hover:text-sage-700 transition flex items-center justify-center">
-                            Browse the directory
+                            Explore the directory
                         </a>
+                        <button id="ffInstallHero" type="button" hidden class="soft-click w-full sm:w-auto text-base font-medium text-neutral-700 border border-neutral-200 bg-white px-8 py-3.5 rounded-md hover:border-sage-200 hover:text-sage-700 transition">
+                            Install the app
+                        </button>
                     </div>
-                    <p class="reveal-up delay-400 mt-6 text-xs text-neutral-500 font-light max-w-sm leading-relaxed">
+                    <p class="reveal-up delay-400 mt-5 sm:mt-6 text-xs text-neutral-500 font-light max-w-sm leading-relaxed">
                         Works in any browser. The photo is sent to the server to be identified and
                         is not kept afterwards.
                         <a href="/privacy#images" class="text-sage-600 border-b border-sage-200 hover:border-sage-500 transition-colors">What happens to it</a>.
@@ -614,9 +624,9 @@
                     </p>
                 </div>
                 <div class="reveal-up py-6">
-                    <h3 class="text-base font-medium text-neutral-900 mb-1">No account, nothing installed</h3>
+                    <h3 class="text-base font-medium text-neutral-900 mb-1">No account to start</h3>
                     <p class="text-base text-neutral-600 font-light leading-relaxed">
-                        Open the scanner and use it. Scans you keep are stored in this browser rather than on a server, which also means they will not be waiting for you on another phone.
+                        Open the scanner and use it. Putting it on your home screen is a choice rather than a step. Scans you keep are stored in this browser rather than on a server, which also means they will not be waiting for you on another phone.
                         <a href="/docs#storage" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Where each thing is kept</a>.
                     </p>
                 </div>
@@ -714,7 +724,8 @@
                         runs on your device. It is a fixed list of flowering plants rather than
                         everything green, so a leaf, a tree or a vegetable will not get a useful answer
                         out of it. The whole
-                        <a href="/directory" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">list is in the directory</a>.
+                        <a href="/directory" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">list is in the directory</a>, alongside thousands more
+                        species you can read about without scanning anything.
                     </p>
                 </div>
             </div>
@@ -726,7 +737,7 @@
                     Identify a flower
                 </h2>
                 <p class="text-base text-neutral-600 mb-8 font-light leading-relaxed">
-                    No account, no install, free during the beta.
+                    No account needed, and nothing to pay during the beta.
                 </p>
                 <a href="/try" class="soft-click inline-flex items-center text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition">
                     Open the scanner
