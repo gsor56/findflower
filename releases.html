@@ -117,8 +117,68 @@
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-sage-500 ring-4 ring-[#FCFCFC]"></span>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.9.8</h2>
+                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.9.9</h2>
                         <span class="text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full">Current</span>
+                        <span class="text-sm text-neutral-400 font-light">30 August 2026</span>
+                    </div>
+                    <div class="space-y-6">
+                        <div>
+                            <p class="text-sm font-medium text-sage-600 mb-3">Flora-Ultra, the engine being built</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>The vocabulary for <a href="https://huggingface.co/gsor56/Flora-Ultra" target="_blank" rel="noopener noreferrer" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Flora-Ultra</a> is settled at 3,969 flowering plants, cut out of the 10,000 labels in the iNaturalist 2021 taxonomy. Animals, fungi, mosses, ferns and conifers are left out of it deliberately, so nothing outside the flowering plants can come back as an answer. The training target is 300 photos of every species and 90 percent or better on the first guess.</li>
+                                <li>Collection is running now. 1,747 species have their folder on the <a href="https://huggingface.co/datasets/gsor56/findflower-find10k" target="_blank" rel="noopener noreferrer" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">public dataset</a> and 495,953 photos have passed the checks, with 867 species already holding the full 300. Each photo is measured for size, exposure and sharpness, then matched against a hash of everything kept so far, so one observation cannot arrive twice under two names.</li>
+                                <li>Photos are stored at 448 pixels square now instead of 224, which is what the larger model reads. Anything collected at the smaller size is being sourced again rather than stretched, because stretching a photo adds pixels and no detail.</li>
+                                <li>The 1,500 species collection that came before this one is finished and checked: 150,000 photos, no class short, no class over, no exact duplicates, and nine groups of near duplicates left in it.</li>
+                                <li>Flora-Ultra has not been trained yet, and the dashboard still lists it as unavailable. That line changes the day a checkpoint passes its evaluation and not one day earlier.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-sage-600 mb-3">New in the app</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>The engines have names, and you choose one in the dashboard: Flora-Micro inside your own tab, Flora-Flash on the server, and Flora-Ultra listed as unavailable until it exists. The scanner reads that choice at every capture, and the result says which engine answered.</li>
+                                <li>Flora-Micro works. It loads when you ask for it, says whether it is ready, offers a retry when it is not, and reads 107 species without your photo leaving the tab.</li>
+                                <li>FindFlower goes on your home screen. The menu carries an Install app row as soon as your browser offers one, and after that it opens in a window of its own. <a href="/docs#install" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">What that looks like</a>.</li>
+                                <li>The directory has a search bar, and it holds your place when you come back from a species page.</li>
+                                <li>Saved scans open the species page they belong to, so your history is a way back into the record instead of a list of names.</li>
+                                <li>Export everything as JSON, or erase your history, both from the dashboard. There is a search palette that reaches any species from any page, and four more badges to earn.</li>
+                                <li>Community and profiles run against a real server, so a post outlives the tab it was written in. Photos and identifications still never leave your device.</li>
+                                <li>A guide and troubleshooting page at <a href="/docs" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Docs</a>, and screenshots of the running app on <a href="/how" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">How it works</a> in place of descriptions of it. The first field log entry is on Blogs.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-sage-600 mb-3">Sharing and search</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>A real favicon, a share card, and structured data that names the site, the species records and the questions people actually type. Pasting a FindFlower link into a message now shows the flower instead of a bare address.</li>
+                                <li>The four questions on the homepage are answered in the page and in its markup, in the same words, so search engines quote what visitors read.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-neutral-500 mb-3">Fixes</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>Posting to Community failed on a sign-in that had gone stale. The token is refreshed before the post, and you are asked for a handle first if you do not have one yet.</li>
+                                <li>The icon set is served from the root, the .ico declares both sizes it really holds, and the two tiles the browser installs with have their corners cut. Tabs and install dialogs were showing a globe or a square.</li>
+                                <li>The deploy publishes the icons, manifest, robots, sitemap and share images. They were being built and never copied, so every one of them was missing on the live site.</li>
+                                <li>Stylesheets no longer come back from the cache a release out of date.</li>
+                                <li>The search palette had its styles on one page and its lookup pointed at an endpoint that did not exist. Both are fixed, on every page.</li>
+                                <li>Anchors land where they say they do, the guide is linked from the places people get stuck, and the API examples keep their line breaks.</li>
+                                <li>The contact address goes somewhere that is read.</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-neutral-500 mb-3">Gone</p>
+                            <ul class="space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300">
+                                <li>The Discover feed on the dashboard. It listed activity that did not exist.</li>
+                                <li>The drawn flower in the About section and the illustrated ranking on How it works, both replaced by screenshots of one real scan.</li>
+                                <li>The dead scroll line on the homepage, the callout boxes, and the sidebar rail on the API and data pages.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="reveal-up relative">
+                    <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-neutral-300 ring-4 ring-[#FCFCFC]"></span>
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <h2 class="text-2xl font-medium tracking-tight text-neutral-900">Beta 0.9.8</h2>
                         <span class="text-sm text-neutral-400 font-light">20 August 2026</span>
                     </div>
                     <div class="space-y-6">
@@ -247,8 +307,8 @@
                     </div>
                     <div class="border-t border-neutral-200 pt-6">
                         <ul class="space-y-2.5 text-neutral-500 font-light list-disc pl-5 marker:text-sage-400">
-                            <li>An end-to-end training run and model export for the 1,500-class model.</li>
-                            <li>Deleting a scan, correcting an identification by hand, and exporting the full history from the dashboard.</li>
+                            <li>The 2,947 species still short of 300 photos, then the training run itself and the export that puts Flora-Ultra behind the scanner.</li>
+                            <li>Deleting one saved scan on its own, and correcting an identification by hand in your history.</li>
                             <li>Field guides and engineering writeups on the Blogs route.</li>
                         </ul>
                         <p class="text-sm text-neutral-400 font-light mt-5">Something missing or broken? <a href="/feedback" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">Send feedback</a> or <a href="/contact" class="text-sage-600 hover:text-sage-700 underline underline-offset-2">get in touch</a>.</p>
