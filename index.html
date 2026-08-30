@@ -340,7 +340,7 @@
                 "name": "Is this a web app, or do I have to install something?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "It is a web page. It opens in the browser you already have, on a phone or a laptop, and there is nothing in any app store. On a phone you can add it to your home screen from the browser menu, and after that it opens in its own window with no address bar."
+                    "text": "It is a web page. It opens in the browser you already have, on a phone or a laptop, and there is nothing in any app store. The menu carries an Install app row when your browser offers one, and after that it opens in its own window with no address bar. On an iPhone the same thing is Add to Home Screen in the Safari share sheet."
                 }
             },
             {
@@ -348,7 +348,7 @@
                 "name": "Does it work without a signal?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Half of it does, and it is worth knowing which half. Opening or reloading the page needs a connection, because nothing is cached for it yet. The smaller model that runs on your own device is a scanner preference on the dashboard, and setting it does need a sign-in, but once it is on the identifying happens inside the tab and your photo never leaves the phone. The written record that follows a result is fetched, so that part waits until you are back in range."
+                    "text": "Half of it does, and it is worth knowing which half. Opening or reloading a page needs a connection, and with the signal gone you land on our own no connection notice rather than a browser error. The smaller model that runs on your own device is a scanner preference on the dashboard, and setting it does need a sign-in, but once it is on the identifying happens inside the tab and your photo never leaves the phone. The written record that follows a result is fetched, so that part waits until you are back in range."
                 }
             },
             {
@@ -686,16 +686,20 @@
                     <h3 class="text-base font-medium text-neutral-900 mb-1">Is this a web app, or do I have to install something?</h3>
                     <p class="text-base text-neutral-600 font-light leading-relaxed">
                         It is a web page. It opens in the browser you already have, on a phone or a
-                        laptop, and there is nothing in any app store. On a phone you can add it to
-                        your home screen from the browser menu, and after that it opens in its own
-                        window with no address bar.
+                        laptop, and there is nothing in any app store. The menu carries an
+                        <a href="/docs#install" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Install app</a>
+                        row when your browser offers one, and after that it opens in its own window
+                        with no address bar. On an iPhone the same thing is Add to Home Screen in the
+                        Safari share sheet.
                     </p>
                 </div>
                 <div class="reveal-up py-6">
                     <h3 class="text-base font-medium text-neutral-900 mb-1">Does it work without a signal?</h3>
                     <p class="text-base text-neutral-600 font-light leading-relaxed">
-                        Half of it does, and it is worth knowing which half. Opening or reloading the
-                        page needs a connection, because nothing is cached for it yet. The
+                        Half of it does, and it is worth knowing which half. Opening or reloading a
+                        page needs a connection, and with the signal gone you land on our own
+                        <a href="/docs#offline" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">no connection notice</a>
+                        rather than a browser error. The
                         <a href="/how#modes" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">smaller model that runs on your own device</a>
                         is a scanner preference on the dashboard, and setting it does need a sign-in,
                         but once it is on the identifying happens inside the tab and your photo never

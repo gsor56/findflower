@@ -334,6 +334,15 @@
                     <dt>Photos on a post</dt>
                     <dd>Not uploaded. A post carries its text; the identification behind it and its thumbnail stay local.</dd>
                 </dl>
+                <figure class="reveal-up">
+                    <img src="/assets/dash-storage.webp" width="1140" height="549" loading="lazy" decoding="async"
+                        alt="The storage panel on the dashboard. One card counts what the browser holds: three identifications, three thumbnails at about 44 kilobytes, no coordinates, no posts, no friend rows, three feedback entries, and site storage of 347.7 kilobytes out of 10 gigabytes. The card beside it offers Export everything as JSON, Erase my history, and Delete everything and sign out."
+                        class="w-full rounded-lg border border-neutral-200 bg-white" />
+                    <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
+                        The same list on your dashboard, counted off the rows themselves. This
+                        browser had three scans in it.
+                    </figcaption>
+                </figure>
                 <p class="reveal-up">
                     Clear your site data, or open FindFlower in another browser, another profile, or a
                     private window, and the local half of that list is empty. Posts you have already
@@ -405,15 +414,46 @@
             </div>
 
             <div class="lg:col-span-4">
+                <h2 id="install" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Putting it on your home screen</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">
+                    A tab is all FindFlower needs. If you would rather have an icon, open the menu
+                    and use the row at the bottom of it. The browser asks for confirmation, and
+                    after that it opens in a window of its own with no address bar.
+                </p>
+                <figure class="reveal-up max-w-sm">
+                    <img src="/assets/menu-install.webp" width="716" height="442" loading="lazy" decoding="async"
+                        alt="The bottom of the menu on a phone. Under the last entries sits the line Put FindFlower on your home screen and open it in its own window, and a button reading Install app."
+                        class="w-full rounded-lg border border-neutral-200 bg-white" />
+                    <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
+                        The row is only there when the browser is prepared to install, and it goes
+                        away once that has happened.
+                    </figcaption>
+                </figure>
+                <p class="reveal-up">
+                    Chrome and Edge offer this on Android and on the desktop. Safari on an iPhone
+                    does it from Add to Home Screen in the share sheet instead, which no page is
+                    allowed to open for you, so the row stays hidden there.
+                </p>
+                <p class="reveal-up">
+                    The installed window and the tab are the same site underneath, sharing one
+                    browser database, so your history and your account read the same in both.
+                </p>
+            </div>
+
+            <div class="lg:col-span-4">
                 <h2 id="offline" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Working without a connection</h2>
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <div class="reveal-up border-l-2 border-sage-400 pl-6 space-y-3 text-base">
-                    <p class="text-neutral-900 font-normal">You cannot open FindFlower offline. Nothing is cached for it.</p>
+                    <p class="text-neutral-900 font-normal">Offline, FindFlower has one page to give you, and it is the one saying so.</p>
                     <p>
                         Opening or reloading any page needs the network, and the model that reads your
-                        photos by default needs it a second time for the scan itself. Better to read
-                        that here than to work it out halfway up a hillside with no signal.
+                        photos by default needs it a second time for the scan itself. With the signal
+                        gone you get FindFlower's own no connection notice rather than the browser's
+                        error page. Better to read that here than to work it out halfway up a hillside
+                        with no signal.
                     </p>
                     <p>
                         One tier is not like that.
@@ -427,6 +467,15 @@
                         database and reads back as usual the moment a page can load again.
                     </p>
                 </div>
+                <figure class="reveal-up">
+                    <img src="/assets/offline-page.webp" width="928" height="540" loading="lazy" decoding="async"
+                        alt="The no connection page: the FindFlower mark, the heading This page needs a connection, a line saying identifying a flower runs on the network and that saved scans are still in the browser, and a Try again button."
+                        class="w-full rounded-lg border border-neutral-200 bg-white" />
+                    <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
+                        What a page turns into with the connection gone. Try again reloads it, and
+                        works the moment the signal is back.
+                    </figcaption>
+                </figure>
                 <div class="reveal-up flex flex-col sm:flex-row gap-3 pt-2">
                     <a href="/try" class="group inline-flex items-center gap-2 text-sm font-medium border border-neutral-200 text-neutral-700 px-6 py-3 rounded-md hover:bg-neutral-50 transition-colors">
                         Identify a flower
