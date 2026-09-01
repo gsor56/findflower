@@ -173,12 +173,10 @@
                     '<button id="ffSidebarClose" type="button" aria-label="Close menu" class="ff-sidebar__close">' + ICON_CLOSE + '</button>' +
                 '</div>' +
                 '<div class="ff-sidebar__scroll">' +
-                    '<nav class="ff-drawer-nav ff-drawer-lead" aria-label="Scanner">' +
-                        drawerLink('Scanner', '/try', ICON_SCANNER) +
-                    '</nav>' +
                     '<section id="ffDrawerAuth" class="ff-drawer-account" aria-live="polite"></section>' +
                     '<nav class="ff-drawer-nav" aria-label="All pages">' +
                         drawerLink('Home', '/', ICON_HOME) +
+                        drawerLink('Scanner', '/try', ICON_SCANNER) +
                         drawerLink('Dashboard', '/dashboard', ICON_DASH) +
                         drawerLink('Profile', '/profile', ICON_PROFILE) +
                         drawerLink('Directory', '/directory', ICON_DIR) +

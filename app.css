@@ -297,12 +297,6 @@ html.ff-routing main {
     gap: 0.1rem;
 }
 
-.ff-drawer-lead {
-    padding-bottom: 0.85rem;
-    margin-bottom: 0.85rem;
-    border-bottom: 1px solid #E5E5E5;
-}
-
 .ff-drawer-install {
     display: grid;
     gap: 0.6rem;
