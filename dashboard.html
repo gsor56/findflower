@@ -42,6 +42,7 @@
     <script src="scripts/ui.js?v=1"></script>
     <script src="directory.js" defer></script>
     <script src="scripts/dashboard-panels.js?v=2" defer></script>
+    <script src="scripts/journal.js?v=1" defer></script>
     <script src="scripts/search.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/views/dashboard.js" defer></script>
@@ -224,13 +225,42 @@
             </section>
 
             <section class="mt-14">
-                <div class="flex items-end justify-between mb-5">
-                    <div>
+                <h2 class="font-serif text-2xl text-neutral-900">This month</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">Counted from the records this browser holds.</p>
+                <div id="panelMonth"></div>
+            </section>
+
+            <section id="challengeSection" class="mt-14">
+                <h2 class="font-serif text-2xl text-neutral-900">Today's goal</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">One a day, measured against your own finds.</p>
+                <div id="panelChallenge"></div>
+            </section>
+
+            <section id="albumsSection" class="mt-14 scroll-mt-24">
+                <h2 class="font-serif text-2xl text-neutral-900">Albums</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">Group your finds, and tap an album to see only what is in it.</p>
+                <div id="panelAlbums"></div>
+            </section>
+
+            <section id="calendarSection" class="hidden mt-14">
+                <h2 class="font-serif text-2xl text-neutral-900">Calendar</h2>
+                <p class="text-sm text-neutral-500 mt-1 mb-5">Which days you recorded something.</p>
+                <div id="panelCalendar"></div>
+            </section>
+
+            <section class="mt-14">
+                <div class="flex items-end justify-between gap-4 mb-5">
+                    <div class="min-w-0">
                         <h2 class="font-serif text-2xl text-neutral-900">Recent identifications</h2>
-                        <p class="text-sm text-neutral-500 mt-1">Your last six finds.</p>
+                        <p id="recentNote" class="text-sm text-neutral-500 mt-1">Your last six finds.</p>
                     </div>
-                    <a href="/try" class="hidden sm:block text-sm font-medium text-sage-700 hover:text-sage-600 transition-colors">New scan &rarr;</a>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <button type="button" id="cmpToggle" data-haptic aria-pressed="false" class="soft-click tap px-3 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-md hover:bg-neutral-50 transition">Compare</button>
+                        <a href="/try" class="hidden sm:block text-sm font-medium text-sage-700 hover:text-sage-600 transition-colors">New scan &rarr;</a>
+                    </div>
                 </div>
+
+                <div id="comparePanel"></div>
 
                 <div id="recentEmpty" class="border border-dashed border-neutral-300 rounded-lg p-10 text-center">
                     <p class="text-neutral-500 text-sm">No identifications yet.</p>
@@ -240,6 +270,7 @@
                 </div>
 
                 <div id="recentGrid" class="hidden grid grid-cols-2 lg:grid-cols-3 gap-4"></div>
+                <div id="cmpModal"></div>
             </section>
 
             <section class="mt-14">
@@ -352,7 +383,7 @@
         function renderRecent(scans) {
             const grid = $('recentGrid');
             const empty = $('recentEmpty');
-            const recent = scans.slice(0, 6);
+            const recent = window.ffJournal ? window.ffJournal.visible(scans) : scans.slice(0, 6);
 
             if (!recent.length) {
                 empty.classList.remove('hidden');
@@ -364,26 +395,31 @@
 
             grid.innerHTML = recent.map((s) => {
                 const pct = typeof s.confidence === 'number' ? Math.round(s.confidence * 100) + '%' : '';
-                const name = titleCase(s.species);
+                const name = titleCase(window.ffStore.displaySpecies(s));
                 const thumb = s.imageBase64
                     ? `<img src="${esc(s.imageBase64)}" alt="" class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500 ease-out">`
                     : `<div class="w-full h-full flex items-center justify-center bg-sage-50">
                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" class="text-sage-400"><path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/></svg>
                        </div>`;
+                const open = name ? `<a href="/species?name=${encodeURIComponent(name)}" class="block">` : '<div>';
+                const shut = name ? '</a>' : '</div>';
+                const head = name ? esc(name) : '<span class="font-normal text-neutral-400">Not named yet</span>';
                 return `
-                <article class="group bg-white border border-neutral-200 rounded-lg overflow-hidden">
-                    <a href="/species?name=${encodeURIComponent(name)}" class="block">
+                <article data-scan-id="${esc(s.id)}" class="group bg-white border border-neutral-200 rounded-lg overflow-hidden">
+                    ${open}
                         <div class="aspect-square bg-neutral-100 overflow-hidden">${thumb}</div>
                         <div class="p-3">
-                            <h3 class="font-medium text-sm text-neutral-900 leading-snug line-clamp-2">${esc(name)}</h3>
+                            <h3 class="font-medium text-sm text-neutral-900 leading-snug line-clamp-2">${head}</h3>
                             <div class="flex items-center justify-between mt-1.5">
                                 <span class="text-xs text-neutral-400">${esc(relTime(s.timestamp))}</span>
                                 ${pct ? `<span class="text-xs font-medium text-sage-700 bg-sage-50 px-1.5 py-0.5 rounded">${pct}</span>` : ''}
                             </div>
                         </div>
-                    </a>
+                    ${shut}
                 </article>`;
             }).join('');
+
+            if (window.ffJournal) window.ffJournal.decorate(grid, recent);
         }
 
         function renderBadges(badges) {
@@ -423,6 +459,15 @@
 
             renderRecent(data.scans);
             renderBadges(data.badges);
+        }
+
+        function reload() {
+            return window.ffStore.getSummary().then(paintSummary);
+        }
+
+        function mountJournal(session) {
+            if (!window.ffJournal) return;
+            window.ffJournal.mount({ uid: session.sub || null, onRepaint: reload });
         }
 
         function mountPanels(session, data) {
@@ -472,6 +517,7 @@
             renderProfile(session);
             const data = await renderStats();
             mountPanels(session, data);
+            mountJournal(session);
         }
 
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

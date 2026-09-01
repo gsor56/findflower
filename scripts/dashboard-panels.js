@@ -528,10 +528,17 @@
                 '</p>' +
                 '<div class="flex flex-wrap gap-2 mt-4">' +
                     '<button type="button" id="dataExport" data-haptic class="soft-click tap px-4 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-md hover:bg-neutral-50 transition">Export everything (JSON)</button>' +
+                    '<button type="button" id="dataImport" data-haptic class="soft-click tap px-4 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-md hover:bg-neutral-50 transition">Read a file back in</button>' +
+                    '<input type="file" id="dataFile" accept="application/json,.json" class="hidden">' +
                     '<button type="button" id="dataClear" data-haptic class="soft-click tap px-4 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-md hover:bg-neutral-50 transition disabled:opacity-40 disabled:hover:bg-transparent"' + (scans.length ? '' : ' disabled') + '>Erase my history</button>' +
                     '<button type="button" id="dataWipe" data-haptic class="soft-click tap px-4 text-xs font-medium text-neutral-700 border border-neutral-300 rounded-md hover:bg-neutral-50 transition">Delete everything and sign out</button>' +
                 '</div>' +
                 '<p class="text-xs text-neutral-400 leading-relaxed mt-3">' +
+                    'Reading a file back in matches on the id each identification already carries, so the same ' +
+                    'export can be read twice without doubling anything, and albums are matched by name. ' +
+                    'Your streak stays as this browser earned it.' +
+                '</p>' +
+                '<p class="text-xs text-neutral-400 leading-relaxed mt-2">' +
                     'Erasing removes your identifications, streak and badges from this device. ' +
                     'Another account signed in on this browser keeps its own history — nothing in this card reaches it.' +
                 '</p>' +
@@ -560,41 +567,99 @@
         if (exportBtn) {
             exportBtn.addEventListener('click', function () {
                 var held = (state.stats && state.stats.unlockedBadges) || [];
-                var payload = {
-                    exported: new Date().toISOString(),
-                    schema: 'findflower/v4',
-                    userId: state.uid,
-                    stats: state.stats,
-                    badges: (window.ffStore.BADGES || []).map(function (b) {
+                var n = $('dataNote');
+                // The history part of this file is the one storage.js writes, so the
+                // same download is what Read a file back in accepts.
+                var bundle = window.ffStore.exportBundle
+                    ? window.ffStore.exportBundle(state.uid).catch(function () { return null; })
+                    : Promise.resolve(null);
+                Promise.all([window.ffStore.exportHistory(state.uid), bundle]).then(function (both) {
+                    var payload = both[0];
+                    var extra = both[1];
+                    payload.userId = state.uid;
+                    if (state.stats) payload.stats = state.stats;
+                    payload.badges = (window.ffStore.BADGES || []).map(function (b) {
                         return {
                             id: b.id,
                             name: b.name,
                             requirement: b.description,
                             earned: held.indexOf(b.id) !== -1
                         };
-                    }),
-                    preferences: window.ffPrefs ? window.ffPrefs.all() : null,
-                    feedback: readFeedback(),
-                    scans: state.scans
-                };
-                var n = $('dataNote');
-                var bundle = window.ffStore.exportBundle
-                    ? window.ffStore.exportBundle(state.uid)
-                    : Promise.resolve(null);
-                bundle.catch(function () { return null; }).then(function (extra) {
+                    });
+                    payload.preferences = window.ffPrefs ? window.ffPrefs.all() : null;
+                    payload.feedback = readFeedback();
                     if (extra) {
                         payload.profile = extra.profile;
                         payload.posts = extra.posts;
                         payload.friends = extra.friends;
                         payload.messages = extra.messages;
                     }
-                    download('findflower-export-' + stamp() + '.json', JSON.stringify(payload, null, 2));
+                    download('findflower-history-' + stamp() + '.json', JSON.stringify(payload, null, 2));
                     var counted = extra
                         ? ' Posts, friends and messages are in the same file.'
                         : '';
-                    n.textContent = 'Downloaded ' + state.scans.length +
-                        ' identifications, thumbnails included.' + counted;
+                    n.textContent = 'Downloaded ' + payload.scans.length +
+                        ' identifications and ' + payload.albums.length +
+                        (payload.albums.length === 1 ? ' album' : ' albums') +
+                        ', thumbnails included.' + counted;
                     n.classList.remove('hidden');
+                }).catch(function (err) {
+                    n.textContent = 'Could not export: ' +
+                        ((err && err.message) || 'storage error') + '.';
+                    n.className = 'text-xs text-red-700 mt-2';
+                });
+            });
+        }
+
+        var importBtn = $('dataImport');
+        var fileIn = $('dataFile');
+        if (importBtn && fileIn) {
+            importBtn.addEventListener('click', function () { fileIn.click(); });
+            fileIn.addEventListener('change', function () {
+                var file = fileIn.files && fileIn.files[0];
+                if (!file) return;
+                var n = $('dataNote');
+                if (n) {
+                    n.className = 'text-xs text-sage-700 mt-2';
+                    n.textContent = 'Reading ' + file.name + '.';
+                }
+                file.text().then(function (raw) {
+                    return window.ffStore.importHistory(JSON.parse(raw));
+                }).then(function (out) {
+                    var bits = [];
+                    if (out.scans) {
+                        bits.push(out.scans + (out.scans === 1 ? ' identification' : ' identifications'));
+                    }
+                    if (out.albums) {
+                        bits.push(out.albums + (out.albums === 1 ? ' album' : ' albums'));
+                    }
+                    var line = bits.length
+                        ? 'Added ' + bits.join(' and ') + '.'
+                        : 'Nothing in that file was new.';
+                    if (out.skipped) {
+                        line += ' ' + out.skipped + ' skipped, already here or unreadable.';
+                    }
+                    // The refresh below repaints the grid and this card. The month,
+                    // albums and calendar read the same records, so they are asked
+                    // to read them again as well.
+                    var journal = window.ffJournal && window.ffJournal.reread
+                        ? window.ffJournal.reread()
+                        : Promise.resolve(null);
+                    return journal.then(refresh).then(function () {
+                        var after = $('dataNote');
+                        if (!after) return;
+                        after.className = 'text-xs text-sage-700 mt-2';
+                        after.textContent = line;
+                    });
+                }).catch(function (err) {
+                    var after = $('dataNote');
+                    var again = $('dataFile');
+                    if (again) again.value = '';
+                    if (!after) return;
+                    after.className = 'text-xs text-red-700 mt-2';
+                    after.textContent = err instanceof SyntaxError
+                        ? 'That file is not JSON this can read.'
+                        : ((err && err.message) || 'That file could not be read') + '.';
                 });
             });
         }

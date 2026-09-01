@@ -40,21 +40,34 @@
               '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
               'stroke-width="1.4" class="text-sage-400"><path d="' + FLOWER_PATH + '"/></svg></div>';
 
-        var name = titleCase(scan.species);
-        return '<article class="group bg-white border border-neutral-200 rounded-lg overflow-hidden">' +
-            '<a href="/species?name=' + encodeURIComponent(name) + '" class="block">' +
+        var told = window.ffStore && typeof ffStore.displaySpecies === 'function'
+            ? ffStore.displaySpecies(scan) : scan.species;
+        var name = titleCase(told);
+        return '<article data-scan-id="' + esc(scan.id) + '" class="group bg-white border ' +
+            'border-neutral-200 rounded-lg overflow-hidden">' +
+            (name ? '<a href="/species?name=' + encodeURIComponent(name) + '" class="block">' : '<div>') +
                 '<div class="aspect-square bg-neutral-100 overflow-hidden">' + thumb + '</div>' +
                 '<div class="p-3">' +
                     '<h3 class="font-medium text-sm text-neutral-900 leading-snug line-clamp-2">' +
-                        esc(name) + '</h3>' +
+                        (name ? esc(name)
+                            : '<span class="font-normal text-neutral-400">Not named yet</span>') + '</h3>' +
                     '<div class="flex items-center justify-between mt-1.5">' +
                         '<span class="text-xs text-neutral-400">' + esc(relTime(scan.timestamp)) + '</span>' +
                         (pct ? '<span class="text-xs font-medium text-sage-700 bg-sage-50 px-1.5 py-0.5 rounded">' +
                             esc(pct) + '</span>' : '') +
                     '</div>' +
                 '</div>' +
-            '</a>' +
+            (name ? '</a>' : '</div>') +
         '</article>';
+    }
+
+    // The journal owns which records are in view once it has mounted, and
+    // #recentNote is the line it writes to say why.
+    function inView(scans, limit) {
+        if (window.ffJournal && document.getElementById('recentNote')) {
+            return window.ffJournal.visible(scans);
+        }
+        return typeof limit === 'number' ? scans.slice(0, limit) : scans;
     }
 
     var EMPTY_HTML =
@@ -85,7 +98,7 @@
             scans = [];
         }
 
-        var shown = typeof o.limit === 'number' ? scans.slice(0, o.limit) : scans;
+        var shown = inView(scans, o.limit);
         var cards = shown.map(savedCardHTML).filter(Boolean);
 
         if (!cards.length) {
@@ -101,6 +114,7 @@
         if (empty) empty.classList.add('hidden');
         grid.classList.remove('hidden');
         grid.innerHTML = cards.join('');
+        if (window.ffJournal) window.ffJournal.decorate(grid, shown);
         return cards.length;
     }
 
@@ -116,6 +130,11 @@
         if (window.ffPanels && document.getElementById('panelPrefs')) {
             window.ffPanels.mount();
         }
+        if (window.ffJournal && document.getElementById('panelAlbums')) {
+            window.ffJournal.mount({
+                onRepaint: function () { return renderDiscoveries({ limit: 6 }); }
+            });
+        }
     }
 
     function unmount() {
@@ -126,6 +145,9 @@
         }
         if (window.ffPanels) {
             try { ffPanels.unmount(); } catch (e) { }
+        }
+        if (window.ffJournal) {
+            try { ffJournal.unmount(); } catch (e) { }
         }
     }
 
