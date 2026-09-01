@@ -2,7 +2,7 @@
   "use strict";
 
   const DB_NAME = "findflower";
-  const DB_VERSION = 4;
+  const DB_VERSION = 5;
   const STORE_SCANS = "scans";
   const STORE_STATS = "stats";
   const STATS_KEY = "global";
@@ -11,6 +11,7 @@
   const STORE_POSTS = "ff_posts";
   const STORE_FRIENDS = "ff_friends";
   const STORE_MESSAGES = "ff_messages";
+  const STORE_ALBUMS = "ff_albums";
 
   const CACHE_LIMIT = 100;
 
@@ -37,6 +38,9 @@
   const IDX_POST_USER_TIME = "post_user_time";
   const IDX_FRIEND_OWNER = "ownerId";
   const IDX_MSG_CHANNEL_TIME = "channel_time";
+  const IDX_ALBUM_OWNER = "album_owner";
+
+  const ALBUM_NAME_MAX = 40;
 
   const THUMB_MAX_EDGE = 320;
   const THUMB_QUALITY = 0.7;
@@ -207,6 +211,15 @@
           if (!db.objectStoreNames.contains(STORE_MESSAGES)) {
             const m = db.createObjectStore(STORE_MESSAGES, { keyPath: "id" });
             m.createIndex(IDX_MSG_CHANNEL_TIME, ["channel", "timestamp"]);
+          }
+        }
+        // Albums are their own store so one can sit empty and be renamed without
+        // touching a single scan. Scans point at them by id, and a scan saved
+        // before this version simply has no albumId, which reads as unfiled.
+        if (e.oldVersion < 5) {
+          if (!db.objectStoreNames.contains(STORE_ALBUMS)) {
+            const a = db.createObjectStore(STORE_ALBUMS, { keyPath: "id" });
+            a.createIndex(IDX_ALBUM_OWNER, "userId");
           }
         }
       };
@@ -536,7 +549,8 @@
     });
   }
 
-  async function addScan({ species, confidence, image, geolocation, timestamp, userId }) {
+  async function addScan({ species, confidence, image, geolocation, timestamp, userId,
+    family, albumId }) {
     const when = timestamp ? new Date(timestamp) : new Date();
     const imageBase64 = image ? await toThumbnail(image) : null;
     const uid = userId ? String(userId) : await owner();
@@ -549,6 +563,10 @@
       imageBase64,
       timestamp: when.toISOString(),
       geolocation: geolocation || null,
+      family: family ? String(family) : null,
+      albumId: albumId ? String(albumId) : null,
+      correction: null,
+      unknown: false,
     };
 
     await tx(STORE_SCANS, "readwrite", (s) => wrap(s.put(scan)));
@@ -628,6 +646,7 @@
   async function clearAll() {
     await tx(STORE_SCANS, "readwrite", (s) => wrap(s.clear()));
     await tx(STORE_STATS, "readwrite", (s) => wrap(s.clear()));
+    await tx(STORE_ALBUMS, "readwrite", (s) => wrap(s.clear()));
   }
 
   async function clearUser(userId) {
@@ -645,7 +664,19 @@
       };
       stores.stats.delete(uid);
       return counted;
-    }).then((c) => c.n);
+    }).then(async (c) => {
+      await tx(STORE_ALBUMS, "readwrite", (store) => {
+        const req = store.index(IDX_ALBUM_OWNER).openCursor(uid);
+        req.onsuccess = (e) => {
+          const cur = e.target.result;
+          if (!cur) return;
+          cur.delete();
+          cur.continue();
+        };
+        return null;
+      });
+      return c.n;
+    });
   }
 
   async function hasHistory(userId) {
@@ -658,7 +689,8 @@
   }
 
   function txAll(mode, fn) {
-    const names = [STORE_SCANS, STORE_STATS, STORE_USERS, STORE_POSTS, STORE_FRIENDS, STORE_MESSAGES];
+    const names = [STORE_SCANS, STORE_STATS, STORE_USERS, STORE_POSTS, STORE_FRIENDS,
+      STORE_MESSAGES, STORE_ALBUMS];
     return openDB().then(
       (db) =>
         new Promise((resolve, reject) => {
@@ -936,11 +968,313 @@
         }
         cur.continue();
       };
+      s[STORE_ALBUMS].index(IDX_ALBUM_OWNER).openCursor(uid).onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        cur.delete();
+        cur.continue();
+      };
       s[STORE_STATS].delete(uid);
       s[STORE_USERS].delete(uid);
       return n;
     });
     return counted;
+  }
+
+  function foldName(value) {
+    return String(value == null ? "" : value).trim().toLowerCase();
+  }
+
+  function cleanAlbumName(value) {
+    return String(value == null ? "" : value)
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, ALBUM_NAME_MAX);
+  }
+
+  function countScans(uid) {
+    return tx(STORE_SCANS, "readonly", (s) =>
+      wrap(s.index(IDX_USER_TIME).count(userRange(uid)))
+    );
+  }
+
+  async function listAlbums(userId) {
+    const uid = userId ? String(userId) : await owner();
+    const rows = await tx(STORE_ALBUMS, "readonly", (s) =>
+      wrap(s.index(IDX_ALBUM_OWNER).getAll(uid))
+    );
+    const tally = await tx(STORE_SCANS, "readonly", (store) => {
+      const counts = new Map();
+      const req = store.index(IDX_USER_TIME).openCursor(userRange(uid));
+      req.onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        const key = (cur.value || {}).albumId;
+        if (key) counts.set(String(key), (counts.get(String(key)) || 0) + 1);
+        cur.continue();
+      };
+      return counts;
+    });
+    return (rows || [])
+      .map((row) => Object.assign({}, row, { count: tally.get(row.id) || 0 }))
+      .sort((a, b) => String(a.created || "").localeCompare(String(b.created || "")));
+  }
+
+  async function createAlbum(name, userId) {
+    const uid = userId ? String(userId) : await owner();
+    const clean = cleanAlbumName(name);
+    if (!clean) throw new Error("An album needs a name");
+    const here = await listAlbums(uid);
+    const clash = here.find((a) => foldName(a.name) === foldName(clean));
+    if (clash) return clash;
+    const row = { id: newId(), userId: uid, name: clean, created: new Date().toISOString() };
+    await tx(STORE_ALBUMS, "readwrite", (s) => wrap(s.put(row)));
+    return Object.assign({}, row, { count: 0 });
+  }
+
+  async function renameAlbum(albumId, name) {
+    const clean = cleanAlbumName(name);
+    if (!clean) throw new Error("An album needs a name");
+    const uid = await owner();
+    const out = await tx(STORE_ALBUMS, "readwrite", (s) => {
+      const held = {};
+      s.get(String(albumId)).onsuccess = (e) => {
+        const row = e.target.result;
+        if (!row || String(row.userId) !== uid) return;
+        row.name = clean;
+        s.put(row);
+        held.row = row;
+      };
+      return held;
+    });
+    return out.row || null;
+  }
+
+  // Deleting an album unfiles its scans instead of taking them with it. The
+  // photo is the thing the reader made; the album is only a label on it.
+  async function deleteAlbum(albumId) {
+    const uid = await owner();
+    const id = String(albumId);
+    return txAll("readwrite", (s) => {
+      const n = { removed: false, unfiled: 0 };
+      s[STORE_ALBUMS].get(id).onsuccess = (e) => {
+        const row = e.target.result;
+        if (!row || String(row.userId) !== uid) return;
+        s[STORE_ALBUMS].delete(id);
+        n.removed = true;
+        s[STORE_SCANS].index(IDX_USER_TIME).openCursor(userRange(uid)).onsuccess = (ev) => {
+          const cur = ev.target.result;
+          if (!cur) return;
+          const scan = cur.value || {};
+          if (String(scan.albumId || "") === id) {
+            scan.albumId = null;
+            cur.update(scan);
+            n.unfiled += 1;
+          }
+          cur.continue();
+        };
+      };
+      return n;
+    });
+  }
+
+  // The one place a saved scan is edited, so nothing can rewrite a record that
+  // belongs to another account.
+  function patchScan(scanId, uid, change) {
+    return tx(STORE_SCANS, "readwrite", (s) => {
+      const held = {};
+      s.get(String(scanId)).onsuccess = (e) => {
+        const scan = e.target.result;
+        if (!scan || String(scan.userId) !== uid) return;
+        change(scan);
+        s.put(scan);
+        held.scan = scan;
+      };
+      return held;
+    }).then((held) => held.scan || null);
+  }
+
+  async function setAlbum(scanId, albumId) {
+    const uid = await owner();
+    const target = albumId ? String(albumId) : null;
+    if (target) {
+      const album = await tx(STORE_ALBUMS, "readonly", (s) => wrap(s.get(target)));
+      if (!album || String(album.userId) !== uid) throw new Error("No such album");
+    }
+    return patchScan(scanId, uid, (scan) => {
+      scan.albumId = target;
+    });
+  }
+
+  async function setCorrection(scanId, opts) {
+    const o = opts || {};
+    const uid = await owner();
+    const clean = String(o.species == null ? "" : o.species)
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120);
+    return patchScan(scanId, uid, (scan) => {
+      scan.correction = clean
+        ? { species: clean, at: new Date().toISOString(), shared: !!o.shared }
+        : null;
+      if (clean) scan.unknown = false;
+    });
+  }
+
+  async function setUnknown(scanId, on) {
+    const uid = await owner();
+    return patchScan(scanId, uid, (scan) => {
+      scan.unknown = on !== false;
+      if (scan.unknown) scan.correction = null;
+    });
+  }
+
+  // A corrected scan answers to the name the reader gave it, everywhere. An
+  // empty string means the record has no name to show, which the view renders
+  // as blank rather than as the word Unknown.
+  function displaySpecies(scan) {
+    const row = scan || {};
+    const fixed = row.correction && row.correction.species;
+    if (fixed) return String(fixed);
+    if (row.unknown) return "";
+    const name = row.species ? String(row.species).trim() : "";
+    return foldName(name) === "unknown" ? "" : name;
+  }
+
+  // Pure on purpose: the dashboard already holds every scan it drew, so the
+  // month summary is a pass over that array rather than a second read.
+  function monthInsights(scans, when) {
+    const at = when ? new Date(when) : new Date();
+    const month = at.getFullYear() + "-" + String(at.getMonth() + 1).padStart(2, "0");
+    const species = new Map();
+    const families = new Map();
+    let count = 0;
+    for (const scan of scans || []) {
+      if (!scan || !scan.timestamp) continue;
+      if (String(scan.timestamp).slice(0, 7) !== month) continue;
+      count += 1;
+      const folded = foldName(displaySpecies(scan));
+      if (folded) species.set(folded, (species.get(folded) || 0) + 1);
+      const fam = String(scan.family || "").trim();
+      if (fam) families.set(fam, (families.get(fam) || 0) + 1);
+    }
+    let topFamily = null;
+    for (const [name, n] of families) {
+      if (!topFamily || n > topFamily.count) topFamily = { name: name, count: n };
+    }
+    return { month: month, scans: count, species: species.size, topFamily: topFamily };
+  }
+
+  const HISTORY_KIND = "findflower-history";
+
+  // The thumbnails travel with the scans, which is what makes this a backup
+  // rather than a list of names. It is also why the file is measured in
+  // megabytes once a reader has a few hundred finds.
+  async function exportHistory(userId) {
+    const uid = userId ? String(userId) : await owner();
+    const [scans, albums, stats] = await Promise.all([
+      getScans(null, uid),
+      listAlbums(uid),
+      getStats(uid),
+    ]);
+    return {
+      kind: HISTORY_KIND,
+      schema: DB_VERSION,
+      exported: new Date().toISOString(),
+      counts: { scans: scans.length, albums: albums.length },
+      albums: albums.map((a) => ({ id: a.id, name: a.name, created: a.created })),
+      scans: scans,
+      stats: stats,
+    };
+  }
+
+  // Merging is by id, so the same file can be read twice without doubling
+  // anything. Albums are matched on name as well: two exports of one shelf made
+  // in two browsers carry two different ids for the same thing.
+  async function importHistory(bundle) {
+    const data = bundle && typeof bundle === "object" ? bundle : {};
+    if (data.kind !== HISTORY_KIND || !Array.isArray(data.scans)) {
+      throw new Error("That file is not a FindFlower history export");
+    }
+    const uid = await owner();
+    const here = await listAlbums(uid);
+    const byName = new Map(here.map((a) => [foldName(a.name), a.id]));
+    const usedIds = new Set(here.map((a) => a.id));
+    const remap = new Map();
+    const added = { albums: 0, scans: 0, skipped: 0 };
+
+    for (const raw of Array.isArray(data.albums) ? data.albums : []) {
+      const name = cleanAlbumName(raw && raw.name);
+      if (!name) continue;
+      const standing = byName.get(foldName(name));
+      if (standing) {
+        if (raw.id) remap.set(String(raw.id), standing);
+        continue;
+      }
+      const id = raw.id && !usedIds.has(String(raw.id)) ? String(raw.id) : newId();
+      const row = {
+        id: id,
+        userId: uid,
+        name: name,
+        created: raw.created || new Date().toISOString(),
+      };
+      await tx(STORE_ALBUMS, "readwrite", (s) => wrap(s.put(row)));
+      byName.set(foldName(name), id);
+      usedIds.add(id);
+      if (raw.id) remap.set(String(raw.id), id);
+      added.albums += 1;
+    }
+
+    for (const raw of data.scans) {
+      if (!raw || !raw.id || !raw.timestamp) {
+        added.skipped += 1;
+        continue;
+      }
+      const when = new Date(raw.timestamp);
+      if (isNaN(when.getTime())) {
+        added.skipped += 1;
+        continue;
+      }
+      const id = String(raw.id);
+      const standing = await tx(STORE_SCANS, "readonly", (s) => wrap(s.get(id)));
+      if (standing) {
+        added.skipped += 1;
+        continue;
+      }
+      const fix = raw.correction && raw.correction.species;
+      await tx(STORE_SCANS, "readwrite", (s) =>
+        wrap(
+          s.put({
+            id: id,
+            userId: uid,
+            species: raw.species ? String(raw.species) : "Unknown",
+            confidence: typeof raw.confidence === "number" ? raw.confidence : null,
+            imageBase64: typeof raw.imageBase64 === "string" ? raw.imageBase64 : null,
+            timestamp: when.toISOString(),
+            geolocation: raw.geolocation || null,
+            family: raw.family ? String(raw.family) : null,
+            albumId: raw.albumId ? remap.get(String(raw.albumId)) || null : null,
+            correction: fix
+              ? {
+                  species: String(fix),
+                  at: raw.correction.at || when.toISOString(),
+                  shared: !!raw.correction.shared,
+                }
+              : null,
+            unknown: !!raw.unknown,
+          })
+        )
+      );
+      added.scans += 1;
+    }
+
+    // The streak is left alone on purpose. Records from another browser say
+    // nothing about whether this one has been opened every day, and a run of
+    // days read out of a file is a number the reader never earned.
+    const stats = await getStats(uid);
+    stats.totalScans = await countScans(uid);
+    await putStats(stats, uid);
+    return added;
   }
 
   window.ffStore = {
@@ -981,6 +1315,18 @@
     topSpecies,
     exportBundle,
     deleteAccount,
+    listAlbums,
+    createAlbum,
+    renameAlbum,
+    deleteAlbum,
+    setAlbum,
+    setCorrection,
+    setUnknown,
+    displaySpecies,
+    monthInsights,
+    exportHistory,
+    importHistory,
+    ALBUM_NAME_MAX,
     SPACES,
     CACHE_LIMIT,
     POST_MAX_CHARS,
