@@ -71,9 +71,10 @@ jobs:
           for f in app.css nav.js footer.js sw.js \
                    scripts/api.js scripts/ui.js scripts/router.js \
                    scripts/lite.js scripts/vendor/tf.min.js \
-                   scripts/ux.js \
+                   scripts/ux.js scripts/journal.js \
                    scripts/views/home.js scripts/views/directory.js \
                    scripts/views/dashboard.js scripts/views/scanner.js \
+                   scripts/views/contribute.js \
                    favicon.svg favicon.ico icon-192.png icon-512.png \
                    icon-maskable-512.png apple-touch-icon.png \
                    manifest.json robots.txt sitemap.xml \

@@ -53,6 +53,10 @@
         '<circle cx="9.5" cy="8" r="3.2"/><path d="M3.5 20v-1.4A4.1 4.1 0 0 1 7.6 14.5h3.8a4.1 4.1 0 0 1 4.1 4.1V20"/>' +
         '<path d="M16.2 5.2a3.2 3.2 0 0 1 0 5.6M17.4 14.7A4.1 4.1 0 0 1 20.5 18.6V20"/></svg>';
 
+    var ICON_CONTRIBUTE = SVG_OPEN +
+        '<path d="M12 16V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/>' +
+        '<path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>';
+
     var ICON_PROFILE = SVG_OPEN +
         '<circle cx="12" cy="8" r="3.4"/>' +
         '<path d="M5 20v-1.5A4.5 4.5 0 0 1 9.5 14h5a4.5 4.5 0 0 1 4.5 4.5V20"/></svg>';
@@ -187,6 +191,7 @@
                         drawerLink('Research', '/research', ICON_RESEARCH) +
                         drawerLink('Blogs', '/blogs', ICON_BLOGS) +
                         drawerLink('Community', '/community', ICON_COMMUNITY) +
+                        drawerLink('Contribute', '/contribute', ICON_CONTRIBUTE) +
                         drawerLink('About', '/#about', ICON_ABOUT) +
                     '</nav>' +
                 '</div>' +

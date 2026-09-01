@@ -27,6 +27,7 @@
         { label: 'About',            href: '/about',     key: 'about.html' },
         { label: 'Research',         href: '/research',  key: 'research.html' },
         { label: 'Community',        href: '/community', key: 'community.html' },
+        { label: 'Contribute',       href: '/contribute', key: 'contribute.html' },
         { label: 'Contact',          href: '/contact',   key: 'contact.html' },
         { label: 'Privacy Policy',   href: '/privacy',   key: 'privacy.html' },
         { label: 'Terms of Service', href: '/terms',     key: 'terms.html' },
