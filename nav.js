@@ -56,6 +56,12 @@
     var ICON_PROFILE = SVG_OPEN +
         '<circle cx="12" cy="8" r="3.4"/>' +
         '<path d="M5 20v-1.5A4.5 4.5 0 0 1 9.5 14h5a4.5 4.5 0 0 1 4.5 4.5V20"/></svg>';
+    var ICON_SCANNER = SVG_OPEN +
+        '<path d="M3 8.5V6a1.5 1.5 0 0 1 1.5-1.5H7"/>' +
+        '<path d="M17 4.5h2.5A1.5 1.5 0 0 1 21 6v2.5"/>' +
+        '<path d="M21 15.5V18a1.5 1.5 0 0 1-1.5 1.5H17"/>' +
+        '<path d="M7 19.5H4.5A1.5 1.5 0 0 1 3 18v-2.5"/>' +
+        '<circle cx="12" cy="12" r="3.2"/></svg>';
 
     function escapeHTML(value) {
         return String(value == null ? '' : value).replace(/[&<>'"]/g, function (ch) {
@@ -115,10 +121,6 @@
                 '<div class="flex items-center gap-2 sm:gap-3 shrink-0">' +
                     '<a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
-                    '<a id="ffTryNow" href="/try" class="soft-click text-sm font-medium bg-neutral-900 text-white ' +
-                        'px-4 sm:px-5 rounded-md hover:bg-neutral-800 transition flex items-center ' +
-                        'whitespace-nowrap" ' +
-                        'style="min-height:40px">Try Now</a>' +
                     '<button id="ffMenuBtn" type="button" data-toggle-sidebar aria-label="Open menu" ' +
                         'aria-controls="ffSidebar" aria-expanded="false" ' +
                         'class="ff-hamburger soft-click flex items-center justify-center text-neutral-700 ' +
@@ -171,6 +173,9 @@
                     '<button id="ffSidebarClose" type="button" aria-label="Close menu" class="ff-sidebar__close">' + ICON_CLOSE + '</button>' +
                 '</div>' +
                 '<div class="ff-sidebar__scroll">' +
+                    '<nav class="ff-drawer-nav ff-drawer-lead" aria-label="Scanner">' +
+                        drawerLink('Scanner', '/try', ICON_SCANNER) +
+                    '</nav>' +
                     '<section id="ffDrawerAuth" class="ff-drawer-account" aria-live="polite"></section>' +
                     '<nav class="ff-drawer-nav" aria-label="All pages">' +
                         drawerLink('Home', '/', ICON_HOME) +
@@ -281,9 +286,8 @@
         var host = document.getElementById('ffDrawerAuth');
         if (!host) return;
         var guest = '<p class="ff-drawer-account__note">Sign in to keep your finds under your own account.</p>' +
-            '<div class="ff-drawer-account__actions">' +
-                '<a href="/login" class="ff-drawer-button ff-drawer-button--quiet">Sign In</a>' +
-                '<a href="/try" class="ff-drawer-button ff-drawer-button--solid">Try Now</a>' +
+            '<div class="ff-drawer-account__actions ff-drawer-account__actions--one">' +
+                '<a href="/login" class="ff-drawer-button ff-drawer-button--solid">Sign In</a>' +
             '</div>';
         host.innerHTML = guest;
         function paintProfile(session) {

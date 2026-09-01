@@ -224,6 +224,8 @@ html.ff-routing main {
     margin-top: 0.85rem;
 }
 
+.ff-drawer-account__actions--one { grid-template-columns: 1fr; }
+
 .ff-drawer-button {
     min-height: 44px;
     display: inline-flex;
@@ -293,6 +295,12 @@ html.ff-routing main {
 .ff-drawer-nav {
     display: grid;
     gap: 0.1rem;
+}
+
+.ff-drawer-lead {
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.85rem;
+    border-bottom: 1px solid #E5E5E5;
 }
 
 .ff-drawer-install {
