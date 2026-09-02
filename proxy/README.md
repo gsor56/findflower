@@ -5,14 +5,19 @@ backend. It holds the shared secret and enforces an origin allowlist, so the
 backend can't be used as a free open API.
 
 ```
-browser --(raw image bytes)--> Worker --(multipart + X-Proxy-Secret)--> backend
+browser --(multipart or raw bytes)--> Worker --(multipart + X-Proxy-Secret)--> backend
 ```
 
 ## Request contract
 
-`POST` the **raw image bytes** as the body — not multipart. The Worker builds the
-multipart `file` field itself before forwarding. Every request must carry an
-Auth0 access token; there is no anonymous access.
+`POST` the image. Both shapes are accepted: **raw image bytes** under an image
+`Content-Type`, which is what the examples here use, or **`multipart/form-data`**
+with a `file` field, which is what a browser's `FormData` sends. Either way the
+Worker forwards multipart upstream.
+
+A signed-in visitor's Auth0 access token rides in `Authorization`. Sending one is
+optional for as long as the gate is disarmed, so anonymous calls are answered as
+well; see Authentication for what that costs and how it ends.
 
 ```
 curl -X POST --data-binary @some_flower.jpg \
@@ -22,13 +27,30 @@ curl -X POST --data-binary @some_flower.jpg \
 ```
 
 Returns `{"flower":"...","confidence":0.93,"top_k":[{"name":"...","confidence":0.93}]}`,
-or `401` with a `WWW-Authenticate` header when the token is absent, malformed,
-or fails verification. The gate runs before the body is read, so a rejected
-request never reaches the inference backend.
+or, once the gate is armed, `401` with a `WWW-Authenticate` header when the token
+is absent, malformed, or fails verification. The gate runs before the body is
+read, so a rejected request never reaches the inference backend.
 
-> [!TIP]
-> Sending `-F file=@photo.jpg` instead will fail with `Invalid image` — the whole
-> multipart envelope gets wrapped as image bytes. Use `--data-binary`.
+> [!NOTE]
+> `-F file=@photo.jpg` is fine now, and so is `--data-binary`. Multipart used to
+> come back `Invalid image`: the Worker read every body as raw bytes, so the MIME
+> envelope went upstream as though it were a JPEG. `worker.js` unwraps a
+> multipart body and forwards the `file` field on its own, which is what every
+> upload from the website is.
+
+## The other two routes
+
+`GET /` is a liveness check. It answers `{"status":"ok"}` from the edge without
+touching the backend, so the frontend can poll it for free. It says nothing about
+whether the model is awake.
+
+`GET /warm` asks the backend to wake up and returns `{"warming":true}` straight
+away, without waiting for it. `/try` calls this on page load, because a sleeping
+backend needs around two minutes to boot and nobody watches a spinner that long;
+the boot then overlaps with choosing a photo instead of landing on whoever
+pressed Identify. It is origin-gated, unlike the health check, since it does
+spend backend compute. It never reports readiness, only that the poke was
+sent. Both `GET` and `HEAD` answer `202` with `Cache-Control: no-store`.
 
 ## Configuration
 
@@ -83,6 +105,20 @@ Run `node worker.test.mjs` from this directory to exercise the gate — it mints
 real RS256 tokens against a stub JWKS and asserts that expired, tampered,
 wrong-audience, wrong-issuer and downgraded tokens are all refused before the
 backend is called.
+
+### Where it stands
+
+The gate is disarmed: `ENFORCE_AUTH = "false"` in `wrangler.toml`, deliberately,
+so that a visitor can scan a flower without an account. `try.html` matches that
+with `REQUIRE_SIGN_IN = false`, and it does send a token when the visitor happens
+to have one (`SEND_AUTH_TOKEN = true`), which is what makes `X-FF-Auth` worth
+reading: `ok` on a signed-in scan, `would-reject: Authorization header is
+required` on a guest one.
+
+Arming it is one change in two places at once. Delete the `ENFORCE_AUTH` line,
+`wrangler deploy`, and set `REQUIRE_SIGN_IN = true` in `try.html` in the same
+rollout. An armed Worker against a page that still lets guests through means
+every anonymous scan 401s, and only after the photo has already gone up the wire.
 
 ## Defense in depth
 

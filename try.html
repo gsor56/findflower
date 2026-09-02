@@ -41,6 +41,8 @@
     <script src="prefs.js?v=1"></script>
     <script src="scripts/vendor/tf.min.js?v=4.22.0"></script>
     <script src="scripts/lite.js?v=4"></script>
+    <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
+    <script src="auth.js?v=4"></script>
     <script src="storage.js"></script>
     <script src="blur.js?v=1"></script>
     <script src="main.js?v=2"></script>
@@ -755,7 +757,43 @@
 
         function engineUrl() { return ENGINES.standard; }
 
-        const SEND_AUTH_TOKEN = false;
+        // The server model sleeps after a quiet spell and takes about two minutes
+        // to come back, which is longer than anyone will sit and watch. So poke it
+        // the moment the page opens: the boot then overlaps with framing a photo
+        // instead of landing on whoever pressed Identify. Nothing waits on this
+        // and nothing is reported if it fails, because a scan still works either
+        // way, only slower. Flora-Micro is left out on purpose: choosing the
+        // on-device engine means this page makes no server calls at all.
+        function warmUpEngine() {
+            if (pref('modelTier', 'standard') === 'lite') return;
+            try {
+                fetch(API_URL + '/warm', { method: 'GET', mode: 'cors', cache: 'no-store' })
+                    .catch(function () { });
+            } catch (e) { }
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', warmUpEngine);
+        } else {
+            warmUpEngine();
+        }
+
+        // These two are deliberately not the same value. SEND_AUTH_TOKEN means
+        // "attach the token when the visitor happens to have one"; REQUIRE_SIGN_IN
+        // means "refuse to scan without one". Guests carry on scanning: no token,
+        // no header, and the Worker gate is disarmed, so the upload is served.
+        //
+        // Sending the token while that gate is down is the whole point of the
+        // rollout written up in proxy/wrangler.toml. The Worker verifies every
+        // token it is handed and reports the verdict in X-FF-Auth, so a signed-in
+        // scan reading `ok` there is the evidence that arming the gate is safe.
+        // With this switch off, every audit line read `would-reject: Authorization
+        // header is required` instead, and the dry run could never produce its own
+        // exit criterion.
+        //
+        // Arming that gate means flipping REQUIRE_SIGN_IN to true in the same
+        // deploy. An armed Worker with sign-in optional here means every guest
+        // scan 401s, and only after the photo has already gone up the wire.
+        const SEND_AUTH_TOKEN = true;
         const REQUIRE_SIGN_IN = false;
         const AUTH0_AUDIENCE = 'https://api.findflower.me';
 
@@ -768,7 +806,14 @@
                     'auth0-spa-js and auth.js <script> tags in try.html.');
                 return {};
             }
-            return ffAuthHeader(AUTH0_AUDIENCE || undefined);
+            try {
+                return await ffAuthHeader(AUTH0_AUDIENCE || undefined);
+            } catch (err) {
+                // While signing in is optional, a token we could not mint is no
+                // reason to refuse the scan. Send it the way a guest would.
+                console.warn('FindFlower: no token for this scan, sending it as a guest.', err);
+                return {};
+            }
         }
 
         function showAuthError(message) {
@@ -1105,10 +1150,14 @@
         const STANDARD_LOAD_STAGES = [
             { at: 0,     main: 'Analyzing image…',        sub: '' },
             { at: 6000,  main: 'Analyzing image…',        sub: 'Waking up the model. The first try can take a moment.' },
-            { at: 20000, main: 'Still working…',          sub: 'The model was asleep and is starting up. Hang tight.' },
-            { at: 45000, main: 'Almost there…',           sub: 'Cold start is taking longer than usual, but it is nearly ready.' },
+            { at: 15000, main: 'Still working…',          sub: 'The model was asleep. Waking it up takes up to two minutes on the first scan of the day, and every scan after that comes back in seconds.' },
+            { at: 75000, main: 'Nearly there…',           sub: 'It is still starting up. Keep this tab open and the answer will appear here.' },
         ];
-        const REQUEST_TIMEOUT_MS = 95000;
+        // A cold boot of the server model was measured at 118 seconds, so a budget
+        // of 95 gave up on a request that was going to be answered. 135 covers that
+        // boot with room to spare, and a warm scan still lands in about five
+        // seconds, so nobody waits this long unless the model really is asleep.
+        const REQUEST_TIMEOUT_MS = 135000;
 
         let loadTimers = [];
         function startLoadingMessages(tier) {
@@ -1267,6 +1316,15 @@
             setTimeout(() => el.remove(), 4500);
         }
 
+        // A candidate the model scores at 0.0% is not a possibility, it is rounding
+        // noise, and a list of them makes a right answer look like a guess. Anything
+        // under one percent is dropped, and when that leaves nothing the heading goes
+        // too rather than sitting above an empty list.
+        const ALT_MIN_CONFIDENCE = 0.01;
+        function alternatives(ranked, upTo) {
+            return ranked.slice(1, upTo).filter(c => c.p >= ALT_MIN_CONFIDENCE);
+        }
+
         function renderUncertain(ranked) {
             const pickCandidate = async (c) => {
                 lastPrediction = c;
@@ -1293,7 +1351,7 @@
 
             const list = $('resUncertainList');
             list.innerHTML = '';
-            const others = ranked.slice(1, 5);
+            const others = alternatives(ranked, 5);
             others.forEach(c => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
@@ -1347,12 +1405,15 @@
             bar.style.width = '0%';
             requestAnimationFrame(() => { bar.style.width = Math.max(4, pct).toFixed(1) + '%'; });
 
+            const alts = alternatives(ranked, 4);
+
             const note = $('resConfNote');
             if (pct >= 70) note.textContent = 'High confidence match.';
-            else if (pct >= 40) note.textContent = 'Moderate confidence. Compare with the possibilities below.';
+            else if (pct >= 40) note.textContent = alts.length
+                ? 'Moderate confidence. Compare with the possibilities below.'
+                : 'Moderate confidence, and nothing else came close. Try another angle if this looks wrong.';
             else note.textContent = 'Low confidence. This may be a species outside the current Beta set.';
 
-            const alts = ranked.slice(1, 4);
             const altsWrap = $('resAlts'), altsList = $('resAltsList');
             altsList.innerHTML = '';
             if (alts.length) {

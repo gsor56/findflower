@@ -341,7 +341,7 @@ async function verifyAuth0Token(token, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     // CORS preflight
@@ -364,6 +364,34 @@ export default {
       const res = await handleTrefle(request, env, url);
       return request.method === "HEAD"
         ? new Response(null, { status: res.status, headers: res.headers })
+        : res;
+    }
+
+    // Warm-up poke. The Space idles down after a quiet spell and needs about two
+    // minutes to boot, far longer than a visitor will watch a spinner, so /try
+    // calls this the moment it opens and the boot overlaps with choosing a photo.
+    // Origin-gated, unlike the health check below, because this one does cost
+    // upstream compute and there is no reason for another site to spend it.
+    //
+    // waitUntil lets the poke run on after the response, so the page is never
+    // kept waiting for a container that takes two minutes to answer. Nothing
+    // upstream is forwarded back: the reply says only that the poke was sent,
+    // never that the model is ready, because at this point it is not.
+    if (url.pathname === "/warm" && (request.method === "GET" || request.method === "HEAD")) {
+      const origin = request.headers.get("Origin");
+      if (origin && !originAllowed(origin, env)) {
+        return json({ error: "Origin not allowed." }, 403, request, env);
+      }
+      if (env.SPACE_URL) {
+        const poke = fetch(env.SPACE_URL, {
+          method: "GET",
+          headers: env.SPACE_TOKEN ? { Authorization: `Bearer ${env.SPACE_TOKEN}` } : {},
+        }).catch(() => { });
+        if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(poke);
+      }
+      const res = json({ warming: true }, 202, request, env, { "Cache-Control": "no-store" });
+      return request.method === "HEAD"
+        ? new Response(null, { status: 202, headers: res.headers })
         : res;
     }
 

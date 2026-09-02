@@ -35,7 +35,7 @@ async function mint(over = {}, hdr = {}, signWith = kp.privateKey) {
 }
 
 // Intercept outbound fetches: JWKS stubbed, Space hits counted.
-let spaceHits = 0, jwksHits = 0;
+let spaceHits = 0, jwksHits = 0, warmHits = 0;
 globalThis.fetch = async (url) => {
     url = String(url);
     if (url.includes('jwks.json')) {
@@ -49,11 +49,16 @@ globalThis.fetch = async (url) => {
             top_k: [{ name: 'sunflower', confidence: 0.94 }, { name: 'daisy', confidence: 0.03 }],
         }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
+    if (url === SPACE_ROOT || url === SPACE_ROOT + '/') {
+        warmHits++;
+        return new Response('the Space is booting', { status: 200 });
+    }
     throw new Error('unexpected fetch: ' + url);
 };
 
+const SPACE_ROOT = 'https://space.example';
 const ENV = {
-    SPACE_URL: 'https://space.example', PROXY_SECRET: 's3cret',
+    SPACE_URL: SPACE_ROOT, PROXY_SECRET: 's3cret',
     ALLOWED_ORIGINS: 'http://localhost:8000,https://findflower.me',
     AUTH0_DOMAIN: DOMAIN, AUTH0_AUDIENCE: AUD,
     ENFORCE_AUTH: 'true',
@@ -140,6 +145,44 @@ console.log('\n--- health check (GET/HEAD, gate armed) ---');
     const hb = await (await g('HEAD')).text();
     console.log((hb === '' ? 'PASS' : 'FAIL') + '  HEAD carries no body');
     hb === '' ? pass++ : fail++;
+}
+
+console.log('\n--- warm-up poke (/warm) ---');
+{
+    // /try calls this on load so the Space boots while the visitor is still
+    // choosing a photo. Like the health check it carries no token, so it has to
+    // sit ahead of the auth gate: ENV here has the gate ARMED, and a 401 would
+    // mean every page load warmed nothing.
+    const warm = (m, env = ENV, origin = 'https://findflower.me') => {
+        const h = new Headers();
+        if (origin) h.set('Origin', origin);
+        const held = [];
+        return worker.fetch(new Request('https://w.example/warm', { method: m, headers: h }), env,
+            { waitUntil: (pr) => held.push(pr) }).then((r) => ({ r, held }));
+    };
+    const w0 = warmHits;
+    const { r, held } = await warm('GET');
+    const body = await r.clone().text();
+    const w1 = warmHits;
+    const head = (await warm('HEAD')).r;
+    const headBody = await head.text();
+    const w2 = warmHits;
+    const evil = (await warm('GET', ENV, 'https://evil.example')).r;
+    const w3 = warmHits;
+    const unset = (await warm('GET', { ...ENV, SPACE_URL: '' })).r;
+    for (const [name, ok, note] of [
+        ['GET /warm -> 202 with the gate armed', r.status === 202, 'status=' + r.status],
+        ['the Space itself is poked', warmHits > w0, 'pokes=' + (w1 - w0)],
+        ['the poke is handed to waitUntil', held.length === 1, 'held=' + held.length],
+        ['the reply never claims it is ready', body === '{"warming":true}', 'body=' + body],
+        ['HEAD /warm -> 202, no body', head.status === 202 && headBody === '', 'status=' + head.status],
+        ['HEAD pokes too', warmHits > w1, 'pokes=' + (w2 - w1)],
+        ['another site cannot spend our compute', evil.status === 403 && warmHits === w2, 'status=' + evil.status + ' pokes=' + (w3 - w2)],
+        ['no SPACE_URL is still not an error', unset.status === 202 && warmHits === w3, 'status=' + unset.status],
+    ]) {
+        console.log((ok ? 'PASS' : 'FAIL') + '  ' + name.padEnd(44) + ' ' + note);
+        ok ? pass++ : fail++;
+    }
 }
 
 console.log('\n--- ALLOWED_ORIGINS misconfigured to "*" ---');

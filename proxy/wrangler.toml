@@ -36,6 +36,13 @@ AUTH0_AUDIENCE = "https://api.findflower.me"
 # signed-in scan is the evidence that re-arming is safe, and it keeps
 # accumulating while the gate is down.
 #
+# 2026-09-02: it only started accumulating on that date. try.html had
+# SEND_AUTH_TOKEN = false all through the dry run, so the page sent no header at
+# all and every audit line read `would-reject: Authorization header is required`,
+# guest and signed-in alike. The dry run could not produce its own exit
+# criterion. That switch is now true while REQUIRE_SIGN_IN stays false, so a
+# signed-in visitor's token goes up and a guest still scans without one.
+#
 # Still standing while this is open, so the model is not a free public API:
 #   - the ALLOWED_ORIGINS gate above (other websites' browsers are refused)
 #   - X-Proxy-Secret, which the Space checks for itself
