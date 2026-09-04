@@ -33,11 +33,11 @@
     <meta name="twitter:image:alt" content="A finished scan in FindFlower showing the species name, how confident the answer is, and the record behind it.">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="app.css?v=12">
+    <link rel="stylesheet" href="app.css?v=13">
     <script src="prefs.js?v=1"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js" defer></script>
     <script src="auth.js?v=4" defer></script>
-    <script src="nav.js?v=5" defer></script>
+    <script src="nav.js?v=6" defer></script>
     <script src="footer.js?v=3" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="species.js"></script>
@@ -189,8 +189,8 @@
             position: relative;
             isolation: isolate;
             overflow: hidden;
-            margin-top: -4rem;
-            min-height: calc(100svh - 4rem);
+            margin-top: calc(-4rem + var(--ff-banner-h, 0px));
+            min-height: calc(100svh - 4rem - var(--ff-banner-h, 0px));
             display: flex;
             align-items: center;
         }
@@ -212,9 +212,10 @@
             .ff-hero-inner { grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); }
         }
         @media (max-width: 767px) {
-            .ff-hero { min-height: calc(100svh - 4rem - 56px); }
-            .ff-hero-inner { padding-block: clamp(2rem, 5vh, 4rem); }
-            .ff-scroll-cue { margin-top: 1rem; }
+            .ff-hero { min-height: calc(100svh - 4rem - 56px - var(--ff-banner-h, 0px)); }
+            .ff-hero-inner {
+                padding-block: max(0.75rem, calc(clamp(2rem, 5vh, 4rem) - var(--ff-banner-h, 0px) / 2));
+            }
         }
 
         .ff-hero-copy {
@@ -253,6 +254,18 @@
             text-transform: uppercase;
         }
         .ff-scroll-cue:hover { color: #737373; }
+        /* Below the base rule so these win. */
+        @media (max-width: 767px) {
+            .ff-scroll-cue { margin-top: max(0.25rem, calc(1rem - var(--ff-banner-h, 0px) / 4)); }
+        }
+        /* No room for the hint under 360px. */
+        @media (max-width: 359px) {
+            .ff-scroll-cue { display: none; }
+        }
+
+        main section[id].scroll-mt-24 {
+            scroll-margin-top: calc(6rem + var(--ff-banner-h, 0px));
+        }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -367,6 +380,25 @@
 </head>
 <body class="selection:bg-sage-100 selection:text-sage-700">
 
+    <aside id="ffNotice" data-ff-page class="ff-notice" role="note" aria-label="Development status">
+        <div class="ff-notice__inner">
+            <svg class="ff-notice__mark" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 4 2.9 20h18.2L12 4Z"/>
+                <path d="M12 10v3.5M12 16.8h.01"/>
+            </svg>
+            <p class="ff-notice__text">
+                <span class="ff-notice__full">Active development on FindFlower is temporarily paused until October 1st for scheduled backend scaling and infrastructure upgrades.</span>
+                <span class="ff-notice__brief">Development is paused until October 1st for backend scaling.</span>
+            </p>
+            <button id="ffNoticeClose" type="button" class="ff-notice__close" aria-label="Dismiss this notice">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6 6l12 12"/>
+                    <path d="M18 6 6 18"/>
+                </svg>
+            </button>
+        </div>
+    </aside>
+
     <header class="fixed top-0 left-0 right-0 z-50 bg-[#FCFCFC] border-b border-neutral-100">
         <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -450,8 +482,8 @@
                         <a href="/privacy#images" class="text-sage-600 border-b border-sage-200 hover:border-sage-500 transition-colors">What happens to it</a>.
                     </p>
 
-                    <a href="" class="ff-scroll-cue reveal-up delay-400 lg:hidden">
-                        
+                    <a href="#how" class="ff-scroll-cue reveal-up delay-400 lg:hidden">
+                        How it works
                     </a>
                 </div>
 

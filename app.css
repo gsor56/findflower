@@ -210,6 +210,81 @@ html.ff-routing main {
     border-bottom: 1px solid #E5E5E5;
 }
 
+/* The account block and the language pill share the top of the drawer, so the
+   rule under them belongs to the pair and not to the account block alone. */
+.ff-drawer-top {
+    padding-bottom: 1rem;
+    margin-bottom: 0.85rem;
+    border-bottom: 1px solid #E5E5E5;
+}
+
+.ff-drawer-top__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.ff-drawer-top .ff-drawer-account {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    border-bottom: 0;
+}
+
+/* The select is left visible and given real colours on purpose. Chrome paints
+   the dropdown list from the select's own background and text colour, so a
+   see-through control hands you a list you cannot read. */
+.ff-lang {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    min-height: 32px;
+    padding: 0 0.4rem;
+    border: 1px solid #E5E5E5;
+    border-radius: 0.375rem;
+    background: #FFFFFF;
+    color: #525252;
+}
+
+.ff-lang:hover { border-color: #D4D4D4; }
+
+.ff-lang:focus-within {
+    border-color: #A3A3A3;
+    box-shadow: 0 0 0 3px rgba(23, 23, 23, 0.06);
+}
+
+.ff-lang__caret {
+    flex: 0 0 12px;
+    color: #A3A3A3;
+    pointer-events: none;
+}
+
+.ff-lang__select {
+    align-self: stretch;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background-color: #FFFFFF;
+    color: #404040;
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.ff-lang__select:focus { outline: none; }
+
+.ff-lang-note {
+    margin: 0.7rem 0 0;
+    color: #737373;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
 .ff-drawer-account__note {
     margin: 0;
     color: #737373;
@@ -700,6 +775,76 @@ html.ff-routing main {
 @media (prefers-reduced-motion: reduce) {
     .skeleton { animation: none; }
     .fade-in { animation: none; }
+}
+
+/* The development notice is written into index.html and moved inside the fixed
+   header by nav.js. That is what puts the bar under it rather than behind it:
+   the header is only ever as tall as its own contents. Out of the header it
+   stays out of the flow, so a router swap never flashes it in the wrong place. */
+.ff-notice { display: none; }
+
+.ff-header > .ff-notice {
+    display: block;
+    background: #fff3cd;
+    border-bottom: 1px solid #EADFB4;
+    color: #856404;
+}
+
+.ff-notice__inner {
+    max-width: 80rem;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.375rem 1rem;
+}
+
+.ff-notice__mark {
+    flex: 0 0 16px;
+    margin-top: 0.4375rem;
+}
+
+.ff-notice__text {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0.25rem 0;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+.ff-notice__brief { display: none; }
+
+.ff-notice__close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color 160ms ease;
+}
+
+.ff-notice__close:hover { background: rgba(133, 100, 4, 0.12); }
+.ff-notice__close:active { background: rgba(133, 100, 4, 0.18); }
+
+@media (min-width: 640px) {
+    .ff-notice__inner { padding-left: 2rem; padding-right: 2rem; }
+}
+
+/* The full sentence runs to three lines on a phone, which is no longer a slim
+   strip, so a phone reads a shorter version of the same message. */
+@media (max-width: 767px) {
+    .ff-notice__inner { padding: 0.25rem 0.875rem; }
+    .ff-notice__full { display: none; }
+    .ff-notice__brief { display: inline; }
 }
 
 .ff-header {

@@ -60,12 +60,29 @@
     var ICON_PROFILE = SVG_OPEN +
         '<circle cx="12" cy="8" r="3.4"/>' +
         '<path d="M5 20v-1.5A4.5 4.5 0 0 1 9.5 14h5a4.5 4.5 0 0 1 4.5 4.5V20"/></svg>';
-    var ICON_SCANNER = SVG_OPEN +
-        '<path d="M3 8.5V6a1.5 1.5 0 0 1 1.5-1.5H7"/>' +
-        '<path d="M17 4.5h2.5A1.5 1.5 0 0 1 21 6v2.5"/>' +
-        '<path d="M21 15.5V18a1.5 1.5 0 0 1-1.5 1.5H17"/>' +
-        '<path d="M7 19.5H4.5A1.5 1.5 0 0 1 3 18v-2.5"/>' +
-        '<circle cx="12" cy="12" r="3.2"/></svg>';
+    // One camera for both the tab bar and the drawer row.
+    var SCAN_PATH =
+        '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>' +
+        '<circle cx="12" cy="13" r="4"/>';
+    var ICON_SCANNER = SVG_OPEN + SCAN_PATH + '</svg>';
+
+    var ICON_GLOBE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" ' +
+        'stroke="currentColor" stroke-width="1.8" stroke-linecap="round" ' +
+        'stroke-linejoin="round" aria-hidden="true">' +
+        '<circle cx="12" cy="12" r="9"/><path d="M3.2 9h17.6M3.2 15h17.6"/>' +
+        '<path d="M12 3c4.6 6 4.6 12 0 18C7.4 15 7.4 9 12 3Z"/></svg>';
+    var ICON_CARET = '<svg class="ff-lang__caret" width="12" height="12" viewBox="0 0 24 24" ' +
+        'fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" ' +
+        'stroke-linejoin="round" aria-hidden="true"><path d="m6 9.5 6 6 6-6"/></svg>';
+
+    var LANG_KEY = 'ff_lang';
+    var LANGS = [
+        { code: 'en', label: 'English' },
+        { code: 'es', label: 'Espa\u00f1ol' },
+        { code: 'fr', label: 'Fran\u00e7ais' },
+        { code: 'de', label: 'Deutsch' },
+        { code: 'ja', label: '\u65e5\u672c\u8a9e' }
+    ];
 
     function escapeHTML(value) {
         return String(value == null ? '' : value).replace(/[&<>'"]/g, function (ch) {
@@ -161,10 +178,97 @@
         paint();
     }
 
+    var NOTICE_KEY = 'hide_maintenance_banner';
+
+    function noticeDismissed() {
+        try { return localStorage.getItem(NOTICE_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    // The homepage hero is sized against the header, so it has to know how tall
+    // the strip made it. Nothing else reads this, and it goes back to 0px the
+    // moment the strip is dismissed or the router carries it away.
+    function measureNotice() {
+        var el = document.getElementById('ffNotice');
+        var tall = el && el.parentNode ? Math.round(el.getBoundingClientRect().height) : 0;
+        document.documentElement.style.setProperty('--ff-banner-h', tall + 'px');
+    }
+
+    // index.html writes the strip and the router carries it in and out with the
+    // rest of the page. Moving it inside the fixed header is what pushes the bar
+    // down instead of letting the strip sit over it.
+    var noticeWatch = null;
+
+    function watchNotice(el) {
+        if (!window.ResizeObserver) return;
+        if (!noticeWatch) noticeWatch = new ResizeObserver(measureNotice);
+        noticeWatch.disconnect();
+        noticeWatch.observe(el);
+    }
+
+    function adoptNotice() {
+        var notice = document.getElementById('ffNotice');
+        if (notice && noticeDismissed()) {
+            notice.remove();
+            notice = null;
+        }
+        var header = document.querySelector('header');
+        if (notice && header && notice.parentNode !== header) {
+            header.insertBefore(notice, header.firstChild);
+            watchNotice(notice);
+            var close = notice.querySelector('#ffNoticeClose');
+            if (close) close.addEventListener('click', function () {
+                try { localStorage.setItem(NOTICE_KEY, '1'); } catch (e) { }
+                notice.remove();
+                measureNotice();
+            });
+        }
+        measureNotice();
+    }
+
     function drawerLink(label, href, icon) {
         var active = linkIsActive(href);
         return '<a href="' + href + '" class="ff-drawer-link' + (active ? ' is-active' : '') + '"' +
             (active ? ' aria-current="page"' : '') + '>' + icon + '<span>' + label + '</span></a>';
+    }
+
+    function savedLang() {
+        var code = null;
+        try { code = localStorage.getItem(LANG_KEY); } catch (e) { }
+        for (var i = 0; i < LANGS.length; i++) {
+            if (LANGS[i].code === code) return LANGS[i];
+        }
+        return LANGS[0];
+    }
+
+    // Chrome paints the open list in the select's own colours, so it stays visible.
+    function langPill() {
+        var current = savedLang();
+        var options = LANGS.map(function (l) {
+            return '<option value="' + l.code + '"' +
+                (l.code === current.code ? ' selected' : '') + '>' + l.label + '</option>';
+        }).join('');
+        return '<span class="ff-lang">' + ICON_GLOBE +
+            '<select id="ffLang" class="ff-lang__select" aria-label="Language">' +
+                options + '</select>' + ICON_CARET + '</span>';
+    }
+
+    function paintLangNote(code) {
+        var note = document.getElementById('ffLangNote');
+        if (note) note.hidden = code === 'en';
+    }
+
+    function wireLang() {
+        var select = document.getElementById('ffLang');
+        if (!select) return;
+        select.addEventListener('change', function () {
+            var picked = savedLang();
+            for (var i = 0; i < LANGS.length; i++) {
+                if (LANGS[i].code === select.value) picked = LANGS[i];
+            }
+            try { localStorage.setItem(LANG_KEY, picked.code); } catch (e) { }
+            paintLangNote(picked.code);
+        });
+        paintLangNote(savedLang().code);
     }
 
     function buildSidebar() {
@@ -177,7 +281,14 @@
                     '<button id="ffSidebarClose" type="button" aria-label="Close menu" class="ff-sidebar__close">' + ICON_CLOSE + '</button>' +
                 '</div>' +
                 '<div class="ff-sidebar__scroll">' +
-                    '<section id="ffDrawerAuth" class="ff-drawer-account" aria-live="polite"></section>' +
+                    '<div class="ff-drawer-top">' +
+                        '<div class="ff-drawer-top__row">' +
+                            '<section id="ffDrawerAuth" class="ff-drawer-account" aria-live="polite"></section>' +
+                            langPill() +
+                        '</div>' +
+                        '<p id="ffLangNote" class="ff-lang-note" hidden>Only English is ready ' +
+                            'so far. Your pick is saved.</p>' +
+                    '</div>' +
                     '<nav class="ff-drawer-nav" aria-label="All pages">' +
                         drawerLink('Home', '/', ICON_HOME) +
                         drawerLink('Scanner', '/try', ICON_SCANNER) +
@@ -376,7 +487,7 @@
         },
         {
             label: 'Scan', href: '/try', match: ['try.html'],
-            icon: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>'
+            icon: SCAN_PATH
         },
         {
             label: 'Directory', href: '/directory', match: ['directory.html'],
@@ -412,8 +523,12 @@
             document.body.insertBefore(header, document.body.firstChild);
         }
 
+        adoptNotice();
+        window.addEventListener('resize', measureNotice, { passive: true });
+
         document.body.appendChild(buildSidebar());
         wireSidebar();
+        wireLang();
         renderDrawerAuth();
         paintInstall();
 
@@ -453,6 +568,7 @@
             paintCachedHeader();
         }
         renderDrawerAuth();
+        adoptNotice();
         // A router swap brings in a fresh homepage, install button and all, with the
         // event already spent or still held from before the swap.
         paintInstall();
