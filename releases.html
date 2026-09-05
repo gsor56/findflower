@@ -110,7 +110,7 @@
         </section>
 
         <section class="max-w-3xl mx-auto px-6">
-            <div class="relative border-l border-neutral-200 pl-8 md:pl-12 space-y-16">
+            <div id="releaseTimeline" class="relative border-l border-neutral-200 pl-8 md:pl-12 space-y-16">
 
                 <article class="reveal-up relative">
                     <span class="absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full bg-sage-500 ring-4 ring-[#FCFCFC]"></span>
@@ -336,6 +336,227 @@
             const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
             document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
         });
+    </script>
+    <script>
+    (function () {
+        'use strict';
+
+        const FEED = 'https://api.github.com/repos/gsor56/findflower/releases';
+        const REPO_RELEASES = 'https://github.com/gsor56/findflower/releases';
+
+        const timeline = document.getElementById('releaseTimeline');
+        if (!timeline) return;
+
+        const LINK = 'text-sage-600 hover:text-sage-700 underline underline-offset-2';
+        const INLINE = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|`([^`]+)`|\*\*([^*]+)\*\*|\*([^*]+)\*/;
+
+        // Release notes are written by hand on GitHub and arrive as markdown. This
+        // reads the handful of marks that actually turn up in them and builds
+        // nodes for each, so nothing from the API is ever handed to innerHTML.
+        function inline(text, parent) {
+            let rest = String(text);
+            let m;
+            while ((m = INLINE.exec(rest))) {
+                if (m.index) parent.appendChild(document.createTextNode(rest.slice(0, m.index)));
+                if (m[2]) {
+                    const a = document.createElement('a');
+                    a.href = m[2];
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.className = LINK;
+                    a.textContent = m[1];
+                    parent.appendChild(a);
+                } else if (m[3]) {
+                    const code = document.createElement('span');
+                    code.className = 'font-mono text-sm text-neutral-900';
+                    code.textContent = m[3];
+                    parent.appendChild(code);
+                } else if (m[4]) {
+                    const strong = document.createElement('strong');
+                    strong.className = 'font-medium text-neutral-900';
+                    strong.textContent = m[4];
+                    parent.appendChild(strong);
+                } else {
+                    const em = document.createElement('em');
+                    em.textContent = m[5];
+                    parent.appendChild(em);
+                }
+                rest = rest.slice(m.index + m[0].length);
+            }
+            if (rest) parent.appendChild(document.createTextNode(rest));
+        }
+
+        function body(md, host) {
+            const lines = String(md || '').replace(/\r/g, '').split('\n');
+            let list = null;
+            let para = [];
+
+            function flushPara() {
+                if (!para.length) return;
+                const p = document.createElement('p');
+                p.className = 'text-neutral-600 font-light leading-relaxed';
+                inline(para.join(' '), p);
+                host.appendChild(p);
+                para = [];
+            }
+
+            lines.forEach(function (raw) {
+                const line = raw.trim();
+                if (!line) { flushPara(); list = null; return; }
+
+                const heading = /^#{1,6}\s+(.*)$/.exec(line);
+                if (heading) {
+                    flushPara();
+                    list = null;
+                    const label = document.createElement('p');
+                    label.className = 'text-sm font-medium text-sage-600';
+                    inline(heading[1], label);
+                    host.appendChild(label);
+                    return;
+                }
+
+                const item = /^[-*]\s+(.*)$/.exec(line);
+                if (item) {
+                    flushPara();
+                    if (!list) {
+                        list = document.createElement('ul');
+                        list.className = 'space-y-2.5 text-neutral-600 font-light list-disc pl-5 marker:text-neutral-300';
+                        host.appendChild(list);
+                    }
+                    const li = document.createElement('li');
+                    inline(item[1], li);
+                    list.appendChild(li);
+                    return;
+                }
+
+                list = null;
+                para.push(line);
+            });
+            flushPara();
+        }
+
+        function dateLabel(iso) {
+            const at = new Date(iso);
+            if (isNaN(at.getTime())) return '';
+            return at.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+        }
+
+        function pill(text, tone) {
+            const span = document.createElement('span');
+            span.className = tone === 'sage'
+                ? 'text-xs font-medium text-sage-700 bg-sage-50 border border-sage-100 px-2.5 py-1 rounded-full'
+                : 'text-xs font-medium text-neutral-500 bg-neutral-50 border border-neutral-200 px-2.5 py-1 rounded-full';
+            span.textContent = text;
+            return span;
+        }
+
+        function entry(release, newest) {
+            const article = document.createElement('article');
+            article.className = 'reveal-up active relative';
+
+            const dot = document.createElement('span');
+            dot.className = 'absolute -left-[38px] md:-left-[54px] top-1 w-4 h-4 rounded-full ring-4 ring-[#FCFCFC] '
+                + (newest ? 'bg-sage-500' : 'bg-neutral-300');
+            article.appendChild(dot);
+
+            const head = document.createElement('div');
+            head.className = 'flex flex-wrap items-center gap-3 mb-4';
+            const title = document.createElement('h2');
+            title.className = 'text-2xl font-medium tracking-tight text-neutral-900';
+            title.textContent = release.name || release.tag_name || 'Untitled tag';
+            head.appendChild(title);
+            if (newest) head.appendChild(pill('Latest tag', 'sage'));
+            if (release.prerelease) head.appendChild(pill('Pre-release', 'neutral'));
+            const when = dateLabel(release.published_at || release.created_at);
+            if (when) {
+                const date = document.createElement('span');
+                date.className = 'text-sm text-neutral-400 font-light';
+                date.textContent = when;
+                head.appendChild(date);
+            }
+            article.appendChild(head);
+
+            const notes = document.createElement('div');
+            notes.className = 'space-y-4';
+            if (String(release.body || '').trim()) {
+                body(release.body, notes);
+            } else {
+                const bare = document.createElement('p');
+                bare.className = 'text-neutral-500 font-light leading-relaxed';
+                bare.textContent = 'Tagged with no notes written against it.';
+                notes.appendChild(bare);
+            }
+            article.appendChild(notes);
+
+            if (release.html_url) {
+                const foot = document.createElement('p');
+                foot.className = 'text-sm text-neutral-400 font-light mt-5';
+                const link = document.createElement('a');
+                link.href = release.html_url;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.className = LINK;
+                link.textContent = 'This tag on GitHub';
+                foot.appendChild(link);
+                article.appendChild(foot);
+            }
+            return article;
+        }
+
+        function fallback(message) {
+            const note = document.createElement('p');
+            note.className = 'text-sm text-neutral-400 font-light';
+            note.appendChild(document.createTextNode(message + ' The history below is the written record and is not affected. '));
+            const link = document.createElement('a');
+            link.href = REPO_RELEASES;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.className = LINK;
+            link.textContent = 'Tags on GitHub';
+            note.appendChild(link);
+            timeline.insertBefore(note, timeline.firstElementChild);
+        }
+
+        // The written timeline is the page. Tags published on GitHub are added
+        // above it when there are any, so an empty feed or a rate limited one
+        // leaves the notes people came to read exactly where they were.
+        (async function load() {
+            let res;
+            try {
+                res = await fetch(FEED, {
+                    headers: { 'Accept': 'application/vnd.github+json' },
+                    cache: 'no-store',
+                });
+            } catch (err) {
+                fallback('Unable to load the latest releases from GitHub.');
+                return;
+            }
+
+            if (res.status === 403 || res.status === 429) {
+                fallback('GitHub is rate limiting this address, so the live release feed could not be read.');
+                return;
+            }
+            if (!res.ok) {
+                fallback('Unable to load the latest releases from GitHub (' + res.status + ').');
+                return;
+            }
+
+            let feed;
+            try { feed = await res.json(); } catch (err) { feed = null; }
+            if (!Array.isArray(feed)) {
+                fallback('GitHub answered with something this page could not read.');
+                return;
+            }
+
+            const live = feed.filter(function (r) { return r && !r.draft; });
+            if (!live.length) return;
+
+            const anchor = timeline.firstElementChild;
+            live.forEach(function (release, i) {
+                timeline.insertBefore(entry(release, i === 0), anchor);
+            });
+        })();
+    })();
     </script>
 </body>
 </html>

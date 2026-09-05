@@ -756,7 +756,11 @@
 
         const ENGINES = { standard: API_URL };
 
-        function engineUrl() { return ENGINES.standard; }
+        // The scanner route. It is the app's own path through the Worker and is
+        // not rate limited, unlike the public one documented on /api.
+        const SCAN_PATH = '/internal/scan';
+
+        function engineUrl() { return ENGINES.standard + SCAN_PATH; }
 
         // The server model sleeps after a quiet spell and takes about two minutes
         // to come back, which is longer than anyone will sit and watch. So poke it
@@ -797,6 +801,81 @@
         const SEND_AUTH_TOKEN = true;
         const REQUIRE_SIGN_IN = false;
         const AUTH0_AUDIENCE = 'https://api.findflower.me';
+
+        // Cloudflare Turnstile. It proves a scan came from a browser rather than
+        // a script working through the route in a loop. With no site key the
+        // widget is never rendered and a scan goes up exactly as it does today:
+        // a challenge that always passes is worse than no challenge at all.
+        const TURNSTILE_SITE_KEY = '';
+        const TURNSTILE_WAIT_MS = 8000;
+
+        let turnstileId = null;
+        let cfToken = '';
+        let cfTokenAt = 0;
+        let cfWaiting = null;
+
+        function turnstileBox() { return document.getElementById('ffTurnstile'); }
+
+        function settleTurnstile(token) {
+            cfToken = token || '';
+            cfTokenAt = cfToken ? Date.now() : 0;
+            const box = turnstileBox();
+            if (box) box.classList.add('hidden');
+            const waiting = cfWaiting;
+            cfWaiting = null;
+            if (waiting) waiting(cfToken);
+        }
+
+        // Named on the api.js query string, so Cloudflare calls it once its
+        // script is ready and the widget is built explicitly rather than by
+        // scanning the page for a class.
+        window.ffTurnstileReady = function () {
+            const box = turnstileBox();
+            if (!TURNSTILE_SITE_KEY || !box || !window.turnstile) return;
+            try {
+                turnstileId = window.turnstile.render(box, {
+                    sitekey: TURNSTILE_SITE_KEY,
+                    execution: 'execute',
+                    appearance: 'interaction-only',
+                    callback: settleTurnstile,
+                    'before-interactive-callback': function () { box.classList.remove('hidden'); },
+                    'expired-callback': function () { settleTurnstile(''); },
+                    'error-callback': function () { settleTurnstile(''); return true; },
+                });
+            } catch (err) {
+                console.warn('FindFlower: Turnstile did not render. Scans go up without a token.', err);
+            }
+        };
+
+        // A token is single use and Cloudflare stops accepting it after five
+        // minutes, so anything older than four is treated as spent. The wait is
+        // capped because a challenge that never answers must not strand someone
+        // standing in a garden holding a photo.
+        function turnstileVerify() {
+            if (turnstileId === null || !window.turnstile) return Promise.resolve('');
+            if (cfToken && Date.now() - cfTokenAt < 240000) return Promise.resolve(cfToken);
+            return new Promise(function (resolve) {
+                let settled = false;
+                const finish = function (token) {
+                    if (settled) return;
+                    settled = true;
+                    resolve(token);
+                };
+                cfWaiting = finish;
+                setTimeout(function () {
+                    if (settled) return;
+                    cfWaiting = null;
+                    finish('');
+                }, TURNSTILE_WAIT_MS);
+                try {
+                    window.turnstile.reset(turnstileId);
+                    window.turnstile.execute(turnstileId);
+                } catch (err) {
+                    cfWaiting = null;
+                    finish('');
+                }
+            });
+        }
 
         async function inferenceAuthHeaders() {
             if (!SEND_AUTH_TOKEN) return {};
@@ -1214,6 +1293,11 @@
                 }
                 const form = new FormData();
                 form.append('file', currentBlob, 'flower.jpg');
+                const proof = await turnstileVerify();
+                if (proof) {
+                    form.append('cf-turnstile-response', proof);
+                    cfToken = '';
+                }
                 const res = await fetch(engineUrl(), {
                     method: 'POST',
                     headers: authHeaders,
@@ -1648,5 +1732,8 @@
         });
     })();
     </script>
+
+    <div id="ffTurnstile" class="hidden fixed left-1/2 bottom-6 -translate-x-1/2 z-[60]"></div>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=ffTurnstileReady&amp;render=explicit" defer></script>
 </body>
 </html>

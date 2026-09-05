@@ -179,7 +179,7 @@
                             POST a photo to the hosted endpoint from any web or server app and get
                             the species, a confidence score and ranked alternatives back as JSON.
                             It takes an Auth0 access token, and it is free.
-                            <a href="#sdk" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Jump to the quickstart</a>.
+                            <a href="#sdk" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Jump to the quickstart</a>, or <a href="#status" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">check that it is answering</a> first.
                         </p>
                     </div>
                     <div class="py-6">
@@ -191,7 +191,7 @@
                             A stateless HTTPS API for server-side use. The shape below is what it
                             will answer with; nothing behind it accepts requests today, so read
                             that part as a specification rather than a service.
-                            <a href="#endpoints" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Read the endpoints</a>.
+                            <a href="#endpoints" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Read the endpoints</a> and the <a href="#limits" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">allowance they will come with</a>.
                         </p>
                     </div>
                 </div>
@@ -264,6 +264,153 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                         <p>The base host is a placeholder during preview. The request and response shapes below are stabilising; the direct endpoint quickstart lower down works against the live Beta today.</p>
                     </div>
+                    </div>
+                </section>
+
+                <section id="limits" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Rate limits</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
+                    <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
+                        The model server is private and everything reaches it through a Cloudflare
+                        Worker at the edge. The Worker keeps two routes apart, and they are counted
+                        very differently.
+                    </p>
+
+                    <div class="overflow-x-auto mb-8">
+                    <table class="w-full min-w-[30rem] border-collapse border border-black">
+                        <thead>
+                            <tr>
+                                <th scope="col" class="border-b border-black px-4 py-3 text-left font-mono text-xs font-medium uppercase tracking-widest text-neutral-500">Route</th>
+                                <th scope="col" class="border-b border-l border-black px-4 py-3 text-left font-mono text-xs font-medium uppercase tracking-widest text-neutral-500">Counted</th>
+                                <th scope="col" class="border-b border-l border-black px-4 py-3 text-left font-mono text-xs font-medium uppercase tracking-widest text-neutral-500">Resets</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-neutral-600 font-light">
+                            <tr>
+                                <td class="px-4 py-4 align-top">
+                                    <span class="block font-mono text-sm text-neutral-900">POST /internal/scan</span>
+                                    <span class="block text-sm mt-1">The scanner on this site</span>
+                                </td>
+                                <td class="border-l border-black px-4 py-4 align-top text-sm">No. Scans from the app are not metered.</td>
+                                <td class="border-l border-black px-4 py-4 align-top text-sm">Not applicable</td>
+                            </tr>
+                            <tr>
+                                <td class="border-t border-black px-4 py-4 align-top">
+                                    <span class="block font-mono text-sm text-neutral-900">POST /v1/identify</span>
+                                    <span class="block text-sm mt-1">Your own code, batches included</span>
+                                </td>
+                                <td class="border-t border-l border-black px-4 py-4 align-top text-sm">Yes, per IP address.</td>
+                                <td class="border-t border-l border-black px-4 py-4 align-top text-sm">00:00 and 12:00 UTC</td>
+                            </tr>
+                            <tr>
+                                <td class="border-t border-black px-4 py-4 align-top">
+                                    <span class="block font-mono text-sm text-neutral-900">GET /warm</span>
+                                    <span class="block text-sm mt-1">Wake the model before you need it</span>
+                                </td>
+                                <td class="border-t border-l border-black px-4 py-4 align-top text-sm">No, and it runs no inference.</td>
+                                <td class="border-t border-l border-black px-4 py-4 align-top text-sm">Not applicable</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Two windows a day</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                        The public allowance is counted against the IP address the request arrives
+                        from and replenished twice a day, at 00:00 and 12:00 UTC. Nothing accrues in
+                        between. A window opens with the whole allowance, and whatever is unspent
+                        when it closes is not carried into the next one, so a job that starts just
+                        before a boundary effectively gets two windows back to back. That is the
+                        cheapest way to run a large batch: split it in two and start on the hour.
+                    </p>
+                    <p id="quotaNext" hidden class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl"></p>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mb-8 max-w-2xl">
+                        One address is one bucket. Behind office NAT or a shared CI runner you share
+                        that bucket with everyone else on the same address, which is worth knowing
+                        before you go looking through your own code for a 429 you did not earn.
+                    </p>
+
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">429 Too Many Requests</h3>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                        Once the window is spent the edge answers 429 and stops there: no image is
+                        read and no inference runs, so a refused request costs you nothing but the
+                        round trip. The reply carries the seconds left in both a header and the body.
+                    </p>
+                    <div class="code p-5 mb-6"><span class="tok-com"># the window is spent, so nothing ran</span>
+<span class="tok-key">HTTP/1.1</span> <span class="tok-num">429</span> Too Many Requests
+<span class="tok-key">Retry-After:</span> <span class="tok-num">18240</span>
+<span class="tok-key">Content-Type:</span> application/json
+
+{
+  <span class="tok-key">"error"</span>: <span class="tok-str">"Rate limit reached for this address."</span>,
+  <span class="tok-key">"window_ends"</span>: <span class="tok-str">"2026-09-05T12:00:00Z"</span>,
+  <span class="tok-key">"retry_after"</span>: <span class="tok-num">18240</span>
+}</div>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                        Sleep for <span class="font-mono text-sm text-neutral-700">Retry-After</span>
+                        rather than retrying on a timer of your own. A tight retry loop cannot win
+                        here: the counter does not move until the boundary, so the loop just spends
+                        the next window collecting more 429s.
+                    </p>
+                    <div class="flex items-start gap-2 text-sm text-neutral-500 font-light">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                        <p>Both windows and the 429 body above are the published terms of the hosted route, which is not open to keys yet. What is live today is the gateway itself, and the panel below measures it rather than describing it.</p>
+                    </div>
+                    </div>
+                </section>
+
+                <section id="status" class="scroll-mt-24 lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-y-6 lg:gap-x-12">
+                    <div class="lg:col-span-4">
+                    <h2 class="text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 mb-3">Live system status</h2>
+                    </div>
+                    <div class="lg:col-span-7 lg:col-start-6">
+                    <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
+                        Before you debug your own request, check that the edge is answering. This
+                        sends one <span class="font-mono text-sm text-neutral-700">GET /warm</span>
+                        from your browser to the gateway and prints what comes back: the status code,
+                        the round trip your own connection saw, and the readable response headers.
+                    </p>
+
+                    <div class="border border-black">
+                        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-black px-5 py-4">
+                            <div>
+                                <p class="font-mono text-xs uppercase tracking-widest text-neutral-500">GET /warm</p>
+                                <p class="font-mono text-sm text-neutral-900 break-all">findflower-proxy.fofi.workers.dev</p>
+                            </div>
+                            <button id="pingBtn" data-haptic class="soft-click shrink-0 rounded-none bg-[#1a3622] px-5 py-3 text-base font-medium text-white transition-colors hover:bg-[#132a1a]">Ping gateway</button>
+                        </div>
+                        <p id="pingIdle" class="px-5 py-4 text-sm text-neutral-500 font-light">
+                            Nothing measured yet. A sleeping model server takes a while to come back,
+                            and this route answers as soon as the wake-up is accepted rather than
+                            waiting for the model to finish booting.
+                        </p>
+                        <dl id="pingOut" hidden class="text-sm">
+                            <div class="flex items-baseline justify-between gap-4 border-b border-neutral-200 px-5 py-3">
+                                <dt class="font-mono text-xs uppercase tracking-widest text-neutral-500">Status</dt>
+                                <dd id="pingStatus" class="font-mono text-right text-neutral-900"></dd>
+                            </div>
+                            <div class="flex items-baseline justify-between gap-4 border-b border-neutral-200 px-5 py-3">
+                                <dt class="font-mono text-xs uppercase tracking-widest text-neutral-500">Round trip</dt>
+                                <dd id="pingMs" class="font-mono text-right text-neutral-900"></dd>
+                            </div>
+                            <div class="flex items-baseline justify-between gap-4 border-b border-neutral-200 px-5 py-3">
+                                <dt class="font-mono text-xs uppercase tracking-widest text-neutral-500">Body</dt>
+                                <dd id="pingBody" class="font-mono text-right text-neutral-900 break-all"></dd>
+                            </div>
+                            <div class="px-5 py-3">
+                                <dt class="font-mono text-xs uppercase tracking-widest text-neutral-500 mb-2">Response headers</dt>
+                                <dd id="pingHeaders" class="space-y-1 font-mono text-neutral-900"></dd>
+                            </div>
+                        </dl>
+                        <p id="pingNote" hidden class="border-t border-black px-5 py-4 text-sm text-neutral-500 font-light"></p>
+                    </div>
+                    <p class="mt-4 max-w-2xl text-sm text-neutral-500 font-light leading-relaxed">
+                        A browser hands a cross-origin script only the headers the edge marks as
+                        readable, so that list is deliberately short rather than the whole reply.
+                        Run the same request with curl to see everything the gateway sent.
+                    </p>
                     </div>
                 </section>
 
@@ -563,6 +710,138 @@ curl -X POST https://api.findflower.me/v1/identify \
                 } catch (e) {}
             });
         })();
+    </script>
+    <script>
+    (function () {
+        'use strict';
+
+        const GATEWAY = 'https://findflower-proxy.fofi.workers.dev';
+        const PING_TIMEOUT_MS = 12000;
+
+        // The allowance turns over at 00:00 and 12:00 UTC. Almost nobody reading
+        // this is on UTC, and a batch aimed at the wrong midnight is the mistake
+        // the line exists to prevent.
+        function nextWindow() {
+            const at = new Date();
+            at.setUTCMinutes(0, 0, 0);
+            at.setUTCHours(at.getUTCHours() < 12 ? 12 : 24);
+            return at;
+        }
+
+        function paintQuotaLine() {
+            const el = document.getElementById('quotaNext');
+            if (!el) return;
+            const at = nextWindow();
+            const mins = Math.max(0, Math.round((at.getTime() - Date.now()) / 60000));
+            const left = mins >= 60
+                ? Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm'
+                : mins + 'm';
+            el.textContent = 'By the clock in this browser the next window opens at '
+                + at.toLocaleString(undefined, {
+                    weekday: 'short', day: 'numeric', month: 'short',
+                    hour: '2-digit', minute: '2-digit',
+                })
+                + ', which is ' + left + ' away.';
+            el.hidden = false;
+        }
+
+        function set(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        }
+
+        function paintHeaders(res) {
+            const box = document.getElementById('pingHeaders');
+            if (!box) return;
+            box.textContent = '';
+            const seen = [];
+            res.headers.forEach(function (value, name) { seen.push([name, value]); });
+            seen.sort(function (a, b) { return a[0] < b[0] ? -1 : 1; });
+            if (!seen.length) {
+                const none = document.createElement('p');
+                none.className = 'text-neutral-500 font-light';
+                none.textContent = 'None readable from this origin.';
+                box.appendChild(none);
+                return;
+            }
+            seen.forEach(function (pair) {
+                const line = document.createElement('p');
+                line.className = 'break-all';
+                const key = document.createElement('span');
+                key.className = 'text-neutral-500';
+                key.textContent = pair[0] + ': ';
+                line.appendChild(key);
+                line.appendChild(document.createTextNode(pair[1]));
+                box.appendChild(line);
+            });
+        }
+
+        function note(text) {
+            const el = document.getElementById('pingNote');
+            if (!el) return;
+            el.textContent = text;
+            el.hidden = !text;
+        }
+
+        function verdict(status) {
+            if (status === 202) return 'The wake-up was accepted. The model server boots behind this reply, so the first real identify request may still wait on a cold start.';
+            if (status === 200) return 'The gateway answered its own health reply without touching the model.';
+            if (status === 403) return 'The gateway is up and refused this origin. Only the site itself and a local dev server are on its allowlist.';
+            if (status === 429) return 'The window for this address is spent. Read Retry-After above and come back after it.';
+            if (status >= 500) return 'The gateway answered, but something behind it did not.';
+            return 'The gateway answered with an unexpected status. The body above is the whole of what it said.';
+        }
+
+        async function ping(btn) {
+            const out = document.getElementById('pingOut');
+            const idle = document.getElementById('pingIdle');
+            const label = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Pinging';
+            note('');
+
+            const controller = new AbortController();
+            const timer = setTimeout(function () { controller.abort(); }, PING_TIMEOUT_MS);
+            const t0 = performance.now();
+
+            try {
+                const res = await fetch(GATEWAY + '/warm', {
+                    method: 'GET', mode: 'cors', cache: 'no-store', signal: controller.signal,
+                });
+                const ms = Math.round(performance.now() - t0);
+                const body = (await res.text().catch(function () { return ''; })).trim();
+
+                if (idle) idle.hidden = true;
+                if (out) out.hidden = false;
+                set('pingStatus', res.status + ' ' + (res.statusText || ''));
+                set('pingMs', ms + ' ms');
+                set('pingBody', body ? body.slice(0, 160) : 'empty');
+                paintHeaders(res);
+                note(verdict(res.status));
+            } catch (err) {
+                if (idle) idle.hidden = true;
+                if (out) out.hidden = false;
+                set('pingStatus', err.name === 'AbortError' ? 'no reply' : 'blocked');
+                set('pingMs', Math.round(performance.now() - t0) + ' ms');
+                set('pingBody', 'none');
+                const box = document.getElementById('pingHeaders');
+                if (box) box.textContent = 'None. Nothing readable arrived.';
+                note(err.name === 'AbortError'
+                    ? 'No reply within ' + Math.round(PING_TIMEOUT_MS / 1000) + ' seconds. The gateway is either down or holding the connection open.'
+                    : (location.origin === 'https://findflower.me'
+                        ? 'The browser could not read a reply. That is either the gateway being unreachable or this device being offline, and a browser cannot tell those two apart.'
+                        : 'The browser could not read a reply, which is expected here: this page is being served from ' + location.origin + ' and the gateway only answers its own site. Open this panel on findflower.me for a real measurement.'));
+            } finally {
+                clearTimeout(timer);
+                btn.disabled = false;
+                btn.textContent = label;
+            }
+        }
+
+        const btn = document.getElementById('pingBtn');
+        if (btn) btn.addEventListener('click', function () { ping(btn); });
+        paintQuotaLine();
+    })();
     </script>
 </body>
 </html>

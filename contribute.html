@@ -320,10 +320,46 @@
             </section>
 
             <div class="max-w-2xl">
-                <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed mt-16 pt-8 border-t border-neutral-200">
-                    The collection behind all this is still running: 1,747 of the 3,969 names it is
-                    aiming at have a folder so far, and how that is counted and checked is in
-                    <a href="/releases" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">the release notes</a>.
+                <section id="f10k" class="reveal-up mt-16 pt-8 border-t border-neutral-200">
+                    <h2 class="text-2xl font-medium tracking-tight text-neutral-900 mb-2">Where the collection stands</h2>
+                    <p class="text-base text-neutral-500 font-light leading-relaxed mb-6">
+                        The set behind the larger model is aiming at 300 checked photographs of each of
+                        3,969 flowering species. None of that is finished, which is why a good set of
+                        your own is worth sending.
+                    </p>
+                    <p id="f10kWritten" class="text-base text-neutral-500 font-light leading-relaxed">
+                        1,747 of those names have a folder so far, and how that is counted and checked is in
+                        <a href="/releases" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">the release notes</a>.
+                    </p>
+                    <div id="f10kPanel" hidden class="border border-black">
+                        <dl class="sm:grid sm:grid-cols-3">
+                            <div class="border-b border-black px-5 py-4 sm:border-b-0 sm:border-r">
+                                <dt class="text-sm text-neutral-500 font-light">Species finished</dt>
+                                <dd class="mt-1">
+                                    <span id="f10kDone" class="block text-2xl font-medium tracking-tight text-[#1a3622]"></span>
+                                    <span id="f10kDoneNote" class="block text-sm text-neutral-500 font-light"></span>
+                                </dd>
+                            </div>
+                            <div class="border-b border-black px-5 py-4 sm:border-b-0 sm:border-r">
+                                <dt class="text-sm text-neutral-500 font-light">Photos already in</dt>
+                                <dd class="mt-1">
+                                    <span id="f10kIn" class="block text-2xl font-medium tracking-tight text-[#1a3622]"></span>
+                                    <span id="f10kInNote" class="block text-sm text-neutral-500 font-light"></span>
+                                </dd>
+                            </div>
+                            <div class="px-5 py-4">
+                                <dt class="text-sm text-neutral-500 font-light">Photos still to find</dt>
+                                <dd class="mt-1">
+                                    <span id="f10kLeft" class="block text-2xl font-medium tracking-tight text-[#1a3622]"></span>
+                                    <span id="f10kLeftNote" class="block text-sm text-neutral-500 font-light"></span>
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+                    <p id="f10kStamp" hidden class="text-sm text-neutral-500 font-light leading-relaxed mt-4"></p>
+                </section>
+
+                <p class="reveal-up text-base text-neutral-500 font-light leading-relaxed mt-8">
                     If you only want to tell the scanner it got one wrong and there is no photo to give,
                     <a href="/feedback" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">feedback</a>
                     is the shorter way round.
@@ -345,5 +381,113 @@
         </footer>
     </noscript></div>
 
+    <script>
+        (async function () {
+            const LEDGER = 'https://huggingface.co/datasets/gsor56/findflower-find10k/resolve/main/pipeline/find10k_ingestion_progress.json';
+            const META = 'https://huggingface.co/api/datasets/gsor56/findflower-find10k?expand[]=lastModified&expand[]=usedStorage';
+
+            // The taxonomy size and the per species target are the plan, not a
+            // measurement, so they are settled here rather than read from the ledger.
+            const TAXONOMY = 3969;
+            const TARGET = 300;
+            const READ_MS = 9000;
+
+            const panel = document.getElementById('f10kPanel');
+            const written = document.getElementById('f10kWritten');
+            const stamp = document.getElementById('f10kStamp');
+            if (!panel || !written || !stamp) return;
+
+            function num(n) { return n.toLocaleString('en-GB'); }
+
+            function set(id, text) {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            }
+
+            function day(d) {
+                return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            async function read(url) {
+                const stop = new AbortController();
+                const timer = setTimeout(function () { stop.abort(); }, READ_MS);
+                try {
+                    const res = await fetch(url, { signal: stop.signal });
+                    return res.ok ? await res.json() : null;
+                } catch (err) {
+                    return null;
+                } finally {
+                    clearTimeout(timer);
+                }
+            }
+
+            function tally(ledger) {
+                const rows = ledger && ledger.counts;
+                if (!rows || typeof rows !== 'object') return null;
+                let held = 0, capped = 0, full = 0, started = 0;
+                for (const key in rows) {
+                    const n = Number(rows[key]);
+                    if (!Number.isFinite(n) || n <= 0) continue;
+                    started += 1;
+                    held += n;
+                    capped += Math.min(n, TARGET);
+                    if (n >= TARGET) full += 1;
+                }
+                if (!started) return null;
+                let thrown = 0;
+                const bad = ledger.rejected;
+                if (bad && typeof bad === 'object') {
+                    for (const reason in bad) {
+                        const n = Number(bad[reason]);
+                        if (Number.isFinite(n) && n > 0) thrown += n;
+                    }
+                }
+                const at = Number(ledger.updated_at_unix);
+                return {
+                    full: full,
+                    held: held,
+                    short: Math.max(0, TAXONOMY * TARGET - capped),
+                    thrown: thrown,
+                    when: Number.isFinite(at) && at > 0 ? new Date(at * 1000) : null
+                };
+            }
+
+            function stampLine(when, tail) {
+                stamp.textContent = when
+                    ? "Counted from the collector's ledger on " + day(when) + '. How the checks work is in '
+                    : "Counted from the collector's ledger. How the checks work is in ";
+                const a = document.createElement('a');
+                a.href = '/releases';
+                a.className = 'text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors';
+                a.textContent = 'the release notes';
+                stamp.appendChild(a);
+                stamp.appendChild(document.createTextNode(tail ? '. ' + tail : '.'));
+            }
+
+            const metaSoon = read(META);
+            const live = tally(await read(LEDGER));
+            if (!live) return;
+
+            set('f10kDone', num(live.full));
+            set('f10kDoneNote', 'of ' + num(TAXONOMY) + ' species it is aiming at');
+            set('f10kIn', num(live.held));
+            set('f10kInNote', live.thrown ? num(live.thrown) + ' more failed the checks' : '');
+            set('f10kLeft', num(live.short));
+            set('f10kLeftNote', 'to bring every folder to ' + TARGET);
+            written.hidden = true;
+            panel.hidden = false;
+            stamp.hidden = false;
+            stampLine(live.when, '');
+
+            const meta = await metaSoon;
+            if (!meta) return;
+            const pushed = meta.lastModified ? new Date(meta.lastModified) : null;
+            const bytes = Number(meta.usedStorage);
+            const said = [];
+            if (pushed && !isNaN(pushed.getTime())) said.push('last took files on ' + day(pushed));
+            if (Number.isFinite(bytes) && bytes > 0) said.push('holds ' + (bytes / 1e9).toFixed(1) + ' GB');
+            if (said.length) stampLine(live.when, 'The dataset itself ' + said.join(' and ') + '.');
+        })();
+    </script>
 </body>
 </html>
