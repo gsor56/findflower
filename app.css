@@ -278,13 +278,6 @@ html.ff-routing main {
 
 .ff-lang__select:focus { outline: none; }
 
-.ff-lang-note {
-    margin: 0.7rem 0 0;
-    color: #737373;
-    font-size: 0.75rem;
-    line-height: 1.5;
-}
-
 .ff-drawer-account__note {
     margin: 0;
     color: #737373;

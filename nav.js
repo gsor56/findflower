@@ -11,10 +11,10 @@
         'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
     var LINKS = [
-        { label: 'How it works', href: '/how' },
-        { label: 'Pricing',      href: '/pricing' },
-        { label: 'API',          href: '/api' },
-        { label: 'About',        href: '/#about' }
+        { label: 'How it works', href: '/how',      key: 'page.how' },
+        { label: 'Pricing',      href: '/pricing',  key: 'page.pricing' },
+        { label: 'API',          href: '/api',      key: 'page.api' },
+        { label: 'About',        href: '/#about',   key: 'page.about' }
     ];
 
     var SVG_OPEN = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" ' +
@@ -120,6 +120,7 @@
                 ? 'text-neutral-900'
                 : 'text-neutral-500 hover:text-neutral-900 transition-colors';
             return '<a href="' + l.href + '" class="' + cls + '"' +
+                ' data-i18n="' + l.key + '"' +
                 (active ? ' aria-current="page"' : '') + '>' + l.label + '</a>';
         }).join('');
     }
@@ -140,9 +141,10 @@
                     navLinksHTML() +
                 '</nav>' +
                 '<div class="flex items-center gap-2 sm:gap-3 shrink-0">' +
-                    '<a id="signInLink" href="/login" class="text-sm font-medium text-neutral-900 ' +
+                    '<a id="signInLink" href="/login" data-i18n="nav.signin" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
                     '<button id="ffMenuBtn" type="button" data-toggle-sidebar aria-label="Open menu" ' +
+                        'data-i18n-aria="nav.menu.open" ' +
                         'aria-controls="ffSidebar" aria-expanded="false" ' +
                         'class="ff-hamburger soft-click flex items-center justify-center text-neutral-700 ' +
                         'hover:text-neutral-900 transition" style="min-width:40px;min-height:40px">' +
@@ -225,10 +227,11 @@
         measureNotice();
     }
 
-    function drawerLink(label, href, icon) {
+    function drawerLink(label, href, icon, key) {
         var active = linkIsActive(href);
         return '<a href="' + href + '" class="ff-drawer-link' + (active ? ' is-active' : '') + '"' +
-            (active ? ' aria-current="page"' : '') + '>' + icon + '<span>' + label + '</span></a>';
+            (active ? ' aria-current="page"' : '') + '>' + icon +
+            '<span data-i18n="' + key + '">' + label + '</span></a>';
     }
 
     function savedLang() {
@@ -248,13 +251,18 @@
                 (l.code === current.code ? ' selected' : '') + '>' + l.label + '</option>';
         }).join('');
         return '<span class="ff-lang">' + ICON_GLOBE +
-            '<select id="ffLang" class="ff-lang__select" aria-label="Language">' +
+            '<select id="ffLang" class="ff-lang__select" aria-label="Language" ' +
+                'data-i18n-aria="drawer.language">' +
                 options + '</select>' + ICON_CARET + '</span>';
     }
 
-    function paintLangNote(code) {
-        var note = document.getElementById('ffLangNote');
-        if (note) note.hidden = code === 'en';
+    function translate(root) {
+        if (window.ffI18n) window.ffI18n.apply(root || document);
+    }
+
+    function phrase(key, fallback) {
+        var said = window.ffI18n ? window.ffI18n.t(key) : '';
+        return said || fallback;
     }
 
     function wireLang() {
@@ -265,10 +273,9 @@
             for (var i = 0; i < LANGS.length; i++) {
                 if (LANGS[i].code === select.value) picked = LANGS[i];
             }
-            try { localStorage.setItem(LANG_KEY, picked.code); } catch (e) { }
-            paintLangNote(picked.code);
+            if (window.ffI18n) window.ffI18n.set(picked.code);
+            else try { localStorage.setItem(LANG_KEY, picked.code); } catch (e) { }
         });
-        paintLangNote(savedLang().code);
     }
 
     function buildSidebar() {
@@ -277,8 +284,9 @@
             '<div id="ffSidebarBackdrop" class="ff-sidebar-backdrop" aria-hidden="true"></div>' +
             '<aside id="ffSidebar" class="ff-sidebar" aria-label="Site menu" aria-hidden="true" aria-modal="true" role="dialog" tabindex="-1">' +
                 '<div class="ff-sidebar__header">' +
-                    '<h2>Menu</h2>' +
-                    '<button id="ffSidebarClose" type="button" aria-label="Close menu" class="ff-sidebar__close">' + ICON_CLOSE + '</button>' +
+                    '<h2 data-i18n="drawer.title">Menu</h2>' +
+                    '<button id="ffSidebarClose" type="button" aria-label="Close menu" ' +
+                        'data-i18n-aria="nav.menu.close" class="ff-sidebar__close">' + ICON_CLOSE + '</button>' +
                 '</div>' +
                 '<div class="ff-sidebar__scroll">' +
                     '<div class="ff-drawer-top">' +
@@ -286,31 +294,29 @@
                             '<section id="ffDrawerAuth" class="ff-drawer-account" aria-live="polite"></section>' +
                             langPill() +
                         '</div>' +
-                        '<p id="ffLangNote" class="ff-lang-note" hidden>Only English is ready ' +
-                            'so far. Your pick is saved.</p>' +
                     '</div>' +
-                    '<nav class="ff-drawer-nav" aria-label="All pages">' +
-                        drawerLink('Home', '/', ICON_HOME) +
-                        drawerLink('Scanner', '/try', ICON_SCANNER) +
-                        drawerLink('Dashboard', '/dashboard', ICON_DASH) +
-                        drawerLink('Profile', '/profile', ICON_PROFILE) +
-                        drawerLink('Directory', '/directory', ICON_DIR) +
-                        drawerLink('How it works', '/how', ICON_HOW) +
-                        drawerLink('Pricing', '/pricing', ICON_PRICE) +
-                        drawerLink('API', '/api', ICON_API) +
-                        drawerLink('Data', '/data', ICON_DATA) +
-                        drawerLink('Research', '/research', ICON_RESEARCH) +
-                        drawerLink('Blogs', '/blogs', ICON_BLOGS) +
-                        drawerLink('Community', '/community', ICON_COMMUNITY) +
-                        drawerLink('Contribute', '/contribute', ICON_CONTRIBUTE) +
-                        drawerLink('About', '/#about', ICON_ABOUT) +
+                    '<nav class="ff-drawer-nav" aria-label="All pages" data-i18n-aria="drawer.pages">' +
+                        drawerLink('Home', '/', ICON_HOME, 'page.home') +
+                        drawerLink('Scanner', '/try', ICON_SCANNER, 'page.scanner') +
+                        drawerLink('Dashboard', '/dashboard', ICON_DASH, 'page.dashboard') +
+                        drawerLink('Profile', '/profile', ICON_PROFILE, 'page.profile') +
+                        drawerLink('Directory', '/directory', ICON_DIR, 'page.directory') +
+                        drawerLink('How it works', '/how', ICON_HOW, 'page.how') +
+                        drawerLink('Pricing', '/pricing', ICON_PRICE, 'page.pricing') +
+                        drawerLink('API', '/api', ICON_API, 'page.api') +
+                        drawerLink('Data', '/data', ICON_DATA, 'page.data') +
+                        drawerLink('Research', '/research', ICON_RESEARCH, 'page.research') +
+                        drawerLink('Blogs', '/blogs', ICON_BLOGS, 'page.blogs') +
+                        drawerLink('Community', '/community', ICON_COMMUNITY, 'page.community') +
+                        drawerLink('Contribute', '/contribute', ICON_CONTRIBUTE, 'page.contribute') +
+                        drawerLink('About', '/#about', ICON_ABOUT, 'page.about') +
                     '</nav>' +
                 '</div>' +
                 '<section id="ffInstall" class="ff-drawer-install" hidden>' +
-                    '<p class="ff-drawer-account__note">Put FindFlower on your home screen and ' +
-                        'open it in its own window.</p>' +
-                    '<button id="ffInstallBtn" type="button" class="ff-drawer-button ff-drawer-button--quiet">' +
-                        'Install app</button>' +
+                    '<p class="ff-drawer-account__note" data-i18n="drawer.install.note">Put FindFlower ' +
+                        'on your home screen and open it in its own window.</p>' +
+                    '<button id="ffInstallBtn" type="button" data-i18n="drawer.install.button" ' +
+                        'class="ff-drawer-button ff-drawer-button--quiet">Install app</button>' +
                 '</section>' +
             '</aside>';
         return wrap;
@@ -394,16 +400,20 @@
         if (!session || !session.authenticated) return;
         link.textContent = session.name || 'Account';
         link.href = '/dashboard';
+        // The label is a name now, so the language pass must stop rewriting it.
+        link.removeAttribute('data-i18n');
     }
 
     function renderDrawerAuth() {
         var host = document.getElementById('ffDrawerAuth');
         if (!host) return;
-        var guest = '<p class="ff-drawer-account__note">Sign in to keep your finds under your own account.</p>' +
+        var guest = '<p class="ff-drawer-account__note" data-i18n="drawer.account">Sign in to keep ' +
+            'your finds under your own account.</p>' +
             '<div class="ff-drawer-account__actions ff-drawer-account__actions--one">' +
-                '<a href="/login" class="ff-drawer-button ff-drawer-button--solid">Sign In</a>' +
+                '<a href="/login" data-i18n="nav.signin" class="ff-drawer-button ff-drawer-button--solid">Sign In</a>' +
             '</div>';
         host.innerHTML = guest;
+        translate(host);
         function paintProfile(session) {
             if (!session || !session.authenticated) return;
             var name = escapeHTML(session.name || 'Botanist');
@@ -439,7 +449,10 @@
         var btns = document.querySelectorAll('[data-toggle-sidebar], .ff-hamburger');
         for (var i = 0; i < btns.length; i++) {
             btns[i].setAttribute('aria-expanded', on ? 'true' : 'false');
-            btns[i].setAttribute('aria-label', on ? 'Close menu' : 'Open menu');
+            btns[i].setAttribute('data-i18n-aria', on ? 'nav.menu.close' : 'nav.menu.open');
+            btns[i].setAttribute('aria-label', on
+                ? phrase('nav.menu.close', 'Close menu')
+                : phrase('nav.menu.open', 'Open menu'));
         }
         if (on) {
             sidebarFocus = document.activeElement;
@@ -482,19 +495,19 @@
 
     var TABS = [
         {
-            label: 'Home', href: '/', match: ['index.html', ''],
+            label: 'Home', href: '/', key: 'tab.home', match: ['index.html', ''],
             icon: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/>'
         },
         {
-            label: 'Scan', href: '/try', match: ['try.html'],
+            label: 'Scan', href: '/try', key: 'tab.scan', match: ['try.html'],
             icon: SCAN_PATH
         },
         {
-            label: 'Directory', href: '/directory', match: ['directory.html'],
+            label: 'Directory', href: '/directory', key: 'tab.directory', match: ['directory.html'],
             icon: '<path d="M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z"/>'
         },
         {
-            label: 'Dashboard', href: '/dashboard', match: ['dashboard.html'],
+            label: 'Dashboard', href: '/dashboard', key: 'tab.dashboard', match: ['dashboard.html'],
             icon: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>'
         }
     ];
@@ -502,14 +515,15 @@
     function buildTabBar() {
         var nav = document.createElement('nav');
         nav.className = 'ff-tabbar';
-        nav.setAttribute('aria-label', 'Primary');
+        nav.setAttribute('aria-label', phrase('tab.label', 'Primary'));
+        nav.setAttribute('data-i18n-aria', 'tab.label');
         nav.innerHTML = TABS.map(function (t) {
             var active = t.match.indexOf(PAGE) !== -1;
             return '<a class="ff-tabbar__item" href="' + t.href + '"' +
                 (active ? ' aria-current="page"' : '') + '>' +
                 '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" ' +
                 'stroke-linecap="round" stroke-linejoin="round">' + t.icon + '</svg>' +
-                '<span>' + t.label + '</span></a>';
+                '<span data-i18n="' + t.key + '">' + t.label + '</span></a>';
         }).join('');
         return nav;
     }
@@ -536,6 +550,8 @@
 
         document.body.appendChild(buildTabBar());
         document.body.classList.add('has-tabbar');
+
+        translate(document);
 
         if (typeof window.ffRenderHeader === 'function') {
             try { window.ffRenderHeader(); } catch (e) { }
@@ -569,6 +585,7 @@
         }
         renderDrawerAuth();
         adoptNotice();
+        translate(document);
         // A router swap brings in a fresh homepage, install button and all, with the
         // event already spent or still held from before the swap.
         paintInstall();

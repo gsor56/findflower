@@ -12,27 +12,27 @@
     var PAGE = pageKey(location.pathname);
 
     var PRODUCT = [
-        { label: 'Try Now',       href: '/try',       key: 'try.html' },
-        { label: 'Directory',     href: '/directory', key: 'directory.html' },
-        { label: 'How it works',  href: '/how',       key: 'how.html' },
-        { label: 'Docs',          href: '/docs',      key: 'docs.html' },
-        { label: 'Pricing',       href: '/pricing',   key: 'pricing.html' },
-        { label: 'API',           href: '/api',       key: 'api.html' },
-        { label: 'Data',          href: '/data',      key: 'data.html' },
-        { label: 'Release Notes', href: '/releases',  key: 'releases.html' },
-        { label: 'Blogs',         href: '/blogs',     key: 'blogs.html' }
+        { label: 'Try Now',       href: '/try',       key: 'try.html', say: 'page.try' },
+        { label: 'Directory',     href: '/directory', key: 'directory.html', say: 'page.directory' },
+        { label: 'How it works',  href: '/how',       key: 'how.html', say: 'page.how' },
+        { label: 'Docs',          href: '/docs',      key: 'docs.html', say: 'page.docs' },
+        { label: 'Pricing',       href: '/pricing',   key: 'pricing.html', say: 'page.pricing' },
+        { label: 'API',           href: '/api',       key: 'api.html', say: 'page.api' },
+        { label: 'Data',          href: '/data',      key: 'data.html', say: 'page.data' },
+        { label: 'Release Notes', href: '/releases',  key: 'releases.html', say: 'page.releases' },
+        { label: 'Blogs',         href: '/blogs',     key: 'blogs.html', say: 'page.blogs' }
     ];
 
     var PROJECT = [
-        { label: 'About',            href: '/about',     key: 'about.html' },
-        { label: 'Research',         href: '/research',  key: 'research.html' },
-        { label: 'Community',        href: '/community', key: 'community.html' },
-        { label: 'Contribute',       href: '/contribute', key: 'contribute.html' },
-        { label: 'Contact',          href: '/contact',   key: 'contact.html' },
-        { label: 'Privacy Policy',   href: '/privacy',   key: 'privacy.html' },
-        { label: 'Terms of Service', href: '/terms',     key: 'terms.html' },
-        { label: 'Open datasets',    href: 'https://huggingface.co/gsor56', out: true },
-        { label: 'Source on GitHub', href: 'https://github.com/gsor56/findflower', out: true }
+        { label: 'About',            href: '/about',     key: 'about.html', say: 'page.about' },
+        { label: 'Research',         href: '/research',  key: 'research.html', say: 'page.research' },
+        { label: 'Community',        href: '/community', key: 'community.html', say: 'page.community' },
+        { label: 'Contribute',       href: '/contribute', key: 'contribute.html', say: 'page.contribute' },
+        { label: 'Contact',          href: '/contact',   key: 'contact.html', say: 'page.contact' },
+        { label: 'Privacy Policy',   href: '/privacy',   key: 'privacy.html', say: 'page.privacy' },
+        { label: 'Terms of Service', href: '/terms',     key: 'terms.html', say: 'page.terms' },
+        { label: 'Open datasets',    href: 'https://huggingface.co/gsor56', out: true, say: 'footer.datasets' },
+        { label: 'Source on GitHub', href: 'https://github.com/gsor56/findflower', out: true, say: 'footer.source' }
     ];
 
     var ATTRIBUTED = { 'directory.html': 1, 'species.html': 1 };
@@ -53,26 +53,28 @@
         return item.key === PAGE;
     }
 
-    function column(title, items) {
+    function column(say, title, items) {
         return '<div>' +
-            '<h2 class="text-sm font-medium text-neutral-900 mb-4">' + title + '</h2>' +
+            '<h2 class="text-sm font-medium text-neutral-900 mb-4" data-i18n="' + say + '">' + title + '</h2>' +
             '<ul class="space-y-3 text-sm text-neutral-500 font-light">' +
             items.map(function (i) {
                 if (i.out) {
                     return '<li><a href="' + i.href + '" target="_blank" rel="noopener noreferrer"' +
-                        ' class="' + LINK_CLS + '">' + i.label + '</a></li>';
+                        ' data-i18n="' + i.say + '" class="' + LINK_CLS + '">' + i.label + '</a></li>';
                 }
                 var on = isActive(i);
-                return '<li><a href="' + i.href + '" data-ff-key="' + i.key + '" class="' + (on ? 'text-neutral-900' : LINK_CLS) + '"' +
+                return '<li><a href="' + i.href + '" data-ff-key="' + i.key + '" data-i18n="' + i.say + '" class="' + (on ? 'text-neutral-900' : LINK_CLS) + '"' +
                     (on ? ' aria-current="page"' : '') + '>' + i.label + '</a></li>';
             }).join('') +
             '</ul></div>';
     }
 
     function creditLine() {
-        return '&copy; 2026 FindFlower &middot; Open botanical reference' +
+        return '&copy; 2026 FindFlower &middot; ' +
+            '<span data-i18n="footer.credit">Open botanical reference</span>' +
             (ATTRIBUTED[PAGE]
-                ? '<br>Species data from Wikidata &amp; Wikipedia, CC0 / CC BY-SA'
+                ? '<br><span data-i18n="footer.attribution">Species data from Wikidata ' +
+                    '&amp; Wikipedia, CC0 / CC BY-SA</span>'
                 : '');
     }
 
@@ -123,12 +125,12 @@
                 '<div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">' +
                     '<div class="col-span-2">' +
                         '<span class="flex items-center gap-2 text-lg font-medium tracking-tight ' + 'text-neutral-900 mb-3">' + LOGO + 'FindFlower</span>' +
-                        '<p class="text-sm text-neutral-500 font-light max-w-xs">' +
+                        '<p class="text-sm text-neutral-500 font-light max-w-xs" data-i18n="footer.tagline">' +
                             'Point it at a flower and it gives you the species, how ' +
                             'confident it is, and the record behind it.</p>' +
                     '</div>' +
-                    column('Product', PRODUCT) +
-                    column('Project', PROJECT) +
+                    column('footer.product', 'Product', PRODUCT) +
+                    column('footer.project', 'Project', PROJECT) +
                 '</div>' +
                 bottomBar() +
             '</div>';
@@ -156,6 +158,7 @@
         var el = build(flush);
         if (host && host.parentNode) host.parentNode.replaceChild(el, host);
         else document.body.appendChild(el);
+        if (window.ffI18n) window.ffI18n.apply(el);
     }
 
     function setActive(key) {
@@ -183,6 +186,7 @@
 
         var credit = el.querySelector('[data-ff-credit]');
         if (credit) credit.innerHTML = creditLine();
+        if (window.ffI18n) window.ffI18n.apply(el);
 
         spacing(el, !!FLUSH[PAGE]);
     }

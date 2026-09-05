@@ -100,8 +100,11 @@ async function ffRenderHeader() {
         link.textContent = user.given_name || user.nickname || user.name || "Account";
         link.href = "/dashboard";
         link.onclick = null;
+        link.removeAttribute("data-i18n");
     } else {
-        link.textContent = "Sign In";
+        // Back to a translatable label once there is no name to show.
+        link.setAttribute("data-i18n", "nav.signin");
+        link.textContent = (window.ffI18n && window.ffI18n.t("nav.signin")) || "Sign In";
         link.href = "/login";
         link.onclick = null;
     }
