@@ -514,6 +514,22 @@
         }
     }
 
+    async function fileTitle(ref) {
+        try {
+            var res = await fetch('/articles/manifest.json');
+            if (!res.ok) return '';
+            var list = await res.json();
+            if (!Array.isArray(list)) return '';
+            for (var i = 0; i < list.length; i++) {
+                var row = list[i];
+                if (!row || !row.filename || !row.title) continue;
+                if (String(row.filename).replace(/[.]md$/, '') !== ref) continue;
+                return String(row.title).trim();
+            }
+        } catch (e) { }
+        return '';
+    }
+
     async function prefillDraft(ref) {
         var box = $('cmBody');
         var line = $('cmDraftRef');
@@ -525,10 +541,13 @@
             var res = await fetch('/article?id=' + encodeURIComponent(ref), { credentials: 'same-origin' });
             if (res.ok) {
                 var doc = new DOMParser().parseFromString(await res.text(), 'text/html');
-                var h1 = doc.querySelector('article[data-entry="' + ref + '"] h1') || doc.querySelector('h1');
+                var h1 = doc.querySelector('article[data-entry="' + ref + '"] h1');
                 if (h1) title = h1.textContent.trim();
             }
         } catch (e) { }
+        // A field log kept as markdown has no title in the page it is served
+        // from, so the index is the only place left to read it.
+        if (!title) title = await fileTitle(ref);
 
         state.draftRef = ref;
         if (!box.value) {

@@ -37,6 +37,7 @@
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@18.0.11/lib/marked.umd.min.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,400;9..144,500&display=swap" rel="stylesheet">
@@ -67,6 +68,21 @@
         .ff-body p { line-height:1.75; }
         .ff-body h2 { font-size:1.125rem; font-weight:500; color:#171717; margin-top:2.5rem; margin-bottom:0.75rem; }
         .ff-body p + p { margin-top:1rem; }
+
+        .ff-md > * + * { margin-top:1rem; }
+        .ff-md > :first-child { margin-top:0; }
+        .ff-md h3 { font-size:1rem; font-weight:500; color:#171717; margin-top:2rem; margin-bottom:0.5rem; }
+        .ff-md ul { list-style:disc; padding-left:1.25rem; }
+        .ff-md ol { list-style:decimal; padding-left:1.25rem; }
+        .ff-md li { line-height:1.75; }
+        .ff-md li + li { margin-top:0.375rem; }
+        .ff-md strong { font-weight:500; color:#171717; }
+        .ff-md code { font-size:0.875rem; background:#F5F5F5; border:1px solid #E5E5E5; padding:0.05rem 0.3rem; }
+        .ff-md pre { background:#F5F5F5; border:1px solid #E5E5E5; padding:1rem; overflow-x:auto; }
+        .ff-md pre code { background:none; border:0; padding:0; }
+        .ff-md blockquote { border-left:2px solid #C9D6CB; padding-left:1rem; color:#525252; }
+        .ff-md img { max-width:100%; height:auto; }
+        .ff-md hr { border-top:1px solid #E5E5E5; margin-top:2rem; margin-bottom:2rem; }
 
         @media (prefers-reduced-motion: reduce) {
             *,*::before,*::after { animation:none!important; transition:none!important; }
@@ -303,6 +319,27 @@
                 </footer>
             </article>
 
+            <article id="mdPost" data-entry-file hidden class="reveal-up">
+                <header class="mb-10 pb-8 border-b border-neutral-200">
+                    <p id="mdMeta" class="ff-meta mb-4"></p>
+                    <h1 id="mdTitle" class="text-3xl md:text-5xl font-medium tracking-tight text-neutral-900 leading-tight mb-4"></h1>
+                    <p id="mdLede" class="font-serif italic text-xl md:text-2xl text-sage-700"></p>
+                </header>
+
+                <div id="mdBody" class="ff-body ff-md text-lg text-neutral-600 font-light"></div>
+
+                <footer class="mt-12 pt-8 border-t border-neutral-200">
+                    <p>
+                        <a id="mdDiscuss" href="/community" data-ff-discuss class="inline-block text-sm font-medium text-neutral-700 border border-neutral-200 rounded-sm px-4 py-2 hover:bg-neutral-50 transition">Discuss in Community</a>
+                    </p>
+                </footer>
+            </article>
+
+            <p id="mdFailed" hidden class="reveal-up">
+                <span class="block text-lg text-neutral-600 font-light mb-3">This entry did not load. It is a file fetched when the page opens, so a dropped connection stops it.</span>
+                <a href="/blogs" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Back to the field logs</a>
+            </p>
+
             <p data-entry-missing hidden class="reveal-up">
                 <span class="block text-lg text-neutral-600 font-light mb-3">No entry with that name.</span>
                 <a href="/blogs" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">See what has been written</a>
@@ -329,23 +366,153 @@
     </noscript></div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        (function () {
+            const LINK = 'text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors';
+            const WPM = 200;
+            const DROP = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, FORM: 1, INPUT: 1, LINK: 1, META: 1, BASE: 1 };
+
             const entries = [...document.querySelectorAll('article[data-entry]')];
             const missing = document.querySelector('[data-entry-missing]');
-            const want = new URLSearchParams(location.search).get('id');
-            const shown = want ? entries.find(a => a.dataset.entry === want) : entries[0];
-            entries.forEach(a => { a.hidden = a !== shown; });
-            if (missing) missing.hidden = !!shown;
-            if (shown) {
-                const h1 = shown.querySelector('h1');
-                if (h1) document.title = h1.textContent.trim() + ' | FindFlower';
-            } else {
-                document.title = 'Field log | FindFlower';
+            const post = document.getElementById('mdPost');
+            const failed = document.getElementById('mdFailed');
+
+            function reveal(el) {
+                if (!el) return;
+                el.hidden = false;
+                requestAnimationFrame(() => el.classList.add('active'));
             }
 
-            const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
-            document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
-        });
+            function slugOf(file) {
+                return String(file).replace(/[.]md$/, '');
+            }
+
+            function day(iso) {
+                const d = new Date(String(iso) + 'T00:00:00');
+                if (isNaN(d.getTime())) return '';
+                return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            function attr(sel, name, value) {
+                const tag = document.querySelector(sel);
+                if (tag && value) tag.setAttribute(name, value);
+            }
+
+            function stampHead(entry, slug) {
+                const url = 'https://findflower.me/article?post=' + encodeURIComponent(slug);
+                const title = entry.title + ' | FindFlower';
+                document.title = title;
+                attr('link[rel="canonical"]', 'href', url);
+                attr('meta[property="og:url"]', 'content', url);
+                attr('meta[property="og:title"]', 'content', title);
+                attr('meta[name="twitter:title"]', 'content', title);
+                attr('meta[name="description"]', 'content', entry.summary);
+                attr('meta[property="og:description"]', 'content', entry.summary);
+                attr('meta[name="twitter:description"]', 'content', entry.summary);
+            }
+
+            // marked hands back a string, so the file is walked before it is
+            // adopted rather than trusted for sitting on our own origin.
+            function scrub(node) {
+                [...node.children].forEach(el => {
+                    if (DROP[el.tagName]) { el.remove(); return; }
+                    [...el.attributes].forEach(at => {
+                        const name = at.name.toLowerCase();
+                        if (name.slice(0, 2) === 'on') { el.removeAttribute(at.name); return; }
+                        if (name !== 'href' && name !== 'src') return;
+                        if (at.value.trim().toLowerCase().indexOf('javascript:') === 0) el.removeAttribute(at.name);
+                    });
+                    scrub(el);
+                });
+            }
+
+            function dress(root) {
+                root.querySelectorAll('a[href]').forEach(a => {
+                    a.className = LINK;
+                    if (a.host && a.host !== location.host) {
+                        a.target = '_blank';
+                        a.rel = 'noopener';
+                    }
+                });
+            }
+
+            async function grab(url) {
+                try {
+                    const res = await fetch(url);
+                    return res.ok ? res : null;
+                } catch (err) {
+                    return null;
+                }
+            }
+
+            async function render(slug) {
+                const index = await grab('/articles/manifest.json');
+                if (!index) return reveal(failed);
+
+                let list = null;
+                try { list = await index.json(); } catch (err) { return reveal(failed); }
+                if (!Array.isArray(list)) return reveal(failed);
+
+                const entry = list.find(p => p && p.title && p.filename && slugOf(p.filename) === slug);
+                if (!entry) return reveal(missing);
+
+                const file = await grab('/articles/' + entry.filename);
+                if (!file) return reveal(failed);
+
+                const md = await file.text();
+                const parse = window.marked && window.marked.parse;
+                if (!md.trim() || typeof parse !== 'function') return reveal(failed);
+
+                const holder = document.createElement('template');
+                holder.innerHTML = parse(md);
+                scrub(holder.content);
+                dress(holder.content);
+
+                const words = md.split(/[\s]+/).filter(Boolean).length;
+                const said = [entry.category, day(entry.date), Math.max(1, Math.round(words / WPM)) + ' min read'];
+                document.getElementById('mdMeta').textContent = said.filter(Boolean).join(' · ');
+                document.getElementById('mdTitle').textContent = entry.title;
+
+                const lede = document.getElementById('mdLede');
+                lede.textContent = entry.summary || '';
+                lede.hidden = !entry.summary;
+
+                document.getElementById('mdBody').appendChild(holder.content);
+
+                const talk = document.getElementById('mdDiscuss');
+                if (talk) talk.href = '/community?draft_ref=' + encodeURIComponent(slug);
+
+                stampHead(entry, slug);
+                reveal(post);
+            }
+
+            function boot() {
+                const params = new URLSearchParams(location.search);
+                const asFile = params.get('post');
+                const want = asFile || params.get('id');
+                const written = asFile ? null : (want ? entries.find(a => a.dataset.entry === want) : entries[0]);
+
+                entries.forEach(a => { a.hidden = a !== written; });
+
+                const obs = new IntersectionObserver((seen) => { seen.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });
+                document.querySelectorAll('.reveal-up').forEach(el => obs.observe(el));
+
+                if (written) {
+                    const h1 = written.querySelector('h1');
+                    if (h1) document.title = h1.textContent.trim() + ' | FindFlower';
+                    return;
+                }
+
+                document.title = 'Field log | FindFlower';
+                if (want && post && window.fetch) {
+                    render(want);
+                    return;
+                }
+                reveal(missing);
+            }
+
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+            else boot();
+        })();
     </script>
 </body>
 </html>

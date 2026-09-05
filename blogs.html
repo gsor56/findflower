@@ -127,8 +127,8 @@
             </div>
         </div>
 
-        <ol class="reveal-up ff-index list-none max-w-7xl mx-auto px-6">
-            <li class="ff-entry">
+        <ol id="ffIndex" class="reveal-up ff-index list-none max-w-7xl mx-auto px-6">
+            <li class="ff-entry" data-slug="shards" data-date="2026-08-20">
                 <a href="/article?id=shards" class="group block py-8 grid grid-cols-1 lg:grid-cols-12 gap-y-2 lg:gap-x-12">
                     <p class="ff-meta lg:col-span-4 lg:mt-1.5">20 August 2026 &middot; Engineering &middot; 7 min read</p>
                     <div class="lg:col-span-7 lg:col-start-6">
@@ -160,6 +160,97 @@
         </footer>
     </noscript></div>
 
+    <script>
+        (function () {
+            const index = document.getElementById('ffIndex');
+            if (!index || !window.fetch) return;
+
+            const WPM = 200;
+
+            function day(iso) {
+                const d = new Date(String(iso) + 'T00:00:00');
+                if (isNaN(d.getTime())) return '';
+                return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            }
+
+            function el(tag, cls, text) {
+                const node = document.createElement(tag);
+                if (cls) node.className = cls;
+                if (text) node.textContent = text;
+                return node;
+            }
+
+            async function grab(url) {
+                try {
+                    const res = await fetch(url);
+                    return res.ok ? res : null;
+                } catch (err) {
+                    return null;
+                }
+            }
+
+            async function readTime(file) {
+                const res = await grab('/articles/' + file);
+                if (!res) return '';
+                const words = (await res.text()).split(/\s+/).filter(Boolean).length;
+                if (!words) return '';
+                return Math.max(1, Math.round(words / WPM)) + ' min read';
+            }
+
+            function card(post) {
+                const li = el('li', 'ff-entry');
+                li.dataset.slug = post.slug;
+                li.dataset.date = post.date || '';
+
+                const link = el('a', 'group block py-8 grid grid-cols-1 lg:grid-cols-12 gap-y-2 lg:gap-x-12');
+                link.href = '/article?post=' + encodeURIComponent(post.slug);
+                link.appendChild(el('p', 'ff-meta lg:col-span-4 lg:mt-1.5',
+                    [day(post.date), post.category, post.read].filter(Boolean).join(' · ')));
+
+                const body = el('div', 'lg:col-span-7 lg:col-start-6');
+                body.appendChild(el('h2', 'ff-entry-title text-xl md:text-2xl font-medium tracking-tight text-neutral-700 transition-colors mb-2', post.title));
+                if (post.summary) body.appendChild(el('p', 'text-base text-neutral-500 font-light leading-relaxed', post.summary));
+                link.appendChild(body);
+
+                li.appendChild(link);
+                return li;
+            }
+
+            function byDate() {
+                const rows = [...index.querySelectorAll('li.ff-entry')];
+                rows.sort((a, b) => (b.dataset.date || '').localeCompare(a.dataset.date || ''));
+                rows.forEach(row => index.appendChild(row));
+            }
+
+            (async function () {
+                const res = await grab('/articles/manifest.json');
+                if (!res) return;
+
+                let list = null;
+                try { list = await res.json(); } catch (err) { return; }
+                if (!Array.isArray(list)) return;
+
+                const written = [...index.querySelectorAll('li.ff-entry')].map(li => li.dataset.slug);
+                const posts = list
+                    .filter(p => p && p.title && p.filename)
+                    .map(p => ({
+                        slug: String(p.filename).replace(/\.md$/, ''),
+                        file: String(p.filename),
+                        title: String(p.title),
+                        date: p.date ? String(p.date) : '',
+                        category: p.category ? String(p.category) : '',
+                        summary: p.summary ? String(p.summary) : '',
+                        read: ''
+                    }))
+                    .filter(p => written.indexOf(p.slug) === -1);
+                if (!posts.length) return;
+
+                await Promise.all(posts.map(async p => { p.read = await readTime(p.file); }));
+                posts.forEach(p => index.appendChild(card(p)));
+                byDate();
+            })();
+        })();
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.12 });

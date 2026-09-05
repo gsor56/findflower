@@ -62,6 +62,11 @@
     <priority>0.4</priority>
   </url>
   <url>
+    <loc>https://findflower.me/article?post=find10k-federation</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
     <loc>https://findflower.me/community</loc>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>

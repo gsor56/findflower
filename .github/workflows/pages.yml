@@ -46,6 +46,9 @@ jobs:
           cp favicon.ico *.png _site/
           cp manifest.json robots.txt sitemap.xml _site/
           cp -R assets .well-known _site/
+          # The field logs are markdown fetched at runtime, so leaving this
+          # directory behind publishes an index with nothing in it.
+          cp -R articles _site/
           # These globs are FLAT — *.js does not descend into scripts/. That
           # directory went unpublished for its whole existence: api.js, ui.js,
           # router.js and all four view modules 404'd in production. It was
@@ -78,8 +81,15 @@ jobs:
                    favicon.svg favicon.ico icon-192.png icon-512.png \
                    icon-maskable-512.png apple-touch-icon.png \
                    manifest.json robots.txt sitemap.xml \
+                   articles/manifest.json \
                    assets/og-cover.png .well-known/discord; do
             test -f "_site/$f" || { echo "FATAL: $f missing from _site"; exit 1; }
+          done
+          # Every body listed in the blog index has to be there too. Checking the
+          # manifest against the directory keeps this loop right as posts are
+          # added, rather than needing a filename here for each one.
+          for md in $(sed -nE 's/.*"filename"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' _site/articles/manifest.json); do
+            test -f "_site/articles/$md" || { echo "FATAL: articles/$md is in the manifest but was not deployed"; exit 1; }
           done
           # Every same-origin src=/href= in the published HTML must resolve to a
           # real file. This is the check that would have caught both outages.
