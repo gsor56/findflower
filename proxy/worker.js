@@ -45,6 +45,9 @@
 const TOP_K = 5;
 const MAX_RETRIES = 5;        // free Space CPU can cold-start for a bit
 const RETRY_DELAY_MS = 3000;
+const RATE_LIMIT = 250;
+const WINDOW_MS = 12 * 60 * 60 * 1000;
+const GLOBAL_BUDGET_NAME = "global-inference-budget";
 
 // The one origin this Worker exists to serve. Used as the CORS fallback so an
 // unset/!misconfigured ALLOWED_ORIGINS can never degrade to a wildcard.
@@ -77,6 +80,7 @@ function corsHeaders(request, env) {
     // Authorization must be listed or the browser discards the POST after
     // preflight -- the token header is what makes this a non-simple request.
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Expose-Headers": "X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After",
     "Access-Control-Max-Age": "86400",
   };
 }
@@ -104,6 +108,111 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function originAllowed(origin, env) {
   return allowedOrigins(env).includes(origin);
+}
+
+function windowStartMs(nowMs) {
+  const at = new Date(nowMs);
+  return Date.UTC(
+    at.getUTCFullYear(),
+    at.getUTCMonth(),
+    at.getUTCDate(),
+    at.getUTCHours() < 12 ? 0 : 12,
+    0, 0, 0,
+  );
+}
+
+function windowEndsIso(windowStart) {
+  return new Date(windowStart + WINDOW_MS).toISOString();
+}
+
+function rateLimitHeaders(verdict) {
+  return {
+    "X-RateLimit-Limit": String(verdict.limit),
+    "X-RateLimit-Remaining": String(verdict.remaining),
+    "X-RateLimit-Reset": String(verdict.reset),
+  };
+}
+
+async function consumeGlobalBudget(request, env) {
+  if (!env.INFERENCE_BUDGET) {
+    return { ok: false, status: 503, body: { error: "Inference quota service unavailable." } };
+  }
+
+  let res;
+  try {
+    const id = env.INFERENCE_BUDGET.idFromName(GLOBAL_BUDGET_NAME);
+    const stub = env.INFERENCE_BUDGET.get(id);
+    res = await stub.fetch(new Request("https://quota.internal/consume", { method: "POST" }));
+  } catch {
+    return { ok: false, status: 503, body: { error: "Inference quota service unavailable." } };
+  }
+  if (!res.ok) {
+    return { ok: false, status: 503, body: { error: "Inference quota service unavailable." } };
+  }
+
+  let payload;
+  try {
+    payload = await res.json();
+  } catch {
+    return { ok: false, status: 503, body: { error: "Inference quota service unavailable." } };
+  }
+
+  if (!payload || typeof payload.allowed !== "boolean") {
+    return { ok: false, status: 503, body: { error: "Inference quota service unavailable." } };
+  }
+
+  return { ok: true, payload };
+}
+
+export class GlobalInferenceBudget {
+  constructor(state) {
+    this.state = state;
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (request.method !== "POST" || url.pathname !== "/consume") {
+      return new Response("Not found", { status: 404 });
+    }
+
+    const nowMs = Date.now();
+    const currentWindow = windowStartMs(nowMs);
+    const reset = Math.floor((currentWindow + WINDOW_MS) / 1000);
+    const window_ends = windowEndsIso(currentWindow);
+
+    let windowStart = await this.state.storage.get("window_start");
+    let used = await this.state.storage.get("used");
+    if (typeof windowStart !== "number" || windowStart !== currentWindow) {
+      windowStart = currentWindow;
+      used = 0;
+    } else if (typeof used !== "number") {
+      used = 0;
+    }
+
+    if (used >= RATE_LIMIT) {
+      const retry_after = Math.max(0, reset - Math.floor(nowMs / 1000));
+      return Response.json({
+        allowed: false,
+        limit: RATE_LIMIT,
+        remaining: 0,
+        reset,
+        window_ends,
+        retry_after,
+      });
+    }
+
+    used += 1;
+    await this.state.storage.put("window_start", windowStart);
+    await this.state.storage.put("used", used);
+
+    return Response.json({
+      allowed: true,
+      limit: RATE_LIMIT,
+      remaining: RATE_LIMIT - used,
+      reset,
+      window_ends,
+    });
+  }
 }
 
 /* ===========================================================================
@@ -411,6 +520,11 @@ export default {
       return json({ error: "Use POST with a raw image body." }, 405, request, env);
     }
 
+    const isInferenceRoute = url.pathname === "/" || url.pathname === "/v1/identify";
+    if (!isInferenceRoute) {
+      return json({ error: "Not found." }, 404, request, env);
+    }
+
     // Origin gate: only allowlisted sites may call the Worker. Blocks other
     // websites' browsers. (curl can spoof Origin, so the token check below and
     // the Space's own secret are the real walls -- defense in depth.)
@@ -476,8 +590,32 @@ export default {
           : audit.outcome,
     };
 
+    const budget = await consumeGlobalBudget(request, env);
+    if (!budget.ok) {
+      return json(budget.body, budget.status, request, env, authAudit);
+    }
+    const quota = budget.payload;
+    const quotaHeaders = rateLimitHeaders(quota);
+    if (!quota.allowed) {
+      const retryAfter = Math.max(0, Number(quota.retry_after) || 0);
+      return json({
+        error: "Global inference quota exhausted for the current window.",
+        limit: quota.limit,
+        remaining: 0,
+        window_ends: quota.window_ends,
+        retry_after: retryAfter,
+      }, 429, request, env, {
+        ...authAudit,
+        ...quotaHeaders,
+        "Retry-After": String(retryAfter),
+      });
+    }
+
     if (!env.SPACE_URL || !env.PROXY_SECRET) {
-      return json({ error: "Server misconfigured (SPACE_URL/PROXY_SECRET)." }, 500, request, env);
+      return json({ error: "Server misconfigured (SPACE_URL/PROXY_SECRET)." }, 500, request, env, {
+        ...authAudit,
+        ...quotaHeaders,
+      });
     }
 
     // Accept BOTH body shapes:
@@ -497,20 +635,32 @@ export default {
       try {
         inbound = await request.formData();
       } catch {
-        return json({ error: "Malformed multipart body." }, 400, request, env);
+        return json({ error: "Malformed multipart body." }, 400, request, env, {
+          ...authAudit,
+          ...quotaHeaders,
+        });
       }
       const filePart = inbound.get("file");
       if (!filePart || typeof filePart === "string") {
-        return json({ error: "Multipart body is missing a `file` field." }, 400, request, env);
+        return json({ error: "Multipart body is missing a `file` field." }, 400, request, env, {
+          ...authAudit,
+          ...quotaHeaders,
+        });
       }
       if (filePart.size === 0) {
-        return json({ error: "Empty image body." }, 400, request, env);
+        return json({ error: "Empty image body." }, 400, request, env, {
+          ...authAudit,
+          ...quotaHeaders,
+        });
       }
       imageBlob = filePart;
     } else {
       const image = await request.arrayBuffer();
       if (!image || image.byteLength === 0) {
-        return json({ error: "Empty image body." }, 400, request, env);
+        return json({ error: "Empty image body." }, 400, request, env, {
+          ...authAudit,
+          ...quotaHeaders,
+        });
       }
       imageBlob = new Blob([image], { type: reqType || "image/jpeg" });
     }
@@ -535,7 +685,10 @@ export default {
 
     if (!res.ok) {
       const detail = lastText || (await res.text());
-      return json({ error: "Inference upstream error", status: res.status, detail }, 502, request, env);
+      return json({ error: "Inference upstream error", status: res.status, detail }, 502, request, env, {
+        ...authAudit,
+        ...quotaHeaders,
+      });
     }
 
     // The Space already returns { flower, confidence, top_k } -- pass through.
@@ -543,13 +696,19 @@ export default {
     try {
       payload = await res.json();
     } catch {
-      return json({ error: "Unexpected response from inference server." }, 502, request, env);
+      return json({ error: "Unexpected response from inference server." }, 502, request, env, {
+        ...authAudit,
+        ...quotaHeaders,
+      });
     }
     if (!payload || !Array.isArray(payload.top_k)) {
-      return json({ error: "Malformed prediction.", detail: payload }, 502, request, env);
+      return json({ error: "Malformed prediction.", detail: payload }, 502, request, env, {
+        ...authAudit,
+        ...quotaHeaders,
+      });
     }
     payload.top_k = payload.top_k.slice(0, TOP_K);
 
-    return json(payload, 200, request, env, authAudit);
+    return json(payload, 200, request, env, { ...authAudit, ...quotaHeaders });
   },
 };
