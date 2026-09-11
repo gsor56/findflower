@@ -32,8 +32,8 @@
     <link rel="stylesheet" href="app.css?v=14">
     <script src="prefs.js?v=1"></script>
     <script src="i18n.js?v=1" defer></script>
-    <script src="nav.js?v=7" defer></script>
-    <script src="scripts/notifications.js?v=1" defer></script>
+    <script src="nav.js?v=9" defer></script>
+    <script src="scripts/notifications.js?v=2" defer></script>
     <script src="footer.js?v=4" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
@@ -218,8 +218,8 @@
 
                         <div id="keyGate">
                             <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-lg">
-                                Sign in to retrieve the short-lived JWT that the production Worker verifies.
-                                The token is fetched on demand and is never written to this site’s storage.
+                                Sign in to generate a stable preview key for your account.
+                                The preview key is derived locally and is never written to this site’s storage.
                             </p>
                             <a href="/login" class="inline-flex items-center text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors">
                                 Sign in
@@ -231,13 +231,13 @@
                                 <p class="text-base font-medium text-neutral-900" id="devName"></p>
                                 <p class="text-sm text-neutral-500 font-light" id="devEmail"></p>
                             </div>
-                            <label class="text-sm font-medium text-neutral-900 mb-2 block">Active bearer token</label>
+                            <label class="text-sm font-medium text-neutral-900 mb-2 block">API preview key</label>
                             <div class="flex gap-3">
                                 <textarea id="apiKey" readonly rows="3" class="min-w-0 flex-1 resize-y font-mono text-xs border border-neutral-200 px-3 py-3 text-neutral-800 rounded-md"></textarea>
                                 <button id="copyKey" data-haptic class="soft-click shrink-0 self-start text-base font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-md hover:bg-neutral-50 transition">Copy</button>
                             </div>
                             <p id="tokenStatus" class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
-                                Send it as <span class="font-mono">Authorization: Bearer &lt;token&gt;</span>. Tokens expire; refresh this page to request a current one.
+                                Use this preview key to identify your account in examples. It is not a bearer token.
                             </p>
                         </div>
                     </div>
@@ -677,7 +677,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
         </footer>
     </noscript></div>
 
-    <script src="auth.js?v=6"></script>
+    <script src="auth.js?v=7"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const obs = new IntersectionObserver((entries) => {
@@ -696,12 +696,12 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
             document.getElementById('keyBadge').className = 'text-xs font-medium tracking-widest text-sage-700 uppercase';
             document.getElementById('devName').textContent = user.name || user.nickname || 'Developer';
             document.getElementById('devEmail').textContent = user.email || '';
-            const key = await ffGetToken('https://api.findflower.me');
+            const key = await ffDeriveKey(user.sub);
             const keyEl = document.getElementById('apiKey');
             const status = document.getElementById('tokenStatus');
             if (!key) {
                 keyEl.value = '';
-                if (status) status.textContent = 'No API audience token is available. Sign in again to request a fresh Auth0 access token.';
+                if (status) status.textContent = 'Sign in to generate your API preview key.';
                 return;
             }
             keyEl.value = key;

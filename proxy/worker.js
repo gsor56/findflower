@@ -121,8 +121,9 @@ async function proxyCommunity(request, env, url) {
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders(request, env) });
   }
-  const suffix = url.pathname.slice(COMMUNITY_PREFIX.length);
-  const target = new URL(COMMUNITY_UPSTREAM + (suffix || "/health") + url.search);
+  const suffix = url.pathname.slice(COMMUNITY_PREFIX.length).replace(/^\/+/, "/");
+  const targetPath = !suffix || suffix === "/" ? "/health" : suffix;
+  const target = new URL(COMMUNITY_UPSTREAM + targetPath + url.search);
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("cf-connecting-ip");

@@ -31,8 +31,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="app.css?v=14">
     <script src="i18n.js?v=1" defer></script>
-    <script src="nav.js?v=7" defer></script>
-    <script src="scripts/notifications.js?v=1" defer></script>
+    <script src="nav.js?v=9" defer></script>
+    <script src="scripts/notifications.js?v=2" defer></script>
     <script src="footer.js?v=4" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="scripts/search.js?v=1" defer></script>
@@ -44,7 +44,7 @@
     <script src="scripts/vendor/tf.min.js?v=4.22.0"></script>
     <script src="scripts/lite.js?v=4"></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
-    <script src="auth.js?v=6"></script>
+    <script src="auth.js?v=7"></script>
     <script src="storage.js"></script>
     <script src="blur.js?v=1"></script>
     <script src="main.js?v=2"></script>
@@ -801,7 +801,6 @@
         // scan 401s, and only after the photo has already gone up the wire.
         const SEND_AUTH_TOKEN = true;
         const REQUIRE_SIGN_IN = true;
-        const AUTH0_AUDIENCE = 'https://api.findflower.me';
 
         // Cloudflare Turnstile. It proves a scan came from a browser rather than
         // a script working through the route in a loop. With no site key the
@@ -888,7 +887,7 @@
                 return {};
             }
             try {
-                return await ffAuthHeader(AUTH0_AUDIENCE || undefined);
+                return await ffAuthHeader();
             } catch (err) {
                 // While signing in is optional, a token we could not mint is no
                 // reason to refuse the scan. Send it the way a guest would.

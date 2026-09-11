@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    var BASE = 'https://findflower-proxy.fofi.workers.dev/v1/community';
+    var BASE = 'https://findflower-social.onrender.com';
 
     async function authToken() {
         try {
@@ -16,11 +16,11 @@
         if (!menu || !menu.parentNode) return null;
         bell = document.createElement('a');
         bell.id = 'ffNotifyBell';
-        bell.href = '/chat.html';
+        bell.href = '/notifications';
         bell.setAttribute('aria-label', 'Notifications');
-        bell.className = 'relative flex items-center justify-center border border-black rounded-none text-[#1a3622]';
+        bell.className = 'relative flex items-center justify-center rounded-full text-[#1a3622]';
         bell.style.width = '40px'; bell.style.height = '40px';
-        bell.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="ffNotifyBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 items-center justify-center bg-[#1a3622] text-white text-[10px] border border-black rounded-none"></span>';
+        bell.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="ffNotifyBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 items-center justify-center bg-[#1a3622] text-white text-[10px] rounded-full"></span>';
         menu.parentNode.insertBefore(bell, menu);
         return bell;
     }

@@ -427,6 +427,28 @@ console.log('\n--- TREFLE read-through (GET /trefle/...) ---');
     globalThis.fetch = realFetch;
 }
 
+console.log('\n--- COMMUNITY PROXY ROUTING ---');
+{
+    const originalFetch = globalThis.fetch;
+    let upstreamUrl = null;
+    globalThis.fetch = async (input) => {
+        upstreamUrl = String(input);
+        return new Response(JSON.stringify({ status: 'ok' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    };
+    const env = { ALLOWED_ORIGINS: 'https://findflower.me' };
+    const request = new Request('https://w.example/v1/community/', {
+        headers: new Headers({ Origin: 'https://findflower.me' }),
+    });
+    const response = await worker.fetch(request, env);
+    const ok = response.status === 200 && upstreamUrl === 'https://findflower-social.onrender.com/health';
+    console.log((ok ? 'PASS' : 'FAIL') + '  /v1/community/ normalizes to /health');
+    ok ? pass++ : fail++;
+    globalThis.fetch = originalFetch;
+}
+
 console.log('\n--- JWKS caching ---');
 {
     const j0 = jwksHits;

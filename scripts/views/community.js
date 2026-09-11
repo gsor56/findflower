@@ -954,7 +954,7 @@
             var r = await window.ffSocial.search(q);
             var users = r.ok && r.data ? (r.data.users || []) : [];
             host.innerHTML = users.map(function (u) {
-                var chat = state.friends[u.handle] ? '<a href="/chat.html?with=' + encodeURIComponent(u.handle) + '" class="border-l border-black px-3 py-2 text-xs uppercase bg-[#1a3622] text-white">Chat</a>' : '';
+                var chat = state.friends[u.handle] ? '<a href="/chat?with=' + encodeURIComponent(u.handle) + '" class="border-l border-black px-3 py-2 text-xs uppercase bg-[#1a3622] text-white">Chat</a>' : '';
                 return '<div class="flex border-t first:border-t-0 border-black"><a role="option" href="/profile?handle=' + encodeURIComponent(u.handle) + '" class="min-w-0 flex-1 px-3 py-2 hover:bg-neutral-100"><span class="block text-sm font-medium">' + esc(u.displayName || u.handle) + '</span><span class="block text-xs text-neutral-500">@' + esc(u.handle) + '</span></a>' + chat + '</div>';
             }).join('') || '<p class="p-3 text-sm text-neutral-500">No users found.</p>';
             show(host, true);

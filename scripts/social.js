@@ -22,9 +22,7 @@
     }
 
     async function token() {
-        var aud = typeof window.FF_SOCIAL_AUDIENCE === 'string' ? window.FF_SOCIAL_AUDIENCE : '';
         try {
-            if (aud && typeof ffGetToken === 'function') return await ffGetToken(aud);
             if (typeof ffIdToken === 'function') return await ffIdToken();
         } catch (e) {
             return null;

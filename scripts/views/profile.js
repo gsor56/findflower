@@ -445,12 +445,21 @@
         var add = $('pfAdd'), accept = $('pfAccept'), rm = $('pfRemove'), report = $('pfReport');
         show(add, false); show(accept, false); show(rm, false); show(report, !isOwn); show($('pfSettings'), isOwn); note('');
         if (!isOwn) on(report, function () { reportProfile(handle); });
-        if (isOwn || !viewer || !window.ffSocial) return;
+        if (isOwn || !window.ffSocial) return;
+        if (!viewer) {
+            add.textContent = 'Sign in to add friend';
+            show(add, true);
+            on(add, function () {
+                if (typeof window.ffLogin === 'function') window.ffLogin(location.pathname + location.search);
+                else note('Sign in to add friends.');
+            });
+            return;
+        }
         var r = await window.ffSocial.friends();
         if (!r.ok || !r.data) { note(r.error || 'Friend status unavailable.'); return; }
         function has(list) { return (list || []).some(function (u) { return u.handle === handle; }); }
         if (has(r.data.friends)) {
-            add.textContent = 'Chat'; show(add, true); on(add, function () { location.href = '/chat.html?with=' + encodeURIComponent(handle); }); return;
+            add.textContent = 'Chat'; show(add, true); on(add, function () { location.href = '/chat?with=' + encodeURIComponent(handle); }); return;
         }
         if (has(r.data.incoming)) {
             show(accept, true); on(accept, async function () { var x = await window.ffSocial.respondFriend(handle, 'accept'); if (x.ok) paintRemoteActions(handle, viewer, false); else note(x.error); });
@@ -458,7 +467,14 @@
         }
         if (has(r.data.outgoing)) { add.textContent = 'Request sent'; add.disabled = true; show(add, true); return; }
         add.disabled = false; add.textContent = 'Add friend'; show(add, true);
-        on(add, async function () { add.disabled = true; var x = await window.ffSocial.requestFriend(handle); if (x.ok) { add.textContent = x.data.status === 'accepted' ? 'Chat' : 'Request sent'; if (window.ffNotifications) window.ffNotifications.refresh(); } else { add.disabled = false; note(x.error); } });
+        on(add, async function () {
+            var signedIn = typeof window.ffIsAuthenticated === 'function' ? await window.ffIsAuthenticated().catch(function () { return false; }) : false;
+            if (!signedIn) { note('Sign in to add friends.'); if (typeof window.ffLogin === 'function') window.ffLogin(location.pathname + location.search); return; }
+            add.disabled = true;
+            var x = await window.ffSocial.requestFriend(handle);
+            if (x.ok) { add.textContent = x.data.status === 'accepted' ? 'Chat' : 'Request sent'; if (window.ffNotifications) window.ffNotifications.refresh(); }
+            else { add.disabled = false; note(x.error); }
+        });
     }
 
     async function pushOwnNumbers(u, viewer, stats) {

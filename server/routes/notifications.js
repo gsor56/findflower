@@ -22,7 +22,7 @@ router.get('/', requireViewer, async (req, res) => {
         Message.find({ recipient: me, isRead: false }).populate('sender', CARD).sort({ createdAt: -1 }).limit(20),
     ]);
     const items = requests.map((r) => ({ id: 'friend:' + r._id, type: 'friend_request', createdAt: r.createdAt, user: r.requester }))
-        .concat(messages.map((m) => ({ id: 'dm:' + m._id, type: 'direct_message', createdAt: m.createdAt, user: m.sender, snippet: m.content.slice(0, 120), href: '/chat.html?with=' + encodeURIComponent(m.sender.handle) })))
+        .concat(messages.map((m) => ({ id: 'dm:' + m._id, type: 'direct_message', createdAt: m.createdAt, user: m.sender, snippet: m.content.slice(0, 120), href: '/chat?with=' + encodeURIComponent(m.sender.handle) })))
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json({ items, unread: items.length });
 });
