@@ -143,6 +143,10 @@
                 '<div class="flex items-center gap-2 sm:gap-3 shrink-0">' +
                     '<a id="signInLink" href="/login" data-i18n="nav.signin" class="text-sm font-medium text-neutral-900 ' +
                         'hover:text-neutral-600 transition-colors hidden md:block">Sign In</a>' +
+                    '<a id="ffNotifyBell" href="/chat.html" aria-label="Notifications" class="relative flex items-center justify-center border border-black rounded-none text-[#1a3622]" style="width:40px;height:40px">' +
+                        '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>' +
+                        '<span id="ffNotifyBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 items-center justify-center bg-[#1a3622] text-white text-[10px] border border-black rounded-none"></span>' +
+                    '</a>' +
                     '<button id="ffMenuBtn" type="button" data-toggle-sidebar aria-label="Open menu" ' +
                         'data-i18n-aria="nav.menu.open" ' +
                         'aria-controls="ffSidebar" aria-expanded="false" ' +

@@ -1,0 +1,17 @@
+{
+  "id": "ibhxbg/flora-ultra-eva02-slicer",
+  "title": "flora-ultra-eva02-slicer",
+  "code_file": "slice_eva02_head.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [
+    "ibhxbg/my-secrets"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [],
+  "model_sources": []
+}

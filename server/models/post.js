@@ -34,6 +34,8 @@ const postSchema = new Schema({
     // it: article.html's "Discuss in Community" link is a shipped path, and a
     // post that arrived through it loses where it came from without this.
     articleRef: { type: String, default: null, trim: true, maxlength: 80 },
+    replyTo: { type: Schema.Types.ObjectId, ref: 'Post', default: null, index: true },
+    replyToSnippet: { type: String, default: null, trim: true, maxlength: 180 },
     likes: { type: [{ type: Schema.Types.ObjectId, ref: 'User' }], default: [] },
     reports: { type: [reportSchema], default: [] },
     // Soft delete. A thread other people replied to should not evaporate, and a
@@ -69,6 +71,9 @@ postSchema.methods.toFeed = function toFeed(viewerId) {
         title: this.title,
         content: this.content,
         articleRef: this.articleRef,
+        type: 'global',
+        reply_to_id: this.replyTo ? String(this.replyTo) : null,
+        reply_to_snippet: this.replyToSnippet || null,
         likeCount: this.likes.length,
         likedByViewer: viewerId ? this.likes.some((id) => String(id) === String(viewerId)) : false,
         reportCount: this.reports.length,

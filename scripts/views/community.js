@@ -7,9 +7,9 @@
     var OVERSCAN = 3;
     var PAGE = 20;
 
-    var WAKE_TRIES = 2;
-    var WAKE_TIMEOUT_MS = 25000;
-    var WAKE_GAP_MS = 2000;
+    var WAKE_TRIES = 1;
+    var WAKE_TIMEOUT_MS = 5000;
+    var WAKE_GAP_MS = 0;
 
     var state = {
         space: null,
@@ -32,6 +32,9 @@
         hasMore: false,
         single: false,
         focus: null,
+        reply: null,
+        friends: {},
+        searchTimer: null,
     };
 
     var bound = false;
@@ -127,7 +130,9 @@
             out.push('<span class="text-xs text-neutral-400 tabular-nums px-2 py-1">' +
                 p.likeCount + (p.likeCount === 1 ? ' like' : ' likes') + '</span>');
         }
+        if (can) out.push('<button type="button" data-act="reply" data-id="' + esc(p.id) + '" class="text-xs uppercase hover:underline px-2 py-1">Reply</button>');
         out.push('<button type="button" data-act="share" data-id="' + esc(p.id) + '" class="' + ACT + '">Share</button>');
+        if (!p.mine && p.handle) out.push('<button type="button" data-act="report-user" data-id="' + esc(p.id) + '" class="' + ACT + '">Report user</button>');
         if (p.mine) {
             out.push('<button type="button" data-act="delete" data-id="' + esc(p.id) + '" class="' + ACT + '">Delete</button>');
         } else if (can) {
@@ -170,6 +175,7 @@
                         esc(spaceLabel(p.space)) + '</span></p>' +
                     '</div>' +
                 '</div>' +
+                (p.replyToId ? '<div class="border-l-2 border-black pl-2 text-gray-600 text-sm mt-3">' + bodyHtml(p.replyToSnippet || 'Earlier post') + '</div>' : '') +
                 '<div class="ff-post-body text-sm text-neutral-700 leading-relaxed mt-3">' +
                     bodyHtml(p.body) + '</div>' +
                 ref +
@@ -341,9 +347,11 @@
     }
 
     async function loadRemote() {
+        show($('cmLoading'), true);
         var r = await window.ffSocial.posts({
             space: state.space, page: 1, limit: PAGE, auth: !!state.handle
         });
+        show($('cmLoading'), false);
         if (!r.ok || !r.data) return false;
         state.hasMore = !!r.data.hasMore;
         seat(r.data.rows || []);
@@ -615,7 +623,10 @@
             var r = await window.ffSocial.createPost({
                 space: sel ? sel.value : null,
                 content: body,
-                articleRef: state.draftRef || null
+                articleRef: state.draftRef || null,
+                type: 'global',
+                reply_to_id: state.reply ? state.reply.id : null,
+                reply_to_snippet: state.reply ? state.reply.snippet : null
             });
             countChars();
             if (r.needsHandle) {
@@ -637,6 +648,7 @@
             countChars();
             if (composer) composer.reset();
             state.draftRef = null;
+            clearReply();
             show($('cmDraftRef'), false);
             if (msg) {
                 msg.textContent = 'Posted.';
@@ -695,6 +707,20 @@
         note(url);
     }
 
+
+    function clearReply() {
+        state.reply = null;
+        show($('cmReplyBanner'), false);
+        var text = $('cmReplyText'); if (text) text.textContent = '';
+    }
+
+    function beginReply(post) {
+        state.reply = { id: post.id, snippet: String(post.body || '').slice(0, 180), user: post.authorName || post.handle || 'user' };
+        var text = $('cmReplyText'); if (text) text.textContent = 'Replying to: ' + state.reply.user;
+        show($('cmReplyBanner'), true);
+        var box = $('cmBody'); if (box) box.focus();
+    }
+
     async function feedAction(ev) {
         var btn = ev.target.closest('button[data-act]');
         if (!btn) return;
@@ -703,6 +729,8 @@
         var i = indexOf(id);
         if (i === -1) return;
 
+        if (act === 'reply') { beginReply(state.posts[i]); return; }
+        if (act === 'report-user') { var h = state.posts[i].handle || ''; window.location.href = '/contact?subject=Report%20user&handle=' + encodeURIComponent(h); return; }
         if (act === 'share') {
             share(id);
             return;
@@ -874,6 +902,8 @@
                 load();
             });
         }
+        var replyCancel = $('cmReplyCancel');
+        if (replyCancel && !replyCancel.dataset.wired) { replyCancel.dataset.wired = '1'; replyCancel.addEventListener('click', clearReply); }
         if (feed && !feed.dataset.wired) {
             feed.dataset.wired = '1';
             feed.addEventListener('click', feedAction);
@@ -912,6 +942,38 @@
                 });
             }
         }
+    }
+
+
+    async function searchUsers() {
+        var input = $('cmUserSearch'), host = $('cmUserResults');
+        if (!input || !host) return;
+        var q = input.value.trim();
+        if (q.length < 2) { host.innerHTML = ''; show(host, false); return; }
+        try {
+            var r = await window.ffSocial.search(q);
+            var users = r.ok && r.data ? (r.data.users || []) : [];
+            host.innerHTML = users.map(function (u) {
+                var chat = state.friends[u.handle] ? '<a href="/chat.html?with=' + encodeURIComponent(u.handle) + '" class="border-l border-black px-3 py-2 text-xs uppercase bg-[#1a3622] text-white">Chat</a>' : '';
+                return '<div class="flex border-t first:border-t-0 border-black"><a role="option" href="/profile?handle=' + encodeURIComponent(u.handle) + '" class="min-w-0 flex-1 px-3 py-2 hover:bg-neutral-100"><span class="block text-sm font-medium">' + esc(u.displayName || u.handle) + '</span><span class="block text-xs text-neutral-500">@' + esc(u.handle) + '</span></a>' + chat + '</div>';
+            }).join('') || '<p class="p-3 text-sm text-neutral-500">No users found.</p>';
+            show(host, true);
+        } catch (e) { host.innerHTML = '<p class="p-3 text-sm text-neutral-500">Search unavailable.</p>'; show(host, true); }
+    }
+
+    function wireUserSearch() {
+        var input = $('cmUserSearch'); if (!input || input.dataset.wired) return;
+        input.dataset.wired = '1';
+        input.addEventListener('input', function () {
+            if (state.searchTimer) clearTimeout(state.searchTimer);
+            state.searchTimer = setTimeout(searchUsers, 300);
+        });
+    }
+
+    async function loadFriends() {
+        state.friends = {}; if (!state.handle) return;
+        var r = await window.ffSocial.friends();
+        if (r.ok && r.data) (r.data.friends || []).forEach(function (u) { state.friends[u.handle] = true; });
     }
 
     function reveal() {
@@ -1000,6 +1062,7 @@
             }
         }
 
+        await loadFriends();
         await loadSpaces();
         paintSpaces();
         fillSpaceSelect();
@@ -1041,6 +1104,7 @@
         fillSpaceSelect();
         countChars();
         wire();
+        wireUserSearch();
         await load();
 
         var ref = draftParam();

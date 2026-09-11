@@ -45,24 +45,24 @@
             head.Authorization = 'Bearer ' + t;
         }
 
-        var ctrl = new AbortController();
-        var timer = setTimeout(function () { ctrl.abort(); }, o.timeout || TIMEOUT_MS);
+        var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, o.timeout || TIMEOUT_MS) : null;
         var res;
         try {
             res = await fetch(base + path, {
                 method: o.method || 'GET',
                 headers: head,
                 body: o.body === undefined ? undefined : JSON.stringify(o.body),
-                signal: ctrl.signal,
+                signal: ctrl ? ctrl.signal : undefined,
                 mode: 'cors'
             });
         } catch (e) {
-            clearTimeout(timer);
+            if (timer) clearTimeout(timer);
             health.ok = false;
             health.at = Date.now();
             return { ok: false, status: 0, data: null, error: 'The server did not answer.' };
         }
-        clearTimeout(timer);
+        if (timer) clearTimeout(timer);
 
         var data = null;
         try { data = await res.json(); } catch (e) { data = null; }
@@ -121,6 +121,9 @@
             likeCount: p.likeCount || 0,
             likedByViewer: !!p.likedByViewer,
             mine: !!(a && myId && a.id === myId),
+            replyToId: p.reply_to_id || null,
+            replyToSnippet: p.reply_to_snippet || null,
+            type: p.type || 'global',
             remote: true
         };
     }
@@ -224,15 +227,19 @@
         var o = query || {};
         if (o.page) q.set('page', String(o.page));
         if (o.limit) q.set('limit', String(o.limit));
+        if (o.before) q.set('before', String(o.before));
         var qs = q.toString();
         return request('/api/messages/' + encodeURIComponent(handle) + (qs ? '?' + qs : ''), { auth: true });
     }
 
-    function sendMessage(handle, content) {
+    function sendMessage(handle, content, recipientId) {
         return request('/api/messages/' + encodeURIComponent(handle), {
-            method: 'POST', auth: true, body: { content: content }
+            method: 'POST', auth: true, body: { type: 'direct', recipient_id: recipientId || null, content: content }
         });
     }
+
+    function notifications() { return request('/api/notifications', { auth: true }); }
+    function notificationCount() { return request('/api/notifications/count', { auth: true }); }
 
     function search(q) {
         return request('/api/search?q=' + encodeURIComponent(q), { timeout: 5000 });
@@ -270,6 +277,8 @@
         respondFriend: respondFriend,
         messages: messages,
         sendMessage: sendMessage,
+        notifications: notifications,
+        notificationCount: notificationCount,
         search: search
     };
 })();

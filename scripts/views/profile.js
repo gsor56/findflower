@@ -328,14 +328,9 @@
         });
     }
 
-    function reportProfile(wanted, viewer) {
-        var body = 'Reported profile: ' + wanted + '\n' +
-            'Reported at: ' + new Date().toISOString() + '\n' +
-            'Reported by: ' + (viewer || 'not signed in') + '\n\n' +
-            'What happened:\n';
-        window.location.href = 'mailto:ibhx800@gmail.com' +
-            '?subject=' + encodeURIComponent('Report: ' + wanted) +
-            '&body=' + encodeURIComponent(body);
+    function reportProfile(wanted) {
+        var handle = String(wanted || '').replace(/^@/, '');
+        window.location.href = '/contact?subject=Report%20user&handle=' + encodeURIComponent(handle);
     }
 
     function on(el, fn) {
@@ -446,14 +441,24 @@
         reveal();
     }
 
-    function paintRemoteActions(handle, viewer, isOwn) {
-        show($('pfAdd'), false);
-        show($('pfAccept'), false);
-        show($('pfRemove'), false);
-        show($('pfReport'), !isOwn);
-        show($('pfSettings'), isOwn);
-        note('');
-        if (!isOwn) on($('pfReport'), function () { reportProfile('@' + handle, viewer); });
+    async function paintRemoteActions(handle, viewer, isOwn) {
+        var add = $('pfAdd'), accept = $('pfAccept'), rm = $('pfRemove'), report = $('pfReport');
+        show(add, false); show(accept, false); show(rm, false); show(report, !isOwn); show($('pfSettings'), isOwn); note('');
+        if (!isOwn) on(report, function () { reportProfile(handle); });
+        if (isOwn || !viewer || !window.ffSocial) return;
+        var r = await window.ffSocial.friends();
+        if (!r.ok || !r.data) { note(r.error || 'Friend status unavailable.'); return; }
+        function has(list) { return (list || []).some(function (u) { return u.handle === handle; }); }
+        if (has(r.data.friends)) {
+            add.textContent = 'Chat'; show(add, true); on(add, function () { location.href = '/chat.html?with=' + encodeURIComponent(handle); }); return;
+        }
+        if (has(r.data.incoming)) {
+            show(accept, true); on(accept, async function () { var x = await window.ffSocial.respondFriend(handle, 'accept'); if (x.ok) paintRemoteActions(handle, viewer, false); else note(x.error); });
+            rm.textContent = 'Reject'; show(rm, true); on(rm, async function () { var x = await window.ffSocial.respondFriend(handle, 'decline'); if (x.ok) paintRemoteActions(handle, viewer, false); else note(x.error); }); return;
+        }
+        if (has(r.data.outgoing)) { add.textContent = 'Request sent'; add.disabled = true; show(add, true); return; }
+        add.disabled = false; add.textContent = 'Add friend'; show(add, true);
+        on(add, async function () { add.disabled = true; var x = await window.ffSocial.requestFriend(handle); if (x.ok) { add.textContent = x.data.status === 'accepted' ? 'Chat' : 'Request sent'; if (window.ffNotifications) window.ffNotifications.refresh(); } else { add.disabled = false; note(x.error); } });
     }
 
     async function pushOwnNumbers(u, viewer, stats) {

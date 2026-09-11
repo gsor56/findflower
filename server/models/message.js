@@ -16,6 +16,7 @@ const MAX_CONTENT = 2000;
 const messageSchema = new Schema({
     sender: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     recipient: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    conversationKey: { type: String, default: null },
     space: { type: String, default: null, lowercase: true, trim: true, maxlength: 40 },
     content: { type: String, required: true, trim: true, maxlength: MAX_CONTENT },
     // Only meaningful on a DM. A space message has no single reader to have
@@ -26,6 +27,7 @@ const messageSchema = new Schema({
 // A DM read walks both directions of one pair, which is an $or of two equality
 // prefixes; each branch gets its own index rather than sharing one that can
 // only serve the first ordering.
+messageSchema.index({ conversationKey: 1, createdAt: -1 });
 messageSchema.index({ sender: 1, recipient: 1, createdAt: -1 });
 messageSchema.index({ recipient: 1, sender: 1, createdAt: -1 });
 messageSchema.index({ space: 1, createdAt: -1 });
@@ -35,6 +37,7 @@ messageSchema.index({ recipient: 1, isRead: 1 });
 messageSchema.pre('validate', function oneTargetOnly() {
     const dm = !!this.recipient;
     const room = !!this.space;
+    if (dm) this.conversationKey = [String(this.sender), String(this.recipient)].sort().join(':');
     if (dm === room) {
         throw new Error('A message needs exactly one of recipient (direct) or space (room).');
     }
@@ -44,10 +47,12 @@ messageSchema.methods.toWire = function toWire() {
     const s = this.sender && this.sender.handle ? this.sender : null;
     return {
         id: String(this._id),
+        type: this.recipient ? 'direct' : 'global',
         sender: s
             ? { id: String(s._id), handle: s.handle, displayName: s.displayName, avatar: s.avatar }
             : { id: String(this.sender), handle: null, displayName: null, avatar: null },
         recipient: this.recipient ? String(this.recipient) : null,
+        recipient_id: this.recipient ? String(this.recipient) : null,
         space: this.space,
         content: this.content,
         isRead: this.isRead,

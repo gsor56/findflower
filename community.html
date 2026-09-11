@@ -33,14 +33,15 @@
     <script src="prefs.js?v=1"></script>
     <script src="i18n.js?v=1" defer></script>
     <script src="nav.js?v=7" defer></script>
+    <script src="scripts/notifications.js?v=1" defer></script>
     <script src="footer.js?v=4" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
-    <script src="auth.js?v=5"></script>
+    <script src="auth.js?v=6"></script>
     <script src="storage.js"></script>
     <script>
         if (location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-            window.FF_SOCIAL_API = 'https://findflower-social.onrender.com';
+            window.FF_SOCIAL_API = 'https://findflower-proxy.fofi.workers.dev/v1/community';
         }
     </script>
     <script src="scripts/social.js?v=2" defer></script>
@@ -124,6 +125,12 @@
                 </p>
             </header>
 
+            <section class="relative max-w-2xl mt-8" aria-label="Find a botanist">
+                <label for="cmUserSearch" class="block text-xs uppercase tracking-wide text-neutral-500 mb-2">Find people</label>
+                <input type="text" id="cmUserSearch" placeholder="SEARCH USERS..." autocomplete="off" class="w-full border border-black p-2 rounded-none focus:outline-none focus:ring-1 focus:ring-black">
+                <div id="cmUserResults" class="hidden absolute left-0 right-0 z-20 bg-white border border-black border-t-0 rounded-none" role="listbox"></div>
+            </section>
+
             <div class="grid lg:grid-cols-[190px_minmax(0,1fr)_236px] gap-8 lg:gap-10 mt-10">
 
                 <aside>
@@ -173,7 +180,10 @@
                         </div>
                     </form>
 
-                    <form id="cmForm" class="hidden bg-white border border-neutral-200 rounded p-4 sm:p-5">
+                    <form id="cmForm" class="hidden bg-white border border-black rounded-none p-4 sm:p-5">
+                        <div id="cmReplyBanner" class="hidden mb-3 border-l-2 border-black pl-2 text-gray-600 text-sm flex items-center justify-between gap-3">
+                            <span id="cmReplyText"></span><button id="cmReplyCancel" type="button" aria-label="Cancel reply" class="text-xs uppercase hover:underline">X</button>
+                        </div>
                         <label for="cmBody" class="sr-only">Write a post</label>
                         <textarea id="cmBody" rows="3" maxlength="2000"
                                   class="w-full text-sm text-neutral-900 placeholder:text-neutral-400 border border-neutral-200 rounded p-3 resize-y focus:outline-none focus:border-neutral-400"
@@ -207,6 +217,7 @@
                             <h2 id="cmFeedTitle" class="text-sm font-medium text-neutral-900">All spaces</h2>
                             <p id="cmFeedCount" class="text-xs text-neutral-400 tabular-nums"></p>
                         </div>
+                        <div id="cmLoading" class="hidden py-5 text-sm text-neutral-600"><span class="inline-block w-4 h-4 border-2 border-black border-t-transparent animate-spin rounded-none align-middle mr-2"></span>Loading community…</div>
                         <p id="cmFeedNote" class="hidden text-xs text-neutral-500 leading-relaxed mt-3"></p>
                         <div id="cmFeed" class="mt-4"></div>
                         <p id="cmEmpty" class="hidden text-sm text-neutral-400 mt-4">No posts in this space yet.</p>

@@ -76,7 +76,7 @@ function corsHeaders(request, env) {
   return {
     "Access-Control-Allow-Origin": allow,
     "Vary": "Origin",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     // Authorization must be listed or the browser discards the POST after
     // preflight -- the token header is what makes this a non-simple request.
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
@@ -108,6 +108,41 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function originAllowed(origin, env) {
   return allowedOrigins(env).includes(origin);
+}
+
+const COMMUNITY_PREFIX = "/v1/community";
+const COMMUNITY_UPSTREAM = "https://findflower-social.onrender.com";
+
+async function proxyCommunity(request, env, url) {
+  const origin = request.headers.get("Origin");
+  if (origin && !originAllowed(origin, env)) {
+    return json({ error: "Origin not allowed." }, 403, request, env);
+  }
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders(request, env) });
+  }
+  const suffix = url.pathname.slice(COMMUNITY_PREFIX.length);
+  const target = new URL(COMMUNITY_UPSTREAM + (suffix || "/health") + url.search);
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+  headers.delete("cf-connecting-ip");
+  headers.delete("cf-ray");
+  let upstream;
+  try {
+    upstream = await fetch(target, {
+      method: request.method, headers, redirect: "manual",
+      body: request.method === "GET" || request.method === "HEAD" ? undefined : request.body,
+    });
+  } catch {
+    return json({ error: "Community service unavailable." }, 502, request, env);
+  }
+  const out = new Headers(upstream.headers);
+  const ch = corsHeaders(request, env);
+  Object.keys(ch).forEach((key) => out.set(key, ch[key]));
+  out.set("Cache-Control", "no-store");
+  return new Response(request.method === "HEAD" ? null : upstream.body, {
+    status: upstream.status, headers: out,
+  });
 }
 
 function windowStartMs(nowMs) {
@@ -453,6 +488,13 @@ async function verifyAuth0Token(token, env) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Community is a fixed-origin reverse proxy. It returns before inference
+    // authentication and quota handling, so social traffic never spends the
+    // global inference budget.
+    if (url.pathname.startsWith(COMMUNITY_PREFIX)) {
+      return proxyCommunity(request, env, url);
+    }
 
     // CORS preflight
     if (request.method === "OPTIONS") {

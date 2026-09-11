@@ -84,6 +84,8 @@ router.post('/', rateLimit('post:create', 10 * 60_000, 10), requireViewer, async
             title: body.title ? String(body.title).trim() : null,
             content,
             articleRef: body.articleRef ? String(body.articleRef).trim() : null,
+            replyTo: body.reply_to_id || null,
+            replyToSnippet: body.reply_to_snippet ? String(body.reply_to_snippet).trim().slice(0, 180) : null,
         });
         await doc.populate('author', AUTHOR_FIELDS);
         res.status(201).json({ post: doc.toFeed(req.viewer._id) });

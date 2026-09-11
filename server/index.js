@@ -16,6 +16,7 @@ import usersRouter from './routes/users.js';
 import friendsRouter from './routes/friends.js';
 import messagesRouter from './routes/messages.js';
 import searchRouter from './routes/search.js';
+import notificationsRouter from './routes/notifications.js';
 
 const PORT = Number(process.env.PORT) || 4000;
 // Render needs every interface. A local run wants loopback only, so nothing on
@@ -69,6 +70,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/friends', friendsRouter);
 app.use('/api/messages', messagesRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/notifications', notificationsRouter);
 
 app.use((req, res) => {
     res.status(404).json({ error: `No route for ${req.method} ${req.path}.` });

@@ -1,0 +1,13 @@
+﻿[{"stream_name":"stderr","time":0.662333997,"data":"Traceback (most recent call last):\n"}
+,{"stream_name":"stderr","time":0.66239966,"data":"  File \"/kaggle/src/script.py\", line 9, in \u003cmodule\u003e\n"}
+,{"stream_name":"stderr","time":0.662403741,"data":"    runpy.run_path(os.path.join(os.path.dirname(__file__), \"train_flora_ultra.py\"), run_name=\"__main__\")\n"}
+,{"stream_name":"stderr","time":0.662406325,"data":"  File \"\u003cfrozen runpy\u003e\", line 286, in run_path\n"}
+,{"stream_name":"stderr","time":0.662408726,"data":"  File \"\u003cfrozen runpy\u003e\", line 254, in _get_code_from_file\n"}
+,{"stream_name":"stderr","time":0.66241112,"data":"FileNotFoundError: [Errno 2] No such file or directory: '/kaggle/src/train_flora_ultra.py'\n"}
+,{"stream_name":"stderr","time":2.925322305,"data":"/usr/local/lib/python3.12/dist-packages/mistune.py:435: SyntaxWarning: invalid escape sequence '\\|'\n"}
+,{"stream_name":"stderr","time":2.925348062,"data":"  cells[i][c] = re.sub('\\\\\\\\\\|', '|', cell)\n"}
+,{"stream_name":"stderr","time":3.200435345,"data":"/usr/local/lib/python3.12/dist-packages/nbconvert/filters/filter_links.py:36: SyntaxWarning: invalid escape sequence '\\_'\n"}
+,{"stream_name":"stderr","time":3.200462826,"data":"  text = re.sub(r'_', '\\_', text) # Escape underscores in display text\n"}
+,{"stream_name":"stderr","time":4.386779619,"data":"[NbConvertApp] Converting notebook __script__.ipynb to html\n"}
+,{"stream_name":"stderr","time":5.504489843,"data":"[NbConvertApp] Writing 274753 bytes to __results__.html\n"}
+]

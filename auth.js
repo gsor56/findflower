@@ -4,6 +4,7 @@ const AUTH0_CONFIG = {
     clientId: "6L1pckrnAw9csi0ZyHEX1CC3vo1lcgxK",
 };
 
+const AUTH0_AUDIENCE = "https://api.findflower.me";
 const AUTH0_CALLBACK = window.location.origin + "/login.html";
 const FF_SESSION_PROFILE_KEY = "ff_session_profile";
 
@@ -34,7 +35,10 @@ async function ffGetClient() {
         _auth0Client = await auth0.createAuth0Client({
             domain: AUTH0_CONFIG.domain,
             clientId: AUTH0_CONFIG.clientId,
-            authorizationParams: { redirect_uri: AUTH0_CALLBACK },
+            authorizationParams: {
+                audience: AUTH0_AUDIENCE,
+                redirect_uri: AUTH0_CALLBACK,
+            },
             cacheLocation: "localstorage",
             useRefreshTokens: true,
         });
@@ -65,7 +69,12 @@ async function ffLogin(returnTo) {
     const client = await ffGetClient();
     if (!client) return false;
     if (returnTo) localStorage.setItem("ff_return_to", returnTo);
-    await client.loginWithRedirect();
+    await client.loginWithRedirect({
+        authorizationParams: {
+            audience: AUTH0_AUDIENCE,
+            redirect_uri: AUTH0_CALLBACK,
+        },
+    });
     return true;
 }
 
@@ -143,8 +152,9 @@ async function ffGetToken(audience) {
     if (!client) return null;
     try {
         if (!(await client.isAuthenticated())) return null;
-        const opts = audience ? { authorizationParams: { audience } } : undefined;
-        return await client.getTokenSilently(opts);
+        return await client.getTokenSilently({
+            authorizationParams: { audience: audience || AUTH0_AUDIENCE },
+        });
     } catch {
         return null;
     }
