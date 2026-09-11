@@ -55,4 +55,12 @@ AUTH0_AUDIENCE = "https://api.findflower.me"
 # Rolled out 2026-08-08 with no downtime by using this same lever: deploy
 # disarmed -> publish frontend -> confirm X-FF-Auth read `ok` -> remove the var
 # and redeploy. Reuse that sequence for any change that tightens the gate.
-ENFORCE_AUTH = "false"
+ENFORCE_AUTH = "true"
+
+[[durable_objects.bindings]]
+name = "GLOBAL_INFERENCE_BUDGET"
+class_name = "GlobalInferenceBudget"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["GlobalInferenceBudget"]

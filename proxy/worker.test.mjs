@@ -57,10 +57,23 @@ globalThis.fetch = async (url) => {
 };
 
 const SPACE_ROOT = 'https://space.example';
+const GLOBAL_INFERENCE_BUDGET = {
+    idFromName: () => 'global-inference-budget',
+    get: () => ({
+        fetch: async () => new Response(JSON.stringify({
+            allowed: true,
+            limit: 250,
+            remaining: 249,
+            reset: Math.floor(Date.now() / 1000) + 3600,
+            window_ends: new Date(Date.now() + 3600000).toISOString(),
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    }),
+};
 const ENV = {
     SPACE_URL: SPACE_ROOT, PROXY_SECRET: 's3cret',
     ALLOWED_ORIGINS: 'http://localhost:8000,https://findflower.me',
     AUTH0_DOMAIN: DOMAIN, AUTH0_AUDIENCE: AUD,
+    GLOBAL_INFERENCE_BUDGET,
     ENFORCE_AUTH: 'true',
 };
 // The rollout state: same everything, but the gate evaluates and serves
@@ -200,6 +213,7 @@ console.log('\n--- structure-only mode (AUTH0 vars unset, enforcing) ---');
     const bare = {
         SPACE_URL: ENV.SPACE_URL, PROXY_SECRET: ENV.PROXY_SECRET,
         ALLOWED_ORIGINS: ENV.ALLOWED_ORIGINS, ENFORCE_AUTH: 'true',
+        GLOBAL_INFERENCE_BUDGET,
     };
     await check('no header -> 401', async () => (await post(null, { env: bare })).status, { status: 401, space: false });
     await check('fabricated token -> 200', async () => (await post('aaaaaaaaaaaaaaaaaaaa', { env: bare })).status, { status: 200, space: true });

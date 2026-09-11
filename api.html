@@ -157,7 +157,7 @@
                 </h1>
                 <p class="reveal-up font-serif italic text-xl md:text-2xl text-sage-700 leading-snug max-w-2xl">
                     One endpoint works today and takes a photo for a species, a score and the
-                    runners-up. The REST API below it is written down but not serving yet.
+                    runners-up. The live REST API is available at the production endpoint below.
                 </p>
             </div>
         </section>
@@ -178,20 +178,19 @@
                         <p class="text-base text-neutral-600 font-light leading-relaxed">
                             POST a photo to the hosted endpoint from any web or server app and get
                             the species, a confidence score and ranked alternatives back as JSON.
-                            During the public beta, authentication is not required.
+                            Requests require a valid Auth0 access token.
                             <a href="#sdk" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Jump to the quickstart</a>, or <a href="#status" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">check that it is answering</a> first.
                         </p>
                     </div>
                     <div class="py-6">
                         <div class="flex flex-wrap items-baseline gap-3 mb-1">
                             <h3 class="text-base font-medium text-neutral-900">Hosted REST API</h3>
-                            <span class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Not serving yet</span>
+                            <span class="text-xs font-medium tracking-widest text-sage-700 uppercase">Live</span>
                         </div>
                         <p class="text-base text-neutral-600 font-light leading-relaxed">
-                            A stateless HTTPS API for server-side use. The shape below is what it
-                            will answer with; nothing behind it accepts requests today, so read
-                            that part as a specification rather than a service.
-                            <a href="#endpoints" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Read the endpoints</a> and the <a href="#limits" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">allowance they will come with</a>.
+                            A stateless HTTPS API for server-side use. The production Worker accepts
+                            requests now and enforces a shared 250-call rolling allowance.
+                            <a href="#endpoints" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Read the endpoints</a> and the <a href="#limits" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">current allowance</a>.
                         </p>
                     </div>
                 </div>
@@ -207,21 +206,19 @@
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-10 max-w-2xl">
-                        The direct endpoint currently accepts requests without authentication while the
-                        public beta is open (<span class="font-mono text-sm text-neutral-700">ENFORCE_AUTH=false</span> in the Worker). Authentication may be required later. The hosted API shown below remains a specification and is not serving yet.
+                        The hosted API is live, stateless, and gated by a valid Auth0 JWT. It enforces a shared 250-call global inference budget per 12-hour window.
                     </p>
 
                     <div class="border-t border-neutral-200 pt-6">
                         <div class="flex items-center justify-between mb-6">
-                            <span class="text-sm font-medium text-neutral-900">Example placeholder key</span>
-                            <span id="keyBadge" class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Optional</span>
+                            <span class="text-sm font-medium text-neutral-900">Auth0 access token</span>
+                            <span id="keyBadge" class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Required</span>
                         </div>
 
                         <div id="keyGate">
                             <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-lg">
-                                Sign in and this page derives a stable string from your account id so the
-                                specification examples below have something real to paste. It is not a
-                                live credential and does not authenticate requests.
+                                Sign in to retrieve the short-lived JWT that the production Worker verifies.
+                                The token is fetched on demand and is never written to this site’s storage.
                             </p>
                             <a href="/login" class="inline-flex items-center text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors">
                                 Sign in
@@ -233,14 +230,13 @@
                                 <p class="text-base font-medium text-neutral-900" id="devName"></p>
                                 <p class="text-sm text-neutral-500 font-light" id="devEmail"></p>
                             </div>
-                            <label class="text-sm font-medium text-neutral-900 mb-2 block">Derived key</label>
+                            <label class="text-sm font-medium text-neutral-900 mb-2 block">Active bearer token</label>
                             <div class="flex gap-3">
-                                <code id="apiKey" class="min-w-0 flex-1 font-mono text-sm border-b border-neutral-200 px-1 py-3 text-neutral-800 truncate"></code>
-                                <button id="copyKey" data-haptic class="soft-click shrink-0 text-base font-medium border border-neutral-200 text-neutral-700 px-4 rounded-md hover:bg-neutral-50 transition">Copy</button>
+                                <textarea id="apiKey" readonly rows="3" class="min-w-0 flex-1 resize-y font-mono text-xs border border-neutral-200 px-3 py-3 text-neutral-800 rounded-md"></textarea>
+                                <button id="copyKey" data-haptic class="soft-click shrink-0 self-start text-base font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-md hover:bg-neutral-50 transition">Copy</button>
                             </div>
-                            <p class="text-base text-neutral-500 font-light mt-4 leading-relaxed">
-                                Computed in your browser from your Auth0 id. No request validates it, and
-                                the same account always produces the same string.
+                            <p id="tokenStatus" class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
+                                Send it as <span class="font-mono">Authorization: Bearer &lt;token&gt;</span>. Tokens expire; refresh this page to request a current one.
                             </p>
                         </div>
                     </div>
@@ -256,11 +252,12 @@
                         The live gateway route is versioned and served over HTTPS. Requests and responses are JSON, except image uploads which use <span class="font-mono text-sm text-neutral-700">multipart/form-data</span>.
                     </p>
                     <div class="code p-5 mb-4">https://findflower-proxy.fofi.workers.dev/<span class="tok-str">v1/identify</span></div>
-                    <div class="code p-5"><span class="tok-com"># Public beta: no auth header required on the live route</span>
+                    <div class="code p-5"><span class="tok-com"># Auth0 access token required</span>
+<span class="tok-key">Authorization:</span> Bearer &lt;access-token&gt;
 <span class="tok-key">Accept:</span> application/json</div>
                     <div class="mt-4 flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                        <p><span class="font-medium text-neutral-700">Live today:</span> <span class="font-mono text-xs text-neutral-700">https://findflower-proxy.fofi.workers.dev/v1/identify</span>. The <span class="font-mono text-xs text-neutral-700">api.findflower.me</span> examples below are endpoint specifications for a future hosted REST API.</p>
+                        <p><span class="font-medium text-neutral-700">Live today:</span> <span class="font-mono text-xs text-neutral-700">https://findflower-proxy.fofi.workers.dev/v1/identify</span>. The production Worker is the canonical endpoint for image identification.</p>
                     </div>
                     </div>
                 </section>
@@ -274,6 +271,9 @@
                         The model server is private and everything reaches it through a Cloudflare
                         Worker at the edge. The Worker keeps two routes apart, and they are counted
                         very differently.
+                    </p>
+                    <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
+                        Current beta access costs <span data-dynamic-price class="font-medium text-neutral-900">$0.00</span>.
                     </p>
 
                     <div class="overflow-x-auto mb-8">
@@ -299,7 +299,7 @@
                                     <span class="block font-mono text-sm text-neutral-900">POST /v1/identify</span>
                                     <span class="block text-sm mt-1">Your own code, batches included</span>
                                 </td>
-                                <td class="border-t border-l border-black px-4 py-4 align-top text-sm">Yes, per IP address.</td>
+                                <td class="border-t border-l border-black px-4 py-4 align-top text-sm">Yes, shared globally across callers.</td>
                                 <td class="border-t border-l border-black px-4 py-4 align-top text-sm">00:00 and 12:00 UTC</td>
                             </tr>
                             <tr>
@@ -325,9 +325,8 @@
                     </p>
                     <p id="quotaNext" hidden class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl"></p>
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-8 max-w-2xl">
-                        One address is one bucket. Behind office NAT or a shared CI runner you share
-                        that bucket with everyone else on the same address, which is worth knowing
-                        before you go looking through your own code for a 429 you did not earn.
+                        All callers share one global bucket. A request from any client consumes one
+                        unit, which is worth knowing before a batch job spends the whole window.
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">429 Too Many Requests</h3>
@@ -354,7 +353,7 @@
                     </p>
                     <div class="flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                        <p>Both windows and the 429 body above are the published terms of the hosted route, which is not open to keys yet. What is live today is the gateway itself, and the panel below measures it rather than describing it.</p>
+                        <p>Both windows and the 429 body above are the published terms of the hosted route. Authentication is checked before an image is read or inference runs.</p>
                     </div>
                     </div>
                 </section>
@@ -428,7 +427,7 @@
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · multipart/form-data</h3>
-                    <div class="code p-5 mb-6"><span class="tok-com"># live route (public beta): field name is file</span>
+                    <div class="code p-5 mb-6"><span class="tok-com"># live route: field name is file</span>
 curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
   -F <span class="tok-str">"file=@sunflower.jpg"</span></div>
 
@@ -461,21 +460,21 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        Camera frames captured in the browser are most easily sent as a base64 data URL. The future hosted API is expected to accept a JSON body with an <span class="font-mono text-sm text-neutral-700">image</span> string; this remains specification-only for now.
+                        Camera frames captured in the browser can be sent directly to the live production Worker as a multipart image upload.
                     </p>
 
-                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h3>
-                    <div class="code p-5 mb-6"><span class="tok-com">// capture a frame, then POST it as a data URL</span>
-<span class="tok-key">const</span> dataUrl = canvas.toDataURL(<span class="tok-str">"image/jpeg"</span>, <span class="tok-num">0.92</span>);
-
-<span class="tok-key">await</span> fetch(<span class="tok-str">"https://api.findflower.me/v1/identify"</span>, {
-  <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
-  <span class="tok-key">headers</span>: {
-    <span class="tok-str">"Authorization"</span>: <span class="tok-str">"&lt;hosted key, when available&gt;"</span>,
-    <span class="tok-str">"Content-Type"</span>: <span class="tok-str">"application/json"</span>
-  },
-  <span class="tok-key">body</span>: JSON.stringify({ <span class="tok-key">image</span>: dataUrl })
-});</div>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · multipart/form-data</h3>
+                    <div class="code p-5 mb-6"><span class="tok-com">// capture a frame, then POST the JPEG as the file field</span>
+<span class="tok-key">canvas</span>.toBlob(<span class="tok-key">async</span> (blob) =&gt; {
+  <span class="tok-key">const</span> form = <span class="tok-key">new</span> FormData();
+  form.append(<span class="tok-str">"file"</span>, blob, <span class="tok-str">"capture.jpg"</span>);
+  <span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(<span class="tok-str">"https://findflower-proxy.fofi.workers.dev/v1/identify"</span>, {
+    <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
+    <span class="tok-key">body</span>: form
+  });
+  <span class="tok-key">if</span> (!res.ok) <span class="tok-key">throw new</span> Error(<span class="tok-str">`Identify failed: ${res.status}`</span>);
+  <span class="tok-key">return</span> res.json();
+}, <span class="tok-str">"image/jpeg"</span>, <span class="tok-num">0.92</span>);</div>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
@@ -502,12 +501,12 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        Pass a link to an image, or a YouTube URL. The planned hosted service resolves a still frame (for YouTube, the thumbnail) server-side, which side-steps the browser’s cross-origin limits. This remains a specification until the hosted REST API is live.
+                        Pass a link to an image, or a YouTube URL. URL resolution is planned for a later API revision; the live production route today is <span class="font-mono text-sm text-neutral-700">POST /v1/identify</span>.
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h3>
                     <div class="code p-5 mb-6">curl -X POST https://api.findflower.me/v1/identify/url \
-  -H <span class="tok-str">"Authorization: &lt;hosted key, when available&gt;"</span> \
+  -H <span class="tok-str">"Authorization: Bearer &lt;Auth0 access token&gt;"</span> \
   -H <span class="tok-str">"Content-Type: application/json"</span> \
   -d <span class="tok-str">'{ "url": "https://example.com/tulip.jpg" }'</span></div>
 
@@ -537,7 +536,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        Report whether a prediction was correct, and optionally the true species. This is a hosted REST API specification; it is not accepting live requests yet.
+                        Report whether a prediction was correct, and optionally the true species. Feedback storage is planned for a later API revision; it is not a live route today.
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h3>
@@ -572,12 +571,12 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        A convenience endpoint that returns the Wikipedia summary and lead image for a species name, the same context shown in the FindFlower workspace. This route is part of the hosted API specification and is not live yet.
+                        A convenience endpoint that returns the Wikipedia summary and lead image for a species name. This route is planned for a later API revision; use the live identify route above for model requests.
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request</h3>
                     <div class="code p-5 mb-6">curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower</span> \
-  -H <span class="tok-str">"Authorization: &lt;hosted key, when available&gt;"</span></div>
+  -H <span class="tok-str">"Authorization: Bearer &lt;Auth0 access token&gt;"</span></div>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
@@ -603,7 +602,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        The quickest way to integrate today. POST an image to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download. During the public beta, no auth header is required on this route (that may change later).
+                        The quickest way to integrate today. POST an image with an Auth0 access token to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download.
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Identify an image (JavaScript)</h3>
@@ -692,22 +691,51 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
             if (!user) return;
             document.getElementById('keyGate').classList.add('hidden');
             document.getElementById('keyPanel').classList.remove('hidden');
-            document.getElementById('keyBadge').textContent = 'Derived';
+            document.getElementById('keyBadge').textContent = 'Active';
             document.getElementById('keyBadge').className = 'text-xs font-medium tracking-widest text-sage-700 uppercase';
             document.getElementById('devName').textContent = user.name || user.nickname || 'Developer';
             document.getElementById('devEmail').textContent = user.email || '';
-            const key = await ffDeriveKey(user.sub || user.email || 'anon');
+            const key = await ffGetToken('https://api.findflower.me');
             const keyEl = document.getElementById('apiKey');
-            keyEl.textContent = key;
+            const status = document.getElementById('tokenStatus');
+            if (!key) {
+                keyEl.value = '';
+                if (status) status.textContent = 'No API audience token is available. Sign in again to request a fresh Auth0 access token.';
+                return;
+            }
+            keyEl.value = key;
             document.getElementById('copyKey').addEventListener('click', async () => {
                 try {
-                    await navigator.clipboard.writeText(key);
+                    await navigator.clipboard.writeText(keyEl.value);
                     const b = document.getElementById('copyKey');
                     const t = b.textContent; b.textContent = 'Copied';
                     setTimeout(() => b.textContent = t, 1500);
                 } catch (e) {}
             });
         })();
+    </script>
+    <script>
+    (function localizeZeroPrice() {
+        const prices = document.querySelectorAll('[data-dynamic-price]');
+        if (!prices.length) return;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2500);
+        const fallback = new Intl.NumberFormat(navigator.language, { style: 'currency', currency: 'USD' }).format(0);
+        prices.forEach((el) => { el.textContent = fallback; });
+        fetch('https://ipapi.co/json/', { headers: { Accept: 'application/json' }, signal: controller.signal })
+            .then((res) => {
+                if (!res.ok) throw new Error('Currency lookup failed');
+                return res.json();
+            })
+            .then((data) => {
+                const currency = String(data.currency || '').toUpperCase();
+                if (!/^[A-Z]{3}$/.test(currency)) throw new Error('Invalid currency code');
+                const localized = new Intl.NumberFormat(navigator.language, { style: 'currency', currency }).format(0);
+                prices.forEach((el) => { el.textContent = localized; });
+            })
+            .catch(() => {})
+            .finally(() => clearTimeout(timeout));
+    })();
     </script>
     <script>
     (function () {

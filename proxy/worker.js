@@ -134,14 +134,15 @@ function rateLimitHeaders(verdict) {
 }
 
 async function consumeGlobalBudget(request, env) {
-  if (!env.INFERENCE_BUDGET) {
+  const budgetBinding = env.GLOBAL_INFERENCE_BUDGET || env.INFERENCE_BUDGET;
+  if (!budgetBinding) {
     return { ok: false, status: 503, body: { error: "Inference quota service unavailable." } };
   }
 
   let res;
   try {
-    const id = env.INFERENCE_BUDGET.idFromName(GLOBAL_BUDGET_NAME);
-    const stub = env.INFERENCE_BUDGET.get(id);
+    const id = budgetBinding.idFromName(GLOBAL_BUDGET_NAME);
+    const stub = budgetBinding.get(id);
     res = await stub.fetch(new Request("https://quota.internal/consume", { method: "POST" }));
   } catch {
     return { ok: false, status: 503, body: { error: "Inference quota service unavailable." } };
