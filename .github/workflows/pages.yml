@@ -56,6 +56,9 @@ jobs:
           # code; the moment directory.html started depending on api.js it
           # rendered an empty grid. Copy the tree, not a glob of it.
           cp -R scripts _site/
+          # Clean routes for the new social surfaces. Pages serves each
+          # directory's index.html at /chat and /notifications.
+          cp -R chat notifications _site/
           # Tests ship in the repo, not to the web root.
           rm -f _site/scripts/*.test.mjs
           echo "--- published files ---"
@@ -82,6 +85,7 @@ jobs:
                    icon-maskable-512.png apple-touch-icon.png \
                    manifest.json robots.txt sitemap.xml \
                    articles/manifest.json \
+                   chat/index.html notifications/index.html \
                    assets/og-cover.png .well-known/discord; do
             test -f "_site/$f" || { echo "FATAL: $f missing from _site"; exit 1; }
           done
@@ -117,7 +121,8 @@ jobs:
                     /*.*) continue ;;   # has an extension: an asset, checked above
                   esac
                   test -f "_site/${ref#/}.html" \
-                    || echo "DEAD: $ref needs ${ref#/}.html (in $(basename "$html"))"
+                    || test -f "_site/${ref#/}/index.html" \
+                    || echo "DEAD: $ref needs ${ref#/}.html or ${ref#/}/index.html (in $(basename "$html"))"
                 done
           done > /tmp/deadpaths.txt
           # nav.js and footer.js are the other half of that surface. The top
@@ -132,7 +137,9 @@ jobs:
                     ""|/) continue ;;
                     /*.*) continue ;;
                   esac
-                  test -f "_site/${ref#/}.html" || echo "DEAD: $ref needs ${ref#/}.html (in $(basename "$js"))"
+                  test -f "_site/${ref#/}.html" \
+                    || test -f "_site/${ref#/}/index.html" \
+                    || echo "DEAD: $ref needs ${ref#/}.html or ${ref#/}/index.html (in $(basename "$js"))"
                 done
           done >> /tmp/deadpaths.txt
           cat /tmp/deadpaths.txt

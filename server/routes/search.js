@@ -17,7 +17,7 @@ const PER_CATEGORY = 10;
 // can only ever offer flowers the scanner could actually name.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const SPECIES = JSON.parse(
-    readFileSync(path.join(HERE, '..', '..', 'space', 'class_names.json'), 'utf8'),
+    readFileSync(path.join(HERE, '..', '..', 'class_names.json'), 'utf8'),
 );
 
 /** Escape a user's query before it goes near a regex. */
