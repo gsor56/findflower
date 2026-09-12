@@ -1,7 +1,7 @@
 
 const AUTH0_CONFIG = {
-    domain:   "findflower.au.auth0.com",
-    clientId: "6L1pckrnAw9csi0ZyHEX1CC3vo1lcgxK",
+    domain:   "dev-jvit0r04itv8hfjz.us.auth0.com",
+    clientId: "9sWXgo4TtCodcmnfdr6vcSRighhkVXMy",
 };
 
 const AUTH0_CALLBACK = window.location.origin + "/login.html";

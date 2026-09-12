@@ -38,6 +38,21 @@
     async function refresh() {
         var bell = ensureBell();
         if (!bell) return;
+
+        // Server-rendered pages hold an httpOnly session cookie rather than a
+        // token, so the count comes from the same origin with credentials and
+        // there is nothing to attach.
+        if (window.FF_AUTH_MODE === 'server-session') {
+            try {
+                var own = await fetch('/api/notifications/count', {
+                    headers: { Accept: 'application/json' }, credentials: 'same-origin'
+                });
+                if (!own.ok) return;
+                paint(bell, Number((await own.json()).unread) || 0);
+            } catch (e) { /* the badge just keeps its last value */ }
+            return;
+        }
+
         var token = await authToken();
         if (!token) return;
         try {
@@ -45,19 +60,31 @@
                 headers: { Accept: 'application/json', Authorization: 'Bearer ' + token }, mode: 'cors'
             });
             if (!res.ok) return;
-            var data = await res.json();
-            var count = Number(data.unread) || 0;
-            bell.classList.remove('hidden'); bell.classList.add('flex');
-            var badge = document.getElementById('ffNotifyBadge');
-            if (!badge) return;
-            badge.textContent = count > 99 ? '99+' : String(count);
-            badge.classList.toggle('hidden', count < 1);
-            badge.classList.toggle('flex', count > 0);
-            bell.setAttribute('aria-label', count ? 'Notifications, ' + count + ' unread' : 'Notifications');
+            paint(bell, Number((await res.json()).unread) || 0);
         } catch (e) { }
     }
 
+    function paint(bell, count) {
+        bell.classList.remove('hidden'); bell.classList.add('flex');
+        var badge = document.getElementById('ffNotifyBadge');
+        if (!badge) return;
+        badge.textContent = count > 99 ? '99+' : String(count);
+        badge.classList.toggle('hidden', count < 1);
+        badge.classList.toggle('flex', count > 0);
+        bell.setAttribute('aria-label', count ? 'Notifications, ' + count + ' unread' : 'Notifications');
+    }
+
     window.ffNotifications = { refresh: refresh };
+
+    // A live event is the badge's real trigger; the initial call is only what
+    // paints it before the first one arrives. scripts/live.js is injected last,
+    // so this listener is always registered before it dispatches.
+    document.addEventListener('fflive:ready', function () {
+        if (!window.ffLive) return;
+        window.ffLive.on('message', refresh);
+        window.ffLive.on('friend', refresh);
+    });
+
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh);
     else refresh();
 })();

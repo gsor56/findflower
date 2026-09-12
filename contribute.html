@@ -39,6 +39,9 @@
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <script src="auth.js?v=7"></script>
     <script src="storage.js"></script>
+    <script src="scripts/vendor/tf.min.js?v=4.22.0"></script>
+    <script src="scripts/lite.js?v=4"></script>
+    <script src="scripts/contributions.js?v=1" defer></script>
     <script src="scripts/views/contribute.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
     <script src="scripts/router.js" defer></script>
@@ -300,7 +303,9 @@
                             <a id="ctbMail" href="mailto:ibhx800@gmail.com" class="text-sm font-medium bg-neutral-900 text-white px-5 py-3 rounded-md hover:bg-neutral-800 transition-colors inline-flex items-center">Write the mail</a>
                             <a id="ctbIssue" href="https://github.com/gsor56/findflower/issues/new" target="_blank" rel="noopener noreferrer" class="text-sm text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Open an issue instead</a>
                             <button type="button" id="ctbAgain" class="soft-click text-sm text-neutral-500 hover:text-neutral-900 transition">Download it again</button>
+                            <button type="button" id="ctbUpload" class="hidden text-sm font-medium border border-neutral-900 text-neutral-900 px-5 py-3 rounded-md hover:bg-neutral-50 transition-colors">Send straight to FindFlower</button>
                         </div>
+                        <p id="ctbUploadNote" class="hidden text-sm text-neutral-500 font-light mt-3 leading-relaxed"></p>
                     </div>
                 </div>
             </section>

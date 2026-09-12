@@ -92,3 +92,16 @@ hf_*.json
 
 # a scratch worktree used for pushes, never part of a commit
 .push-worktree/
+
+# npm cache when installs are run with a repo-local --cache. Hundreds of MB, and
+# nothing in it belongs to the site.
+server/.npm-cache/
+
+# Scratch left by the deployment and dataset work: a clone used for pushes, the
+# patch tooling output, and the Flora-Ultra test runs. None of it is part of the
+# site or the server.
+.api-push-clone/
+.patch-out.txt
+.patch-err.txt
+.flora-ultra-test-output/
+.flora-ultra-training-output/

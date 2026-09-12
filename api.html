@@ -207,19 +207,20 @@
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-10 max-w-2xl">
-                        The hosted API is live and stateless. The preview is open, so nothing checks a token on the way in. There is a ceiling though: 250 calls every 12 hours, shared by everyone using it.
+                        The hosted API is live and stateless. Signed-in visitors call it from this browser with no key to paste, and a signed-in call is not counted against the anonymous ceiling: 250 calls every 12 hours, shared by everyone using it without an account.
                     </p>
 
                     <div class="border-t border-neutral-200 pt-6">
                         <div class="flex items-center justify-between mb-6">
-                            <span class="text-sm font-medium text-neutral-900">API preview key</span>
+                            <span class="text-sm font-medium text-neutral-900">Signed-in access</span>
                             <span id="keyBadge" class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Signed out</span>
                         </div>
 
                         <div id="keyGate">
                             <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-lg">
-                                Sign in to generate a stable preview key for your account.
-                                The preview key is derived locally and is never written to this site’s storage.
+                                Sign in to call the API from this browser. There is no key to generate and
+                                nothing to paste: the session is the credential, and every request from a
+                                signed-in page carries it on its own.
                             </p>
                             <a href="/login" class="inline-flex items-center text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors">
                                 Sign in
@@ -231,13 +232,13 @@
                                 <p class="text-base font-medium text-neutral-900" id="devName"></p>
                                 <p class="text-sm text-neutral-500 font-light" id="devEmail"></p>
                             </div>
-                            <label class="text-sm font-medium text-neutral-900 mb-2 block">API preview key</label>
-                            <div class="flex gap-3">
-                                <textarea id="apiKey" readonly rows="3" class="min-w-0 flex-1 resize-y font-mono text-xs border border-neutral-200 px-3 py-3 text-neutral-800 rounded-md"></textarea>
-                                <button id="copyKey" data-haptic class="soft-click shrink-0 self-start text-base font-medium border border-neutral-200 text-neutral-700 px-4 py-3 rounded-md hover:bg-neutral-50 transition">Copy</button>
-                            </div>
-                            <p id="tokenStatus" class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
-                                Use this preview key to identify your account in examples. It is not a bearer token.
+                            <p class="text-base text-neutral-600 font-light leading-relaxed mb-4 max-w-lg">
+                                You are signed in, so the API answers this browser. There is no preview key
+                                to generate and nothing to copy: a signed-in call carries the session
+                                cookie, which page scripts cannot read.
+                            </p>
+                            <p id="tokenStatus" class="text-sm text-neutral-500 font-light leading-relaxed">
+                                The cookie is httpOnly and same-origin, so it is never exposed to JavaScript.
                             </p>
                         </div>
                     </div>
@@ -253,7 +254,7 @@
                         The live gateway route is versioned and served over HTTPS. Requests and responses are JSON, except image uploads which use <span class="font-mono text-sm text-neutral-700">multipart/form-data</span>.
                     </p>
                     <div class="code p-5 mb-4">https://findflower-proxy.fofi.workers.dev/<span class="tok-str">v1/identify</span></div>
-                    <div class="code p-5"><span class="tok-com"># no key needed while the preview is open</span>
+                    <div class="code p-5"><span class="tok-com"># no key: this page's session is the credential</span>
 <span class="tok-key">Accept:</span> application/json</div>
                     <div class="mt-4 flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -693,23 +694,10 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
             document.getElementById('keyBadge').className = 'text-xs font-medium tracking-widest text-sage-700 uppercase';
             document.getElementById('devName').textContent = user.name || user.nickname || 'Developer';
             document.getElementById('devEmail').textContent = user.email || '';
-            const key = await ffDeriveKey(user.sub);
-            const keyEl = document.getElementById('apiKey');
             const status = document.getElementById('tokenStatus');
-            if (!key) {
-                keyEl.value = '';
-                if (status) status.textContent = 'Sign in to generate your API preview key.';
-                return;
+            if (status) {
+                status.textContent = 'Signed in. Requests sent from this page carry the session automatically.';
             }
-            keyEl.value = key;
-            document.getElementById('copyKey').addEventListener('click', async () => {
-                try {
-                    await navigator.clipboard.writeText(keyEl.value);
-                    const b = document.getElementById('copyKey');
-                    const t = b.textContent; b.textContent = 'Copied';
-                    setTimeout(() => b.textContent = t, 1500);
-                } catch (e) {}
-            });
         })();
     </script>
     <script>

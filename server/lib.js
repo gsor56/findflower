@@ -3,6 +3,21 @@
 
 import { User } from './models/user.js';
 import { viewerSub } from './auth.js';
+import { sessionUser } from './session.js';
+
+/**
+ * The Auth0 `sub` behind this request, preferring the browser session.
+ *
+ * A page the server rendered has no Authorization header to read: the
+ * express-openid-connect cookie is the credential. A non-browser client has no
+ * cookie and sends a bearer token instead. Whichever is present wins, and the
+ * token path keeps the same verification it always had.
+ */
+export async function resolveViewerSub(req) {
+    const session = sessionUser(req);
+    if (session && session.sub) return session.sub;
+    return viewerSub(req);
+}
 
 /**
  * page/limit from a query string, clamped.
@@ -77,7 +92,7 @@ export function authRefusal(req) {
  *  answers 401/409 itself. 409 rather than 404 when the token is good but no
  *  profile exists yet: the fix is to claim a handle, not to sign in again. */
 export async function requireViewer(req, res, next) {
-    const sub = await viewerSub(req);
+    const sub = await resolveViewerSub(req);
     if (!sub) {
         res.status(401).json(authRefusal(req));
         return;
@@ -94,7 +109,7 @@ export async function requireViewer(req, res, next) {
 /** Same, but anonymous is allowed: req.viewer is null for a signed-out reader.
  *  Used by the feed, where a token only decides whether likes look pressed. */
 export async function optionalViewer(req, res, next) {
-    const sub = await viewerSub(req);
+    const sub = await resolveViewerSub(req);
     req.viewer = sub ? await User.findOne({ authSub: sub }) : null;
     next();
 }

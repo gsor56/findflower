@@ -62,7 +62,7 @@ Set as Worker secrets/vars, never in code:
 | `PROXY_SECRET` | Shared secret; must match the backend's `PROXY_SECRET` exactly |
 | `ALLOWED_ORIGINS` | Comma-separated CORS allowlist. `*` is ignored — the fallback is `https://findflower.me` |
 | `SPACE_TOKEN` | Optional bearer token, only needed if the backend is access-gated |
-| `AUTH0_DOMAIN` | Auth0 tenant, e.g. `findflower.au.auth0.com`. Enables JWT verification |
+| `AUTH0_DOMAIN` | Auth0 tenant, e.g. `dev-jvit0r04itv8hfjz.us.auth0.com`. Enables JWT verification |
 | `AUTH0_AUDIENCE` | Auth0 API identifier. Must match `AUTH0_AUDIENCE` in `try.html` |
 
 ```

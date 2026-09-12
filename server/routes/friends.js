@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { Friend } from '../models/friend.js';
 import { User } from '../models/user.js';
 import { rateLimit, requireViewer } from '../lib.js';
+import { publish } from '../lib/events.js';
 
 const router = Router();
 const CARD = 'handle displayName avatar';
@@ -53,11 +54,23 @@ router.post('/request', rateLimit('friend:request', 60 * 60_000, 30), requireVie
         }
         theirs.status = 'accepted';
         await theirs.save();
+        // Their open notifications page learns about the acceptance without a
+        // poll, and the badge on every other tab they have open follows.
+        publish([String(them._id)], 'friend', {
+            status: 'accepted',
+            handle: req.viewer.handle,
+            displayName: req.viewer.displayName,
+        });
         res.json({ handle, status: 'accepted' });
         return;
     }
     try {
         const row = await Friend.create({ requester: req.viewer._id, recipient: them._id });
+        publish([String(them._id)], 'friend', {
+            status: 'pending',
+            handle: req.viewer.handle,
+            displayName: req.viewer.displayName,
+        });
         res.status(201).json({ handle, status: row.status });
     } catch (err) {
         if (err.code === 11000) {
@@ -91,11 +104,13 @@ router.post('/respond', rateLimit('friend:respond', 60 * 60_000, 60), requireVie
     }
     if (action === 'decline') {
         await row.deleteOne();
+        publish([String(them._id)], 'friend', { status: 'declined', handle: req.viewer.handle });
         res.json({ handle, status: 'none' });
         return;
     }
     row.status = action === 'accept' ? 'accepted' : 'blocked';
     await row.save();
+    publish([String(them._id)], 'friend', { status: row.status, handle: req.viewer.handle });
     res.json({ handle, status: row.status });
 });
 

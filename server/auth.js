@@ -5,16 +5,20 @@
 // by hand, so a jose/jsonwebtoken install buys nothing here.
 //
 // The domain and client id below are the same public values auth.js already
-// ships to the browser -- SPA config, not secrets. Set AUTH0_AUDIENCE once an
-// API is registered in the Auth0 dashboard and access tokens issued for it will
-// be accepted; until then the only token the SPA can produce is its ID token,
-// whose audience is the client id, and that is what this accepts. Either way the
-// signature and issuer are checked, so a caller cannot name themselves.
+// ships to the browser -- SPA config, not secrets.
+//
+// https://api.findflower.me is a registered API in this tenant, so two kinds of
+// token can arrive from it, both signed by the same issuer and both verifiable
+// here: an access token whose `aud` is the API, and the SPA's ID token whose
+// `aud` is the client id. `want` below picks which one is accepted, and with no
+// env var set it is the client id -- set AUTH0_AUDIENCE to the API identifier to
+// require a real access token instead. Either way the signature, issuer and
+// expiry are checked, so a caller cannot name themselves.
 
 import crypto from 'node:crypto';
 
-const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'findflower.au.auth0.com';
-const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID || '6L1pckrnAw9csi0ZyHEX1CC3vo1lcgxK';
+const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'dev-jvit0r04itv8hfjz.us.auth0.com';
+const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID || '9sWXgo4TtCodcmnfdr6vcSRighhkVXMy';
 // Both derived from the domain in normal use. Overridable because a staging
 // tenant and the test harness need a different issuer and key set, and because
 // the alternative is a switch that skips verification -- which is not a thing

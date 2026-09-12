@@ -8,11 +8,20 @@
     var myId = null;
     var myHandle = null;
 
+    // A server-rendered page holds an httpOnly session cookie, not a token. The
+    // cookie rides along on a same-origin fetch, so there is nothing to attach
+    // and no CORS preflight to pay for. The static build keeps the old bearer
+    // path untouched.
+    function serverSession() {
+        return window.FF_AUTH_MODE === 'server-session';
+    }
+
     function trimSlash(u) {
         return String(u).replace(/\/+$/, '');
     }
 
     function baseUrl() {
+        if (serverSession()) return location.origin;
         if (typeof window.FF_SOCIAL_API === 'string' && window.FF_SOCIAL_API) {
             return trimSlash(window.FF_SOCIAL_API);
         }
@@ -22,6 +31,7 @@
     }
 
     async function token() {
+        if (serverSession()) return null;
         try {
             if (typeof ffIdToken === 'function') return await ffIdToken();
         } catch (e) {
@@ -39,8 +49,11 @@
         if (o.body !== undefined) head['Content-Type'] = 'application/json';
         if (o.auth) {
             var t = await token();
-            if (!t) return { ok: false, status: 401, data: null, error: 'Sign in first.' };
-            head.Authorization = 'Bearer ' + t;
+            // Only the token path can be refused here. In server-session mode the
+            // server is the one holding the credential, and it answers 401 on
+            // its own if the session has expired.
+            if (!t && !serverSession()) return { ok: false, status: 401, data: null, error: 'Sign in first.' };
+            if (t) head.Authorization = 'Bearer ' + t;
         }
 
         var ctrl = typeof AbortController === 'function' ? new AbortController() : null;
@@ -52,6 +65,7 @@
                 headers: head,
                 body: o.body === undefined ? undefined : JSON.stringify(o.body),
                 signal: ctrl ? ctrl.signal : undefined,
+                credentials: serverSession() ? 'same-origin' : 'omit',
                 mode: 'cors'
             });
         } catch (e) {

@@ -3,6 +3,7 @@ import { Message } from '../models/message.js';
 import { Friend } from '../models/friend.js';
 import { User } from '../models/user.js';
 import { pageParams, rateLimit, requireViewer } from '../lib.js';
+import { publish } from '../lib/events.js';
 
 // Direct messages only, which is what the brief's routes describe. Space chat
 // has a schema and no endpoint yet on purpose: a room needs a socket to be worth
@@ -84,6 +85,14 @@ router.post('/:friendHandle', rateLimit('dm:send', 60_000, 30), requireViewer, a
     try {
         const doc = await Message.create({ sender: req.viewer._id, recipient: them._id, content });
         await doc.populate('sender', CARD);
+        // Persist first, broadcast second. A message that reached a reader but
+        // not the database would vanish on the next reload, and that reload is
+        // the only thing that can repair a client which missed the event.
+        publish([String(req.viewer._id), String(them._id)], 'message', {
+            message: doc.toWire(),
+            from: { id: String(req.viewer._id), handle: req.viewer.handle, displayName: req.viewer.displayName },
+            to: { id: String(them._id), handle: them.handle, displayName: them.displayName },
+        });
         res.status(201).json({ message: doc.toWire() });
     } catch (err) {
         res.status(400).json({ error: err.message });

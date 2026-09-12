@@ -11,11 +11,13 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "check": "node --check index.js && node --check db.js"
+    "check": "node --check index.js && node --check db.js && node --check session.js && node --check lib.js && node --check lib/ssr.js && node --check lib/events.js && node --check lib/social-data.js && node --check routes/events.js && node --check routes/contributions.js"
   },
   "dependencies": {
     "dotenv": "17.4.2",
+    "ejs": "^6.0.1",
     "express": "5.2.1",
+    "express-openid-connect": "^3.4.0",
     "mongoose": "9.9.3"
   }
 }

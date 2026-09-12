@@ -38,8 +38,9 @@
  *                     Wikidata, so the encyclopedia still renders.
  *   ALLOWED_ORIGINS - comma-separated CORS allowlist. `*` is IGNORED; the
  *                     fallback is CANONICAL_ORIGIN below.
- *   AUTH0_DOMAIN    - e.g. findflower.au.auth0.com   \  both required for real
- *   AUTH0_AUDIENCE  - your Auth0 API identifier      /  token verification
+ *   AUTH0_DOMAIN    - the tenant, e.g. dev-jvit0r04itv8hfjz.us.auth0.com
+ *   AUTH0_AUDIENCE  - the API identifier registered in that tenant
+ *                     both are required for real token verification
  */
 
 const TOP_K = 5;
@@ -151,6 +152,84 @@ async function proxyCommunity(request, env, url) {
   out.set("Cache-Control", "no-store");
   return new Response(request.method === "HEAD" ? null : upstream.body, {
     status: upstream.status, headers: out,
+  });
+}
+
+// --- Server-rendered site passthrough -------------------------------------
+//
+// The migrated pages live on the Node server (HidenCloud), not on GitHub
+// Pages. These paths are proxied there so one origin serves both the page and
+// the API it calls, which is what makes the session cookie same-origin.
+//
+// `/` is deliberately NOT in the list. The Worker root is also its own
+// liveness endpoint, and /try polls it to paint the model-status dot; if the
+// homepage lived there, that poll would parse HTML. A browser navigation sends
+// Accept: text/html while the poll sends */*, so the two stay separable.
+const SITE_PATHS = new Set([
+  "/community", "/chat", "/notifications", "/try", "/contribute",
+  "/api", "/login", "/logout", "/callback",
+]);
+
+// Server-Sent Events. These must arrive as a live stream: anything that buffers
+// the body holds every message until the connection closes, which is the exact
+// opposite of what a chat stream is for.
+const STREAM_PATHS = new Set(["/api/events"]);
+
+function siteProxyTarget(env, url, request) {
+  const upstream = env.SITE_UPSTREAM;
+  if (!upstream) return false;
+  if (url.pathname.startsWith("/api/")) return true;
+  if (SITE_PATHS.has(url.pathname)) return true;
+  if (url.pathname !== "/") return false;
+  // The homepage, but only for a navigation. The model-status poll asks for
+  // `*/*` and keeps getting the JSON health answer below.
+  return (request.headers.get("Accept") || "").includes("text/html");
+}
+
+// Pass a request through to the Node server and hand the response body back
+// untouched. Nothing here reads the body, which is what keeps an SSE stream
+// live rather than buffered.
+async function proxySite(request, env, url) {
+  const stream = STREAM_PATHS.has(url.pathname);
+  const target = new URL(url.pathname + url.search, env.SITE_UPSTREAM);
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+  headers.delete("cf-connecting-ip");
+  headers.delete("cf-ray");
+  headers.delete("cf-ipcountry");
+  // A compressed stream is a buffered stream. Ask for identity on the event
+  // route so the origin never has a compression window to flush.
+  if (stream) headers.set("Accept-Encoding", "identity");
+
+  const init = { method: request.method, headers, redirect: "manual" };
+  if (request.method !== "GET" && request.method !== "HEAD") init.body = request.body;
+
+  let upstream;
+  try {
+    upstream = await fetch(target, init);
+  } catch {
+    return json({ error: "Site backend unavailable." }, 502, request, env);
+  }
+
+  const out = new Headers();
+  for (const [key, value] of upstream.headers) {
+    const k = key.toLowerCase();
+    // Content-Length/Encoding describe a body this Worker may re-frame, and
+    // Set-Cookie is appended below so several survive as separate headers.
+    if (k === "content-length" || k === "content-encoding" || k === "transfer-encoding"
+      || k === "connection" || k === "set-cookie") continue;
+    out.set(key, value);
+  }
+  const cookies = typeof upstream.headers.getSetCookie === "function" ? upstream.headers.getSetCookie() : [];
+  for (const cookie of cookies) out.append("set-cookie", cookie);
+  // The session cookie lives on these responses; nothing about a rendered page
+  // or a stream is cacheable.
+  out.set("Cache-Control", stream ? "no-cache, no-transform" : "no-store");
+  if (stream) out.set("X-Accel-Buffering", "no");
+
+  return new Response(request.method === "HEAD" ? null : upstream.body, {
+    status: upstream.status,
+    headers: out,
   });
 }
 
@@ -503,6 +582,14 @@ export default {
     // global inference budget.
     if (url.pathname.startsWith(COMMUNITY_PREFIX)) {
       return proxyCommunity(request, env, url);
+    }
+
+    // Server-rendered pages and the API that belongs to them. Ahead of the CORS
+    // preflight below because these are same-origin navigations and fetches,
+    // not cross-site calls: the browser sends no preflight, and the session
+    // cookie has to reach the origin untouched.
+    if (siteProxyTarget(env, url, request)) {
+      return proxySite(request, env, url);
     }
 
     // CORS preflight

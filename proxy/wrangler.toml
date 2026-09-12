@@ -20,7 +20,7 @@ ALLOWED_ORIGINS = "http://localhost:8000,https://findflower.me"
 # AUTH0_AUDIENCE must match AUTH0_AUDIENCE in try.html exactly, and an API with
 # this identifier must exist in the Auth0 dashboard (Applications -> APIs), or
 # Auth0 refuses to issue a token for it and signed-in users get no token at all.
-AUTH0_DOMAIN   = "findflower.au.auth0.com"
+AUTH0_DOMAIN   = "dev-jvit0r04itv8hfjz.us.auth0.com"
 AUTH0_AUDIENCE = "https://api.findflower.me"
 
 # The auth gate is DISARMED — deliberately, 2026-08-08, pre-production.
@@ -56,6 +56,17 @@ AUTH0_AUDIENCE = "https://api.findflower.me"
 # disarmed -> publish frontend -> confirm X-FF-Auth read `ok` -> remove the var
 # and redeploy. Reuse that sequence for any change that tightens the gate.
 ENFORCE_AUTH = "false"
+
+# Where the server-rendered pages live. The Node application on HidenCloud owns
+# /community, /chat, /notifications, /try, /contribute, /api and the auth
+# routes; this Worker passes those through so one origin serves both the page
+# and the API it calls (which is what makes the session cookie same-origin).
+#
+# Leave this unset and every one of those paths keeps answering from GitHub
+# Pages, exactly as before. Set it and the Worker becomes the front door for the
+# migrated pages only -- /trefle/, the inference routes and the health poll are
+# untouched either way.
+SITE_UPSTREAM = "http://pat.hidencloud.com:24729"
 
 [[durable_objects.bindings]]
 name = "GLOBAL_INFERENCE_BUDGET"
