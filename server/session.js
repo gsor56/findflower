@@ -25,18 +25,51 @@ const devSecret = crypto.createHash('sha256')
     .digest('hex');
 const secret = configuredSecret || devSecret;
 
+// The public origin Auth0 redirects back to, and therefore the host in
+// `redirect_uri`. Left unset on a production container this silently becomes
+// `http://localhost:<port>`, which fails twice over: Auth0 rejects the callback
+// as unregistered, and the transaction cookie the flow sets alongside it is
+// `SameSite=None; Secure`, which no browser will store over http. Defaulting to
+// the one public origin this service serves turns that into a working login.
+const AUTH0_BASE_URL = process.env.AUTH0_BASE_URL
+    || process.env.FF_PUBLIC_URL
+    || (isProduction ? 'https://findflower.me' : `http://localhost:${PORT}`);
+
 if (isProduction && !configuredSecret) {
     console.warn('[auth] AUTH0_SECRET is not set; using a derived development secret. Set it in HidenCloud before production traffic.');
 }
 
 export const sessionEnabled = Boolean(configuredSecret) || !isProduction;
 
+// `response_type` is not a taste question. The library defaults it to
+// `id_token`, and that one default does three harmful things at once: it treats
+// this as a public client so the client secret is never sent, it forces
+// `response_mode=form_post`, and form_post in turn forces the transaction
+// cookie to `SameSite=None; Secure` -- which an http origin cannot use, so the
+// state that /callback checks against is gone by the time Auth0 redirects back.
+// A confidential web app wants the authorization code flow: it authenticates
+// with the secret, enables PKCE, and leaves the cookie on `SameSite=Lax`, which
+// still arrives on the top-level GET back from Auth0.
+//
+// The flow follows whether a secret exists rather than being hardcoded. With no
+// secret the library rejects the code flow outright, and throwing here would
+// take down every page instead of just the sign-in.
+const confidential = Boolean(AUTH0_CLIENT_SECRET);
+
+if (!confidential) {
+    console.warn('[auth] AUTH0_CLIENT_SECRET is not set, so sign-in falls back to the id_token flow and will not complete. Set it in HidenCloud.');
+}
+
+// The three values that break sign-in are all invisible from outside the
+// container, and its log is the only place to see them.
+console.log(`[auth] tenant=${AUTH0_DOMAIN} baseURL=${AUTH0_BASE_URL} audience=${AUTH0_AUDIENCE} flow=${confidential ? 'code' : 'id_token'} sessionSecret=${configuredSecret ? 'set' : 'derived'}`);
+
 export const oidc = auth({
     authRequired: false,
     auth0Logout: true,
-    baseURL: process.env.AUTH0_BASE_URL || process.env.FF_PUBLIC_URL || `http://localhost:${PORT}`,
+    baseURL: AUTH0_BASE_URL,
     clientID: AUTH0_CLIENT_ID,
-    ...(AUTH0_CLIENT_SECRET ? { clientSecret: AUTH0_CLIENT_SECRET } : {}),
+    ...(confidential ? { clientSecret: AUTH0_CLIENT_SECRET } : {}),
     issuerBaseURL: process.env.AUTH0_ISSUER || `https://${AUTH0_DOMAIN}/`,
     secret,
     routes: {
@@ -46,6 +79,7 @@ export const oidc = auth({
         postLogoutRedirect: '/',
     },
     authorizationParams: {
+        ...(confidential ? { response_type: 'code', response_mode: 'query' } : {}),
         audience: AUTH0_AUDIENCE,
         scope: 'openid profile email',
     },
