@@ -9,12 +9,13 @@ import { fileURLToPath } from 'node:url';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
-// The .env lives in the repo root, one level above server/, and this process
-// gets started from either place -- `npm start` in here, a Render start command
-// from the root. An explicit path beats depending on cwd. Render injects real
-// environment variables instead, and dotenv never overwrites those.
+// Two places, because two layouts. In the repo the .env sits one level above
+// server/; on the container these files are the root, so there is no level
+// above and the .env sits beside them. Whichever exists is read, cwd plays no
+// part, and a real environment variable always wins because dotenv never
+// overwrites one that is already set.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(HERE, '..', '.env'), quiet: true });
+dotenv.config({ path: [path.join(HERE, '.env'), path.join(HERE, '..', '.env')], quiet: true });
 
 let listening = false;
 let closing = false;

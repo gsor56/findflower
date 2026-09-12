@@ -179,7 +179,7 @@
                         <p class="text-base text-neutral-600 font-light leading-relaxed">
                             POST a photo to the hosted endpoint from any web or server app and get
                             the species, a confidence score and ranked alternatives back as JSON.
-                            Requests require a valid Auth0 access token.
+                            No key is needed while the preview is open.
                             <a href="#sdk" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Jump to the quickstart</a>, or <a href="#status" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">check that it is answering</a> first.
                         </p>
                     </div>
@@ -207,13 +207,13 @@
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-10 max-w-2xl">
-                        The hosted API is live, stateless, and gated by a valid Auth0 JWT. It enforces a shared 250-call global inference budget per 12-hour window.
+                        The hosted API is live and stateless. The preview is open, so nothing checks a token on the way in. There is a ceiling though: 250 calls every 12 hours, shared by everyone using it.
                     </p>
 
                     <div class="border-t border-neutral-200 pt-6">
                         <div class="flex items-center justify-between mb-6">
-                            <span class="text-sm font-medium text-neutral-900">Auth0 access token</span>
-                            <span id="keyBadge" class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Required</span>
+                            <span class="text-sm font-medium text-neutral-900">API preview key</span>
+                            <span id="keyBadge" class="text-xs font-medium tracking-widest text-neutral-400 uppercase">Signed out</span>
                         </div>
 
                         <div id="keyGate">
@@ -253,8 +253,7 @@
                         The live gateway route is versioned and served over HTTPS. Requests and responses are JSON, except image uploads which use <span class="font-mono text-sm text-neutral-700">multipart/form-data</span>.
                     </p>
                     <div class="code p-5 mb-4">https://findflower-proxy.fofi.workers.dev/<span class="tok-str">v1/identify</span></div>
-                    <div class="code p-5"><span class="tok-com"># Auth0 access token required</span>
-<span class="tok-key">Authorization:</span> Bearer &lt;access-token&gt;
+                    <div class="code p-5"><span class="tok-com"># no key needed while the preview is open</span>
 <span class="tok-key">Accept:</span> application/json</div>
                     <div class="mt-4 flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -317,8 +316,8 @@
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Two windows a day</h3>
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
-                        The public allowance is counted against the IP address the request arrives
-                        from and replenished twice a day, at 00:00 and 12:00 UTC. Nothing accrues in
+                        The public allowance is one pool for everyone, not a per caller quota, and
+                        it replenishes twice a day, at 00:00 and 12:00 UTC. Nothing accrues in
                         between. A window opens with the whole allowance, and whatever is unspent
                         when it closes is not carried into the next one, so a job that starts just
                         before a boundary effectively gets two windows back to back. That is the
@@ -506,8 +505,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h3>
-                    <div class="code p-5 mb-6">curl -X POST https://api.findflower.me/v1/identify/url \
-  -H <span class="tok-str">"Authorization: Bearer &lt;Auth0 access token&gt;"</span> \
+                    <div class="code p-5 mb-6">curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify/url \
   -H <span class="tok-str">"Content-Type: application/json"</span> \
   -d <span class="tok-str">'{ "url": "https://example.com/tulip.jpg" }'</span></div>
 
@@ -576,8 +574,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request</h3>
-                    <div class="code p-5 mb-6">curl https://api.findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower</span> \
-  -H <span class="tok-str">"Authorization: Bearer &lt;Auth0 access token&gt;"</span></div>
+                    <div class="code p-5 mb-6">curl https://findflower-proxy.fofi.workers.dev/v1/wikipedia?name=<span class="tok-str">sunflower</span></div>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
@@ -603,7 +600,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
-                        The quickest way to integrate today. POST an image with an Auth0 access token to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download.
+                        The quickest way to integrate today. POST an image to the hosted endpoint that powers FindFlower and get the ranked result back as JSON. Inference runs server-side, so there is nothing to download.
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Identify an image (JavaScript)</h3>

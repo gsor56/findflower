@@ -783,22 +783,21 @@
             warmUpEngine();
         }
 
-        // These two are deliberately not the same value. SEND_AUTH_TOKEN means
-        // "attach the token when the visitor happens to have one"; REQUIRE_SIGN_IN
-        // means "refuse to scan without one". Guests carry on scanning: no token,
-        // no header, and the Worker gate is disarmed, so the upload is served.
+        // SEND_AUTH_TOKEN means "attach the token when the visitor has one";
+        // REQUIRE_SIGN_IN means "refuse to scan without one". Both are on, so this
+        // page now asks for sign-in before it will scan.
         //
-        // Sending the token while that gate is down is the whole point of the
-        // rollout written up in proxy/wrangler.toml. The Worker verifies every
-        // token it is handed and reports the verdict in X-FF-Auth, so a signed-in
-        // scan reading `ok` there is the evidence that arming the gate is safe.
-        // With this switch off, every audit line read `would-reject: Authorization
-        // header is required` instead, and the dry run could never produce its own
-        // exit criterion.
+        // The Worker gate is still disarmed (ENFORCE_AUTH="false" in
+        // proxy/wrangler.toml), which is the safe order: the page is stricter than
+        // the Worker, so nobody is turned away by a gate the frontend has not
+        // caught up with. It does mean the sign-in requirement here is the only
+        // thing enforcing it, and a direct call to the route still goes through.
         //
-        // Arming that gate means flipping REQUIRE_SIGN_IN to true in the same
-        // deploy. An armed Worker with sign-in optional here means every guest
-        // scan 401s, and only after the photo has already gone up the wire.
+        // Before arming that gate, auth.js has to ask Auth0 for an audience again.
+        // Without one the tenant hands back an opaque token rather than a JWT, and
+        // the Worker cannot verify what is not a JWT: every signed-in scan would
+        // 401 with "token is not a JWT". The X-FF-Auth verdict on a live scan is
+        // what says whether that has been put back.
         const SEND_AUTH_TOKEN = true;
         const REQUIRE_SIGN_IN = true;
 

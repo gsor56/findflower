@@ -53,6 +53,12 @@ const GLOBAL_BUDGET_NAME = "global-inference-budget";
 // unset/!misconfigured ALLOWED_ORIGINS can never degrade to a wildcard.
 const CANONICAL_ORIGIN = "https://findflower.me";
 
+// The scanner on this site posts here. It reaches the same model as the
+// public route but is deliberately not metered: visitors identifying a
+// flower on /try must not be able to exhaust the allowance that API
+// callers are spending, and vice versa. /api documents the split.
+const SCAN_ROUTE = "/internal/scan";
+
 // Reject junk like `Bearer x` before spending a JWKS fetch on it.
 const MIN_TOKEN_LENGTH = 16;
 
@@ -111,7 +117,9 @@ function originAllowed(origin, env) {
 }
 
 const COMMUNITY_PREFIX = "/v1/community";
-const COMMUNITY_UPSTREAM = "https://findflower-social.onrender.com";
+// The allocation answers on a numbered port with no certificate of its own, so
+// this hop is plaintext. It runs Cloudflare to origin, never browser to origin.
+const COMMUNITY_UPSTREAM = "http://pat.hidencloud.com:24729";
 
 async function proxyCommunity(request, env, url) {
   const origin = request.headers.get("Origin");
@@ -564,7 +572,8 @@ export default {
       return json({ error: "Use POST with a raw image body." }, 405, request, env);
     }
 
-    const isInferenceRoute = url.pathname === "/" || url.pathname === "/v1/identify";
+    const isInferenceRoute = url.pathname === "/" || url.pathname === "/v1/identify"
+      || url.pathname === SCAN_ROUTE;
     if (!isInferenceRoute) {
       return json({ error: "Not found." }, 404, request, env);
     }
@@ -634,25 +643,33 @@ export default {
           : audit.outcome,
     };
 
-    const budget = await consumeGlobalBudget(request, env);
-    if (!budget.ok) {
-      return json(budget.body, budget.status, request, env, authAudit);
-    }
-    const quota = budget.payload;
-    const quotaHeaders = rateLimitHeaders(quota);
-    if (!quota.allowed) {
-      const retryAfter = Math.max(0, Number(quota.retry_after) || 0);
-      return json({
-        error: "Global inference quota exhausted for the current window.",
-        limit: quota.limit,
-        remaining: 0,
-        window_ends: quota.window_ends,
-        retry_after: retryAfter,
-      }, 429, request, env, {
-        ...authAudit,
-        ...quotaHeaders,
-        "Retry-After": String(retryAfter),
-      });
+    // The app's own scanner does not draw on the public allowance, so it
+    // skips the budget entirely and carries no X-RateLimit headers: there is
+    // no number to report. The origin gate above is what keeps this route
+    // from becoming a free bypass, since only allowlisted sites reach it.
+    const metered = url.pathname !== SCAN_ROUTE;
+    let quotaHeaders = {};
+    if (metered) {
+      const budget = await consumeGlobalBudget(request, env);
+      if (!budget.ok) {
+        return json(budget.body, budget.status, request, env, authAudit);
+      }
+      const quota = budget.payload;
+      quotaHeaders = rateLimitHeaders(quota);
+      if (!quota.allowed) {
+        const retryAfter = Math.max(0, Number(quota.retry_after) || 0);
+        return json({
+          error: "Global inference quota exhausted for the current window.",
+          limit: quota.limit,
+          remaining: 0,
+          window_ends: quota.window_ends,
+          retry_after: retryAfter,
+        }, 429, request, env, {
+          ...authAudit,
+          ...quotaHeaders,
+          "Retry-After": String(retryAfter),
+        });
+      }
     }
 
     if (!env.SPACE_URL || !env.PROXY_SECRET) {

@@ -18,6 +18,11 @@ my-secrets/
 # Holds a live provider api_key inline; the repo is public.
 proxy/litellm-config.yaml
 
+# The deployment bundle handed to the host's web dashboard. It carries the
+# .env, whose MONGO_URI holds the live Atlas password, so it stays out of git
+# the same way .env itself does.
+server-deploy.zip
+
 # --- Model weights: far over GitHub's 100MB file cap; live in the HF model repo ---
 # Both halves of the external-data format matter: the .onnx protobuf is small,
 # but its .onnxdata weights sibling is ~327MB.

@@ -5,7 +5,7 @@
 // capped in the schema.
 //
 //   npm start            # reads MONGO_URI from the repo-root .env
-//   PORT=4000            # 3000 belongs to the QA harness's static server
+//   PORT=4000            # a local run; 3000 belongs to the QA harness's static server
 
 import express from 'express';
 import { connectDb, closeDb } from './db.js';
@@ -18,7 +18,10 @@ import messagesRouter from './routes/messages.js';
 import searchRouter from './routes/search.js';
 import notificationsRouter from './routes/notifications.js';
 
-const PORT = Number(process.env.PORT) || 4000;
+// The container's allocation is 24729. Panels of that family publish the
+// number as SERVER_PORT rather than PORT, so both names are read before the
+// default is used.
+const PORT = Number(process.env.PORT || process.env.SERVER_PORT) || 24729;
 // Render needs every interface. A local run wants loopback only, so nothing on
 // the network can reach a server pointed at the live cluster.
 const HOST = process.env.HOST || '0.0.0.0';

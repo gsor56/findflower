@@ -1,6 +1,16 @@
 (function () {
     'use strict';
-    var BASE = 'https://findflower-social.onrender.com';
+    // Every page loads this, and only some of them set FF_SOCIAL_API, so the
+    // production default belongs here too. Local runs keep talking to the
+    // harness stub rather than reaching out to a deployed backend.
+    function baseUrl() {
+        if (typeof window.FF_SOCIAL_API === 'string' && window.FF_SOCIAL_API) {
+            return String(window.FF_SOCIAL_API).replace(/\/+$/, '');
+        }
+        var h = location.hostname;
+        if (h === '127.0.0.1' || h === 'localhost') return 'http://127.0.0.1:4000';
+        return 'https://findflower-proxy.fofi.workers.dev/v1/community';
+    }
 
     async function authToken() {
         try {
@@ -31,7 +41,7 @@
         var token = await authToken();
         if (!token) return;
         try {
-            var res = await fetch(BASE + '/api/notifications/count', {
+            var res = await fetch(baseUrl() + '/api/notifications/count', {
                 headers: { Accept: 'application/json', Authorization: 'Bearer ' + token }, mode: 'cors'
             });
             if (!res.ok) return;

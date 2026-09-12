@@ -443,7 +443,7 @@ console.log('\n--- COMMUNITY PROXY ROUTING ---');
         headers: new Headers({ Origin: 'https://findflower.me' }),
     });
     const response = await worker.fetch(request, env);
-    const ok = response.status === 200 && upstreamUrl === 'https://findflower-social.onrender.com/health';
+    const ok = response.status === 200 && upstreamUrl === 'http://pat.hidencloud.com:24729/health';
     console.log((ok ? 'PASS' : 'FAIL') + '  /v1/community/ normalizes to /health');
     ok ? pass++ : fail++;
     globalThis.fetch = originalFetch;
@@ -454,6 +454,63 @@ console.log('\n--- JWKS caching ---');
     const j0 = jwksHits;
     for (let i = 0; i < 4; i++) await post(await mint());
     console.log('4 valid scans caused ' + (jwksHits - j0) + ' JWKS fetch(es) (want 0-1)');
+}
+
+console.log('\n--- SCANNER ROUTE (/internal/scan) ---');
+{
+    // The app's own scanner posts here. It must reach the model, must not
+    // spend the public allowance, and must keep working when that allowance
+    // is gone: a visitor identifying a flower is not an API caller.
+    function postTo(path, { origin = 'https://findflower.me', env = ENV, token } = {}) {
+        const h = new Headers({ 'Content-Type': 'image/jpeg' });
+        if (origin) h.set('Origin', origin);
+        if (token) h.set('Authorization', 'Bearer ' + token);
+        return worker.fetch(new Request('https://w.example' + path, {
+            method: 'POST', headers: h, body: new Uint8Array([1, 2, 3, 4]),
+        }), env);
+    }
+    const EXHAUSTED = {
+        ...ENV,
+        GLOBAL_INFERENCE_BUDGET: {
+            idFromName: () => 'global-inference-budget',
+            get: () => ({
+                fetch: async () => new Response(JSON.stringify({
+                    allowed: false, limit: 250, remaining: 0, retry_after: 600,
+                    reset: Math.floor(Date.now() / 1000) + 600,
+                    window_ends: new Date(Date.now() + 600000).toISOString(),
+                }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+            }),
+        },
+    };
+    function one(name, ok, detail) {
+        console.log((ok ? 'PASS' : 'FAIL') + '  ' + name.padEnd(44) + (detail === undefined ? '' : detail));
+        ok ? pass++ : fail++;
+    }
+
+    const before = spaceHits;
+    const scan = await postTo('/internal/scan', { token: await mint() });
+    one('scanner route reaches the Space', scan.status === 200 && spaceHits > before,
+        'status=' + scan.status);
+    one('scanner route is not metered', scan.headers.get('X-RateLimit-Limit') === null,
+        'X-RateLimit-Limit=' + scan.headers.get('X-RateLimit-Limit'));
+
+    const pub = await postTo('/v1/identify', { token: await mint() });
+    one('public route still reports its allowance', pub.headers.get('X-RateLimit-Limit') === '250',
+        'X-RateLimit-Limit=' + pub.headers.get('X-RateLimit-Limit'));
+
+    const drainedPublic = await postTo('/v1/identify', { token: await mint(), env: EXHAUSTED });
+    one('exhausted allowance stops API callers', drainedPublic.status === 429,
+        'status=' + drainedPublic.status);
+    const drainedScan = await postTo('/internal/scan', { token: await mint(), env: EXHAUSTED });
+    one('...but visitors can still scan', drainedScan.status === 200,
+        'status=' + drainedScan.status);
+
+    const foreign = await postTo('/internal/scan', { origin: 'https://evil.example', token: await mint() });
+    one('scanner route still honours the origin gate', foreign.status === 403,
+        'status=' + foreign.status);
+    const anon = await postTo('/internal/scan');
+    one('scanner route still honours the auth gate', anon.status === 401,
+        'status=' + anon.status);
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
