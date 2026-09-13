@@ -4,7 +4,7 @@ const AUTH0_CONFIG = {
     clientId: "9sWXgo4TtCodcmnfdr6vcSRighhkVXMy",
 };
 
-const AUTH0_CALLBACK = window.location.origin + "/login.html";
+const AUTH0_CALLBACK = window.location.origin + "/login";
 const FF_SESSION_PROFILE_KEY = "ff_session_profile";
 
 function ffCacheSessionProfile(user) {
