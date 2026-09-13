@@ -35,21 +35,13 @@ import notificationsRouter from './routes/notifications.js';
 import eventsRouter from './routes/events.js';
 import contributionsRouter from './routes/contributions.js';
 
-// The container's allocation is 24729. Panels of that family publish the
-// number as SERVER_PORT rather than PORT, so both names are read before the
-// default is used.
 const PORT = Number(process.env.PORT || process.env.SERVER_PORT) || 24729;
 const HOST = process.env.HOST || '0.0.0.0';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-// Two layouts, same as db.js handles for .env: in the repository server/ sits
-// one level below the site; on the container these files are the root and there
-// is no level above. Whichever one holds index.html is the static root.
 const REPO_ROOT = path.resolve(HERE, '..');
 const SITE_ROOT = existsSync(path.join(REPO_ROOT, 'index.html')) ? REPO_ROOT : HERE;
 
-// Browsers must be named, not wildcarded: these routes read a session cookie,
-// and `Access-Control-Allow-Origin: *` cannot carry credentials.
 const ORIGINS = new Set([
     'https://findflower.me',
     'https://www.findflower.me',
@@ -62,12 +54,9 @@ const app = express();
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(HERE, 'views'));
-
-// TLS terminates upstream, so req.ip is the proxy's address unless this is set
-// -- and a rate limiter that sees one address sees one user. It is also what
-// makes the `secure` session cookie work behind the HidenCloud hop.
 app.set('trust proxy', 1);
 
+// Basic request middleware comes first.
 app.use((req, res, next) => {
     const origin = req.get('Origin');
     if (origin && ORIGINS.has(origin)) {
@@ -85,27 +74,23 @@ app.use((req, res, next) => {
     next();
 });
 
-// Auth0 runs for every request and only populates req.oidc. It does not gate
-// anything by itself: the public pages are public, and the routes that need a
-// viewer use requireViewer/optionalViewer, which now read the same session.
+// 256KB covers a 280-character bio, a 2000-character post and a capped avatar.
+// Multipart and raw-image contribution uploads are not JSON and pass through
+// this parser untouched to their dedicated route.
+app.use(express.json({ limit: '256kb' }));
+
+// Auth0 must own /login, /logout and /callback before any application route,
+// static-file handler or SPA fallback can see them. authRequired remains false
+// in session.js, so public routes stay public while the default OIDC routes are
+// still installed by express-openid-connect.
 app.use(oidc);
 
-// Mounted before the global JSON parser on purpose. A staged contribution is an
-// image and needs a far larger limit than a 280-character bio; body-parser
-// marks the request parsed, so the global one below skips it.
 app.use('/api/contributions', contributionsRouter);
-
-// 256KB covers a 280-character bio, a 2000-character post and a capped avatar
-// with room to spare. The default 100KB does not fit the avatar.
-app.use(express.json({ limit: '256kb' }));
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'findflower', streams: connectionCount() });
 });
 
-/** Hydrate req.viewer from the session cookie for a page render. Unlike
- *  requireViewer this never answers: a signed-out visitor still gets the page,
- *  just one rendered for a signed-out reader. */
 async function attachViewer(req, res, next) {
     const who = sessionUser(req);
     if (!who) {
@@ -129,8 +114,6 @@ async function renderWith(req, res, page, load, extra) {
         try {
             data = await load();
         } catch (err) {
-            // A dead cluster must not take the page with it: the shell still
-            // renders and the client scripts can retry the fetch themselves.
             console.error(`[ssr] ${page} data failed:`, err.message);
         }
     }
@@ -138,8 +121,6 @@ async function renderWith(req, res, page, load, extra) {
     renderPage(req, res, page, { session, data, ...(extra || {}), viewerId });
 }
 
-// Pages whose content is the same for everyone. Only the session differs, and
-// that is the one thing the render injects.
 for (const [route, page] of [['/', 'home'], ['/api', 'api'], ['/try', 'try'], ['/contribute', 'contribute']]) {
     app.get(route, attachViewer, (req, res) => renderWith(req, res, page, null));
 }
@@ -153,9 +134,6 @@ app.get('/notifications', attachViewer, (req, res) =>
 app.get('/chat', attachViewer, (req, res) =>
     renderWith(req, res, 'chat', () => chatPayload(req, req.query.with)));
 
-// The static build's filenames, kept as redirects rather than deleted: they are
-// in the sitemap and in whatever people bookmarked, and one URL per page is the
-// point of the migration.
 const REDIRECTS = {
     '/index.html': '/',
     '/try.html': '/try',
@@ -180,15 +158,6 @@ app.use('/api/search', searchRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/events', eventsRouter);
 
-// The static assets the rendered pages reference: stylesheets, scripts, icons,
-// images. index:false so / is never answered from disk and the SSR route keeps
-// ownership of it.
-//
-// The allowlist above express.static is not decoration. On the container the
-// site and the server are the same tree, so a bare mount would publish
-// server/, proxy/, space/, training/, curation/ and my-secrets/ to anyone who
-// guessed the path. Only the directories a page actually loads are reachable,
-// and only files with an asset extension at the root.
 const PUBLIC_DIRS = new Set(['articles', 'assets', 'chat', 'notifications', 'scripts', '.well-known']);
 const PUBLIC_FILE = /\.(?:html|css|js|mjs|json|png|jpe?g|webp|svg|ico|woff2?|xml|txt)$/i;
 
@@ -215,14 +184,10 @@ app.use((req, res, next) => {
 
 app.use(express.static(SITE_ROOT, {
     index: false,
-    // .well-known has to be reachable for domain verification, and the guard
-    // above is what keeps the other dotfiles out of reach.
     dotfiles: 'allow',
     etag: true,
     maxAge: '10m',
     setHeaders(res, filePath) {
-        // Code must be revalidate-ready: a cached stale script against fresh
-        // markup is how a deploy turns into a blank page.
         if (/\.(?:js|css|html)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
     },
 }));
@@ -235,9 +200,6 @@ app.use((req, res) => {
     res.status(404).json({ error: `No route for ${req.method} ${req.path}.` });
 });
 
-// Express 5 forwards a rejected handler promise here. The message is logged and
-// not returned: a mongoose validation error is safe to show, a driver error can
-// carry connection detail, and telling them apart per-error is how detail leaks.
 app.use((err, req, res, next) => {
     console.error(`[api] ${req.method} ${req.path} failed:`, err.message);
     if (res.headersSent) return;
