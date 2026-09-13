@@ -74,10 +74,17 @@ app.use((req, res, next) => {
     next();
 });
 
-// 256KB covers a 280-character bio, a 2000-character post and a capped avatar.
-// Multipart and raw-image contribution uploads are not JSON and pass through
-// this parser untouched to their dedicated route.
-app.use(express.json({ limit: '256kb' }));
+// Keep ordinary JSON requests capped at 256KB. Contributions have their own
+// 2MB parser on the dedicated router, so this basic parser deliberately leaves
+// that path untouched instead of consuming or rejecting its larger body.
+const jsonParser = express.json({ limit: '256kb' });
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/contributions')) {
+        next();
+        return;
+    }
+    jsonParser(req, res, next);
+});
 
 // Auth0 must own /login, /logout and /callback before any application route,
 // static-file handler or SPA fallback can see them. authRequired remains false
