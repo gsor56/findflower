@@ -91,6 +91,7 @@ app.use((req, res, next) => {
 // in session.js, so public routes stay public while the default OIDC routes are
 // still installed by express-openid-connect.
 app.use(oidc);
+app.get('/auth-test', (req, res) => res.send('Backend reachable'));
 
 app.use('/api/contributions', contributionsRouter);
 
