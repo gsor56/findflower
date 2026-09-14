@@ -33,6 +33,10 @@
     <section id="chatConversation">
         <a href="/notifications" class="text-xs uppercase hover:underline">â† Back to Notifications</a>
         <div class="border-b border-black pb-4 mt-5"><h1 id="chatTitle" class="font-serif text-4xl"></h1><p id="chatHandle" class="text-sm text-neutral-500 mt-1"></p></div>
+        <div class="border border-neutral-300 bg-neutral-50 px-4 py-3 mt-4 flex items-start gap-3 text-sm text-neutral-700 font-light leading-relaxed">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="mt-0.5 shrink-0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <p>Do not share sensitive information. Harassment or illegal content will result in an immediate account ban. <a href="/terms#assumption" class="underline text-neutral-900">Full terms</a></p>
+        </div>
         <button id="chatMore" type="button" class="hidden w-full border border-black rounded-none p-2 text-xs uppercase mt-5 hover:bg-neutral-100">Load older messages</button>
         <ul id="chatMessages" class="space-y-3 my-5" aria-live="polite"></ul>
         <p id="chatEmpty" class="hidden text-sm text-neutral-500 my-5">No messages yet.</p>
@@ -44,5 +48,25 @@
     </section>
 </div></main>
 <div id="ff-footer"></div>
+
+    <dialog id="ffChatReportDialog" class="w-full max-w-sm p-0 border border-black bg-white backdrop:bg-black/30">
+        <form method="dialog" class="p-5">
+            <h2 class="text-sm font-medium text-neutral-900 mb-1">Report this message</h2>
+            <p class="text-xs text-neutral-500 leading-relaxed mb-4">Select a reason. Reports are reviewed and may lead to content removal or account suspension.</p>
+            <fieldset id="ffChatReportReasons" class="space-y-2 mb-4">
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffChatReportReason" value="Harassment or abuse" class="accent-[#1a3622]"> Harassment or abuse</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffChatReportReason" value="Spam or self-promotion" class="accent-[#1a3622]"> Spam or self-promotion</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffChatReportReason" value="Illegal content" class="accent-[#1a3622]"> Illegal content</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffChatReportReason" value="Threats or dangerous advice" class="accent-[#1a3622]"> Threats or dangerous advice</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffChatReportReason" value="Other" class="accent-[#1a3622]"> Other</label>
+            </fieldset>
+            <label for="ffChatReportDetail" class="block text-xs text-neutral-500 mb-1">Details (optional)</label>
+            <textarea id="ffChatReportDetail" rows="2" maxlength="500" class="w-full text-sm border border-neutral-200 rounded-none p-2 mb-4 focus:outline-none focus:border-black resize-y" placeholder="Additional context..."></textarea>
+            <div class="flex items-center justify-end gap-2">
+                <button type="button" id="ffChatReportCancel" class="text-sm text-neutral-500 hover:text-neutral-900 px-3 py-2 transition">Cancel</button>
+                <button type="submit" id="ffChatReportSubmit" class="text-sm font-medium bg-neutral-900 text-white border border-black rounded-none px-4 py-2 hover:bg-neutral-800 transition disabled:opacity-40" disabled>Submit report</button>
+            </div>
+        </form>
+    </dialog>
 </body>
 </html>

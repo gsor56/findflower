@@ -77,10 +77,13 @@ function _ffShowConsentGate() {
         dlg.innerHTML =
             '<div class="p-5">' +
             '<h2 class="text-sm font-medium text-neutral-900 mb-2">Before you sign in</h2>' +
-            '<p class="text-xs text-neutral-600 leading-relaxed mb-4">' +
+            '<p class="text-xs text-neutral-600 leading-relaxed mb-3">' +
             'By signing in you agree to the FindFlower ' +
             '<a href="/terms" class="underline text-neutral-900" target="_blank">Terms of Service</a> and ' +
             '<a href="/privacy" class="underline text-neutral-900" target="_blank">Privacy Policy</a>.' +
+            '</p>' +
+            '<p class="text-xs text-red-600 leading-relaxed mb-4">' +
+            'FindFlower is strictly an educational tool. If you do not agree to use this app strictly for educational purposes, or if you intend to consume wild plants based on these results, you are legally forbidden from using this service and must exit the site immediately.' +
             '</p>' +
             '<label class="flex items-start gap-2 text-sm text-neutral-700 cursor-pointer mb-4">' +
             '<input type="checkbox" id="ffConsentCheck" class="mt-0.5 accent-[#1a3622]">' +

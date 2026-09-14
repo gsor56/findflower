@@ -30,10 +30,12 @@
 
     function bubble(m) {
         var who = mine(m) ? 'You' : ((m.sender && (m.sender.displayName || m.sender.handle)) || 'User');
+        var reportBtn = mine(m) ? '' : '<button type="button" class="ff-chat-report text-xs text-neutral-400 hover:text-neutral-900 transition" data-msg-id="' + esc(m.id) + '" data-sender="' + esc((m.sender && (m.sender.handle || m.sender.id)) || '') + '" title="Report this message"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg></button>';
         return '<li data-message-id="' + esc(m.id) + '" class="border border-black rounded-none p-3 '
             + (mine(m) ? 'bg-[#f2f5f2]' : 'bg-white') + '">'
             + '<div class="flex justify-between gap-3"><span class="text-xs font-medium uppercase">' + esc(who) + '</span>'
-            + '<time class="text-xs text-neutral-500">' + esc(when(m.createdAt)) + '</time></div>'
+            + '<div class="flex items-center gap-3">' + reportBtn
+            + '<time class="text-xs text-neutral-500">' + esc(when(m.createdAt)) + '</time></div></div>'
             + '<p class="text-sm leading-relaxed mt-2 whitespace-pre-wrap break-words">' + esc(m.content) + '</p></li>';
     }
 
@@ -186,6 +188,57 @@
     document.addEventListener('DOMContentLoaded', function () {
         var more = $('chatMore');
         if (more) more.addEventListener('click', function () { loadMessages(true); });
+
+        var msgs = $('chatMessages');
+        if (msgs) msgs.addEventListener('click', function (ev) {
+            var btn = ev.target.closest('.ff-chat-report');
+            if (!btn) return;
+            var dlg = document.getElementById('ffChatReportDialog');
+            if (!dlg || typeof dlg.showModal !== 'function') return;
+            dlg.dataset.msgId = btn.dataset.msgId || '';
+            dlg.dataset.sender = btn.dataset.sender || '';
+            var radios = dlg.querySelectorAll('input[name="ffChatReportReason"]');
+            radios.forEach(function (r) { r.checked = false; });
+            var detail = dlg.querySelector('#ffChatReportDetail');
+            if (detail) detail.value = '';
+            var submit = dlg.querySelector('#ffChatReportSubmit');
+            if (submit) submit.disabled = true;
+            dlg.showModal();
+        });
+
+        var dlg = document.getElementById('ffChatReportDialog');
+        if (dlg) {
+            var reasons = dlg.querySelector('#ffChatReportReasons');
+            var submitBtn = dlg.querySelector('#ffChatReportSubmit');
+            var cancelBtn = dlg.querySelector('#ffChatReportCancel');
+            if (reasons && submitBtn) {
+                reasons.addEventListener('change', function () {
+                    submitBtn.disabled = !dlg.querySelector('input[name="ffChatReportReason"]:checked');
+                });
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function () { dlg.close(); });
+            }
+            dlg.querySelector('form').addEventListener('submit', async function (ev) {
+                ev.preventDefault();
+                var checked = dlg.querySelector('input[name="ffChatReportReason"]:checked');
+                if (!checked) return;
+                var reason = checked.value;
+                var detail = (dlg.querySelector('#ffChatReportDetail') || {}).value || '';
+                detail = detail.trim();
+                if (detail) reason = reason + ': ' + detail;
+                var sender = dlg.dataset.sender || '';
+                var msgId = dlg.dataset.msgId || '';
+                if (sender) reason = '[user:' + sender + '] [msg:' + msgId + '] ' + reason;
+                dlg.close();
+                if (!window.ffSocial || !window.ffSocial.reportPost) {
+                    note('Could not send that report.');
+                    return;
+                }
+                var rp = await window.ffSocial.reportPost(state.handle, reason);
+                note(rp.ok ? 'Reported. Thank you.' : (rp.error || 'That report did not send.'));
+            });
+        }
 
         var form = $('chatForm');
         if (form) form.addEventListener('submit', async function (e) {
