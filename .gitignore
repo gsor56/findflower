@@ -106,3 +106,10 @@ server/.npm-cache/
 .patch-err.txt
 .flora-ultra-test-output/
 .flora-ultra-training-output/
+
+# The Flora-Ultra smoke runs dropped their transcripts in the repo root. The
+# directory patterns above never matched those filenames, so six .log/.md files
+# reached the remote and had to be deleted a second time.
+/.flora-ultra-*.log
+/SOCIAL_ARCHITECTURE.md
+/CLAUDE.md
