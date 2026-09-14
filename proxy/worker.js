@@ -46,9 +46,22 @@
 const TOP_K = 5;
 const MAX_RETRIES = 5;        // free Space CPU can cold-start for a bit
 const RETRY_DELAY_MS = 3000;
-const RATE_LIMIT = 250;
+
+// The developer pool. One shared pool per batch for every authenticated caller
+// combined -- it is the community's budget, not a per-account allowance -- and
+// the batch that opens at 00:00 UTC is twice the size of the one at 12:00 UTC.
+// Nothing accrues between batches: a batch opens with the whole pool and
+// whatever is unspent when it closes does not carry over, so a large job
+// started just before a boundary effectively gets two batches back to back.
+const API_POOL_0000 = 1_000_000;   // batch that opens at 00:00 UTC
+const API_POOL_1200 = 500_000;     // batch that opens at 12:00 UTC
 const WINDOW_MS = 12 * 60 * 60 * 1000;
 const GLOBAL_BUDGET_NAME = "global-inference-budget";
+
+/** Scans in the batch that starts at `windowStart` (ms since epoch, UTC). */
+function apiPoolLimit(windowStart) {
+  return new Date(windowStart).getUTCHours() < 12 ? API_POOL_0000 : API_POOL_1200;
+}
 
 // The one origin this Worker exists to serve. Used as the CORS fallback so an
 // unset/!misconfigured ALLOWED_ORIGINS can never degrade to a wildcard.
@@ -161,29 +174,80 @@ async function proxyCommunity(request, env, url) {
 // Pages. These paths are proxied there so one origin serves both the page and
 // the API it calls, which is what makes the session cookie same-origin.
 //
-// `/` is deliberately NOT in the list. The Worker root is also its own
-// liveness endpoint, and /try polls it to paint the model-status dot; if the
-// homepage lived there, that poll would parse HTML. A browser navigation sends
-// Accept: text/html while the poll sends */*, so the two stay separable.
+// `/` is server-rendered as well. It used to double as the Worker own liveness
+// answer, separated by the Accept header, but that split made a crawler or a
+// bare curl -- both of which ask for `*/*` -- receive JSON where a browser got
+// the homepage. Liveness has a dedicated /health route, so `/` is unambiguous.
 const SITE_PATHS = new Set([
   "/community", "/chat", "/notifications", "/try", "/contribute",
   "/api", "/login", "/logout", "/callback",
 ]);
+
+// Endpoints this Worker answers itself. They must never be handed to the Node
+// application, which does not implement them: proxying one turns a working
+// route into a 404 page. Everything else is a navigation route, and every
+// navigation route belongs to the server render.
+const WORKER_PATHS = new Set([SCAN_ROUTE, "/v1/identify", "/warm", "/v1"]);
+const WORKER_PREFIXES = ["/trefle/"];
+
+function workerOwned(pathname) {
+  return WORKER_PATHS.has(pathname)
+    || WORKER_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+// Static assets still live on GitHub Pages. This list is the one thing `/*` on
+// the Worker makes easy to break, so it is spelled out rather than inferred: a
+// directory of assets, or a file with an asset extension, is not a page.
+//
+// A document is a page even when it has an .html name -- an .html file served
+// straight off Pages is the old logged-out shell again, which is exactly the
+// bug this routing exists to fix. The trailing-slash rule covers the directory
+// indexes (/chat/, /notifications/), which Node answers with a redirect to the
+// server-rendered route.
+const STATIC_PREFIXES = [
+  "/assets/", "/images/", "/articles/", "/scripts/",
+  "/chat/", "/notifications/", "/.well-known/",
+];
+const STATIC_FILE = /\.(?:css|js|mjs|json|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp4|webm|pdf|txt|xml|webmanifest)$/i;
+
+function isStaticAsset(pathname) {
+  if (/\.html?$/i.test(pathname)) return false;
+  if (pathname.endsWith("/")) return false;
+  if (STATIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return true;
+  return STATIC_FILE.test(pathname);
+}
 
 // Server-Sent Events. These must arrive as a live stream: anything that buffers
 // the body holds every message until the connection closes, which is the exact
 // opposite of what a chat stream is for.
 const STREAM_PATHS = new Set(["/api/events"]);
 
-function siteProxyTarget(env, url, request) {
-  const upstream = env.SITE_UPSTREAM;
-  if (!upstream) return false;
+// With the catch-all route in wrangler.toml every request arrives here, so the
+// question is no longer "is this one of our pages" but "is this anything but a
+// static asset". An unknown path still goes to Node on purpose: Node owns the
+// 404 page, and a page added tomorrow must not need a Worker deploy to become
+// reachable -- which was the whole failure mode of the enumerated list.
+function siteProxyTarget(env, url) {
+  if (!env.SITE_UPSTREAM) return false;
   if (url.pathname.startsWith("/api/")) return true;
   if (SITE_PATHS.has(url.pathname)) return true;
-  if (url.pathname !== "/") return false;
-  // The homepage, but only for a navigation. The model-status poll asks for
-  // `*/*` and keeps getting the JSON health answer below.
-  return (request.headers.get("Accept") || "").includes("text/html");
+  if (workerOwned(url.pathname)) return false;
+  if (isStaticAsset(url.pathname)) return false;
+  return true;
+}
+
+// Cloudflare's Headers implementation has not exposed getSetCookie() in every
+// runtime. Falling back to a careful comma split is essential for Auth0: losing
+// auth_verification or ff_session makes the callback appear to succeed while
+// leaving the browser anonymous. Commas inside Expires attributes are ignored.
+function responseSetCookies(headers) {
+  if (typeof headers.getSetCookie === "function") {
+    const values = headers.getSetCookie();
+    if (Array.isArray(values) && values.length) return values;
+  }
+  const combined = headers.get("set-cookie");
+  if (!combined) return [];
+  return combined.split(/,(?=\s*[^;,=\s]+=)/).map((value) => value.trim()).filter(Boolean);
 }
 
 // Pass a request through to the Node server and hand the response body back
@@ -197,6 +261,25 @@ async function proxySite(request, env, url) {
   headers.delete("cf-connecting-ip");
   headers.delete("cf-ray");
   headers.delete("cf-ipcountry");
+  // The session cookie and the bearer token are what make a proxied request the
+  // same request. Headers(request.headers) already copies both; re-asserting
+  // them here means a later edit to the delete list above cannot silently drop
+  // them, which would look like a page that renders and then has every API call
+  // answered as an anonymous visitor.
+  const cookie = request.headers.get("Cookie");
+  if (cookie) headers.set("Cookie", cookie);
+  else headers.delete("Cookie");
+  const authorization = request.headers.get("Authorization");
+  if (authorization) headers.set("Authorization", authorization);
+  // The origin is reached over plain HTTP, but the browser reached this
+  // Worker over the public HTTPS hostname. Express uses these headers when it
+  // builds absolute callback URLs; overwrite client-supplied values so a
+  // spoofed forwarded host/protocol cannot alter the Auth0 redirect URI.
+  headers.set("X-Forwarded-Host", "findflower.me");
+  headers.set("X-Forwarded-Proto", "https");
+  const clientIp = request.headers.get("cf-connecting-ip");
+  if (clientIp) headers.set("X-Forwarded-For", clientIp);
+  else headers.delete("X-Forwarded-For");
   // A compressed stream is a buffered stream. Ask for identity on the event
   // route so the origin never has a compression window to flush.
   if (stream) headers.set("Accept-Encoding", "identity");
@@ -220,7 +303,7 @@ async function proxySite(request, env, url) {
       || k === "connection" || k === "set-cookie") continue;
     out.set(key, value);
   }
-  const cookies = typeof upstream.headers.getSetCookie === "function" ? upstream.headers.getSetCookie() : [];
+  const cookies = responseSetCookies(upstream.headers);
   for (const cookie of cookies) out.append("set-cookie", cookie);
   // The session cookie lives on these responses; nothing about a rendered page
   // or a stream is cacheable.
@@ -301,6 +384,10 @@ export class GlobalInferenceBudget {
 
     const nowMs = Date.now();
     const currentWindow = windowStartMs(nowMs);
+    // The pool belongs to the batch, so its size is decided by when that batch
+    // opened -- not by the clock reading of whichever request happens to arrive
+    // just before the batch closes.
+    const limit = apiPoolLimit(currentWindow);
     const reset = Math.floor((currentWindow + WINDOW_MS) / 1000);
     const window_ends = windowEndsIso(currentWindow);
 
@@ -313,11 +400,11 @@ export class GlobalInferenceBudget {
       used = 0;
     }
 
-    if (used >= RATE_LIMIT) {
+    if (used >= limit) {
       const retry_after = Math.max(0, reset - Math.floor(nowMs / 1000));
       return Response.json({
         allowed: false,
-        limit: RATE_LIMIT,
+        limit,
         remaining: 0,
         reset,
         window_ends,
@@ -331,8 +418,8 @@ export class GlobalInferenceBudget {
 
     return Response.json({
       allowed: true,
-      limit: RATE_LIMIT,
-      remaining: RATE_LIMIT - used,
+      limit,
+      remaining: limit - used,
       reset,
       window_ends,
     });
@@ -577,6 +664,35 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    // One hostname owns the session. The session cookie is host-only, so a
+    // visit to www.findflower.me would mint a second, invisible one -- the
+    // header reads signed in there and signed out on findflower.me, which is
+    // the same fragmentation the page routing just removed. It is the same
+    // document on both names, so send www to the apex once and keep one cookie.
+    if (url.hostname === "www.findflower.me") {
+      const target = new URL(request.url);
+      target.hostname = "findflower.me";
+      // 308, not 301: a redirect that rewrites POST into GET would drop the
+      // body of a form post that started on www.
+      return Response.redirect(target.toString(), 308);
+    }
+
+    // Backend-owned routes must be intercepted before any Worker/static
+    // handling. Keeping this gate at the top also ensures Auth0 callbacks keep
+    // their query string and that HidenCloud's Set-Cookie/redirect response is
+    // returned through the cookie-safe proxySite helper below.
+    if (env.SITE_UPSTREAM && (
+      url.pathname.startsWith("/health")
+      || url.pathname.startsWith("/server-login")
+      || url.pathname.startsWith("/login")
+      || url.pathname.startsWith("/logout")
+      || url.pathname.startsWith("/callback")
+      || url.pathname === "/api"
+      || url.pathname.startsWith("/api/")
+    )) {
+      return proxySite(request, env, url);
+    }
+
     // Community is a fixed-origin reverse proxy. It returns before inference
     // authentication and quota handling, so social traffic never spends the
     // global inference budget.
@@ -584,11 +700,23 @@ export default {
       return proxyCommunity(request, env, url);
     }
 
-    // Server-rendered pages and the API that belongs to them. Ahead of the CORS
-    // preflight below because these are same-origin navigations and fetches,
-    // not cross-site calls: the browser sends no preflight, and the session
-    // cookie has to reach the origin untouched.
-    if (siteProxyTarget(env, url, request)) {
+    // Static assets stay on GitHub Pages, which is where they are published.
+    // fetch(request) here is a same-zone subrequest: Cloudflare sends it to the
+    // zone's origin server and does not re-enter this Worker, so a stylesheet
+    // is still a stylesheet and not a second pass through this handler.
+    //
+    // The cf.cacheEverything hint keeps them on the edge the way they were
+    // before the catch-all route sent them here. Without it a Worker response
+    // is not cached on its own, and every icon request becomes an origin hit.
+    if (env.SITE_UPSTREAM && !workerOwned(url.pathname) && isStaticAsset(url.pathname)) {
+      return fetch(request, { cf: { cacheEverything: true, cacheTtl: 3600 } });
+    }
+
+    // Every other path is a navigation route. Ahead of the CORS preflight below
+    // because these are same-origin navigations and fetches, not cross-site
+    // calls: the browser sends no preflight, and the session cookie has to
+    // reach the origin untouched.
+    if (siteProxyTarget(env, url)) {
       return proxySite(request, env, url);
     }
 
@@ -729,6 +857,32 @@ export default {
           ? "would-reject: " + audit.reason
           : audit.outcome,
     };
+
+    // ---- API ACCESS: accounts only ----
+    // /v1/identify is the documented API, and every call to it draws on the
+    // shared developer pool, so it has no anonymous mode: the request has to
+    // carry a token this Worker actually verified.
+    //
+    // The rule is scoped to that one route on purpose. Arming ENFORCE_AUTH
+    // globally would also close /internal/scan, the site's own scanner, which
+    // try.html posts to from a page a guest may be reading; that route is kept
+    // honest by the origin allowlist and is not metered (see `metered` below),
+    // so closing the API must not take the scanner down with it.
+    //
+    // This is also why the check ignores the dry-run lever: an anonymous
+    // caller must never be able to spend the pool, whether ENFORCE_AUTH is set
+    // to "false" or not.
+    //
+    // `/` is deliberately not in this list. It used to be the same POST route,
+    // but with SITE_UPSTREAM set every bare `/` is a navigation answered by the
+    // server render, so the API's own URL is /v1/identify and nothing else.
+    const apiRoute = url.pathname === "/v1/identify";
+    if (apiRoute && audit.outcome !== "ok") {
+      const reason = audit.outcome === "unverified"
+        ? "API access requires a verified account token, and this deployment cannot verify one: " + audit.reason
+        : audit.reason;
+      return unauthorized(reason, request, env);
+    }
 
     // The app's own scanner does not draw on the public allowance, so it
     // skips the budget entirely and carries no X-RateLimit headers: there is

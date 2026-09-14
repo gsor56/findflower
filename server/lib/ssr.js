@@ -16,14 +16,29 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { readFile, stat } from 'node:fs/promises';
 import ejs from 'ejs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(HERE, '..', '..');
-const VIEWS = path.join(ROOT, 'server', 'views');
+const SERVER_ROOT = path.resolve(HERE, '..');
+// Development: /repo/server/lib -> frontend at /repo, views at /repo/server/views.
+// HidenCloud:   /lib             -> frontend at /,     views at /views.
+const ROOT = existsSync(path.join(SERVER_ROOT, 'index.html'))
+    ? SERVER_ROOT
+    : path.resolve(SERVER_ROOT, '..');
+const VIEWS = path.join(SERVER_ROOT, 'views');
 
-/** page name -> source file, relative to the repository root. */
+/**
+ * Page name -> source file, relative to the repository root.
+ *
+ * Every navigable page is here, not just the ones whose content the server
+ * happens to fetch. A page that renders client-side is still a page the server
+ * must serve: if it is missing from this map the route cannot exist, the
+ * request falls through to the 404 handler, and on the way there it used to be
+ * answered by GitHub Pages' 404.html -- the static shell that boots the SPA
+ * login client and shows a signed-in visitor as signed out.
+ */
 const PAGES = {
     home: 'index.html',
     api: 'api.html',
@@ -32,8 +47,27 @@ const PAGES = {
     community: 'community.html',
     notifications: 'notifications/index.html',
     chat: 'chat/index.html',
+    dashboard: 'dashboard.html',
+    profile: 'profile.html',
+    about: 'about.html',
+    pricing: 'pricing.html',
+    how: 'how.html',
+    species: 'species.html',
+    directory: 'directory.html',
+    contact: 'contact.html',
+    docs: 'docs.html',
+    research: 'research.html',
+    data: 'data.html',
+    blogs: 'blogs.html',
+    releases: 'releases.html',
+    privacy: 'privacy.html',
+    terms: 'terms.html',
+    feedback: 'feedback.html',
+    article: 'article.html',
+    notFound: '404.html',
 };
 
+// Page bodies, keyed by file and held with the mtime they were read at.
 const cache = new Map();
 
 function escapeHtml(value) {
@@ -55,9 +89,27 @@ function jsonForScript(value) {
         .replace(/\u2029/g, '\\u2029');
 }
 
+// Read each page once, then revalidate that copy against the file's mtime on
+// every render. Caching the body with no expiry meant an upload to a running
+// container kept serving the previous document until the process restarted: a
+// deploy that looks applied and is not. One stat per render is cheap next to
+// the render itself, and the second read only happens when the file changed.
 async function pageSource(file) {
-    if (!cache.has(file)) cache.set(file, readFile(path.join(ROOT, file), 'utf8'));
-    return cache.get(file);
+    const full = path.join(ROOT, file);
+    let stamp;
+    try {
+        stamp = (await stat(full)).mtimeMs;
+    } catch {
+        // Missing page: drop the stale copy and let readFile raise the error
+        // the caller already handles, rather than serving yesterday's document.
+        cache.delete(file);
+        return readFile(full, 'utf8');
+    }
+    const hit = cache.get(file);
+    if (hit && hit.stamp === stamp) return hit.text;
+    const text = await readFile(full, 'utf8');
+    cache.set(file, { stamp, text });
+    return text;
 }
 
 // The SPA SDK, its wrapper, and the per-page worker override are the three

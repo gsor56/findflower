@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { User } from '../models/user.js';
@@ -16,9 +16,17 @@ const PER_CATEGORY = 10;
 // logits. Read once at boot: 116 lowercase common names, so the species column
 // can only ever offer flowers the scanner could actually name.
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SPECIES = JSON.parse(
-    readFileSync(path.join(HERE, '..', '..', 'class_names.json'), 'utf8'),
-);
+// Repository layout: server/routes -> repository root. Flat deployment layout:
+// routes -> deployment root. Prefer the colocated deployment file when it is
+// present, and retain the repository-root fallback for local development.
+const classNamesPaths = [
+    path.join(HERE, '..', 'class_names.json'),
+    path.join(HERE, '..', '..', 'class_names.json'),
+];
+const classNamesPath = classNamesPaths.find((candidate) => existsSync(candidate));
+if (!classNamesPath) throw new Error('class_names.json is missing from the deployment.');
+
+const SPECIES = JSON.parse(readFileSync(classNamesPath, 'utf8'));
 
 /** Escape a user's query before it goes near a regex. */
 function safe(s) {

@@ -753,7 +753,13 @@
     (function () {
         'use strict';
 
-        const API_URL = 'https://findflower-proxy.fofi.workers.dev';
+        // The scanner talks to this site's own origin, not to the workers.dev
+        // hostname: that hostname is not a route on this zone (it answers 404
+        // with no CORS headers), and a scan posted here rides the ff_session
+        // cookie, which is what keeps a signed-in scan signed in. The Worker at
+        // this origin owns /internal/scan and /warm, and forwards both to the
+        // same model the public route uses.
+        const API_URL = 'https://findflower.me';
 
         const ENGINES = { standard: API_URL };
 
@@ -773,7 +779,9 @@
         function warmUpEngine() {
             if (pref('modelTier', 'standard') === 'lite') return;
             try {
-                fetch(API_URL + '/warm', { method: 'GET', mode: 'cors', cache: 'no-store' })
+                fetch(API_URL + '/warm', {
+                    method: 'GET', mode: 'cors', cache: 'no-store', credentials: 'include',
+                })
                     .catch(function () { });
             } catch (e) { }
         }
@@ -1037,7 +1045,10 @@
                 }
                 return;
             }
-            ffStatus.probe(API_URL);
+            // /health, not the bare origin: the origin now answers with the
+            // rendered homepage, and a liveness probe should not pay for a
+            // server render (or read a page's markup as a health signal).
+            ffStatus.probe(API_URL + '/health');
         }
         // The engine is chosen on the dashboard, not here. This page only reports
         // which one is in force, in the nameplate and in the paragraph up top, both
@@ -1302,6 +1313,7 @@
                     headers: authHeaders,
                     body: form,
                     signal: controller.signal,
+                    credentials: 'include',
                 });
                 if (!res.ok) {
                     const detail = await res.text().catch(() => '');

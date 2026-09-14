@@ -2,6 +2,66 @@ name = "findflower-proxy"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 
+# Every navigation route goes through this Worker; the Worker itself keeps
+# static assets on their origin and hands everything else to the Node app.
+#
+# The two catch-alls below are the migration. Before them, each page needed its
+# own pattern, so /dashboard, /profile and /about never reached the Worker and
+# Cloudflare answered them from GitHub Pages' 404.html -- the static shell that
+# boots a second login client and paints a signed-in visitor as signed out.
+#
+# Static assets are handled in worker.js rather than by a second route: a route
+# pattern cannot express "everything except *.css", and the Worker's same-zone
+# fetch() reaches the zone origin (Pages) without re-entering the Worker.
+#
+# To roll back without touching worker.js, delete the two catch-all lines: the
+# explicit list below still covers every page the migrated site serves.
+routes = [
+  { pattern = "findflower.me/*", zone_name = "findflower.me" },
+  { pattern = "www.findflower.me/*", zone_name = "findflower.me" },
+
+  # Kept as the rollback path (see above): delete the two lines at the top and
+  # these still route every page the site serves. A more specific pattern wins,
+  # and they all point at this same Worker, so keeping them costs nothing.
+  # The homepage is server-rendered too. Without these two patterns the request
+  # never reaches this Worker, so Cloudflare answers / straight from GitHub
+  # Pages -- a static document that cannot see the ff_session cookie and paints
+  # every freshly signed-in visitor as signed out.
+  { pattern = "findflower.me/", zone_name = "findflower.me" },
+  { pattern = "www.findflower.me/", zone_name = "findflower.me" },
+  { pattern = "findflower.me/health*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/server-login*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/login*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/logout*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/callback*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/api", zone_name = "findflower.me" },
+  { pattern = "findflower.me/api/*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/community*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/chat*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/notifications*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/try*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/contribute*", zone_name = "findflower.me" },
+  # The pages that used to fall through to Pages' 404.html. Each of these was a
+  # URL that showed a signed-out header to a signed-in visitor.
+  { pattern = "findflower.me/dashboard*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/profile*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/about*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/pricing*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/how*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/species*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/directory*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/contact*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/docs*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/research*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/data*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/blogs*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/releases*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/privacy*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/terms*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/feedback*", zone_name = "findflower.me" },
+  { pattern = "findflower.me/article*", zone_name = "findflower.me" },
+]
+
 # Public config only. Secrets are NOT stored here — set them with:
 #   wrangler secret put SPACE_TOKEN
 #   wrangler secret put PROXY_SECRET
@@ -55,17 +115,24 @@ AUTH0_AUDIENCE = "https://api.findflower.me"
 # Rolled out 2026-08-08 with no downtime by using this same lever: deploy
 # disarmed -> publish frontend -> confirm X-FF-Auth read `ok` -> remove the var
 # and redeploy. Reuse that sequence for any change that tightens the gate.
+#
+# This lever does not reach the public API. `POST /v1/identify` requires a
+# verified token whatever this is set to, because every call to it draws on the
+# shared developer pool and an anonymous caller must not be able to spend one.
+# The lever governs the app's own scanner (`POST /internal/scan`) only, which is
+# how "disarmed" and a locked-down API can both be true at the same time.
 ENFORCE_AUTH = "false"
 
 # Where the server-rendered pages live. The Node application on HidenCloud owns
-# /community, /chat, /notifications, /try, /contribute, /api and the auth
-# routes; this Worker passes those through so one origin serves both the page
-# and the API it calls (which is what makes the session cookie same-origin).
+# every navigation route -- /community, /chat, /notifications, /try,
+# /contribute, /dashboard, /profile, /about, /api and the auth routes -- so one
+# origin serves both the page and the API it calls, which is what keeps the
+# session cookie same-origin and the signed-in header on every screen.
 #
-# Leave this unset and every one of those paths keeps answering from GitHub
-# Pages, exactly as before. Set it and the Worker becomes the front door for the
-# migrated pages only -- /trefle/, the inference routes and the health poll are
-# untouched either way.
+# Leave this unset and every path keeps answering from GitHub Pages, exactly as
+# before. Set it and the Worker becomes the front door for the whole site;
+# /trefle/, the inference routes, the warm-up poke and the static assets are
+# untouched either way (assets are forwarded to the Pages origin, see worker.js).
 SITE_UPSTREAM = "http://pat.hidencloud.com:24729"
 
 [[durable_objects.bindings]]

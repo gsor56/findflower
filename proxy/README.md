@@ -15,9 +15,10 @@ browser --(multipart or raw bytes)--> Worker --(multipart + X-Proxy-Secret)--> b
 with a `file` field, which is what a browser's `FormData` sends. Either way the
 Worker forwards multipart upstream.
 
-A signed-in visitor's Auth0 access token rides in `Authorization`. Sending one is
-optional for as long as the gate is disarmed, so anonymous calls are answered as
-well; see Authentication for what that costs and how it ends.
+A signed-in visitor's Auth0 access token rides in `Authorization`. On the public
+API route (`POST /v1/identify`) that token is mandatory: the route is account-only
+and has no anonymous mode. On the in-app route (`POST /internal/scan`) it is
+optional, which is what lets a guest identify a flower from `/try`.
 
 ```
 curl -X POST --data-binary @some_flower.jpg \
@@ -27,9 +28,10 @@ curl -X POST --data-binary @some_flower.jpg \
 ```
 
 Returns `{"flower":"...","confidence":0.93,"top_k":[{"name":"...","confidence":0.93}]}`,
-or, once the gate is armed, `401` with a `WWW-Authenticate` header when the token
-is absent, malformed, or fails verification. The gate runs before the body is
-read, so a rejected request never reaches the inference backend.
+or `401` with a `WWW-Authenticate` header when the token is absent, malformed, or
+fails verification. The gate runs before the body is read and before the shared
+budget is charged, so a rejected request neither reaches the inference backend nor
+spends a scan.
 
 > [!NOTE]
 > `-F file=@photo.jpg` is fine now, and so is `--data-binary`. Multipart used to
@@ -38,11 +40,34 @@ read, so a rejected request never reaches the inference backend.
 > multipart body and forwards the `file` field on its own, which is what every
 > upload from the website is.
 
-## The other two routes
+## Routing: pages, assets, and the model routes
 
-`GET /` is a liveness check. It answers `{"status":"ok"}` from the edge without
-touching the backend, so the frontend can poll it for free. It says nothing about
-whether the model is awake.
+The Worker is the front door for the whole hostname (`findflower.me/*`), and it
+sorts every request into three buckets.
+
+**Pages, and the API that belongs to them, go to the Node app** on HidenCloud
+(`SITE_UPSTREAM`): `/`, `/dashboard`, `/profile`, `/community`, `/chat`,
+`/try`, `/login`, `/callback`, `/logout`, everything under `/api/`, and anything
+else that is not a static asset. Serving the page and the API it calls from one
+origin is what lets the session cookie be same-origin, and it is why the
+signed-in header survives navigation instead of reverting on the next page.
+
+**Static assets stay on GitHub Pages.** `fetch(request)` inside a Worker is a
+same-zone subrequest: Cloudflare sends it to the zone's origin server and does
+not re-enter the Worker, so a stylesheet comes back a stylesheet. The list of
+what counts as an asset is in `isStaticAsset()`; a document, including
+`/chat/index.html`, is a page and goes to Node.
+
+**The Worker's own endpoints** are answered here, never forwarded: `GET
+/health`, `GET /warm`, `POST /internal/scan`, `POST /v1/identify`, `/trefle/*`
+and `/v1/community/*`.
+
+`www.findflower.me` answers `308` to `findflower.me` for everything. The session
+cookie is host-only, so two hostnames would mean two sessions.
+
+`GET /health` is the liveness check. It is answered by the Node app, which is the
+thing whose liveness the page actually needs: it says nothing about whether the
+model is awake, and it is free to poll.
 
 `GET /warm` asks the backend to wake up and returns `{"warming":true}` straight
 away, without waiting for it. `/try` calls this on page load, because a sleeping
@@ -64,6 +89,8 @@ Set as Worker secrets/vars, never in code:
 | `SPACE_TOKEN` | Optional bearer token, only needed if the backend is access-gated |
 | `AUTH0_DOMAIN` | Auth0 tenant, e.g. `dev-jvit0r04itv8hfjz.us.auth0.com`. Enables JWT verification |
 | `AUTH0_AUDIENCE` | Auth0 API identifier. Must match `AUTH0_AUDIENCE` in `try.html` |
+| `SITE_UPSTREAM` | Where the server-rendered pages live, e.g. `http://pat.hidencloud.com:24729`. Unset it and every path falls back to GitHub Pages |
+| `ENFORCE_AUTH` | Leave `"false"` while the gate is disarmed; the literal string is what disarms it |
 
 ```
 npm install -g wrangler
@@ -108,17 +135,38 @@ backend is called.
 
 ### Where it stands
 
-The gate is disarmed: `ENFORCE_AUTH = "false"` in `wrangler.toml`, deliberately,
-so that a visitor can scan a flower without an account. `try.html` matches that
-with `REQUIRE_SIGN_IN = false`, and it does send a token when the visitor happens
-to have one (`SEND_AUTH_TOKEN = true`), which is what makes `X-FF-Auth` worth
+The dry-run lever is on: `ENFORCE_AUTH = "false"` in `wrangler.toml`, so the gate
+evaluates and reports instead of refusing. `try.html` matches that with
+`REQUIRE_SIGN_IN = false`, and it does send a token when the visitor happens to
+have one (`SEND_AUTH_TOKEN = true`), which is what makes `X-FF-Auth` worth
 reading: `ok` on a signed-in scan, `would-reject: Authorization header is
 required` on a guest one.
 
-Arming it is one change in two places at once. Delete the `ENFORCE_AUTH` line,
-`wrangler deploy`, and set `REQUIRE_SIGN_IN = true` in `try.html` in the same
-rollout. An armed Worker against a page that still lets guests through means
+The lever does not reach the API route. `POST /v1/identify` requires a verified
+token whether the lever is on or off, because an anonymous caller must never be
+able to spend the shared pool.
+
+Arming the lever is one change in two places at once. Delete the `ENFORCE_AUTH`
+line, `wrangler deploy`, and set `REQUIRE_SIGN_IN = true` in `try.html` in the
+same rollout. An armed Worker against a page that still lets guests through means
 every anonymous scan 401s, and only after the photo has already gone up the wire.
+
+## Quota
+
+Two inference routes, counted in opposite ways:
+
+| Route | Metered | Why |
+| --- | --- | --- |
+| `POST /internal/scan` | No, unlimited | the site's own scanner; a visitor identifying a flower must not be able to exhaust the API's allowance |
+| `POST /v1/identify` | Yes, shared pool | the documented API, and the only way to spend the pool |
+
+The pool is a single `GlobalInferenceBudget` Durable Object shared by every
+authenticated caller, not a per-account allowance. It refills in two batches a
+day: **1,000,000** scans when the 00:00 UTC batch opens, **500,000** when the
+12:00 UTC batch opens. Nothing accrues between batches, and a spent batch answers
+`429` with `Retry-After` until the next one opens. Responses carry
+`X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset`, and a metered
+response is only ever produced for a request that already cleared the auth gate.
 
 ## Defense in depth
 

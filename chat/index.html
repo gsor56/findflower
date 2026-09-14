@@ -16,7 +16,7 @@
     <script src="/scripts/ux.js?v=1" defer></script>
     <script src="https://cdn.auth0.com/js/auth0-spa-js/2.1/auth0-spa-js.production.js"></script>
     <script src="/auth.js?v=7"></script>
-    <script>if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')window.FF_SOCIAL_API='https://findflower-proxy.fofi.workers.dev/v1/community';</script>
+    <script>if(location.hostname!=='localhost'&&location.hostname!=='127.0.0.1')window.FF_SOCIAL_API='https://findflower.me/v1/community';</script>
     <script src="/scripts/social.js?v=4" defer></script>
     <script src="/scripts/views/chat.js?v=2" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,7 +38,7 @@
         <p id="chatEmpty" class="hidden text-sm text-neutral-500 my-5">No messages yet.</p>
         <form id="chatForm" class="border border-black rounded-none p-3 flex gap-2">
             <label for="chatBody" class="sr-only">Message</label>
-            <textarea id="chatBody" rows="2" maxlength="2000" required placeholder="WRITE A MESSAGEâ€¦" class="min-w-0 flex-1 border border-black rounded-none p-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-black"></textarea>
+            <textarea id="chatBody" rows="2" maxlength="2000" required placeholder="WRITE A MESSAGE…" class="min-w-0 flex-1 border border-black rounded-none p-2 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-black"></textarea>
             <button id="chatSend" class="self-end border border-black rounded-none bg-[#1a3622] text-white px-4 py-2 text-xs uppercase disabled:opacity-40">Send</button>
         </form>
     </section>

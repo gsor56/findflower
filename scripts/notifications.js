@@ -9,7 +9,7 @@
         }
         var h = location.hostname;
         if (h === '127.0.0.1' || h === 'localhost') return 'http://127.0.0.1:4000';
-        return 'https://findflower-proxy.fofi.workers.dev/v1/community';
+        return 'https://findflower.me/v1/community';
     }
 
     async function authToken() {

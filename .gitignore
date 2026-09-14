@@ -22,6 +22,7 @@ proxy/litellm-config.yaml
 # .env, whose MONGO_URI holds the live Atlas password, so it stays out of git
 # the same way .env itself does.
 server-deploy.zip
+findflower-deploy.zip
 
 # --- Model weights: far over GitHub's 100MB file cap; live in the HF model repo ---
 # Both halves of the external-data format matter: the .onnx protobuf is small,

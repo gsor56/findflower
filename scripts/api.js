@@ -2,7 +2,7 @@
 (function () {
     'use strict';
 
-    var PROXY = 'https://findflower-proxy.fofi.workers.dev';
+    var PROXY = 'https://findflower.me';
 
     var TREFLE_PAGE_SIZE = 20;
 
@@ -38,7 +38,15 @@
         var o = opts || {};
         var res;
         try {
-            res = await fetch(PROXY + path, { headers: { Accept: 'application/json' } });
+            // The proxy is this site's own origin now, so the session cookie is
+            // part of the request. 'same-origin' rather than 'include' on
+            // purpose: Trefle is public reference data, and a credentialed
+            // cross-origin call from a local harness origin would be refused by
+            // the browser (the proxy answers an origin allowlist, and it does
+            // not promise Access-Control-Allow-Credentials).
+            res = await fetch(PROXY + path, {
+                headers: { Accept: 'application/json' }, credentials: 'same-origin',
+            });
         } catch (e) {
             throw new TrefleUnavailableError('Trefle proxy unreachable (' + e.message + ').');
         }

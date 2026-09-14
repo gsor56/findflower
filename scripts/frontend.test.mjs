@@ -284,7 +284,7 @@ const jsonRes = (body, status = 200) => ({
     ok(u.includes('filter[family_name]='), 'the curated family filter is sent');
     ok(!/filter\[family\]=/.test(u), '...as family_name, never the silently-ignored filter[family]');
     ok(u.includes('Asteraceae') && u.includes('Onagraceae'), '...with the whole twenty-family list');
-    ok(win._lastUrl.startsWith('https://findflower-proxy.fofi.workers.dev/trefle/plants?page=1'),
+    ok(win._lastUrl.startsWith('https://findflower.me/trefle/plants?page=1'),
         'the request goes through the proxy, never to trefle.io directly');
 }
 

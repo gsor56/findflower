@@ -179,7 +179,7 @@
                         <p class="text-base text-neutral-600 font-light leading-relaxed">
                             POST a photo to the hosted endpoint from any web or server app and get
                             the species, a confidence score and ranked alternatives back as JSON.
-                            No key is needed while the preview is open.
+                            It is account-gated: sign in, then send the token.
                             <a href="#sdk" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Jump to the quickstart</a>, or <a href="#status" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">check that it is answering</a> first.
                         </p>
                     </div>
@@ -190,7 +190,8 @@
                         </div>
                         <p class="text-base text-neutral-600 font-light leading-relaxed">
                             A stateless HTTPS API for server-side use. The production Worker accepts
-                            requests now and enforces a shared 250-call rolling allowance.
+                            requests now from authenticated callers, who draw on one shared community
+                            pool: 1,000,000 scans in the 00:00 UTC batch, 500,000 in the 12:00 UTC one.
                             <a href="#endpoints" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Read the endpoints</a> and the <a href="#limits" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">current allowance</a>.
                         </p>
                     </div>
@@ -207,7 +208,7 @@
                     </div>
                     <div class="lg:col-span-7 lg:col-start-6">
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-10 max-w-2xl">
-                        The hosted API is live and stateless. Signed-in visitors call it from this browser with no key to paste, and a signed-in call is not counted against the anonymous ceiling: 250 calls every 12 hours, shared by everyone using it without an account.
+                        The hosted API is live and stateless, and it is account-only: there is no anonymous mode and no key to generate. Every authenticated API caller draws on the same community pool, 1,000,000 scans when the 00:00 UTC batch opens and 500,000 at 12:00 UTC, and the scanner inside the app never touches that pool at all.
                     </p>
 
                     <div class="border-t border-neutral-200 pt-6">
@@ -218,9 +219,10 @@
 
                         <div id="keyGate">
                             <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-lg">
-                                Sign in to call the API from this browser. There is no key to generate and
-                                nothing to paste: the session is the credential, and every request from a
-                                signed-in page carries it on its own.
+                                Sign in to call the API from this browser. An account is required, since
+                                the endpoint has no anonymous mode, and there is no key to generate and
+                                nothing to paste: the session is the credential, and every request from
+                                a signed-in page carries it on its own.
                             </p>
                             <a href="/login" class="inline-flex items-center text-base font-medium bg-neutral-900 text-white px-6 py-3.5 rounded-md hover:bg-neutral-800 transition-colors">
                                 Sign in
@@ -233,9 +235,10 @@
                                 <p class="text-sm text-neutral-500 font-light" id="devEmail"></p>
                             </div>
                             <p class="text-base text-neutral-600 font-light leading-relaxed mb-4 max-w-lg">
-                                You are signed in, so the API answers this browser. There is no preview key
-                                to generate and nothing to copy: a signed-in call carries the session
-                                cookie, which page scripts cannot read.
+                                You are signed in, so the API answers this browser. There is no key to
+                                generate and nothing to copy: a signed-in call carries the session
+                                cookie, which page scripts cannot read. Server-side code sends an access
+                                token for the https://api.findflower.me audience instead.
                             </p>
                             <p id="tokenStatus" class="text-sm text-neutral-500 font-light leading-relaxed">
                                 The cookie is httpOnly and same-origin, so it is never exposed to JavaScript.
@@ -253,12 +256,12 @@
                     <p class="text-lg text-neutral-500 font-light leading-relaxed mb-6 max-w-2xl">
                         The live gateway route is versioned and served over HTTPS. Requests and responses are JSON, except image uploads which use <span class="font-mono text-sm text-neutral-700">multipart/form-data</span>.
                     </p>
-                    <div class="code p-5 mb-4">https://findflower-proxy.fofi.workers.dev/<span class="tok-str">v1/identify</span></div>
-                    <div class="code p-5"><span class="tok-com"># no key: this page's session is the credential</span>
+                    <div class="code p-5 mb-4">https://findflower.me/<span class="tok-str">v1/identify</span></div>
+                    <div class="code p-5"><span class="tok-com"># account required: this page's session is the credential</span>
 <span class="tok-key">Accept:</span> application/json</div>
                     <div class="mt-4 flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                        <p><span class="font-medium text-neutral-700">Live today:</span> <span class="font-mono text-xs text-neutral-700">https://findflower-proxy.fofi.workers.dev/v1/identify</span>. The production Worker is the canonical endpoint for image identification.</p>
+                        <p><span class="font-medium text-neutral-700">Live today:</span> <span class="font-mono text-xs text-neutral-700">https://findflower.me/v1/identify</span>. The production Worker is the canonical endpoint for image identification.</p>
                     </div>
                     </div>
                 </section>
@@ -292,7 +295,7 @@
                                     <span class="block font-mono text-sm text-neutral-900">POST /internal/scan</span>
                                     <span class="block text-sm mt-1">The scanner on this site</span>
                                 </td>
-                                <td class="border-l border-black px-4 py-4 align-top text-sm">No. Scans from the app are not metered.</td>
+                                <td class="border-l border-black px-4 py-4 align-top text-sm">No. In-app scans are unlimited.</td>
                                 <td class="border-l border-black px-4 py-4 align-top text-sm">Not applicable</td>
                             </tr>
                             <tr>
@@ -300,7 +303,7 @@
                                     <span class="block font-mono text-sm text-neutral-900">POST /v1/identify</span>
                                     <span class="block text-sm mt-1">Your own code, batches included</span>
                                 </td>
-                                <td class="border-t border-l border-black px-4 py-4 align-top text-sm">Yes, shared globally across callers.</td>
+                                <td class="border-t border-l border-black px-4 py-4 align-top text-sm">Yes - one shared pool: 1,000,000 at 00:00, 500,000 at 12:00.</td>
                                 <td class="border-t border-l border-black px-4 py-4 align-top text-sm">00:00 and 12:00 UTC</td>
                             </tr>
                             <tr>
@@ -315,34 +318,40 @@
                     </table>
                     </div>
 
-                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Two windows a day</h3>
+                    <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">One pool, two batches a day</h3>
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
-                        The public allowance is one pool for everyone, not a per caller quota, and
-                        it replenishes twice a day, at 00:00 and 12:00 UTC. Nothing accrues in
-                        between. A window opens with the whole allowance, and whatever is unspent
-                        when it closes is not carried into the next one, so a job that starts just
-                        before a boundary effectively gets two windows back to back. That is the
-                        cheapest way to run a large batch: split it in two and start on the hour.
+                        The developer allowance is not a per caller quota. Every authenticated
+                        caller draws on one shared community pool, and it is refilled in two
+                        batches a day: 1,000,000 scans when the 00:00 UTC batch opens, 500,000 when
+                        the 12:00 UTC batch opens. Nothing accrues in between. A batch opens with
+                        the whole pool, and whatever is unspent when it closes is not carried into
+                        the next one, so a job that starts just before a boundary effectively gets
+                        two batches back to back. That is the cheapest way to run a large batch:
+                        split it in two and start on the hour.
                     </p>
                     <p id="quotaNext" hidden class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl"></p>
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-8 max-w-2xl">
-                        All callers share one global bucket. A request from any client consumes one
-                        unit, which is worth knowing before a batch job spends the whole window.
+                        API callers share one global bucket, and any client's request consumes one
+                        unit, which is worth knowing before a batch job spends a whole batch. The
+                        scanner in the app is a separate route that the pool never pays for, so
+                        standard in-app scanning stays entirely unlimited.
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">429 Too Many Requests</h3>
                     <p class="text-base text-neutral-600 font-light leading-relaxed mb-6 max-w-2xl">
-                        Once the window is spent the edge answers 429 and stops there: no image is
+                        Once the batch is spent the edge answers 429 and stops there: no image is
                         read and no inference runs, so a refused request costs you nothing but the
                         round trip. The reply carries the seconds left in both a header and the body.
                     </p>
-                    <div class="code p-5 mb-6"><span class="tok-com"># the window is spent, so nothing ran</span>
+                    <div class="code p-5 mb-6"><span class="tok-com"># the batch is spent, so nothing ran</span>
 <span class="tok-key">HTTP/1.1</span> <span class="tok-num">429</span> Too Many Requests
 <span class="tok-key">Retry-After:</span> <span class="tok-num">18240</span>
 <span class="tok-key">Content-Type:</span> application/json
 
 {
-  <span class="tok-key">"error"</span>: <span class="tok-str">"Rate limit reached for this address."</span>,
+  <span class="tok-key">"error"</span>: <span class="tok-str">"Global inference quota exhausted for the current window."</span>,
+  <span class="tok-key">"limit"</span>: <span class="tok-num">500000</span>,
+  <span class="tok-key">"remaining"</span>: <span class="tok-num">0</span>,
   <span class="tok-key">"window_ends"</span>: <span class="tok-str">"2026-09-05T12:00:00Z"</span>,
   <span class="tok-key">"retry_after"</span>: <span class="tok-num">18240</span>
 }</div>
@@ -350,11 +359,11 @@
                         Sleep for <span class="font-mono text-sm text-neutral-700">Retry-After</span>
                         rather than retrying on a timer of your own. A tight retry loop cannot win
                         here: the counter does not move until the boundary, so the loop just spends
-                        the next window collecting more 429s.
+                        the next batch collecting more 429s.
                     </p>
                     <div class="flex items-start gap-2 text-sm text-neutral-500 font-light">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-neutral-400 mt-0.5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                        <p>Both windows and the 429 body above are the published terms of the hosted route. Authentication is checked before an image is read or inference runs.</p>
+                        <p>Both batches and the 429 body above are the published terms of the hosted route. An account is checked before the shared pool is charged, and the pool is checked before an image is read or inference runs.</p>
                     </div>
                     </div>
                 </section>
@@ -375,7 +384,7 @@
                         <div class="flex flex-wrap items-center justify-between gap-4 border-b border-black px-5 py-4">
                             <div>
                                 <p class="font-mono text-xs uppercase tracking-widest text-neutral-500">GET /warm</p>
-                                <p class="font-mono text-sm text-neutral-900 break-all">findflower-proxy.fofi.workers.dev</p>
+                                <p class="font-mono text-sm text-neutral-900 break-all">findflower.me</p>
                             </div>
                             <button id="pingBtn" data-haptic class="soft-click shrink-0 rounded-none bg-[#1a3622] px-5 py-3 text-base font-medium text-white transition-colors hover:bg-[#132a1a]">Ping gateway</button>
                         </div>
@@ -429,7 +438,8 @@
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · multipart/form-data</h3>
                     <div class="code p-5 mb-6"><span class="tok-com"># live route: field name is file</span>
-curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
+curl -X POST https://findflower.me/v1/identify \
+  -H <span class="tok-str">"Authorization: Bearer $FF_API_TOKEN"</span> \
   -F <span class="tok-str">"file=@sunflower.jpg"</span></div>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
@@ -469,8 +479,9 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
 <span class="tok-key">canvas</span>.toBlob(<span class="tok-key">async</span> (blob) =&gt; {
   <span class="tok-key">const</span> form = <span class="tok-key">new</span> FormData();
   form.append(<span class="tok-str">"file"</span>, blob, <span class="tok-str">"capture.jpg"</span>);
-  <span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(<span class="tok-str">"https://findflower-proxy.fofi.workers.dev/v1/identify"</span>, {
+  <span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(<span class="tok-str">"https://findflower.me/v1/identify"</span>, {
     <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
+    <span class="tok-key">headers</span>: { <span class="tok-key">Authorization</span>: <span class="tok-str">"Bearer " + accessToken</span> },
     <span class="tok-key">body</span>: form
   });
   <span class="tok-key">if</span> (!res.ok) <span class="tok-key">throw new</span> Error(<span class="tok-str">`Identify failed: ${res.status}`</span>);
@@ -506,7 +517,8 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request · application/json</h3>
-                    <div class="code p-5 mb-6">curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify/url \
+                    <div class="code p-5 mb-6">curl -X POST https://findflower.me/v1/identify/url \
+  -H <span class="tok-str">"Authorization: Bearer $FF_API_TOKEN"</span> \
   -H <span class="tok-str">"Content-Type: application/json"</span> \
   -d <span class="tok-str">'{ "url": "https://example.com/tulip.jpg" }'</span></div>
 
@@ -575,7 +587,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
                     </p>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Request</h3>
-                    <div class="code p-5 mb-6">curl https://findflower-proxy.fofi.workers.dev/v1/wikipedia?name=<span class="tok-str">sunflower</span></div>
+                    <div class="code p-5 mb-6">curl https://findflower.me/v1/wikipedia?name=<span class="tok-str">sunflower</span></div>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
                     <div class="code p-5 mb-6">{
@@ -610,8 +622,9 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
   <span class="tok-key">const</span> form = <span class="tok-key">new</span> FormData();
   form.append(<span class="tok-str">"file"</span>, fileOrBlob, <span class="tok-str">"flower.jpg"</span>);
 
-  <span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(<span class="tok-str">"https://findflower-proxy.fofi.workers.dev/v1/identify"</span>, {
+  <span class="tok-key">const</span> res = <span class="tok-key">await</span> fetch(<span class="tok-str">"https://findflower.me/v1/identify"</span>, {
     <span class="tok-key">method</span>: <span class="tok-str">"POST"</span>,
+    <span class="tok-key">headers</span>: { <span class="tok-key">Authorization</span>: <span class="tok-str">"Bearer " + accessToken</span> },
     <span class="tok-key">body</span>: form
   });
   <span class="tok-key">if</span> (!res.ok) <span class="tok-key">throw new</span> Error(<span class="tok-str">`Identify failed: ${res.status}`</span>);
@@ -619,7 +632,8 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
 }</div>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Identify an image (curl)</h3>
-                    <div class="code p-5 mb-6">curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
+                    <div class="code p-5 mb-6">curl -X POST https://findflower.me/v1/identify \
+  -H <span class="tok-str">"Authorization: Bearer $FF_API_TOKEN"</span> \
   -F <span class="tok-str">"file=@flower.jpg"</span></div>
 
                     <h3 class="text-sm font-medium tracking-wide text-neutral-500 uppercase mb-3">Response · 200 OK</h3>
@@ -727,7 +741,7 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
     (function () {
         'use strict';
 
-        const GATEWAY = 'https://findflower-proxy.fofi.workers.dev';
+        const GATEWAY = 'https://findflower.me';
         const PING_TIMEOUT_MS = 12000;
 
         // The allowance turns over at 00:00 and 12:00 UTC. Almost nobody reading
@@ -798,8 +812,9 @@ curl -X POST https://findflower-proxy.fofi.workers.dev/v1/identify \
         function verdict(status) {
             if (status === 202) return 'The wake-up was accepted. The model server boots behind this reply, so the first real identify request may still wait on a cold start.';
             if (status === 200) return 'The gateway answered its own health reply without touching the model.';
+            if (status === 401) return 'This route is account-only. In-app scanning stays open, but the API needs a signed-in token.';
             if (status === 403) return 'The gateway is up and refused this origin. Only the site itself and a local dev server are on its allowlist.';
-            if (status === 429) return 'The window for this address is spent. Read Retry-After above and come back after it.';
+            if (status === 429) return 'The shared pool for this batch is spent. Read Retry-After above and come back when the next batch opens.';
             if (status >= 500) return 'The gateway answered, but something behind it did not.';
             return 'The gateway answered with an unexpected status. The body above is the whole of what it said.';
         }

@@ -57,16 +57,23 @@ globalThis.fetch = async (url) => {
 };
 
 const SPACE_ROOT = 'https://space.example';
+// How many requests actually reached the Durable Object. A refusal, or a route
+// that is not metered, must leave this untouched: that is the evidence that the
+// shared pool was never charged.
+let budgetHits = 0;
 const GLOBAL_INFERENCE_BUDGET = {
     idFromName: () => 'global-inference-budget',
     get: () => ({
-        fetch: async () => new Response(JSON.stringify({
-            allowed: true,
-            limit: 250,
-            remaining: 249,
-            reset: Math.floor(Date.now() / 1000) + 3600,
-            window_ends: new Date(Date.now() + 3600000).toISOString(),
-        }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+        fetch: async () => {
+            budgetHits++;
+            return new Response(JSON.stringify({
+                allowed: true,
+                limit: 1000000,
+                remaining: 999999,
+                reset: Math.floor(Date.now() / 1000) + 3600,
+                window_ends: new Date(Date.now() + 3600000).toISOString(),
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        },
     }),
 };
 const ENV = {
@@ -449,6 +456,184 @@ console.log('\n--- COMMUNITY PROXY ROUTING ---');
     globalThis.fetch = originalFetch;
 }
 
+console.log('\n--- SSR / AUTH PROXY ROUTING ---');
+{
+    const originalFetch = globalThis.fetch;
+    let upstreamUrl = null;
+    let upstreamInit = null;
+    globalThis.fetch = async (input, init) => {
+        upstreamUrl = String(input);
+        upstreamInit = init;
+        const headers = new Headers({ Location: 'https://auth.example/continue' });
+        headers.append('Set-Cookie', 'transaction=one; Path=/; HttpOnly; Secure; SameSite=Lax');
+        headers.append('Set-Cookie', 'session=two; Path=/; HttpOnly; Secure; SameSite=Lax');
+        return new Response(null, { status: 302, headers });
+    };
+
+    const request = new Request('https://findflower.me/callback?code=abc&state=xyz', {
+        headers: new Headers({
+            'CF-Connecting-IP': '203.0.113.7',
+            'X-Forwarded-Host': 'evil.example',
+            'X-Forwarded-Proto': 'http',
+            'X-Forwarded-For': '198.51.100.9',
+        }),
+    });
+    const response = await worker.fetch(request, {
+        SITE_UPSTREAM: 'http://pat.hidencloud.com:24729',
+    });
+    const forwarded = upstreamInit.headers;
+    const assertions = [
+        ['callback query reaches HidenCloud', upstreamUrl === 'http://pat.hidencloud.com:24729/callback?code=abc&state=xyz'],
+        ['redirect handling stays manual', upstreamInit.redirect === 'manual'],
+        ['forwarded host is canonical', forwarded.get('X-Forwarded-Host') === 'findflower.me'],
+        ['forwarded protocol is https', forwarded.get('X-Forwarded-Proto') === 'https'],
+        ['forwarded address uses Cloudflare IP', forwarded.get('X-Forwarded-For') === '203.0.113.7'],
+        ['upstream redirect survives', response.status === 302 && response.headers.get('Location') === 'https://auth.example/continue'],
+        ['both Set-Cookie headers survive', response.headers.getSetCookie().length === 2],
+    ];
+    for (const [name, ok] of assertions) {
+        console.log((ok ? 'PASS' : 'FAIL') + '  ' + name);
+        ok ? pass++ : fail++;
+    }
+
+    const fallbackHeaders = new Headers({ Location: 'https://findflower.me/' });
+    fallbackHeaders.set(
+        'Set-Cookie',
+        'auth_verification=one; Path=/; Expires=Wed, 21 Oct 2030 07:28:00 GMT; HttpOnly; Secure, ff_session=two; Path=/; HttpOnly; Secure',
+    );
+    Object.defineProperty(fallbackHeaders, 'getSetCookie', { value: undefined });
+    globalThis.fetch = async () => ({ status: 302, headers: fallbackHeaders, body: null });
+    const fallbackResponse = await worker.fetch(
+        new Request('https://findflower.me/callback?code=abc&state=xyz'),
+        { SITE_UPSTREAM: 'http://pat.hidencloud.com:24729' },
+    );
+    const fallbackCookies = fallbackResponse.headers.getSetCookie();
+    const fallbackOk = fallbackCookies.length === 2
+        && fallbackCookies[0].startsWith('auth_verification=')
+        && fallbackCookies[1].startsWith('ff_session=');
+    console.log((fallbackOk ? 'PASS' : 'FAIL') + '  Set-Cookie fallback preserves Auth0 transaction and session cookies');
+    fallbackOk ? pass++ : fail++;
+    globalThis.fetch = originalFetch;
+}
+
+console.log('\n--- SSR SESSION + SSE PASSTHROUGH ---');
+{
+    const originalFetch = globalThis.fetch;
+    for (const route of ['/api/notifications', '/api/messages/demo', '/api/events']) {
+        let upstreamUrl = null;
+        let upstreamInit = null;
+        globalThis.fetch = async (input, init) => {
+            upstreamUrl = String(input);
+            upstreamInit = init;
+            return new Response(route === '/api/events' ? 'event: ready\ndata: {}\n\n' : '{}', {
+                status: 200,
+                headers: { 'Content-Type': route === '/api/events' ? 'text/event-stream' : 'application/json' },
+            });
+        };
+        const request = new Request(`https://findflower.me${route}`, {
+            headers: {
+                Cookie: 'ff_session=diagnostic-session',
+                Authorization: 'Bearer diagnostic-token',
+                ...(route === '/api/events' ? { Accept: 'text/event-stream' } : {}),
+            },
+        });
+        const response = await worker.fetch(request, {
+            SITE_UPSTREAM: 'http://pat.hidencloud.com:24729',
+        });
+        const forwarded = new Headers(upstreamInit.headers);
+        const assertions = [
+            [`${route} reaches HidenCloud`, upstreamUrl === `http://pat.hidencloud.com:24729${route}`],
+            [`${route} preserves session cookie`, forwarded.get('Cookie') === 'ff_session=diagnostic-session'],
+            [`${route} preserves Authorization`, forwarded.get('Authorization') === 'Bearer diagnostic-token'],
+        ];
+        if (route === '/api/events') {
+            assertions.push(['SSE asks origin for an uncompressed stream', forwarded.get('Accept-Encoding') === 'identity']);
+            assertions.push(['SSE response disables proxy buffering', response.headers.get('X-Accel-Buffering') === 'no']);
+        }
+        for (const [name, ok] of assertions) {
+            console.log((ok ? 'PASS' : 'FAIL') + '  ' + name);
+            ok ? pass++ : fail++;
+        }
+    }
+    globalThis.fetch = originalFetch;
+}
+
+console.log('\n--- GLOBAL NAVIGATION ROUTING (catch-all) ---');
+{
+    // The regression this section exists for: /dashboard, /profile and /about
+    // were answered by GitHub Pages' 404.html -- the static shell that boots the
+    // SPA login client -- because the Worker only proxied an enumerated list of
+    // paths. With the catch-all route, any navigation path is the server's.
+    const env = { SITE_UPSTREAM: 'http://pat.hidencloud.com:24729' };
+    const originalFetch = globalThis.fetch;
+    let seen = null;
+    globalThis.fetch = async (input, init) => {
+        const url = input && input.url ? input.url : String(input);
+        seen = { url, init: init || {} };
+        return new Response('upstream', { status: 200, headers: { 'Content-Type': 'text/html' } });
+    };
+    function one(name, ok, detail) {
+        console.log((ok ? 'PASS' : 'FAIL') + '  ' + name.padEnd(54) + (detail === undefined ? '' : detail));
+        ok ? pass++ : fail++;
+    }
+    const forwarded = () => new Headers((seen && seen.init && seen.init.headers) || {});
+
+    for (const path of ['/dashboard', '/profile', '/about', '/pricing', '/how', '/species', '/nope/not/a/page']) {
+        seen = null;
+        await worker.fetch(new Request('https://findflower.me' + path, { headers: { Accept: 'text/html' } }), env);
+        one(path + ' is server-rendered',
+            !!seen && seen.url === 'http://pat.hidencloud.com:24729' + path,
+            seen ? seen.url : 'no fetch');
+    }
+
+    for (const path of ['/dashboard.html', '/chat/', '/chat/index.html', '/notifications/']) {
+        seen = null;
+        await worker.fetch(new Request('https://findflower.me' + path, { headers: { Accept: 'text/html' } }), env);
+        one(path + ' is a document, not an asset',
+            !!seen && seen.url === 'http://pat.hidencloud.com:24729' + path,
+            seen ? seen.url : 'no fetch');
+    }
+
+    for (const path of ['/app.css', '/scripts/api.js', '/scripts/ssr-session.js',
+        '/assets/flower.jpg', '/images/flower.jpg', '/favicon.svg', '/manifest.json', '/robots.txt']) {
+        seen = null;
+        await worker.fetch(new Request('https://findflower.me' + path), env);
+        const cf = (seen && seen.init && seen.init.cf) || {};
+        one(path + ' stays on the Pages origin',
+            !!seen && seen.url === 'https://findflower.me' + path
+            && cf.cacheEverything === true
+            && forwarded().get('X-Forwarded-Host') === null,
+            seen ? seen.url : 'no fetch');
+    }
+
+    seen = null;
+    const warm = await worker.fetch(new Request('https://findflower.me/warm'), env);
+    one('/warm is still the Worker own route', warm.status === 202 && seen === null,
+        'status=' + warm.status);
+
+    globalThis.fetch = originalFetch;
+
+    // Without SITE_UPSTREAM nothing is proxied at all: the rollback is a var, not
+    // a code change, which is what makes the catch-all safe to try.
+    seen = null;
+    const off = await worker.fetch(new Request('https://findflower.me/dashboard'), {});
+    const offBody = await off.json();
+    one('no SITE_UPSTREAM means the old behaviour', offBody.status === 'ok' && seen === null,
+        'status=' + off.status);
+
+    // A host-only session cookie cannot follow a visitor between www and the
+    // apex, so one of the two names has to give: www redirects, once, keeping
+    // the method and the path.
+    seen = null;
+    const www = await worker.fetch(new Request('https://www.findflower.me/dashboard?a=1', {
+        method: 'POST',
+    }), env);
+    one('www redirects to the apex and keeps the path',
+        www.status === 308 && www.headers.get('Location') === 'https://findflower.me/dashboard?a=1',
+        'status=' + www.status + ' location=' + www.headers.get('Location'));
+    one('...without a backend round trip', seen === null, seen ? seen.url : 'no fetch');
+}
+
 console.log('\n--- JWKS caching ---');
 {
     const j0 = jwksHits;
@@ -475,7 +660,7 @@ console.log('\n--- SCANNER ROUTE (/internal/scan) ---');
             idFromName: () => 'global-inference-budget',
             get: () => ({
                 fetch: async () => new Response(JSON.stringify({
-                    allowed: false, limit: 250, remaining: 0, retry_after: 600,
+                    allowed: false, limit: 1000000, remaining: 0, retry_after: 600,
                     reset: Math.floor(Date.now() / 1000) + 600,
                     window_ends: new Date(Date.now() + 600000).toISOString(),
                 }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
@@ -495,8 +680,30 @@ console.log('\n--- SCANNER ROUTE (/internal/scan) ---');
         'X-RateLimit-Limit=' + scan.headers.get('X-RateLimit-Limit'));
 
     const pub = await postTo('/v1/identify', { token: await mint() });
-    one('public route still reports its allowance', pub.headers.get('X-RateLimit-Limit') === '250',
+    one('public route still reports its allowance', pub.headers.get('X-RateLimit-Limit') === '1000000',
         'X-RateLimit-Limit=' + pub.headers.get('X-RateLimit-Limit'));
+
+    // The API is account-only, and every refusal below has to land before the
+    // pool is touched: an anonymous caller must never be able to spend a scan.
+    const spentBefore = budgetHits;
+    const anonApi = await postTo('/v1/identify');
+    one('anonymous API call is refused', anonApi.status === 401, 'status=' + anonApi.status);
+    one('...without touching the shared pool', budgetHits === spentBefore,
+        'pool hits=' + (budgetHits - spentBefore));
+
+    const shortApi = await postTo('/v1/identify', { token: 'not-a-token' });
+    one('a malformed API token is refused', shortApi.status === 401, 'status=' + shortApi.status);
+
+    const rogueKey = await crypto.subtle.generateKey(
+        { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+        true, ['sign', 'verify']);
+    const forgedApi = await postTo('/v1/identify', { token: await mint({}, {}, rogueKey.privateKey) });
+    one('a forged API token is refused', forgedApi.status === 401, 'status=' + forgedApi.status);
+
+    const anonApiDry = await postTo('/v1/identify', { env: DRY });
+    one('the API rule ignores the dry-run lever', anonApiDry.status === 401, 'status=' + anonApiDry.status);
+    const dryScan = await postTo('/internal/scan', { env: DRY });
+    one('the dry run still serves the scanner', dryScan.status === 200, 'status=' + dryScan.status);
 
     const drainedPublic = await postTo('/v1/identify', { token: await mint(), env: EXHAUSTED });
     one('exhausted allowance stops API callers', drainedPublic.status === 429,
@@ -511,6 +718,72 @@ console.log('\n--- SCANNER ROUTE (/internal/scan) ---');
     const anon = await postTo('/internal/scan');
     one('scanner route still honours the auth gate', anon.status === 401,
         'status=' + anon.status);
+}
+
+console.log('\n--- GLOBAL POOL (Durable Object) ---');
+{
+    // The DO is exported, so the batch arithmetic is tested directly instead of
+    // being taken on trust from a stub. Storage is an in-memory Map and the
+    // clock is mocked, because the pool size depends on when a batch opened --
+    // which is exactly what a stub cannot prove.
+    function one(name, ok, detail) {
+        console.log((ok ? 'PASS' : 'FAIL') + '  ' + name.padEnd(44) + (detail === undefined ? '' : detail));
+        ok ? pass++ : fail++;
+    }
+    const RealBudget = mod.GlobalInferenceBudget;
+    function state(seed) {
+        const store = new Map(seed || []);
+        return { storage: { get: async (k) => store.get(k), put: async (k, v) => { store.set(k, v); } } };
+    }
+    const consume = (s) => new RealBudget(s)
+        .fetch(new Request('https://quota.internal/consume', { method: 'POST' }))
+        .then((r) => r.json());
+    const realNow = Date.now;
+    const at = (iso) => { Date.now = () => Date.parse(iso); };
+
+    at('2026-09-14T03:30:00Z');   // 03:30 UTC -> the batch that opened at 00:00
+    const shared = state();
+    const first = await consume(shared);
+    one('00:00 batch opens with 1,000,000',
+        first.allowed === true && first.limit === 1000000 && first.remaining === 999999,
+        'limit=' + first.limit + ' remaining=' + first.remaining);
+    at('2026-09-14T03:45:00Z');
+    const second = await consume(shared);
+    one('...and the pool is shared, not per caller', second.remaining === 999998,
+        'remaining=' + second.remaining);
+
+    at('2026-09-14T12:00:01Z');   // the batch that opens at 12:00
+    const third = await consume(shared);
+    one('12:00 batch opens with 500,000',
+        third.limit === 500000 && third.remaining === 499999,
+        'limit=' + third.limit + ' remaining=' + third.remaining);
+
+    at('2026-09-15T00:00:01Z');   // the next day's 00:00 batch
+    const fourth = await consume(shared);
+    one('a new batch reopens the whole pool',
+        fourth.limit === 1000000 && fourth.remaining === 999999,
+        'remaining=' + fourth.remaining);
+
+    at('2026-09-15T05:00:00Z');
+    const spentMorning = state([['window_start', Date.parse('2026-09-15T00:00:00Z')], ['used', 1000000]]);
+    const drained = await consume(spentMorning);
+    one('a spent 00:00 batch refuses until the next one',
+        drained.allowed === false && drained.remaining === 0 && drained.limit === 1000000 && drained.retry_after > 0,
+        'allowed=' + drained.allowed + ' retry_after=' + drained.retry_after);
+
+    at('2026-09-15T13:00:00Z');
+    const spentNoon = state([['window_start', Date.parse('2026-09-15T12:00:00Z')], ['used', 500000]]);
+    const drainedNoon = await consume(spentNoon);
+    one('a spent 12:00 batch refuses at 500,000',
+        drainedNoon.allowed === false && drainedNoon.limit === 500000 && drainedNoon.remaining === 0,
+        'allowed=' + drainedNoon.allowed + ' limit=' + drainedNoon.limit);
+
+    at('2026-09-15T23:59:59Z');   // the last second of that batch is still that batch
+    const drainedLate = await consume(spentNoon);
+    one('the last second belongs to the same batch', drainedLate.limit === 500000,
+        'limit=' + drainedLate.limit);
+
+    Date.now = realNow;
 }
 
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
