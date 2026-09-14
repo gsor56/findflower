@@ -61,9 +61,61 @@ async function ffHandleCallback() {
     return false;
 }
 
+const FF_CONSENT_KEY = "ff_terms_accepted";
+
+function _ffHasConsented() {
+    try { return localStorage.getItem(FF_CONSENT_KEY) === "1"; } catch { return false; }
+}
+
+function _ffShowConsentGate() {
+    return new Promise(function (resolve) {
+        var existing = document.getElementById("ffConsentDialog");
+        if (existing) { existing.remove(); }
+        var dlg = document.createElement("dialog");
+        dlg.id = "ffConsentDialog";
+        dlg.className = "w-full max-w-sm p-0 border border-black bg-white backdrop:bg-black/30";
+        dlg.innerHTML =
+            '<div class="p-5">' +
+            '<h2 class="text-sm font-medium text-neutral-900 mb-2">Before you sign in</h2>' +
+            '<p class="text-xs text-neutral-600 leading-relaxed mb-4">' +
+            'By signing in you agree to the FindFlower ' +
+            '<a href="/terms" class="underline text-neutral-900" target="_blank">Terms of Service</a> and ' +
+            '<a href="/privacy" class="underline text-neutral-900" target="_blank">Privacy Policy</a>.' +
+            '</p>' +
+            '<label class="flex items-start gap-2 text-sm text-neutral-700 cursor-pointer mb-4">' +
+            '<input type="checkbox" id="ffConsentCheck" class="mt-0.5 accent-[#1a3622]">' +
+            ' I have read and agree to the Terms of Service and Privacy Policy' +
+            '</label>' +
+            '<div class="flex items-center justify-end gap-2">' +
+            '<button type="button" id="ffConsentCancel" class="text-sm text-neutral-500 hover:text-neutral-900 px-3 py-2 transition">Cancel</button>' +
+            '<button type="button" id="ffConsentContinue" class="text-sm font-medium bg-neutral-900 text-white border border-black rounded-none px-4 py-2 hover:bg-neutral-800 transition disabled:opacity-40" disabled>Continue</button>' +
+            '</div>' +
+            '</div>';
+        document.body.appendChild(dlg);
+        var check = dlg.querySelector("#ffConsentCheck");
+        var cont = dlg.querySelector("#ffConsentContinue");
+        var cancel = dlg.querySelector("#ffConsentCancel");
+        check.addEventListener("change", function () { cont.disabled = !check.checked; });
+        cancel.addEventListener("click", function () { dlg.close(); resolve(false); });
+        cont.addEventListener("click", function () {
+            try { localStorage.setItem(FF_CONSENT_KEY, "1"); } catch {}
+            dlg.close();
+            resolve(true);
+        });
+        dlg.addEventListener("close", function () {
+            dlg.remove();
+        });
+        dlg.showModal();
+    });
+}
+
 async function ffLogin(returnTo) {
     const client = await ffGetClient();
     if (!client) return false;
+    if (!_ffHasConsented()) {
+        var accepted = await _ffShowConsentGate();
+        if (!accepted) return false;
+    }
     if (returnTo) localStorage.setItem("ff_return_to", returnTo);
     await client.loginWithRedirect({
         authorizationParams: { redirect_uri: AUTH0_CALLBACK },

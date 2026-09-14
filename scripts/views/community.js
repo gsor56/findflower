@@ -768,15 +768,24 @@
             return;
         }
         if (act === 'report') {
-            var reason = window.prompt('What is wrong with this post?');
-            if (reason === null) return;
-            reason = String(reason).trim();
-            if (!reason) {
-                note('A report needs a reason.');
+            var dlg = document.getElementById('ffReportDialog');
+            if (!dlg || typeof dlg.showModal !== 'function') {
+                var reason = window.prompt('What is wrong with this post?');
+                if (reason === null) return;
+                reason = String(reason).trim();
+                if (!reason) { note('A report needs a reason.'); return; }
+                var rp = await window.ffSocial.reportPost(id, reason);
+                note(rp.ok ? 'Reported, with your reason.' : (rp.error || 'That report did not send.'));
                 return;
             }
-            var rp = await window.ffSocial.reportPost(id, reason);
-            note(rp.ok ? 'Reported, with your reason.' : (rp.error || 'That report did not send.'));
+            dlg.dataset.postId = id;
+            var radios = dlg.querySelectorAll('input[name="ffReportReason"]');
+            radios.forEach(function (r) { r.checked = false; });
+            var detail = dlg.querySelector('#ffReportDetail');
+            if (detail) detail.value = '';
+            var submit = dlg.querySelector('#ffReportSubmit');
+            if (submit) submit.disabled = true;
+            dlg.showModal();
         }
     }
 
@@ -941,6 +950,35 @@
                     show($('cmSpaceNew'), true);
                 });
             }
+        }
+        var dlg = document.getElementById('ffReportDialog');
+        if (dlg && !dlg.dataset.wired) {
+            dlg.dataset.wired = '1';
+            var reasons = dlg.querySelector('#ffReportReasons');
+            var submitBtn = dlg.querySelector('#ffReportSubmit');
+            var cancelBtn = dlg.querySelector('#ffReportCancel');
+            if (reasons && submitBtn) {
+                reasons.addEventListener('change', function () {
+                    submitBtn.disabled = !dlg.querySelector('input[name="ffReportReason"]:checked');
+                });
+            }
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function () { dlg.close(); });
+            }
+            dlg.querySelector('form').addEventListener('submit', async function (ev) {
+                ev.preventDefault();
+                var checked = dlg.querySelector('input[name="ffReportReason"]:checked');
+                if (!checked) return;
+                var reason = checked.value;
+                var detail = (dlg.querySelector('#ffReportDetail') || {}).value || '';
+                detail = detail.trim();
+                if (detail) reason = reason + ': ' + detail;
+                var pid = dlg.dataset.postId;
+                dlg.close();
+                if (!pid || !window.ffSocial) { note('Could not send that report.'); return; }
+                var rp = await window.ffSocial.reportPost(pid, reason);
+                note(rp.ok ? 'Reported. Thank you.' : (rp.error || 'That report did not send.'));
+            });
         }
     }
 
