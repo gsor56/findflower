@@ -49,9 +49,15 @@ globalThis.fetch = async (url) => {
             top_k: [{ name: 'sunflower', confidence: 0.94 }, { name: 'daisy', confidence: 0.03 }],
         }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
-    if (url === SPACE_ROOT || url === SPACE_ROOT + '/') {
+    // The warm poke targets /warm, which is the model-load endpoint on the Node
+    // server. A bare-origin poke would render the homepage and warm nothing, so
+    // it deliberately falls through to the throw below: the worker swallows that
+    // rejection, warmHits stays put, and the assertion catches the regression.
+    if (url === SPACE_ROOT + '/warm') {
         warmHits++;
-        return new Response('the Space is booting', { status: 200 });
+        return new Response(JSON.stringify({ warming: true }), {
+            status: 202, headers: { 'Content-Type': 'application/json' },
+        });
     }
     throw new Error('unexpected fetch: ' + url);
 };
@@ -192,7 +198,7 @@ console.log('\n--- warm-up poke (/warm) ---');
     const unset = (await warm('GET', { ...ENV, SPACE_URL: '' })).r;
     for (const [name, ok, note] of [
         ['GET /warm -> 202 with the gate armed', r.status === 202, 'status=' + r.status],
-        ['the Space itself is poked', warmHits > w0, 'pokes=' + (w1 - w0)],
+        ['the model-load endpoint is poked', warmHits > w0, 'pokes=' + (w1 - w0)],
         ['the poke is handed to waitUntil', held.length === 1, 'held=' + held.length],
         ['the reply never claims it is ready', body === '{"warming":true}', 'body=' + body],
         ['HEAD /warm -> 202, no body', head.status === 202 && headBody === '', 'status=' + head.status],

@@ -801,11 +801,15 @@
         // caught up with. It does mean the sign-in requirement here is the only
         // thing enforcing it, and a direct call to the route still goes through.
         //
-        // Before arming that gate, auth.js has to ask Auth0 for an audience again.
-        // Without one the tenant hands back an opaque token rather than a JWT, and
-        // the Worker cannot verify what is not a JWT: every signed-in scan would
-        // 401 with "token is not a JWT". The X-FF-Auth verdict on a live scan is
-        // what says whether that has been put back.
+        // Before arming that gate the API has to be able to verify a caller at
+        // all, and this page no longer produces anything to verify. The server
+        // owns the session now: ssr-session.js replaces auth.js here, the
+        // ff_session cookie is httpOnly, and the scan is same-origin, so the
+        // credential rides the request without any Authorization header ever
+        // existing in JavaScript. Both switches stay as they were -- they are
+        // what the page asks of the *visitor*, and sign-in is still required --
+        // but "there is no bearer token" is now the normal state here, not a
+        // sign of an expired session.
         const SEND_AUTH_TOKEN = true;
         const REQUIRE_SIGN_IN = true;
 
@@ -886,6 +890,11 @@
 
         async function inferenceAuthHeaders() {
             if (!SEND_AUTH_TOKEN) return {};
+            // A server-rendered page has no token to mint: the credential is
+            // the httpOnly session cookie, already on this same-origin request.
+            // Returning early also keeps the warning below from pointing at a
+            // script that is deliberately absent here.
+            if (window.FF_AUTH_MODE === 'server-session') return {};
             if (typeof window.ffAuthHeader !== 'function') {
                 console.error(
                     'FindFlower: SEND_AUTH_TOKEN is true but auth.js is not loaded. ' +
@@ -920,7 +929,13 @@
             }
 
             const headers = await inferenceAuthHeaders();
-            if (SEND_AUTH_TOKEN && !headers.Authorization) {
+            // Only a page that mints a bearer token can fail this check. On a
+            // server-rendered page the cookie is the credential, so an absent
+            // Authorization header is the expected result rather than an
+            // expired session -- and refusing the scan on it is what made a
+            // perfectly good sign-in look signed out.
+            const usesCookieSession = window.FF_AUTH_MODE === 'server-session';
+            if (SEND_AUTH_TOKEN && !usesCookieSession && !headers.Authorization) {
                 showAuthError('Your sign-in needs refreshing before you can identify a flower. Please sign in again.');
                 return null;
             }

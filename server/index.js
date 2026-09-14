@@ -34,6 +34,8 @@ import searchRouter from './routes/search.js';
 import notificationsRouter from './routes/notifications.js';
 import eventsRouter from './routes/events.js';
 import contributionsRouter from './routes/contributions.js';
+import identifyRouter from './routes/identify.js';
+import { preload } from './inference.js';
 
 // The container's allocation is 24729. Panels of that family publish the
 // number as SERVER_PORT rather than PORT, so both names are read before the
@@ -126,6 +128,13 @@ app.use((req, res, next) => {
     }
     next();
 });
+
+// The model. The Worker owns /internal/scan and /v1/identify publicly and
+// rewrites both to a multipart POST /predict here, so these routes are reached
+// by the Worker rather than by the browser. Mounted ahead of the JSON parser
+// for the same reason contributions are: a scan is an image, and the 256KB
+// parser below would otherwise be the first thing to see it.
+app.use(identifyRouter);
 
 // Mounted before the global JSON parser on purpose. A staged contribution is an
 // image and needs a far larger limit than a 280-character bio; body-parser
@@ -397,6 +406,13 @@ async function start() {
     console.log(`[api] spaces seeded (${added} new)`);
     return app.listen(PORT, HOST, () => console.log(`[api] listening on ${HOST}:${PORT}`));
 }
+
+// Load the ViT in the background. It is a couple of seconds from the on-disk
+// cache and closer to two minutes on a cold container, because the 327MB weight
+// file has to come down first -- so starting it here means the first scan is
+// not the request that pays for it. Nothing waits on this, and a failure is not
+// fatal: /model-status reports the state and the log carries the reason.
+preload().catch((err) => console.error('[inference] preload failed:', err.message));
 
 for (const sig of ['SIGINT', 'SIGTERM']) {
     process.on(sig, () => {

@@ -118,3 +118,8 @@ server/.npm-cache/
 # fails, which makes it useful while debugging the confidential flow, but it
 # holds the raw Auth0 error payload and belongs to the machine that produced it.
 /.remote-callback-check.json
+
+# The Flora-Flash weights land here on first boot: the 327MB .onnxdata file plus
+# its graph, downloaded from the private Hugging Face repo. Nothing that size
+# belongs in git, and the container re-fetches it on demand.
+.model-cache/

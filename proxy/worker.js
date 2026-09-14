@@ -743,9 +743,11 @@ export default {
         : res;
     }
 
-    // Warm-up poke. The Space idles down after a quiet spell and needs about two
-    // minutes to boot, far longer than a visitor will watch a spinner, so /try
-    // calls this the moment it opens and the boot overlaps with choosing a photo.
+    // Warm-up poke. The model now lives on the Node server, where a warm load is
+    // a couple of seconds but a cold one is closer to two minutes while the
+    // 327MB weight file downloads -- far longer than a visitor will watch a
+    // spinner. So /try calls this the moment it opens and the load overlaps with
+    // choosing a photo.
     // Origin-gated, unlike the health check below, because this one does cost
     // upstream compute and there is no reason for another site to spend it.
     //
@@ -759,7 +761,11 @@ export default {
         return json({ error: "Origin not allowed." }, 403, request, env);
       }
       if (env.SPACE_URL) {
-        const poke = fetch(env.SPACE_URL, {
+        // /warm is the model-load endpoint on the Node server. Without the
+        // suffix this hits the site root, which warms a page render and nothing
+        // else.
+        const warmTarget = env.SPACE_URL.replace(/\/+$/, "") + "/warm";
+        const poke = fetch(warmTarget, {
           method: "GET",
           headers: env.SPACE_TOKEN ? { Authorization: `Bearer ${env.SPACE_TOKEN}` } : {},
         }).catch(() => { });

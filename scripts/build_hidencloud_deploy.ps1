@@ -13,7 +13,7 @@ $legacyOutputPath = Join-Path $repoRoot 'server-deploy.zip'
 
 $requiredFiles = @(
     'index.js', 'package.json', 'package-lock.json', '.env',
-    'db.js', 'session.js', 'auth.js', 'lib.js'
+    'db.js', 'session.js', 'auth.js', 'lib.js', 'inference.js'
 )
 $requiredDirectories = @('routes', 'models', 'lib', 'views')
 $frontendFiles = @(
@@ -83,7 +83,11 @@ $envNames = Get-Content -LiteralPath $envPath | ForEach-Object {
 }
 foreach ($name in @(
     'MONGO_URI', 'AUTH0_SECRET', 'AUTH0_BASE_URL',
-    'AUTH0_ISSUER_BASE_URL', 'AUTH0_CLIENT_ID', 'AUTH0_CLIENT_SECRET'
+    'AUTH0_ISSUER_BASE_URL', 'AUTH0_CLIENT_ID', 'AUTH0_CLIENT_SECRET',
+    # Inference. HF_TOKEN fetches the private weights and PROXY_SECRET is what
+    # the Worker authenticates with, so a bundle missing either one boots and
+    # then refuses every scan.
+    'HF_TOKEN', 'PROXY_SECRET'
 )) {
     if ($name -notin $envNames) {
         throw ".env is missing required variable: $name"
@@ -150,7 +154,7 @@ try {
             }
             foreach ($required in @(
                 '.env', 'index.js', 'package.json', 'package-lock.json',
-                'db.js', 'session.js', 'auth.js', 'lib.js', 'class_names.json'
+                'db.js', 'session.js', 'auth.js', 'lib.js', 'inference.js', 'class_names.json'
             )) {
                 if ($required -notin $names) {
                     throw "Archive is not flat or is missing $required`: $archivePath"

@@ -2,7 +2,7 @@
   "name": "findflower-server",
   "version": "0.1.0",
   "private": true,
-  "description": "Text routing and persistence for FindFlower's social features. Photos stay in the browser.",
+  "description": "Server-rendered pages, the JSON API and Flora-Flash ViT inference for FindFlower.",
   "type": "module",
   "main": "index.js",
   "engines": {
@@ -11,13 +11,16 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "check": "node --check index.js && node --check db.js && node --check session.js && node --check lib.js && node --check lib/ssr.js && node --check lib/events.js && node --check lib/social-data.js && node --check routes/events.js && node --check routes/contributions.js"
+    "check": "node --check index.js && node --check db.js && node --check session.js && node --check lib.js && node --check inference.js && node --check lib/ssr.js && node --check lib/events.js && node --check lib/social-data.js && node --check routes/events.js && node --check routes/contributions.js && node --check routes/identify.js"
   },
   "dependencies": {
     "express-openid-connect": "^2.17.1",
     "dotenv": "17.4.2",
     "ejs": "^6.0.1",
     "express": "5.2.1",
-    "mongoose": "9.9.3"
+    "mongoose": "9.9.3",
+    "multer": "2.4.0",
+    "onnxruntime-node": "1.29.0",
+    "sharp": "0.35.4"
   }
 }
