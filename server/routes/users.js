@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { User } from '../models/user.js';
 import { Post } from '../models/post.js';
 import { viewerSub } from '../auth.js';
-import { authRefusal, rateLimit, requireViewer } from '../lib.js';
+import { authRefusal, rateLimit, requireViewer, resolveViewerSub } from '../lib.js';
 
 // Profiles. The brief lists no routes for these, but nothing else works without
 // them: a post needs an author row, and a browser cannot make one itself.
@@ -80,6 +80,29 @@ router.get('/:handle', async (req, res) => {
     }
     const threads = await Post.countDocuments({ author: user._id, isDeleted: false });
     res.json({ user: user.toPublic(), threads, isOwner: !!isOwner });
+});
+
+/** POST /api/users/consent  records that the authenticated user accepted the
+ *  Terms of Service and Privacy Policy. Sets termsAccepted=true and stamps the
+ *  current time. Returns 200 on success, 401 if not signed in, 409 if no
+ *  profile exists yet. */
+router.post('/consent', rateLimit('user:consent', 60_000, 10), async (req, res) => {
+    const sub = await resolveViewerSub(req);
+    if (!sub) {
+        res.status(401).json(authRefusal(req));
+        return;
+    }
+    const user = await User.findOne({ authSub: sub });
+    if (!user) {
+        res.status(409).json({ error: 'No profile yet. Claim a handle first.', needsHandle: true });
+        return;
+    }
+    if (!user.termsAccepted) {
+        user.termsAccepted = true;
+        user.termsAcceptedAt = new Date();
+        await user.save();
+    }
+    res.json({ ok: true, termsAccepted: true, termsAcceptedAt: user.termsAcceptedAt });
 });
 
 export default router;

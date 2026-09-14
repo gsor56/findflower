@@ -38,6 +38,7 @@ import identifyRouter from './routes/identify.js';
 import keysRouter from './routes/keys.js';
 import scansRouter from './routes/scans.js';
 import { preload } from './inference.js';
+import { requireConsent } from './lib.js';
 
 // The container's allocation is 24729. Panels of that family publish the
 // number as SERVER_PORT rather than PORT, so both names are read before the
@@ -223,21 +224,23 @@ for (const [route, page] of PAGES) {
     app.get(route, attachViewer, (req, res) => renderWith(req, res, page, null));
 }
 
+app.get('/consent', attachViewer, (req, res) => renderWith(req, res, 'consent', null));
+
 // /dashboard is the one page whose content is the account's own data, so it is
 // rendered from MongoDB rather than painted by the browser after load. The two
 // devices that used to disagree about how many finds existed -- three on the
 // phone, none on the laptop -- now read the same rows on first paint, and the
 // client-side sync that follows only ever adds to them.
-app.get('/dashboard', attachViewer, (req, res) =>
+app.get('/dashboard', attachViewer, requireConsent, (req, res) =>
     renderWith(req, res, 'dashboard', () => dashboardPayload(req)));
 
-app.get('/community', attachViewer, (req, res) =>
+app.get('/community', attachViewer, requireConsent, (req, res) =>
     renderWith(req, res, 'community', () => communityPayload(req)));
 
-app.get('/notifications', attachViewer, (req, res) =>
+app.get('/notifications', attachViewer, requireConsent, (req, res) =>
     renderWith(req, res, 'notifications', () => notificationsPayload(req)));
 
-app.get('/chat', attachViewer, (req, res) =>
+app.get('/chat', attachViewer, requireConsent, (req, res) =>
     renderWith(req, res, 'chat', () => chatPayload(req, req.query.with)));
 
 // The static build's filenames, kept as redirects rather than deleted: they are
@@ -270,6 +273,7 @@ const REDIRECTS = {
     '/terms.html': '/terms',
     '/feedback.html': '/feedback',
     '/article.html': '/article',
+    '/consent.html': '/consent',
 };
 for (const [from, to] of Object.entries(REDIRECTS)) {
     app.get(from, (req, res) => res.redirect(301, to));

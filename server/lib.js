@@ -113,3 +113,19 @@ export async function optionalViewer(req, res, next) {
     req.viewer = sub ? await User.findOne({ authSub: sub }) : null;
     next();
 }
+
+/** Consent gate. Runs after attachViewer on protected page routes. If the user
+ *  is signed in and has a profile but has not accepted the current terms, they
+ *  are redirected to /consent. API callers get a 403 instead. The gate skips
+ *  anonymous visitors, users without a profile (they will hit the handle-claim
+ *  flow first), and the consent page itself. */
+export function requireConsent(req, res, next) {
+    if (!req.viewer) { next(); return; }
+    if (req.viewer.termsAccepted) { next(); return; }
+    if (req.path === '/consent') { next(); return; }
+    if (req.accepts('html') && !req.path.startsWith('/api/')) {
+        res.redirect(302, '/consent');
+        return;
+    }
+    res.status(403).json({ error: 'You must accept the Terms of Service before using this feature.', redirect: '/consent' });
+}

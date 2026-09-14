@@ -64,6 +64,7 @@ const PAGES = {
     terms: 'terms.html',
     feedback: 'feedback.html',
     article: 'article.html',
+    consent: 'consent.html',
     notFound: '404.html',
 };
 
