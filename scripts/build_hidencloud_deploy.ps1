@@ -78,8 +78,16 @@ if (-not $entrySource.Contains("from './session.js'")) {
     throw 'index.js does not import the SSR Auth0 session middleware.'
 }
 
-$envNames = Get-Content -LiteralPath $envPath | ForEach-Object {
-    if ($_ -match '^([A-Z0-9_]+)=') { $Matches[1] }
+# Read the pairs, not just the names. A line like `HF_TOKEN=` with the value on
+# the *next* line parses as an empty string, and a name-only check calls that
+# present -- which is exactly how a bundle shipped with a blank token and
+# refused every scan while looking correct in a diff. The name and the value
+# have to be on one line for dotenv to see them.
+$envValues = @{}
+foreach ($line in (Get-Content -LiteralPath $envPath)) {
+    if ($line -match '^([A-Z0-9_]+)=(.*)$') {
+        $envValues[$Matches[1]] = $Matches[2].Trim().Trim('"')
+    }
 }
 foreach ($name in @(
     'MONGO_URI', 'AUTH0_SECRET', 'AUTH0_BASE_URL',
@@ -89,8 +97,11 @@ foreach ($name in @(
     # then refuses every scan.
     'HF_TOKEN', 'PROXY_SECRET'
 )) {
-    if ($name -notin $envNames) {
+    if ($name -notin $envValues.Keys) {
         throw ".env is missing required variable: $name"
+    }
+    if ([string]::IsNullOrWhiteSpace($envValues[$name])) {
+        throw ".env has an empty value for $name -- check the value is on the same line as the key"
     }
 }
 
