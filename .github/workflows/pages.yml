@@ -122,6 +122,15 @@ jobs:
                   case "$ref" in
                     ""|/) continue ;;   # the site root, which is index.html
                     /*.*) continue ;;   # has an extension: an asset, checked above
+                    # The Auth0 routes are the Express application's, not the
+                    # static build's: /login, /logout and /callback are answered
+                    # by the Node server behind the Cloudflare Worker, so there
+                    # is no file here for them and never will be. Without this
+                    # line every page that links "Sign in" reads as a dead link
+                    # and the deploy fails -- which it did, silently, because
+                    # Pages was still publishing the repository with its own
+                    # legacy builder.
+                    /login|/logout|/callback) continue ;;
                   esac
                   test -f "_site/${ref#/}.html" \
                     || test -f "_site/${ref#/}/index.html" \
@@ -139,6 +148,7 @@ jobs:
                   case "$ref" in
                     ""|/) continue ;;
                     /*.*) continue ;;
+                    /login|/logout|/callback) continue ;;
                   esac
                   test -f "_site/${ref#/}.html" \
                     || test -f "_site/${ref#/}/index.html" \

@@ -613,6 +613,21 @@ console.log('\n--- GLOBAL NAVIGATION ROUTING (catch-all) ---');
             seen ? seen.url : 'no fetch');
     }
 
+    // Repo source trees are not the website. They were readable at the public
+    // hostname because Pages publishes the whole checkout, and a .js under
+    // /server/ would otherwise have been handed back by the static branch as if
+    // it were an asset. The refusal has to happen before that branch.
+    for (const path of ['/server/index.js', '/server/.env', '/server/scans.test.mjs',
+        '/proxy/worker.js', '/proxy/wrangler.toml', '/.github/workflows/pages.yml',
+        '/my-secrets/credential.txt']) {
+        seen = null;
+        const r = await worker.fetch(new Request('https://findflower.me' + path), env);
+        const body = await r.json().catch(() => ({}));
+        one(path + ' is not published',
+            r.status === 404 && body.error === 'Not found.' && seen === null,
+            'status=' + r.status + ' upstream=' + (seen ? seen.url : 'none'));
+    }
+
     for (const path of ['/dashboard.html', '/chat/', '/chat/index.html', '/notifications/']) {
         seen = null;
         await worker.fetch(new Request('https://findflower.me' + path, { headers: { Accept: 'text/html' } }), env);

@@ -231,6 +231,24 @@ function isStaticAsset(pathname) {
   return STATIC_FILE.test(pathname);
 }
 
+// Repository source, not the website.
+//
+// Pages publishes the whole checkout -- the legacy builder has no idea which
+// directories are a build artifact and which are the project -- so
+// /server/index.js and /proxy/worker.js were readable at the public hostname.
+// Neither carries a secret, which is why this is a leak of shape rather than of
+// credentials, but the server's route map and this Worker's own logic are more
+// than a visitor needs. The refusal is here, at the front door every path goes
+// through, so it holds whichever build produced the published artifact.
+const SOURCE_PREFIXES = [
+  "/server/", "/proxy/", "/space/", "/training/", "/curation/",
+  "/my-secrets/", "/.ffpatch/", "/.push-worktree/", "/.git/", "/.github/",
+];
+
+function isSourcePath(pathname) {
+  return SOURCE_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
 // Server-Sent Events. These must arrive as a live stream: anything that buffers
 // the body holds every message until the connection closes, which is the exact
 // opposite of what a chat stream is for.
@@ -740,6 +758,13 @@ export default {
       // 308, not 301: a redirect that rewrites POST into GET would drop the
       // body of a form post that started on www.
       return Response.redirect(target.toString(), 308);
+    }
+
+    // Repo source trees are never the site. Checked before anything else so no
+    // later branch can hand one back, and before the static branch in
+    // particular: a .js under /server/ is a source file, not an asset.
+    if (isSourcePath(url.pathname)) {
+      return json({ error: "Not found." }, 404, request, env);
     }
 
     // Backend-owned routes must be intercepted before any Worker/static
