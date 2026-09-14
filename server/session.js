@@ -77,48 +77,19 @@ if (!confidential) {
 // container, and its log is the only place to see them.
 console.log(`[auth] tenant=${AUTH0_DOMAIN} baseURL=${AUTH0_BASE_URL} audience=${AUTH0_AUDIENCE} flow=${confidential ? 'code' : 'id_token'} clientAuth=${confidential ? AUTH0_CLIENT_AUTH_METHOD : 'none'} sessionSecret=${configuredSecret ? 'set' : 'derived'}`);
 
-// A failed /callback is otherwise a single opaque line: the library collapses
-// Auth0's token-endpoint answer into one generic message, and the request
-// parameters that decide the outcome -- the redirect_uri, the grant type,
-// whether PKCE arrived -- are invisible from outside the container. This
-// wrapper reports both halves of that exchange. Credentials and one-time codes
-// are stripped; issued tokens never reach the log.
-const REDACTED_PARAMS = new Set(['client_secret', 'code', 'code_verifier']);
-const QUOTED_TOKEN_FIELD = /\u0022(access_token|refresh_token|id_token)\u0022\s*:\s*\u0022[^\u0022]*\u0022/g;
-const REDACTED_TOKEN_FIELD = '\u0022$1\u0022:\u0022<redacted>\u0022';
-
-function summarizeTokenRequest(init, input) {
-    const raw = (init && init.body) ?? (input && input.body);
-    const text = typeof raw === 'string' ? raw : raw instanceof URLSearchParams ? raw.toString() : null;
-    if (!text) return null;
-    const summary = {};
-    for (const [key, value] of new URLSearchParams(text)) {
-        summary[key] = REDACTED_PARAMS.has(key) ? `<redacted len=${String(value).length}>` : value;
-    }
-    return summary;
-}
-
-const traceFetch = async (input, init) => {
-    const href = input instanceof URL ? input.href : (input && input.url) || String(input);
-    const summarize = href.includes('/oauth/token');
-    const request = summarize ? summarizeTokenRequest(init, input) : null;
-    const response = await globalThis.fetch(input, init);
-    if (summarize) {
-        response.clone().text().then((text) => {
-            const line = { at: new Date().toISOString(), url: href, status: response.status, ok: response.ok, request };
-            if (!response.ok) line.response = text.replace(QUOTED_TOKEN_FIELD, REDACTED_TOKEN_FIELD).slice(0, 800);
-            console.error('[auth] token exchange', JSON.stringify(line));
-        }).catch(() => { });
-    }
-    return response;
-};
-
+// No `customFetch` here. express-openid-connect validates its options with a Joi
+// schema that rejects unknown keys, and v2 -- the version package.json pins --
+// has no such option, so passing it threw `TypeError: "customFetch" is not
+// allowed` while the module loaded and took the whole container down with it.
+// Nothing is lost: the token-exchange diagnostics it was there for live in the
+// app's own error handler (see the /callback handler in index.js), which reports
+// the provider's error fields plus the forwarded host, proto and transaction
+// cookie, and persists them to .auth-callback-error.json.
 export const oidc = auth({
     authRequired: false,
     auth0Logout: true,
     baseURL: AUTH0_BASE_URL,
     clientID: AUTH0_CLIENT_ID,
-    customFetch: traceFetch,
     ...(confidential ? { clientSecret: AUTH0_CLIENT_SECRET } : {}),
     ...(confidential ? { clientAuthMethod: AUTH0_CLIENT_AUTH_METHOD } : {}),
     issuerBaseURL: AUTH0_ISSUER || `https://${AUTH0_DOMAIN}/`,
