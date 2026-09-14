@@ -113,3 +113,8 @@ server/.npm-cache/
 /.flora-ultra-*.log
 /SOCIAL_ARCHITECTURE.md
 /CLAUDE.md
+
+# Auth0 callback diagnostics. The server writes this when the token exchange
+# fails, which makes it useful while debugging the confidential flow, but it
+# holds the raw Auth0 error payload and belongs to the machine that produced it.
+/.remote-callback-check.json
