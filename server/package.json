@@ -11,7 +11,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "check": "node --check index.js && node --check db.js && node --check session.js && node --check lib.js && node --check inference.js && node --check lib/ssr.js && node --check lib/events.js && node --check lib/social-data.js && node --check routes/events.js && node --check routes/contributions.js && node --check routes/identify.js"
+    "check": "node --check index.js && node --check db.js && node --check session.js && node --check lib.js && node --check inference.js && node --check lib/ssr.js && node --check lib/events.js && node --check lib/social-data.js && node --check models/scan.js && node --check routes/events.js && node --check routes/contributions.js && node --check routes/identify.js && node --check routes/keys.js && node --check routes/scans.js && node --check routes/users.js"
   },
   "dependencies": {
     "express-openid-connect": "^2.17.1",

@@ -202,6 +202,70 @@ function notificationsFallback(data) {
     }).join('');
 }
 
+function titleCase(value) {
+    return String(value || '').replace(/(^|\s)(\w)/g, (m, pre, c) => pre + c.toUpperCase());
+}
+
+function agoLabel(iso) {
+    const then = new Date(iso);
+    if (Number.isNaN(then.getTime())) return '';
+    const mins = Math.floor((Date.now() - then.getTime()) / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + ' min ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + (hrs === 1 ? ' hour ago' : ' hours ago');
+    const days = Math.floor(hrs / 24);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return days + ' days ago';
+    return then.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+const FLOWER_PATH = 'M12 21c0-4 0-7 0-9m0 0c0-3 2.5-5 6-5-.2 3.2-2.8 5-6 5Zm0 0c0-3-2.5-5-6-5 .2 3.2 2.8 5 6 5Z';
+
+/** One saved find, in the same shape the dashboard's own card renderer uses.
+ *  The reader's correction wins over the model's answer, because that is what
+ *  the client shows and the two must not disagree about the same record. */
+function scanCard(scan) {
+    const told = scan.correction && scan.correction.species ? scan.correction.species : scan.species;
+    const name = titleCase(told);
+    const pct = typeof scan.confidence === 'number' ? Math.round(scan.confidence * 100) + '%' : '';
+    const thumb = scan.imageBase64
+        ? '<img src="' + escapeHtml(scan.imageBase64) + '" alt="" class="w-full h-full object-cover" loading="lazy">'
+        : '<div class="w-full h-full flex items-center justify-center bg-sage-50">'
+            + '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" '
+            + 'class="text-sage-400"><path d="' + FLOWER_PATH + '"/></svg></div>';
+    const inner = '<div class="aspect-square bg-neutral-100 overflow-hidden">' + thumb + '</div>'
+        + '<div class="p-3">'
+        + '<h3 class="font-medium text-sm text-neutral-900 leading-snug line-clamp-2">'
+        + (name ? escapeHtml(name) : '<span class="font-normal text-neutral-400">Not named yet</span>') + '</h3>'
+        + '<div class="flex items-center justify-between mt-1.5">'
+        + '<span class="text-xs text-neutral-400">' + escapeHtml(agoLabel(scan.timestamp)) + '</span>'
+        + (pct ? '<span class="text-xs font-medium text-sage-700 bg-sage-50 px-1.5 py-0.5 rounded">'
+            + escapeHtml(pct) + '</span>' : '')
+        + '</div></div>';
+    return '<article data-scan-id="' + escapeHtml(scan.id) + '" class="group bg-white border border-neutral-200 rounded-lg overflow-hidden">'
+        + (name ? '<a href="/species?name=' + encodeURIComponent(name) + '" class="block">' : '<div>')
+        + inner
+        + (name ? '</a>' : '</div>')
+        + '</article>';
+}
+
+// The grid ships hidden with the empty state visible beside it, because that is
+// the right first paint for a visitor who has never scanned. Rendering rows
+// means flipping both: the cards have to be inserted, the container un-hidden,
+// and the "your herbarium is empty" panel is a sibling that is visible by
+// default, so it would otherwise sit above the finds it says do not exist.
+const DASH_GRID = '<div id="recentGrid" class="hidden grid grid-cols-2 lg:grid-cols-3 gap-4"></div>';
+
+function injectDashboardScans(html, data) {
+    const scans = Array.isArray(data.scans) ? data.scans : [];
+    if (!scans.length) return html;
+    const open = '<div id="recentGrid" class="grid grid-cols-2 lg:grid-cols-3 gap-4">';
+    let out = html.replace(DASH_GRID, open + scans.map(scanCard).join('') + '</div>');
+    out = out.replace('id="recentEmpty" class="', 'id="recentEmpty" class="hidden ');
+    return out;
+}
+
 function chatFallback(data) {
     if (!data.authenticated) {
         return '<li class="text-sm text-neutral-600">Sign in to open this conversation.</li>';
@@ -264,11 +328,18 @@ export async function renderPage(req, res, page, payload, status) {
         // means anything on an origin that holds a session, which is exactly the
         // set of pages this function renders. It is deferred and lands last, so
         // the page scripts have registered their listeners before it dispatches.
-        + '<script src="/scripts/live.js" defer></script>';
+        + '<script src="/scripts/live.js" defer></script>'
+        // The herbarium sync. Both directions are idempotent -- the upload is
+        // keyed on the client's own record ids and the download is deduped by
+        // them -- so it runs on every rendered page instead of behind a button
+        // someone has to remember to press on each of their devices.
+        + '<script src="/scripts/sync-scans.js" defer></script>';
     html = html.replace('</head>', boot + '</head>');
 
     if (page === 'community' && data) {
         html = injectAfter(html, '<div id="cmFeed" class="mt-4">', communityFallback(data));
+    } else if (page === 'dashboard' && data) {
+        html = injectDashboardScans(html, data);
     } else if (page === 'notifications' && data) {
         html = injectAfter(html, '<ul id="notificationsList" class="space-y-3">', notificationsFallback(data));
     } else if (page === 'chat' && data) {

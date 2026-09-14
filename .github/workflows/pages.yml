@@ -77,10 +77,13 @@ jobs:
           for f in app.css nav.js footer.js sw.js \
                    scripts/api.js scripts/ui.js scripts/router.js \
                    scripts/lite.js scripts/vendor/tf.min.js \
+                   scripts/sync-scans.js \
                    scripts/ux.js scripts/journal.js \
                    scripts/views/home.js scripts/views/directory.js \
                    scripts/views/dashboard.js scripts/views/scanner.js \
                    scripts/views/contribute.js \
+                   models/lite/model.json models/lite/class_names.json \
+                   models/lite/group1-shard1of3.bin models/lite/group1-shard3of3.bin \
                    favicon.svg favicon.ico icon-192.png icon-512.png \
                    icon-maskable-512.png apple-touch-icon.png \
                    manifest.json robots.txt sitemap.xml \

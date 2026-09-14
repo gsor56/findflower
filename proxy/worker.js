@@ -209,8 +209,20 @@ function workerOwned(pathname) {
 const STATIC_PREFIXES = [
   "/assets/", "/images/", "/articles/", "/scripts/",
   "/chat/", "/notifications/", "/.well-known/",
+  // Flora-Micro lives here: models/lite/model.json plus three
+  // group1-shardNoFN.bin weight files. The .json half matched the extension
+  // list below and loaded, but a .bin has no extension rule, so the shards were
+  // treated as pages, proxied to Node -- whose static allowlist does not
+  // publish /models/ -- and answered 404. The graph arrived and its weights
+  // never did, which reads as "Flora-Micro unavailable" with nothing in the
+  // network tab that looks like a routing bug. The directory is listed whole so
+  // a future export cannot reintroduce it with a different suffix.
+  "/models/",
 ];
-const STATIC_FILE = /\.(?:css|js|mjs|json|map|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp4|webm|pdf|txt|xml|webmanifest)$/i;
+// Weight and runtime formats belong in this list even though no page links to
+// them by an extension a browser would guess at: a model that cannot fetch its
+// shards is a model that does not run.
+const STATIC_FILE = /\.(?:css|js|mjs|json|map|bin|tflite|wasm|onnx|png|jpe?g|gif|webp|avif|svg|ico|woff2?|ttf|otf|mp4|webm|pdf|txt|xml|webmanifest)$/i;
 
 function isStaticAsset(pathname) {
   if (/\.html?$/i.test(pathname)) return false;
@@ -673,6 +685,46 @@ async function verifyAuth0Token(token, env) {
   return { ok: true, sub: payload.sub };
 }
 
+/* Personal developer API keys (`ff_...`).
+   A key is not a JWT and can never be verified here: the plaintext is shown
+   once at creation and only its SHA-256 is stored, next to the account that
+   minted it. So this asks the Node server -- the only holder of PROXY_SECRET --
+   and never throws. A lookup that fails is reported as a refusal rather than
+   quietly letting the request through, which is the one failure mode that would
+   turn a stolen key into a working one. */
+async function verifyApiKey(key, env) {
+  const base = inferenceUpstream(env);
+  if (!base) return { ok: false, reason: "API keys cannot be verified: no upstream is configured" };
+  if (!env.PROXY_SECRET) return { ok: false, reason: "API keys cannot be verified: PROXY_SECRET is not set" };
+
+  // A lookup that hangs must not become the caller's wait. Four seconds is
+  // generous for an indexed equality test and short enough to stay well inside
+  // a client's own patience.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  let res;
+  try {
+    res = await fetch(new URL("/api/keys/verify", base).toString(), {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Proxy-Secret": env.PROXY_SECRET },
+      body: JSON.stringify({ key }),
+      signal: controller.signal,
+    });
+  } catch {
+    return { ok: false, reason: "API key lookup failed" };
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) return { ok: false, reason: "API key lookup answered " + res.status };
+  const body = await res.json().catch(() => null);
+  if (!body || body.valid !== true) {
+    // Unknown, revoked and expired are one answer on purpose: which one it is
+    // is not a distinction a caller holding the key gets to make.
+    return { ok: false, reason: "API key is not valid" };
+  }
+  return { ok: true, sub: body.sub, keyId: body.keyId };
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -843,11 +895,28 @@ export default {
 
     const authHeader = request.headers.get("Authorization") || "";
     const match = /^Bearer\s+(\S+)$/i.exec(authHeader.trim());
+    // Two credential shapes reach this route now, and they are checked in
+    // different places. An Auth0 JWT is verified here against the tenant's
+    // JWKS; a personal `ff_...` key cannot be, because only its SHA-256 exists
+    // and that lives in MongoDB. Recognising the key by shape first keeps it out
+    // of verifyAuth0Token, which would otherwise answer the truthful but useless
+    // "token is not a JWT" for a credential that was never meant to be one.
+    const presented = match ? match[1] : "";
+    const isApiKey = /^ff_[A-Za-z0-9_-]{16,}$/.test(presented);
     if (!match) {
       audit.outcome = "reject";
       audit.reason = authHeader
         ? "Authorization header is malformed"
         : "Authorization header is required";
+    } else if (isApiKey) {
+      const verdict = await verifyApiKey(presented, env);
+      if (verdict.ok) {
+        audit.outcome = "ok";
+        audit.via = "api-key";
+      } else {
+        audit.outcome = "reject";
+        audit.reason = verdict.reason;
+      }
     } else if (match[1].length < MIN_TOKEN_LENGTH) {
       audit.outcome = "reject";
       audit.reason = "Authorization header is malformed";
@@ -870,12 +939,19 @@ export default {
     }
     // Not enforcing (or nothing to enforce): carry the verdict on the response
     // so a dry run is observable in the browser's network tab and in logs.
+    // The kind of credential is named only when it is not the default one: a
+    // scan served with a personal key reads "ok (api-key)" so the distinction
+    // is visible in a network tab, while an Auth0 token keeps reading exactly
+    // "ok" -- the string the rollout steps in the test file check for.
+    const verdictLabel = audit.outcome === "ok" && audit.via
+      ? "ok (" + audit.via + ")"
+      : audit.outcome;
     const authAudit = {
       "X-FF-Auth": enforcing
-        ? audit.outcome
+        ? verdictLabel
         : audit.outcome === "reject"
           ? "would-reject: " + audit.reason
-          : audit.outcome,
+          : verdictLabel,
     };
 
     // ---- API ACCESS: accounts only ----

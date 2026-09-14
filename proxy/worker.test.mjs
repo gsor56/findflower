@@ -36,12 +36,29 @@ async function mint(over = {}, hdr = {}, signWith = kp.privateKey) {
 
 // Intercept outbound fetches: JWKS stubbed, inference hits counted.
 let spaceHits = 0, jwksHits = 0, warmHits = 0;
+// The personal-key lookup is a round trip to the Node server, so the stub has
+// to stand in for it: a key only this file knows is "valid", everything else is
+// not, and the mode switch below lets a case simulate the lookup being down.
+const VALID_API_KEY = 'ff_' + 'a1b2c3d4'.repeat(6);
+let keyVerifyHits = 0, keyVerifyMode = 'ok', lastKeyVerifyBody = '', lastKeyVerifySecret = null;
 // The URL each scan was actually forwarded to, so the upstream-selection test
 // can prove where the model was reached rather than only that it answered.
 let lastPredict = '';
-globalThis.fetch = async (url) => {
+globalThis.fetch = async (url, init = {}) => {
     url = String(url);
     if (url.includes('/predict')) lastPredict = url;
+    if (url.includes('/api/keys/verify')) {
+        keyVerifyHits++;
+        lastKeyVerifyBody = String((init && init.body) || '');
+        lastKeyVerifySecret = new Headers((init && init.headers) || {}).get('X-Proxy-Secret');
+        if (keyVerifyMode === 'throw') throw new Error('key lookup is down');
+        if (keyVerifyMode === 'error') return new Response('nope', { status: 502 });
+        let asked = null;
+        try { asked = JSON.parse(lastKeyVerifyBody).key; } catch { asked = null; }
+        return new Response(JSON.stringify(asked === VALID_API_KEY
+            ? { valid: true, sub: 'auth0|abc123', keyId: 'key-1' }
+            : { valid: false }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
     if (url.includes('jwks.json')) {
         jwksHits++;
         return new Response(JSON.stringify(JWKS), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -604,7 +621,16 @@ console.log('\n--- GLOBAL NAVIGATION ROUTING (catch-all) ---');
             seen ? seen.url : 'no fetch');
     }
 
+    // Flora-Micro's weight shards are the reason this list has to exist:
+    // model.json matched the extension rule and loaded while
+    // group1-shardNofN.bin did not, so the graph arrived, the weights were
+    // proxied to Node (which does not publish /models/) and answered 404.
+    // That is a model which silently cannot run, so every file it fetches is
+    // asserted here rather than inferred from the suffix list.
     for (const path of ['/app.css', '/scripts/api.js', '/scripts/ssr-session.js',
+        '/scripts/vendor/tf.min.js',
+        '/models/lite/model.json', '/models/lite/class_names.json',
+        '/models/lite/group1-shard1of3.bin', '/models/lite/group1-shard3of3.bin',
         '/assets/flower.jpg', '/images/flower.jpg', '/favicon.svg', '/manifest.json', '/robots.txt']) {
         seen = null;
         await worker.fetch(new Request('https://findflower.me' + path), env);
@@ -844,5 +870,71 @@ console.log('\n--- GLOBAL POOL (Durable Object) ---');
     Date.now = realNow;
 }
 
+console.log('\n--- DEVELOPER API KEYS (ff_-prefixed) ---');
+{
+    function one(name, ok, detail) {
+        console.log((ok ? 'PASS' : 'FAIL') + '  ' + name.padEnd(44) + (detail === undefined ? '' : detail));
+        ok ? pass++ : fail++;
+    }
+    const scanWithKey = (key, env = ENV) => {
+        const h = new Headers({ 'Content-Type': 'image/jpeg', Origin: 'https://findflower.me' });
+        if (key) h.set('Authorization', 'Bearer ' + key);
+        return worker.fetch(new Request('https://w.example/v1/identify', {
+            method: 'POST', headers: h, body: new Uint8Array([1, 2, 3, 4]),
+        }), env);
+    };
+
+    keyVerifyMode = 'ok';
+    const jwksBefore = jwksHits, poolBefore = budgetHits;
+    const good = await scanWithKey(VALID_API_KEY);
+    const goodBody = await good.clone().json().catch(() => ({}));
+    one('a valid personal key is served', good.status === 200 && goodBody.flower === 'sunflower',
+        'status=' + good.status);
+    one('...labelled as a key, not a token', good.headers.get('X-FF-Auth') === 'ok (api-key)',
+        'X-FF-Auth=' + good.headers.get('X-FF-Auth'));
+    one('...never parsed as a JWT', jwksHits === jwksBefore, 'jwks hits=' + (jwksHits - jwksBefore));
+    one('...and it draws on the shared pool', budgetHits > poolBefore,
+        'pool hits=' + (budgetHits - poolBefore));
+    one('the lookup carries the shared secret', lastKeyVerifySecret === ENV.PROXY_SECRET,
+        'secret=' + lastKeyVerifySecret);
+    one('the lookup asks about exactly that key',
+        lastKeyVerifyBody === JSON.stringify({ key: VALID_API_KEY }));
+
+    // An unknown or revoked key is one answer: valid:false. Neither may spend a
+    // scan from the pool, which is the part a "just let it through" bug breaks.
+    const unknownBefore = budgetHits;
+    const unknown = await scanWithKey('ff_' + 'deadbeef'.repeat(6));
+    one('an unknown key is refused', unknown.status === 401, 'status=' + unknown.status);
+    one('...refuses without spending the pool', budgetHits === unknownBefore,
+        'pool hits=' + (budgetHits - unknownBefore));
+
+    const badBody = await (await scanWithKey('ff_' + 'deadbeef'.repeat(6))).text();
+    one('the refusal names the key, not the JWT', /API key is not valid/.test(badBody),
+        badBody.slice(0, 80));
+
+    // The lookup is a network call that can be down. Every way it can fail has
+    // to be a refusal: a 500 here would be a working key on a bad day.
+    keyVerifyMode = 'throw';
+    const down = await scanWithKey(VALID_API_KEY);
+    one('a lookup that throws is a refusal', down.status === 401, 'status=' + down.status);
+    keyVerifyMode = 'error';
+    const failed = await scanWithKey(VALID_API_KEY);
+    one('a lookup that answers 502 is a refusal', failed.status === 401, 'status=' + failed.status);
+    keyVerifyMode = 'ok';
+
+    // Without the shared secret the Worker cannot ask at all. Fail closed, and
+    // say why: "cannot check" is a different sentence from "your key is wrong".
+    const noSecret = await scanWithKey(VALID_API_KEY, { ...ENV, PROXY_SECRET: '' });
+    const noSecretBody = await noSecret.text();
+    one('no PROXY_SECRET refuses keys', noSecret.status === 401, 'status=' + noSecret.status);
+    one('...and says the check is unavailable',
+        /PROXY_SECRET is not set/.test(noSecretBody), noSecretBody.slice(0, 90));
+
+    // The API route ignores the dry-run lever for anonymous callers; a bad key
+    // must not become a way around that.
+    const dryBadKey = await scanWithKey('ff_' + 'deadbeef'.repeat(6), DRY);
+    one('the API rule ignores the dry-run lever', dryBadKey.status === 401,
+        'status=' + dryBadKey.status);
+}
 console.log('\n' + pass + ' passed, ' + fail + ' failed');
 process.exit(fail ? 1 : 0);

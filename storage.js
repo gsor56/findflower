@@ -1289,6 +1289,10 @@
     clearUser,
     adopt,
     refreshUser,
+    // The marker importHistory checks for. Exported so the server-side sync can
+    // build a bundle the local reader accepts without a second copy of the
+    // string drifting away from this one.
+    HISTORY_KIND,
     BADGES,
     badgeIcon,
     UNCLAIMED,

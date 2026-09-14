@@ -5,12 +5,38 @@
 import { Friend } from '../models/friend.js';
 import { Message } from '../models/message.js';
 import { Post } from '../models/post.js';
+import { Scan, toClientScan } from '../models/scan.js';
 import { Space } from '../models/space.js';
 import { User } from '../models/user.js';
 
 const CARD = 'handle displayName avatar';
 const AUTHOR = 'handle displayName avatar';
 const PAGE = 20;
+// How many finds the dashboard's first paint carries. The client asks for the
+// same six the card grid shows when it re-renders, so a page that paints from
+// Mongo and a page that repaints from IndexedDB show the same thing.
+const DASH_PAGE = 6;
+/**
+ * The dashboard's own data: this account's scans, read from MongoDB.
+ *
+ * This is the page the two-device bug showed up on. It used to render an empty
+ * shell and let the browser paint it from IndexedDB, so a laptop that had never
+ * scanned looked empty no matter how much was on the phone. Rendering the rows
+ * here means the first paint is the account's real herbarium, and the client
+ * sync that follows only ever adds to it.
+ *
+ * A signed-out visitor gets the shell and no rows, which is what the page's own
+ * "your herbarium is empty" state says.
+ */
+export async function dashboardPayload(req) {
+    if (!req.viewer) return { authenticated: false, scans: [], total: 0 };
+    const rows = await Scan.find({ authSub: req.viewer.authSub })
+        .sort({ scannedAt: -1 })
+        .limit(DASH_PAGE)
+        .lean({ virtuals: false });
+    const total = await Scan.countDocuments({ authSub: req.viewer.authSub });
+    return { authenticated: true, scans: rows.map(toClientScan), total, count: rows.length };
+}
 
 function iso(value) {
     return value instanceof Date ? value.toISOString() : value || null;

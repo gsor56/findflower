@@ -7,6 +7,8 @@
 // because Tailwind arrives from a CDN and app.css is not cached either, so a
 // real page would land with no styling at all in the one situation it exists for.
 
+const CACHE_VERSION = 'ff-offline-v2';
+
 const OFFLINE_PAGE = `<!doctype html>
 <html lang="en">
 <head>
@@ -50,7 +52,22 @@ const OFFLINE_PAGE = `<!doctype html>
 self.addEventListener('install', () => self.skipWaiting());
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(self.clients.claim());
+    // A named version exists only so there is something to purge. Nothing is
+    // cached under it (see the note at the top), so an installed PWA that
+    // somehow kept a stale shell from an older build has exactly one way to
+    // lose it: this activation deleting every cache that is not this name. The
+    // version is bumped whenever a change here has to reach a phone without
+    // waiting for the browser to decide the worker has changed on its own.
+    event.waitUntil((async () => {
+        try {
+            const names = await caches.keys();
+            await Promise.all(names.filter((name) => name !== CACHE_VERSION).map((name) => caches.delete(name)));
+        } catch (e) {
+            // No CacheStorage in this context: nothing was cached, so there is
+            // nothing to drop, and the activation must still finish.
+        }
+        await self.clients.claim();
+    })());
 });
 
 self.addEventListener('fetch', (event) => {

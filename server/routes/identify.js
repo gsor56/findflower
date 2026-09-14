@@ -49,7 +49,7 @@ function constantTimeEquals(a, b) {
     }
 }
 
-function requireProxySecret(req, res, next) {
+export function requireProxySecret(req, res, next) {
     const expected = (process.env.PROXY_SECRET || '').trim();
     if (!expected) {
         // Fail closed. An unset secret means the Worker cannot be authenticated

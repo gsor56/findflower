@@ -23,7 +23,7 @@ import { seedDefaultSpaces } from './models/space.js';
 import { User } from './models/user.js';
 import { oidc, sessionBootstrap, sessionUser } from './session.js';
 import { renderPage } from './lib/ssr.js';
-import { communityPayload, notificationsPayload, chatPayload } from './lib/social-data.js';
+import { communityPayload, notificationsPayload, chatPayload, dashboardPayload } from './lib/social-data.js';
 import { connectionCount } from './lib/events.js';
 import postsRouter from './routes/posts.js';
 import spacesRouter from './routes/spaces.js';
@@ -35,6 +35,8 @@ import notificationsRouter from './routes/notifications.js';
 import eventsRouter from './routes/events.js';
 import contributionsRouter from './routes/contributions.js';
 import identifyRouter from './routes/identify.js';
+import keysRouter from './routes/keys.js';
+import scansRouter from './routes/scans.js';
 import { preload } from './inference.js';
 
 // The container's allocation is 24729. Panels of that family publish the
@@ -199,7 +201,6 @@ const PAGES = [
     ['/api', 'api'],
     ['/try', 'try'],
     ['/contribute', 'contribute'],
-    ['/dashboard', 'dashboard'],
     ['/profile', 'profile'],
     ['/about', 'about'],
     ['/pricing', 'pricing'],
@@ -221,6 +222,14 @@ const PAGES = [
 for (const [route, page] of PAGES) {
     app.get(route, attachViewer, (req, res) => renderWith(req, res, page, null));
 }
+
+// /dashboard is the one page whose content is the account's own data, so it is
+// rendered from MongoDB rather than painted by the browser after load. The two
+// devices that used to disagree about how many finds existed -- three on the
+// phone, none on the laptop -- now read the same rows on first paint, and the
+// client-side sync that follows only ever adds to them.
+app.get('/dashboard', attachViewer, (req, res) =>
+    renderWith(req, res, 'dashboard', () => dashboardPayload(req)));
 
 app.get('/community', attachViewer, (req, res) =>
     renderWith(req, res, 'community', () => communityPayload(req)));
@@ -292,6 +301,11 @@ app.use('/api/messages', messagesRouter);
 app.use('/api/search', searchRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/events', eventsRouter);
+// /api/keys is the personal developer key surface (generate, list, revoke) plus
+// the Worker's verify call, and /api mounts the herbarium routes: /api/scans,
+// /api/scans/sync and the /api/user/sync-scans alias the brief named.
+app.use('/api/keys', keysRouter);
+app.use('/api', scansRouter);
 
 // The static assets the rendered pages reference: stylesheets, scripts, icons,
 // images. index:false so / is never answered from disk and the SSR route keeps

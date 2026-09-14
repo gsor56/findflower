@@ -15,6 +15,24 @@ import { Schema, model } from 'mongoose';
 // leaves room for an inline SVG fallback and refuses an unresized upload.
 const MAX_AVATAR = 32768;
 
+// Personal API keys, stored the same way a password would be: the plaintext is
+// shown once at creation and never again, and what lives here is its SHA-256.
+// A hex sha256 rather than bcrypt on purpose -- these keys are 51 random
+// characters, so there is no low-entropy guess to slow down, and the Worker
+// needs a lookup that is a single indexed equality test rather than a scan over
+// every account.
+const apiKeySchema = new Schema({
+    id: { type: String, required: true },
+    hash: { type: String, required: true },
+    // The first few characters, kept in the clear so a developer can tell two
+    // keys apart in the list without the server holding anything usable.
+    prefix: { type: String, required: true },
+    label: { type: String, default: '', trim: true, maxlength: 60 },
+    createdAt: { type: Date, default: Date.now },
+    lastUsedAt: { type: Date, default: null },
+    revokedAt: { type: Date, default: null },
+}, { _id: false });
+
 const userSchema = new Schema({
     authSub: { type: String, required: true, unique: true, trim: true },
     handle: {
@@ -32,6 +50,7 @@ const userSchema = new Schema({
     // storage.js BADGES, and a second copy here would drift the moment one
     // side gained a badge.
     badges: { type: [String], default: [] },
+    apiKeys: { type: [apiKeySchema], default: [] },
     stats: {
         scansCount: { type: Number, default: 0, min: 0 },
         helpfulCount: { type: Number, default: 0, min: 0 },

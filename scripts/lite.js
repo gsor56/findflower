@@ -182,6 +182,75 @@
         throw lastError || new Error('Lite model could not be loaded.');
     }
 
+    // A failed load is almost never the tensors, and the console reports both
+    // causes as one opaque stack. Either the runtime never reached the weights
+    // (a 404 on a shard, a CORS refusal, an offline shell serving files that are
+    // no longer published) or the files arrived and the graph itself refused to
+    // build. Those need different fixes, so probe the files and say which.
+    function probe(url) {
+        return fetch(url, { cache: 'no-store' }).then(function (res) {
+            return { url: url, status: res.status, ok: res.ok };
+        }).catch(function (err) {
+            return { url: url, status: 0, ok: false, error: String(err && err.message || err) };
+        });
+    }
+
+    // MODEL_URL and LABELS_URL are absolute (resolved against this script), and
+    // the weight paths in the manifest are relative to model.json, which is why
+    // they are resolved rather than concatenated.
+    function diagnoseLoad() {
+        var report = { model: MODEL_URL, labels: LABELS_URL, weights: [], kind: 'tensor' };
+        return probe(MODEL_URL).then(function (model) {
+            report.modelStatus = model.status;
+            report.modelError = model.error || null;
+            if (!model.ok) {
+                report.kind = 'network';
+                return null;
+            }
+            return fetch(MODEL_URL, { cache: 'no-store' }).then(function (r) { return r.json(); });
+        }).then(function (manifest) {
+            if (!manifest) return probe(LABELS_URL);
+            var paths = [];
+            (manifest.weightsManifest || []).forEach(function (group) {
+                (group.paths || []).forEach(function (p) { paths.push(p); });
+            });
+            return paths.reduce(function (chain, p) {
+                return chain.then(function () {
+                    return probe(new URL(p, MODEL_URL).href).then(function (r) {
+                        report.weights.push(r);
+                    });
+                });
+            }, Promise.resolve()).then(function () { return probe(LABELS_URL); });
+        }).then(function (labels) {
+            if (!labels) return report;
+            report.labelsStatus = labels.status;
+            if (!labels.ok) report.kind = 'network';
+            return report;
+        }).then(function () {
+            if (report.weights.some(function (w) { return !w.ok; })) report.kind = 'network';
+            var bad = report.weights.filter(function (w) { return !w.ok; }).map(function (w) {
+                return w.url + ' -> ' + (w.status || w.error);
+            });
+            if (report.kind === 'network') {
+                console.error('Flora-Micro: the model files are not reachable. ' +
+                    'model.json -> ' + report.modelStatus +
+                    ', class_names.json -> ' + (report.labelsStatus === undefined ? 'not checked' : report.labelsStatus) +
+                    ', weight shards failing: ' + (bad.length ? bad.join(', ') : 'none') +
+                    '. This is a delivery problem, not a model problem: the files are missing, ' +
+                    'blocked, or cached from a deploy that no longer publishes them.', report);
+            } else {
+                console.error('Flora-Micro: every model file loaded, so this failure is in ' +
+                    'tensor execution -- the runtime built the backend, fetched model.json, the ' +
+                    'weight shards and the labels, then failed while constructing or running the ' +
+                    'graph. That is a runtime/graph compatibility problem.', report);
+            }
+            return report;
+        }).catch(function (err) {
+            console.error('Flora-Micro: could not complete the load diagnosis.', err);
+            return report;
+        });
+    }
+
     async function load() {
         if (!window.tf) throw new Error('TensorFlow.js is unavailable.');
         await chooseBackend();
@@ -210,6 +279,7 @@
             return parts;
         } catch (err) {
             resetLoadState();
+            await diagnoseLoad();
             throw err;
         }
     }
