@@ -83,7 +83,7 @@ Set as Worker secrets/vars, never in code:
 
 | Name | Purpose |
 | --- | --- |
-| `SPACE_URL` | Base URL of the inference backend (no trailing `/predict`) |
+| `INFERENCE_UPSTREAM` | Optional base URL of the inference backend (no trailing `/predict`). Unset in production: inference runs on `SITE_UPSTREAM` |
 | `PROXY_SECRET` | Shared secret; must match the backend's `PROXY_SECRET` exactly |
 | `ALLOWED_ORIGINS` | Comma-separated CORS allowlist. `*` is ignored — the fallback is `https://findflower.me` |
 | `SPACE_TOKEN` | Optional bearer token, only needed if the backend is access-gated |

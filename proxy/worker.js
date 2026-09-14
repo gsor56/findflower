@@ -1,17 +1,17 @@
 /**
  * FindFlower inference proxy (Cloudflare Worker).
  *
- * Sits between the public frontend and a PRIVATE Hugging Face Space that
- * runs the ViT. The browser never sees any secret; the Space is gated so it
+ * Sits between the public frontend and the PRIVATE Node inference server that
+ * runs the ViT. The browser never sees any secret; the server is gated so it
  * can't be used as a free open API.
  *
- *   browser --(image)--> Worker --(image + X-Proxy-Secret)--> private Space
+ *   browser --(image)--> Worker --(image + X-Proxy-Secret)--> Node server
  *
  * The Worker:
  *   - enforces a CORS/Origin allowlist (blocks other websites)
  *   - requires a Bearer token and verifies it against Auth0 (see AUTH GATE)
- *   - forwards the image to the Space as multipart/form-data
- *   - adds the shared X-Proxy-Secret header (only Worker + Space know it)
+ *   - forwards the image to the server as multipart/form-data
+ *   - adds the shared X-Proxy-Secret header (only Worker + server know it)
  *
  * Client contract:
  *   POST <worker-url>   body: raw image bytes OR multipart `file`
@@ -28,11 +28,13 @@
  *   GET  <worker-url>/trefle/plants/<id>          /  See TREFLE READ-THROUGH.
  *
  * Secrets / vars (set via `wrangler secret put`, NOT in code):
- *   SPACE_URL       - base URL of the private Space, e.g.
- *                     https://gsor56-findflower-vit.hf.space
- *   SPACE_TOKEN     - HF read token, sent as Bearer so the Worker can reach
- *                     the *private* Space's endpoint
- *   PROXY_SECRET    - shared secret the Space checks (X-Proxy-Secret)
+ *   INFERENCE_UPSTREAM - optional base URL of the inference server. Unset in
+ *                     production: the ViT runs on the same Node server that
+ *                     renders the site, so SITE_UPSTREAM is the target. The old
+ *                     SPACE_URL/SPACE_TOKEN pair is kept only as a last resort
+ *                     for a deployment still pointed at a Hugging Face Space.
+ *   PROXY_SECRET    - shared secret the server checks (X-Proxy-Secret). It MUST
+ *                     match PROXY_SECRET in the server's .env.
  *   TREFLE_TOKEN    - trefle.io API token. Optional: without it the /trefle/
  *                     routes answer 503 and the frontend falls back to
  *                     Wikidata, so the encyclopedia still renders.
@@ -234,6 +236,17 @@ function siteProxyTarget(env, url) {
   if (workerOwned(url.pathname)) return false;
   if (isStaticAsset(url.pathname)) return false;
   return true;
+}
+
+// Where the ViT is served from. The model used to run on a private Hugging Face
+// Space; it now runs on the Node server, which is the same origin that renders
+// the pages, so SITE_UPSTREAM is the answer. Checking SITE_UPSTREAM before
+// SPACE_URL also means a leftover SPACE_URL secret from the old setup can never
+// quietly pull scans back to a dead Space -- the stale value only applies when
+// neither of the other two is configured.
+function inferenceUpstream(env) {
+  const base = env.INFERENCE_UPSTREAM || env.SITE_UPSTREAM || env.SPACE_URL || "";
+  return base.replace(/\/+$/, "");
 }
 
 // Cloudflare's Headers implementation has not exposed getSetCookie() in every
@@ -760,15 +773,16 @@ export default {
       if (origin && !originAllowed(origin, env)) {
         return json({ error: "Origin not allowed." }, 403, request, env);
       }
-      if (env.SPACE_URL) {
+      const warmUpstream = inferenceUpstream(env);
+      if (warmUpstream) {
         // /warm is the model-load endpoint on the Node server. Without the
         // suffix this hits the site root, which warms a page render and nothing
         // else.
-        const warmTarget = env.SPACE_URL.replace(/\/+$/, "") + "/warm";
-        const poke = fetch(warmTarget, {
-          method: "GET",
-          headers: env.SPACE_TOKEN ? { Authorization: `Bearer ${env.SPACE_TOKEN}` } : {},
-        }).catch(() => { });
+        const warmTarget = warmUpstream + "/warm";
+        // No Authorization header: the endpoint is on our own server, and the
+        // only thing it must not accept is a caller from another site, which the
+        // origin check above already rules out.
+        const poke = fetch(warmTarget, { method: "GET" }).catch(() => { });
         if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(poke);
       }
       const res = json({ warming: true }, 202, request, env, { "Cache-Control": "no-store" });
@@ -919,8 +933,9 @@ export default {
       }
     }
 
-    if (!env.SPACE_URL || !env.PROXY_SECRET) {
-      return json({ error: "Server misconfigured (SPACE_URL/PROXY_SECRET)." }, 500, request, env, {
+    const upstreamBase = inferenceUpstream(env);
+    if (!upstreamBase || !env.PROXY_SECRET) {
+      return json({ error: "Server misconfigured (inference upstream/PROXY_SECRET)." }, 500, request, env, {
         ...authAudit,
         ...quotaHeaders,
       });
@@ -977,12 +992,14 @@ export default {
     const form = new FormData();
     form.append("file", imageBlob, "upload.jpg");
 
-    const target = env.SPACE_URL.replace(/\/+$/, "") + "/predict";
+    const target = upstreamBase + "/predict";
+    // The server is reached over plain HTTP on the container's public address,
+    // so this shared secret is the only thing between the open internet and the
+    // model: the Worker is the sole holder of it.
     const headers = { "X-Proxy-Secret": env.PROXY_SECRET };
-    // Private Spaces require a bearer token to be reachable at all.
-    if (env.SPACE_TOKEN) headers.Authorization = `Bearer ${env.SPACE_TOKEN}`;
 
-    // Retry while the free Space cold-starts (HF edge returns 502/503).
+    // Retry while the container cold-starts (a cold boot downloads the weights
+    // and answers 502/503 until the model is in memory).
     let res, lastText = "";
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       res = await fetch(target, { method: "POST", headers, body: form });

@@ -34,10 +34,14 @@ async function mint(over = {}, hdr = {}, signWith = kp.privateKey) {
     return signing + '.' + sig;
 }
 
-// Intercept outbound fetches: JWKS stubbed, Space hits counted.
+// Intercept outbound fetches: JWKS stubbed, inference hits counted.
 let spaceHits = 0, jwksHits = 0, warmHits = 0;
+// The URL each scan was actually forwarded to, so the upstream-selection test
+// can prove where the model was reached rather than only that it answered.
+let lastPredict = '';
 globalThis.fetch = async (url) => {
     url = String(url);
+    if (url.includes('/predict')) lastPredict = url;
     if (url.includes('jwks.json')) {
         jwksHits++;
         return new Response(JSON.stringify(JWKS), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -614,8 +618,14 @@ console.log('\n--- GLOBAL NAVIGATION ROUTING (catch-all) ---');
 
     seen = null;
     const warm = await worker.fetch(new Request('https://findflower.me/warm'), env);
-    one('/warm is still the Worker own route', warm.status === 202 && seen === null,
-        'status=' + warm.status);
+    const warmBody = await warm.clone().text();
+    // The page is not proxied -- the Worker answers /warm itself -- but the poke
+    // it fires in the background has to land on the model loader. With the ViT
+    // on the Node server that is SITE_UPSTREAM now, not the old Space.
+    one('/warm is still the Worker own route',
+        warm.status === 202 && warmBody === '{"warming":true}', 'status=' + warm.status);
+    one('...and it warms the model on the Node server',
+        !!seen && seen.url === 'http://pat.hidencloud.com:24729/warm', seen ? seen.url : 'no fetch');
 
     globalThis.fetch = originalFetch;
 
@@ -724,6 +734,48 @@ console.log('\n--- SCANNER ROUTE (/internal/scan) ---');
     const anon = await postTo('/internal/scan');
     one('scanner route still honours the auth gate', anon.status === 401,
         'status=' + anon.status);
+}
+
+console.log('\n--- INFERENCE UPSTREAM SELECTION ---');
+{
+    // The model moved off a Hugging Face Space onto the Node server. A leftover
+    // SPACE_URL secret must not be able to pull scans back to a Space that no
+    // longer answers, so SITE_UPSTREAM has to win whenever both are present.
+    function one(name, ok, detail) {
+        console.log((ok ? 'PASS' : 'FAIL') + '  ' + name.padEnd(44) + (detail === undefined ? '' : detail));
+        ok ? pass++ : fail++;
+    }
+    function scanWith(env) {
+        const h = new Headers({ 'Content-Type': 'image/jpeg', Origin: 'https://findflower.me' });
+        h.set('Authorization', 'Bearer ' + token);
+        return worker.fetch(new Request('https://w.example/v1/identify', {
+            method: 'POST', headers: h, body: new Uint8Array([1, 2, 3, 4]),
+        }), env);
+    }
+    const token = await mint();
+
+    lastPredict = '';
+    const staleSecret = await scanWith({ ...ENV, SITE_UPSTREAM: 'https://node.example' });
+    one('a scan still succeeds', staleSecret.status === 200, 'status=' + staleSecret.status);
+    one('SITE_UPSTREAM beats the stale SPACE_URL', lastPredict === 'https://node.example/predict',
+        'target=' + lastPredict);
+
+    lastPredict = '';
+    const explicit = await scanWith({
+        ...ENV, SITE_UPSTREAM: 'https://node.example', INFERENCE_UPSTREAM: 'https://gpu.example/',
+    });
+    one('INFERENCE_UPSTREAM beats SITE_UPSTREAM', explicit.status === 200
+        && lastPredict === 'https://gpu.example/predict', 'target=' + lastPredict);
+
+    lastPredict = '';
+    const legacy = await scanWith({ ...ENV, SPACE_URL: 'https://legacy-space.example' });
+    one('the legacy SPACE_URL still works alone', legacy.status === 200
+        && lastPredict === 'https://legacy-space.example/predict', 'target=' + lastPredict);
+
+    const nowhere = await scanWith({ ...ENV, SPACE_URL: undefined });
+    const nowhereBody = await nowhere.clone().text();
+    one('no upstream at all is a clear 500', nowhere.status === 500
+        && nowhereBody.includes('misconfigured'), 'status=' + nowhere.status);
 }
 
 console.log('\n--- GLOBAL POOL (Durable Object) ---');
