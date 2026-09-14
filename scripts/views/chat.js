@@ -185,6 +185,42 @@
         await loadMessages(false);
     }
 
+    var FF_MSG_WARN_KEY = 'ff_msg_warning_seen';
+
+    function _msgWarnSeen() {
+        try { return localStorage.getItem(FF_MSG_WARN_KEY) === '1'; } catch (e) { return false; }
+    }
+
+    function _msgWarnGate() {
+        return new Promise(function (resolve) {
+            var existing = document.getElementById('ffMsgWarnDialog');
+            if (existing) existing.remove();
+            var dlg = document.createElement('dialog');
+            dlg.id = 'ffMsgWarnDialog';
+            dlg.className = 'w-full max-w-sm p-0 border border-black bg-white backdrop:bg-black/30';
+            dlg.innerHTML =
+                '<div class="p-5">' +
+                '<h2 class="text-sm font-medium text-neutral-900 mb-2">Safety check</h2>' +
+                '<p class="text-sm text-neutral-600 leading-relaxed mb-4">' +
+                'You are responsible for what you post. Harassment, illegal content, or dangerous plant advice will result in an immediate ban. ' +
+                '<a href="/terms#ugc" class="underline text-neutral-900" target="_blank">Review the full terms</a>.' +
+                '</p>' +
+                '<div class="flex items-center justify-end gap-2">' +
+                '<button type="button" id="ffMsgWarnCancel" class="text-sm text-neutral-500 hover:text-neutral-900 px-3 py-2 transition">Cancel</button>' +
+                '<button type="button" id="ffMsgWarnContinue" class="text-sm font-medium bg-neutral-900 text-white border border-black rounded-none px-4 py-2 hover:bg-neutral-800 transition">Continue sending</button>' +
+                '</div></div>';
+            document.body.appendChild(dlg);
+            dlg.querySelector('#ffMsgWarnCancel').addEventListener('click', function () { dlg.close(); resolve(false); });
+            dlg.querySelector('#ffMsgWarnContinue').addEventListener('click', function () {
+                try { localStorage.setItem(FF_MSG_WARN_KEY, '1'); } catch (e) {}
+                dlg.close();
+                resolve(true);
+            });
+            dlg.addEventListener('close', function () { dlg.remove(); });
+            dlg.showModal();
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var more = $('chatMore');
         if (more) more.addEventListener('click', function () { loadMessages(true); });
@@ -245,6 +281,10 @@
             e.preventDefault();
             var box = $('chatBody'), text = box.value.trim();
             if (!text) return;
+            if (!_msgWarnSeen()) {
+                var ok = await _msgWarnGate();
+                if (!ok) return;
+            }
             var btn = $('chatSend');
             btn.disabled = true;
             var r = await window.ffSocial.sendMessage(state.handle, text);
