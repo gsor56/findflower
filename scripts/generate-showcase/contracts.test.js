@@ -1,0 +1,51 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const { replaceFigures } = require('./publish');
+const { assets } = require('./assets');
+const root = path.resolve(__dirname, '../..');
+
+test('publication retains all five figures, descriptions and posters; source loading is deferred', () => {
+  const original = fs.readFileSync(path.join(root, 'how.html'), 'utf8').replace(/\r\n/g, '\n');
+  const html = replaceFigures(original);
+  assert.equal((html.match(/<figure\b/g) || []).length, (original.match(/<figure\b/g) || []).length);
+  const videos = html.match(/<video\b[\s\S]*?<\/video>/g) || [];
+  assert.equal(videos.length, 5);
+  for (const [index, asset] of assets.entries()) {
+    const video = videos[index];
+    assert.ok(video.includes(`data-src="/assets/${asset.name}.mp4"`));
+    assert.ok(video.includes(`poster="/assets/${asset.name}.webp"`));
+    assert.match(video, /autoplay loop muted playsinline preload="none"/);
+    assert.match(video, /class="w-full rounded-lg border border-neutral-200 bg-white"/);
+    assert.match(video, /aria-label="[^"]{40,}"/);
+    assert.doesNotMatch(video, /\ssrc=/);
+  }
+  assert.equal(replaceFigures(html), html, 'Publishing twice must not duplicate markup or controls');
+});
+
+test('publication refuses a page with a missing target', () => {
+  // Build the pre-publish shape (five <img> figures) from the asset list rather than
+  // reading how.html, so this negative check is deterministic whether or not the page
+  // has already been published: once it holds <video>s, the idempotency guard would
+  // otherwise skip the renamed target and mask the refusal.
+  const page = assets.map(a =>
+    `                        <img src="/assets/${a.name}.webp"\n` +
+    `                            alt="A representative ${a.name} description, long enough to double as an aria-label."\n` +
+    '                            class="w-full rounded-lg border border-neutral-200 bg-white" />'
+  ).join('\n');
+  assert.throws(() => replaceFigures(page.replaceAll('scan-ranking.webp', 'removed.webp')), /scan-ranking/);
+});
+
+test('scanner shows the requested runners-up but excludes values displayed as 0.0%', () => {
+  const source = fs.readFileSync(path.join(root, 'try.html'), 'utf8');
+  const functionSource = source.match(/function alternatives\(ranked, upTo\) \{[\s\S]*?\n        \}/)?.[0];
+  assert.ok(functionSource);
+  const alternatives = vm.runInNewContext(`(${functionSource})`);
+  const ranked = [{ name: 'best', p: .984 }, { name: 'second', p: .009 },
+    { name: 'third', p: .003 }, { name: 'fourth', p: .001 }, { name: 'noise', p: .00001 }];
+  assert.equal(JSON.stringify(alternatives(ranked, 5).map(item => item.name)), JSON.stringify(['second', 'third', 'fourth']));
+  assert.equal(alternatives([{ p: .999 }, { p: .0004 }], 4).length, 0);
+  assert.equal(alternatives([{ p: .999 }, { p: .0006 }], 4).length, 1);
+});

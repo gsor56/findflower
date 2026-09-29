@@ -123,3 +123,6 @@ server/.npm-cache/
 # its graph, downloaded from the private Hugging Face repo. Nothing that size
 # belongs in git, and the container re-fetches it on demand.
 .model-cache/
+
+# Showcase capture intermediates; publish only optimized MP4s in /assets/.
+/public/assets/

@@ -1433,13 +1433,10 @@
             setTimeout(() => el.remove(), 4500);
         }
 
-        // A candidate the model scores at 0.0% is not a possibility, it is rounding
-        // noise, and a list of them makes a right answer look like a guess. Anything
-        // under one percent is dropped, and when that leaves nothing the heading goes
-        // too rather than sitting above an empty list.
-        const ALT_MIN_CONFIDENCE = 0.01;
+        // Keep every runner-up that displays a nonzero score at one decimal
+        // place. Suppress rounded 0.0% entries and an empty heading.
         function alternatives(ranked, upTo) {
-            return ranked.slice(1, upTo).filter(c => c.p >= ALT_MIN_CONFIDENCE);
+            return ranked.slice(1, upTo).filter(c => Number((c.p * 100).toFixed(1)) > 0);
         }
 
         function renderUncertain(ranked) {

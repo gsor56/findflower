@@ -1,0 +1,27 @@
+diff --git a/shots.probe.mjs b/shots.probe.mjs
+--- a/shots.probe.mjs
++++ b/shots.probe.mjs
+@@ -27,1 +27,1 @@
+-    { path: '/how.html', sel: 'img[src*="scan-ranking"]', w: 1188, h: 504, sec: '#steps', name: 'how-steps' },
++    { path: '/how.html', sel: 'video[data-src*="scan-ranking"]', w: 1188, h: 504, sec: '#steps', name: 'how-steps' },
+@@ -42,1 +42,11 @@
+-        try { await el.decode(); } catch (e) {}
++        const isVideo = el instanceof HTMLVideoElement;
++        if (isVideo) {
++            const started = Date.now();
++            while (el.readyState < 2 && Date.now() - started < 10000) {
++                await new Promise(resolve => setTimeout(resolve, 100));
++            }
++        } else {
++            try { await el.decode(); } catch (e) {}
++        }
++        const description = el.getAttribute(isVideo ? 'aria-label' : 'alt') || '';
+@@ -46,5 +56,6 @@
+-        return { found: true, complete: el.complete,
+-            nw: el.naturalWidth, nh: el.naturalHeight,
++        return { found: true, complete: isVideo ? el.readyState >= 2 : el.complete,
++            nw: isVideo ? el.videoWidth : el.naturalWidth, nh: isVideo ? el.videoHeight : el.naturalHeight,
+             attrW: el.getAttribute('width'), attrH: el.getAttribute('height'),
+-            lazy: el.getAttribute('loading'), alt: (el.getAttribute('alt') || '').length,
++            lazy: isVideo ? (el.preload === 'none' && el.hasAttribute('data-src') ? 'lazy' : '') : el.getAttribute('loading'),
++            alt: description.length,

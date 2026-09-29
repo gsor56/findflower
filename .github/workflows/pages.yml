@@ -61,6 +61,7 @@ jobs:
           cp -R chat notifications _site/
           # Tests ship in the repo, not to the web root.
           rm -f _site/scripts/*.test.mjs
+          rm -rf _site/scripts/generate-showcase
           echo "--- published files ---"
           ls -la _site
           ls -la _site/scripts _site/scripts/views

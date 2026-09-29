@@ -37,6 +37,7 @@
     <script src="footer.js?v=4" defer></script>
     <script src="scripts/ux.js?v=1" defer></script>
     <script src="scripts/views/home.js" defer></script>
+    <script src="scripts/showcase-videos.js" defer></script>
     <script src="scripts/router.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -152,6 +153,7 @@
                         Identify a flower
                         <svg class="cta-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
                     </a>
+                    <button type="button" data-showcase-toggle aria-pressed="false" class="block mt-5 text-sm text-neutral-500 underline underline-offset-4 hover:text-neutral-900">Pause demonstrations</button>
                 </div>
             </div>
         </section>
@@ -172,9 +174,12 @@
                         is involved at any point.
                     </p>
                     <figure class="mt-6">
-                        <img src="/assets/scan-input.webp" width="1252" height="637" loading="lazy" decoding="async"
-                            alt="The scanner with nothing chosen yet: a row reading Engine, Flora-Micro, change, then tabs for Camera, Upload and Link, a dashed area saying Drop an image here, and an empty result panel beside it."
-                            class="w-full rounded-lg border border-neutral-200 bg-white" />
+                        <video data-showcase data-src="/assets/scan-input.mp4" poster="/assets/scan-input.webp"
+                            width="1252" height="638" autoplay loop muted playsinline preload="none"
+                            aria-label="The scanner with nothing chosen yet: a row reading Engine, Flora-Micro, change, then tabs for Camera, Upload and Link, a dashed area saying Drop an image here, and an empty result panel beside it."
+                            class="w-full rounded-lg border border-neutral-200 bg-white">
+                            The scanner with nothing chosen yet: a row reading Engine, Flora-Micro, change, then tabs for Camera, Upload and Link, a dashed area saying Drop an image here, and an empty result panel beside it.
+                        </video>
                         <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
                             The three ways in, before a photo is picked. The panel on the right
                             stays empty until one is read.
@@ -191,9 +196,12 @@
                         that reason.
                     </p>
                     <figure class="mt-6">
-                        <img src="/assets/scan-ranking.webp" width="1188" height="504" loading="lazy" decoding="async"
-                            alt="The confidence section of a result: 98.4 percent on a filled bar, the note High confidence match, and three other possibilities listed at 0.9, 0.3 and 0.1 percent."
-                            class="w-full rounded-lg border border-neutral-200 bg-white" />
+                        <video data-showcase data-src="/assets/scan-ranking.mp4" poster="/assets/scan-ranking.webp"
+                            width="1188" height="504" autoplay loop muted playsinline preload="none"
+                            aria-label="The confidence section of a result: 98.4 percent on a filled bar, the note High confidence match, and three other possibilities listed at 0.9, 0.3 and 0.1 percent."
+                            class="w-full rounded-lg border border-neutral-200 bg-white">
+                            The confidence section of a result: 98.4 percent on a filled bar, the note High confidence match, and three other possibilities listed at 0.9, 0.3 and 0.1 percent.
+                        </video>
                         <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
                             What that looks like on screen. This one was read by Flora-Micro
                             without leaving the browser.
@@ -225,9 +233,12 @@
                     and most people never need to change it.
                 </p>
                 <figure class="reveal-up mb-8">
-                    <img src="/assets/dash-engine.webp" width="747" height="294" loading="lazy" decoding="async"
-                        alt="The engine setting in the dashboard: three rows, Flora-Micro with use this on the right, Flora-Flash shaded and marked in use, and Flora-Ultra greyed out with unavailable beside it and Not trained yet underneath."
-                        class="w-full rounded-lg border border-neutral-200 bg-white" />
+                    <video data-showcase data-src="/assets/dash-engine.mp4" poster="/assets/dash-engine.webp"
+                            width="748" height="294" autoplay loop muted playsinline preload="none"
+                            aria-label="The engine setting in the dashboard: three rows, Flora-Micro with use this on the right, Flora-Flash shaded and marked in use, and Flora-Ultra greyed out with unavailable beside it and Not trained yet underneath."
+                            class="w-full rounded-lg border border-neutral-200 bg-white">
+                            The engine setting in the dashboard: three rows, Flora-Micro with use this on the right, Flora-Flash shaded and marked in use, and Flora-Ultra greyed out with unavailable beside it and Not trained yet underneath.
+                        </video>
                     <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
                         The setting itself. Whichever row reads in use is the one the next capture
                         goes through.
@@ -306,9 +317,12 @@
                     </p>
                 </div>
                 <figure class="reveal-up mt-8">
-                    <img src="/assets/species-fields.webp" width="1004" height="525" loading="lazy" decoding="async"
-                        alt="Seven fields on one record. Family reads Asteraceae, growth habit reads Forb or herb, sunlight reads Full sun to light shade, and native range, watering, growing conditions and toxicity each read Not documented in the source article."
-                        class="w-full rounded-lg border border-neutral-200 bg-white" />
+                    <video data-showcase data-src="/assets/species-fields.mp4" poster="/assets/species-fields.webp"
+                            width="1004" height="526" autoplay loop muted playsinline preload="none"
+                            aria-label="Seven fields on one record. Family reads Asteraceae, growth habit reads Forb or herb, sunlight reads Full sun to light shade, and native range, watering, growing conditions and toxicity each read Not documented in the source article."
+                            class="w-full rounded-lg border border-neutral-200 bg-white">
+                            Seven fields on one record. Family reads Asteraceae, growth habit reads Forb or herb, sunlight reads Full sun to light shade, and native range, watering, growing conditions and toxicity each read Not documented in the source article.
+                        </video>
                     <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
                         A black-eyed Susan, as the catalogues returned it. Three fields had
                         something, four had nothing, and the four say which they are.
@@ -346,9 +360,12 @@
                         <a href="/releases" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">Each one is written down</a>.
                     </p>
                     <figure>
-                        <img src="/assets/scan-correction.webp" width="1132" height="254" loading="lazy" decoding="async"
-                            alt="The question Was this identification correct? under a result, with two buttons beneath it: Yes, correct and No, incorrect."
-                            class="w-full rounded-lg border border-neutral-200 bg-white" />
+                        <video data-showcase data-src="/assets/scan-correction.mp4" poster="/assets/scan-correction.webp"
+                            width="1132" height="254" autoplay loop muted playsinline preload="none"
+                            aria-label="The question Was this identification correct? under a result, with two buttons beneath it: Yes, correct and No, incorrect."
+                            class="w-full rounded-lg border border-neutral-200 bg-white">
+                            The question Was this identification correct? under a result, with two buttons beneath it: Yes, correct and No, incorrect.
+                        </video>
                         <figcaption class="text-sm text-neutral-500 font-light mt-4 leading-relaxed">
                             It sits under every result. Saying it was wrong opens a box for the
                             name you think it should have been, and that is optional too.
