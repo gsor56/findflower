@@ -138,6 +138,7 @@ function handle(req, res) {
 }
 
 router.post('/predict', requireProxySecret, handle);
+router.post('/internal/scan', requireProxySecret, handle);
 // An alias, so pointing SPACE_URL at either path works.
 router.post('/scan', requireProxySecret, handle);
 

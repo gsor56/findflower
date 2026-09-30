@@ -39,6 +39,7 @@ import keysRouter from './routes/keys.js';
 import scansRouter from './routes/scans.js';
 import { preload } from './inference.js';
 import { requireConsent } from './lib.js';
+import { isPublicAsset } from './lib/public-assets.js';
 
 // The container's allocation is 24729. Panels of that family publish the
 // number as SERVER_PORT rather than PORT, so both names are read before the
@@ -320,24 +321,8 @@ app.use('/api', scansRouter);
 // server/, proxy/, space/, training/, curation/ and my-secrets/ to anyone who
 // guessed the path. Only the directories a page actually loads are reachable,
 // and only files with an asset extension at the root.
-const PUBLIC_DIRS = new Set(['articles', 'assets', 'chat', 'notifications', 'scripts', '.well-known']);
-const PUBLIC_FILE = /\.(?:html|css|js|mjs|json|png|jpe?g|webp|svg|ico|woff2?|xml|txt)$/i;
-
 app.use((req, res, next) => {
-    const parts = req.path.split('/').filter(Boolean);
-    if (!parts.length) {
-        next();
-        return;
-    }
-    if (parts.length > 1) {
-        if (PUBLIC_DIRS.has(parts[0])) {
-            next();
-            return;
-        }
-        res.status(404).json({ error: 'Not found.' });
-        return;
-    }
-    if (PUBLIC_FILE.test(parts[0]) || parts[0] === 'CNAME' || parts[0] === 'LICENSE') {
+    if (isPublicAsset(req.path, { flat: SITE_ROOT === HERE })) {
         next();
         return;
     }
@@ -354,7 +339,9 @@ app.use(express.static(SITE_ROOT, {
     setHeaders(res, filePath) {
         // Code must be revalidate-ready: a cached stale script against fresh
         // markup is how a deploy turns into a blank page.
-        if (/\.(?:js|css|html)$/i.test(filePath)) res.setHeader('Cache-Control', 'no-cache');
+        if (/\.(?:js|css|html)$/i.test(filePath) || path.basename(filePath) === 'manifest.json') {
+            res.setHeader('Cache-Control', 'no-cache');
+        }
     },
 }));
 

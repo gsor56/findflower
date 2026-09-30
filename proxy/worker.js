@@ -197,9 +197,8 @@ function workerOwned(pathname) {
     || WORKER_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
-// Static assets still live on GitHub Pages. This list is the one thing `/*` on
-// the Worker makes easy to break, so it is spelled out rather than inferred: a
-// directory of assets, or a file with an asset extension, is not a page.
+// Static assets and documents both live on HidenCloud. Keep their cache
+// policies distinct: authenticated documents must never be cached.
 //
 // A document is a page even when it has an .html name -- an .html file served
 // straight off Pages is the old logged-out shell again, which is exactly the
@@ -209,14 +208,7 @@ function workerOwned(pathname) {
 const STATIC_PREFIXES = [
   "/assets/", "/images/", "/articles/", "/scripts/",
   "/chat/", "/notifications/", "/.well-known/",
-  // Flora-Micro lives here: models/lite/model.json plus three
-  // group1-shardNoFN.bin weight files. The .json half matched the extension
-  // list below and loaded, but a .bin has no extension rule, so the shards were
-  // treated as pages, proxied to Node -- whose static allowlist does not
-  // publish /models/ -- and answered 404. The graph arrived and its weights
-  // never did, which reads as "Flora-Micro unavailable" with nothing in the
-  // network tab that looks like a routing bug. The directory is listed whole so
-  // a future export cannot reintroduce it with a different suffix.
+  // Browser model graphs and weight shards are served by the Node app.
   "/models/",
 ];
 // Weight and runtime formats belong in this list even though no page links to
@@ -243,6 +235,7 @@ function isStaticAsset(pathname) {
 const SOURCE_PREFIXES = [
   "/server/", "/proxy/", "/space/", "/training/", "/curation/",
   "/my-secrets/", "/.ffpatch/", "/.push-worktree/", "/.git/", "/.github/",
+  "/.hidencloud/",
 ];
 
 function isSourcePath(pathname) {
@@ -350,7 +343,9 @@ async function proxySite(request, env, url) {
   for (const cookie of cookies) out.append("set-cookie", cookie);
   // The session cookie lives on these responses; nothing about a rendered page
   // or a stream is cacheable.
-  out.set("Cache-Control", stream ? "no-cache, no-transform" : "no-store");
+  if (stream) out.set("Cache-Control", "no-cache, no-transform");
+  else if (!isStaticAsset(url.pathname) || cookies.length) out.set("Cache-Control", "no-store");
+  else if (url.pathname === "/sw.js" || url.pathname === "/manifest.json") out.set("Cache-Control", "no-cache");
   if (stream) out.set("X-Accel-Buffering", "no");
 
   return new Response(request.method === "HEAD" ? null : upstream.body, {
@@ -790,16 +785,10 @@ export default {
       return proxyCommunity(request, env, url);
     }
 
-    // Static assets stay on GitHub Pages, which is where they are published.
-    // fetch(request) here is a same-zone subrequest: Cloudflare sends it to the
-    // zone's origin server and does not re-enter this Worker, so a stylesheet
-    // is still a stylesheet and not a second pass through this handler.
-    //
-    // The cf.cacheEverything hint keeps them on the edge the way they were
-    // before the catch-all route sent them here. Without it a Worker response
-    // is not cached on its own, and every icon request becomes an origin hit.
+    // Use the explicit HidenCloud origin, never the retired Pages DNS origin.
+    // Preserve Range headers and the origin's 206 response for showcase video.
     if (env.SITE_UPSTREAM && !workerOwned(url.pathname) && isStaticAsset(url.pathname)) {
-      return fetch(request, { cf: { cacheEverything: true, cacheTtl: 3600 } });
+      return proxySite(request, env, url);
     }
 
     // Every other path is a navigation route. Ahead of the CORS preflight below
@@ -1093,7 +1082,8 @@ export default {
     const form = new FormData();
     form.append("file", imageBlob, "upload.jpg");
 
-    const target = upstreamBase + "/predict";
+    const onSite = upstreamBase === String(env.SITE_UPSTREAM || "").replace(/\/+$/, "");
+    const target = upstreamBase + (url.pathname === SCAN_ROUTE && onSite ? "/internal/scan" : "/predict");
     // The server is reached over plain HTTP on the container's public address,
     // so this shared secret is the only thing between the open internet and the
     // model: the Worker is the sole holder of it.

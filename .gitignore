@@ -46,7 +46,7 @@ findflower-deploy.zip
 .final-hub-index/
 
 # --- Build output ---
-# _site/ is assembled by .github/workflows/pages.yml at deploy time.
+# Legacy static build output.
 _site/
 node_modules/
 .wrangler/
@@ -126,3 +126,8 @@ server/.npm-cache/
 
 # Showcase capture intermediates; publish only optimized MP4s in /assets/.
 /public/assets/
+
+# Deployment credentials, backups, bundles, and server-side Git checkout.
+.hidencloud-local/
+.hidencloud/
+scripts/generate-showcase/scratch/

@@ -1,0 +1,102 @@
+name: Deploy to HidenCloud
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hidencloud-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+      SFTP_HOST_KEY: ${{ vars.SFTP_HOST_KEY }}
+      SFTP_REMOTE_ROOT: ${{ vars.SFTP_REMOTE_ROOT || '/' }}
+      HIDENCLOUD_PANEL_URL: ${{ vars.HIDENCLOUD_PANEL_URL }}
+      HIDENCLOUD_SERVER_ID: ${{ vars.HIDENCLOUD_SERVER_ID }}
+      HIDENCLOUD_API_KEY: ${{ secrets.HIDENCLOUD_API_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      BOOTSTRAP_REVISION: ${{ vars.HIDENCLOUD_BOOTSTRAP_REVISION }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check deployment configuration
+        shell: bash
+        run: |
+          echo 'Add SFTP_PASSWORD in Settings > Secrets and variables > Actions > Repository secrets.'
+          for name in SFTP_PASSWORD SFTP_HOST_KEY HIDENCLOUD_PANEL_URL HIDENCLOUD_SERVER_ID HIDENCLOUD_API_KEY CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Missing $name. See scripts/hidencloud/README.md. No files have been uploaded."
+              exit 1
+            fi
+          done
+
+      - name: Verify routing and deployment safeguards
+        run: |
+          node proxy/worker.test.mjs
+          node --test scripts/hidencloud/deployment.test.mjs
+          node --test scripts/hidencloud/verify-live.test.mjs
+          node scripts/hidencloud/sync.integration.mjs
+          node --test scripts/generate-showcase/contracts.test.js
+          node --test scripts/generate-showcase/playback.test.js
+          python -m unittest discover -s scripts/hidencloud -p '*_test.py'
+
+      - name: Build only production files from this commit
+        shell: bash
+        run: |
+          node scripts/hidencloud/manifest.mjs "$GITHUB_SHA" .hidencloud-local/bundle
+          if [ -n "$BOOTSTRAP_REVISION" ]; then
+            node scripts/hidencloud/manifest.mjs "$BOOTSTRAP_REVISION" .hidencloud-local/baseline
+          fi
+
+      # Paramiko speaks SFTP. FTP-Deploy-Action does not support this protocol.
+      # The manifest allowlist excludes .git/**, .github/**, node_modules/**,
+      # scripts/generate-showcase/scratch/**, all credentials and runtime state.
+      - name: Install SFTP client
+        run: python -m pip install paramiko==4.0.0
+
+      - name: Deploy with conflict checks and backups
+        shell: bash
+        run: |
+          args=()
+          if [ -n "$BOOTSTRAP_REVISION" ]; then
+            args+=(--baseline .hidencloud-local/baseline/deployment.json)
+          fi
+          python scripts/hidencloud/sftp.py deploy "${args[@]}"
+
+      - name: Restart backend using HidenCloud panel
+        run: python scripts/hidencloud/restart.py
+
+      - name: Check HidenCloud assets and protected scan route before switching traffic
+        run: node scripts/hidencloud/verify-live.mjs --origin-only
+
+      # Switch the Worker only after the updated backend has been installed.
+      # Existing Worker secrets (including PROXY_SECRET) are retained by Wrangler.
+      - name: Route pages, assets and models to HidenCloud
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: proxy
+          command: deploy
+
+      - name: Verify public page, models, PWA and inference
+        run: node scripts/hidencloud/verify-live.mjs

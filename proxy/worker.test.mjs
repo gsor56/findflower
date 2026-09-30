@@ -46,7 +46,7 @@ let keyVerifyHits = 0, keyVerifyMode = 'ok', lastKeyVerifyBody = '', lastKeyVeri
 let lastPredict = '';
 globalThis.fetch = async (url, init = {}) => {
     url = String(url);
-    if (url.includes('/predict')) lastPredict = url;
+    if (url.includes('/predict') || url.includes('/internal/scan')) lastPredict = url;
     if (url.includes('/api/keys/verify')) {
         keyVerifyHits++;
         lastKeyVerifyBody = String((init && init.body) || '');
@@ -63,7 +63,7 @@ globalThis.fetch = async (url, init = {}) => {
         jwksHits++;
         return new Response(JSON.stringify(JWKS), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
-    if (url.includes('/predict')) {
+    if (url.includes('/predict') || url.includes('/internal/scan')) {
         spaceHits++;
         return new Response(JSON.stringify({
             flower: 'sunflower', confidence: 0.94,
@@ -646,14 +646,12 @@ console.log('\n--- GLOBAL NAVIGATION ROUTING (catch-all) ---');
         '/scripts/vendor/tf.min.js',
         '/models/lite/model.json', '/models/lite/class_names.json',
         '/models/lite/group1-shard1of3.bin', '/models/lite/group1-shard3of3.bin',
-        '/assets/flower.jpg', '/images/flower.jpg', '/favicon.svg', '/manifest.json', '/robots.txt']) {
+        '/assets/flower.jpg', '/assets/scan-input.mp4', '/images/flower.jpg', '/favicon.svg', '/manifest.json', '/sw.js', '/robots.txt']) {
         seen = null;
         await worker.fetch(new Request('https://findflower.me' + path), env);
-        const cf = (seen && seen.init && seen.init.cf) || {};
-        one(path + ' stays on the Pages origin',
-            !!seen && seen.url === 'https://findflower.me' + path
-            && cf.cacheEverything === true
-            && forwarded().get('X-Forwarded-Host') === null,
+        one(path + ' is served by HidenCloud',
+            !!seen && seen.url === 'http://pat.hidencloud.com:24729' + path
+            && forwarded().get('X-Forwarded-Host') === 'findflower.me',
             seen ? seen.url : 'no fetch');
     }
 
@@ -800,6 +798,13 @@ console.log('\n--- INFERENCE UPSTREAM SELECTION ---');
     one('a scan still succeeds', staleSecret.status === 200, 'status=' + staleSecret.status);
     one('SITE_UPSTREAM beats the stale SPACE_URL', lastPredict === 'https://node.example/predict',
         'target=' + lastPredict);
+
+    const internal = await worker.fetch(new Request('https://w.example/internal/scan', {
+        method: 'POST', headers: { 'Content-Type': 'image/jpeg', Origin: 'https://findflower.me', Authorization: 'Bearer ' + token },
+        body: new Uint8Array([1, 2, 3, 4]),
+    }), { ...ENV, SITE_UPSTREAM: 'https://node.example' });
+    one('internal scans execute on HidenCloud /internal/scan', internal.status === 200
+        && lastPredict === 'https://node.example/internal/scan', 'target=' + lastPredict);
 
     lastPredict = '';
     const explicit = await scanWith({

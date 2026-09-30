@@ -2,17 +2,15 @@ name = "findflower-proxy"
 main = "worker.js"
 compatibility_date = "2025-01-01"
 
-# Every navigation route goes through this Worker; the Worker itself keeps
-# static assets on their origin and hands everything else to the Node app.
+# Pages, assets, model files and API requests reach the HidenCloud Node app.
 #
 # The two catch-alls below are the migration. Before them, each page needed its
 # own pattern, so /dashboard, /profile and /about never reached the Worker and
 # Cloudflare answered them from GitHub Pages' 404.html -- the static shell that
 # boots a second login client and paints a signed-in visitor as signed out.
 #
-# Static assets are handled in worker.js rather than by a second route: a route
-# pattern cannot express "everything except *.css", and the Worker's same-zone
-# fetch() reaches the zone origin (Pages) without re-entering the Worker.
+# Static assets are handled in worker.js and sent to SITE_UPSTREAM explicitly.
+# They do not use the retired Pages origin configured in older DNS records.
 #
 # To roll back without touching worker.js, delete the two catch-all lines: the
 # explicit list below still covers every page the migrated site serves.
@@ -129,10 +127,8 @@ ENFORCE_AUTH = "false"
 # origin serves both the page and the API it calls, which is what keeps the
 # session cookie same-origin and the signed-in header on every screen.
 #
-# Leave this unset and every path keeps answering from GitHub Pages, exactly as
-# before. Set it and the Worker becomes the front door for the whole site;
-# /trefle/, the inference routes, the warm-up poke and the static assets are
-# untouched either way (assets are forwarded to the Pages origin, see worker.js).
+# Required in production: pages, PWA assets, videos and browser model files
+# all use this origin. The Worker retains authentication and inference quotas.
 SITE_UPSTREAM = "http://pat.hidencloud.com:24729"
 
 [[durable_objects.bindings]]
