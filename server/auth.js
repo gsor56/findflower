@@ -1,101 +1,205 @@
-// Who is calling. Auth0 RS256 tokens, verified against the tenant's JWKS.
-//
-// No dependency: node's crypto reads a JWK directly (createPublicKey with
-// format 'jwk'), which is the only awkward part of checking an RS256 signature
-// by hand, so a jose/jsonwebtoken install buys nothing here.
-//
-// The domain and client id below are the same public values auth.js already
-// ships to the browser -- SPA config, not secrets.
-//
-// https://api.findflower.me is a registered API in this tenant, so two kinds of
-// token can arrive from it, both signed by the same issuer and both verifiable
-// here: an access token whose `aud` is the API, and the SPA's ID token whose
-// `aud` is the client id. `want` below picks which one is accepted, and with no
-// env var set it is the client id -- set AUTH0_AUDIENCE to the API identifier to
-// require a real access token instead. Either way the signature, issuer and
-// expiry are checked, so a caller cannot name themselves.
 
-import crypto from 'node:crypto';
+const AUTH0_CONFIG = {
+    domain:   "dev-jvit0r04itv8hfjz.us.auth0.com",
+    clientId: "9sWXgo4TtCodcmnfdr6vcSRighhkVXMy",
+};
 
-const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || 'dev-jvit0r04itv8hfjz.us.auth0.com';
-const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID || '9sWXgo4TtCodcmnfdr6vcSRighhkVXMy';
-// Both derived from the domain in normal use. Overridable because a staging
-// tenant and the test harness need a different issuer and key set, and because
-// the alternative is a switch that skips verification -- which is not a thing
-// this file is willing to have.
-const ISSUER = process.env.AUTH0_ISSUER || `https://${AUTH0_DOMAIN}/`;
-const JWKS_URL = process.env.AUTH0_JWKS_URL || `${ISSUER}.well-known/jwks.json`;
-const SKEW_SECONDS = 60;
+const AUTH0_CALLBACK = window.location.origin + "/login.html";
+const FF_SESSION_PROFILE_KEY = "ff_session_profile";
 
-let keyCache = new Map();
-let keyCacheAt = 0;
-const KEY_TTL_MS = 10 * 60 * 1000;
-
-async function loadKeys(force) {
-    const fresh = Date.now() - keyCacheAt < KEY_TTL_MS;
-    if (!force && fresh && keyCache.size) return keyCache;
-    const res = await fetch(JWKS_URL, { headers: { Accept: 'application/json' } });
-    if (!res.ok) throw new Error(`JWKS fetch failed (${res.status})`);
-    const body = await res.json();
-    const next = new Map();
-    for (const jwk of body.keys || []) {
-        if (jwk.kty !== 'RSA' || (jwk.alg && jwk.alg !== 'RS256')) continue;
-        next.set(jwk.kid, crypto.createPublicKey({ key: jwk, format: 'jwk' }));
-    }
-    if (!next.size) throw new Error('JWKS held no usable RS256 key');
-    keyCache = next;
-    keyCacheAt = Date.now();
-    return keyCache;
-}
-
-function b64urlJson(part) {
-    return JSON.parse(Buffer.from(part, 'base64url').toString('utf8'));
-}
-
-/** Verify one bearer token and return its payload, or throw. */
-export async function verifyToken(token) {
-    const parts = String(token).split('.');
-    if (parts.length !== 3) throw new Error('not a JWT');
-    const header = b64urlJson(parts[0]);
-    if (header.alg !== 'RS256') throw new Error(`unexpected alg ${header.alg}`);
-
-    // A rotated signing key is a cache miss, not a bad token: refetch once
-    // before rejecting it.
-    let keys = await loadKeys(false);
-    let key = keys.get(header.kid);
-    if (!key) {
-        keys = await loadKeys(true);
-        key = keys.get(header.kid);
-    }
-    if (!key) throw new Error('no JWKS key for kid');
-
-    const signed = Buffer.from(`${parts[0]}.${parts[1]}`, 'utf8');
-    const sig = Buffer.from(parts[2], 'base64url');
-    if (!crypto.verify('RSA-SHA256', signed, key, sig)) throw new Error('bad signature');
-
-    const claims = b64urlJson(parts[1]);
-    if (claims.iss !== ISSUER) throw new Error('wrong issuer');
-    const now = Math.floor(Date.now() / 1000);
-    if (typeof claims.exp === 'number' && claims.exp + SKEW_SECONDS < now) throw new Error('expired');
-    if (typeof claims.nbf === 'number' && claims.nbf - SKEW_SECONDS > now) throw new Error('not yet valid');
-
-    const want = process.env.AUTH0_AUDIENCE || AUTH0_CLIENT_ID;
-    const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
-    if (!aud.includes(want)) throw new Error('wrong audience');
-    if (!claims.sub) throw new Error('no sub');
-    return claims;
-}
-
-/** The Auth0 `sub` behind this request, or null. Never throws: a route decides
- *  whether anonymous is allowed, and a public feed read is. */
-export async function viewerSub(req) {
-    const header = req.get('Authorization') || '';
-    const m = header.match(/^Bearer\s+(.+)$/i);
-    if (!m) return null;
+function ffCacheSessionProfile(user) {
+    if (!user) return;
     try {
-        return (await verifyToken(m[1])).sub;
-    } catch (err) {
-        req.authError = err.message;
+        localStorage.setItem(FF_SESSION_PROFILE_KEY, JSON.stringify({
+            authenticated: true,
+            name: user.given_name || user.nickname || user.name || user.email || "Botanist",
+            email: user.email || null,
+            picture: user.picture || null,
+            sub: user.sub || null,
+        }));
+    } catch {}
+}
+
+const AUTH0_READY =
+    !!AUTH0_CONFIG.domain && !AUTH0_CONFIG.domain.startsWith("YOUR_") &&
+    !!AUTH0_CONFIG.clientId && !AUTH0_CONFIG.clientId.startsWith("YOUR_");
+
+let _auth0Client = null;
+
+async function ffGetClient() {
+    if (!AUTH0_READY) return null;
+    if (_auth0Client) return _auth0Client;
+    if (typeof auth0 === "undefined" || !auth0 || !auth0.createAuth0Client) return null;
+    try {
+        _auth0Client = await auth0.createAuth0Client({
+            domain: AUTH0_CONFIG.domain,
+            clientId: AUTH0_CONFIG.clientId,
+            authorizationParams: { redirect_uri: AUTH0_CALLBACK },
+            cacheLocation: "localstorage",
+            useRefreshTokens: true,
+        });
+    } catch (e) {
+        console.warn("Auth0 unavailable; continuing as guest.", e);
         return null;
     }
+    return _auth0Client;
+}
+
+async function ffHandleCallback() {
+    const client = await ffGetClient();
+    if (!client) return false;
+    const q = window.location.search;
+    if (q.includes("code=") && q.includes("state=")) {
+        try {
+            await client.handleRedirectCallback();
+        } catch (e) {
+            console.error("Auth0 callback error:", e);
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return true;
+    }
+    return false;
+}
+
+async function ffLogin(returnTo) {
+    const client = await ffGetClient();
+    if (!client) return false;
+    if (returnTo) localStorage.setItem("ff_return_to", returnTo);
+    await client.loginWithRedirect({
+        authorizationParams: { redirect_uri: AUTH0_CALLBACK },
+    });
+    return true;
+}
+
+async function ffLogout() {
+    try { localStorage.removeItem(FF_SESSION_PROFILE_KEY); } catch {}
+    const client = await ffGetClient();
+    if (!client) return;
+    await client.logout({
+        logoutParams: { returnTo: window.location.origin + "/" },
+    });
+}
+
+async function ffIsAuthenticated() {
+    const client = await ffGetClient();
+    if (!client) return false;
+    return client.isAuthenticated();
+}
+
+async function ffUser() {
+    const client = await ffGetClient();
+    if (!client) return null;
+    if (!(await client.isAuthenticated())) return null;
+    return client.getUser();
+}
+
+async function ffRenderHeader() {
+    const link = document.getElementById("signInLink");
+    if (!link) return;
+    const user = await ffUser();
+    if (user) {
+        ffCacheSessionProfile(user);
+        link.textContent = user.given_name || user.nickname || user.name || "Account";
+        link.href = "/dashboard";
+        link.onclick = null;
+        link.removeAttribute("data-i18n");
+    } else {
+        // Back to a translatable label once there is no name to show.
+        link.setAttribute("data-i18n", "nav.signin");
+        link.textContent = (window.ffI18n && window.ffI18n.t("nav.signin")) || "Sign In";
+        link.href = "/login";
+        link.onclick = null;
+    }
+}
+
+async function getUserSession() {
+    const guest = {
+        authenticated: false,
+        name: "Guest Botanist",
+        email: null,
+        picture: null,
+        sub: null,
+        isGuest: true,
+        user: null,
+    };
+    try {
+        const user = await ffUser();
+        if (!user) return guest;
+        ffCacheSessionProfile(user);
+        return {
+            authenticated: true,
+            name: user.given_name || user.nickname || user.name || user.email || "Botanist",
+            email: user.email || null,
+            picture: user.picture || null,
+            sub: user.sub || null,
+            isGuest: false,
+            user,
+        };
+    } catch {
+        return guest;
+    }
+}
+
+async function ffGetToken() {
+    const client = await ffGetClient();
+    if (!client) return null;
+    try {
+        if (!(await client.isAuthenticated())) return null;
+        return await client.getTokenSilently();
+    } catch {
+        return null;
+    }
+}
+
+async function ffAuthHeader() {
+    const token = await ffGetToken();
+    return token ? { Authorization: "Bearer " + token } : {};
+}
+
+// The social API takes the ID token as its bearer, and getIdTokenClaims hands
+// back whichever one the SDK cached at sign-in: it reads that entry without
+// looking at exp, while isAuthenticated stays true for as long as the refresh
+// token lives. So a session older than the token's own lifetime keeps producing
+// a JWT the server refuses as expired, and only writes break, because reading
+// the feed allows anonymous callers. A silent call with the cache off runs the
+// refresh grant, and the SDK stores the new ID token that comes back with it.
+const FF_TOKEN_MARGIN_SECONDS = 120;
+
+function ffTokenExpired(raw) {
+    if (!raw) return true;
+    const part = String(raw).split(".")[1];
+    if (!part) return false;
+    let exp = 0;
+    try {
+        const b64 = part.replace(/-/g, "+").replace(/_/g, "/");
+        const claims = JSON.parse(atob(b64 + "===".slice((b64.length + 3) % 4)));
+        exp = typeof claims.exp === "number" ? claims.exp : 0;
+    } catch {
+        return false;
+    }
+    return exp > 0 && exp - FF_TOKEN_MARGIN_SECONDS <= Math.floor(Date.now() / 1000);
+}
+
+async function ffIdToken() {
+    const client = await ffGetClient();
+    if (!client) return null;
+    try {
+        if (!(await client.isAuthenticated())) return null;
+        let claims = await client.getIdTokenClaims();
+        if (ffTokenExpired(claims && claims.__raw)) {
+            await client.getTokenSilently({ cacheMode: "off" });
+            claims = await client.getIdTokenClaims();
+            if (ffTokenExpired(claims && claims.__raw)) return null;
+        }
+        return (claims && claims.__raw) || null;
+    } catch {
+        return null;
+    }
+}
+
+async function ffDeriveKey(sub) {
+    const data = new TextEncoder().encode("findflower:" + sub);
+    const buf = await crypto.subtle.digest("SHA-256", data);
+    const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+    return "ff_preview_" + hex.slice(0, 32);
 }

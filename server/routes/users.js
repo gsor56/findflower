@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { User } from '../models/user.js';
 import { Post } from '../models/post.js';
-import { viewerSub } from '../auth.js';
 import { authRefusal, rateLimit, requireViewer, resolveViewerSub } from '../lib.js';
 
 // Profiles. The brief lists no routes for these, but nothing else works without
@@ -20,7 +19,7 @@ router.get('/me', requireViewer, (req, res) => {
  * verified `sub`, so this can only ever write the caller's own profile.
  */
 router.post('/', rateLimit('user:upsert', 10 * 60_000, 20), async (req, res) => {
-    const sub = await viewerSub(req);
+    const sub = await resolveViewerSub(req);
     if (!sub) {
         res.status(401).json(authRefusal(req));
         return;
@@ -72,7 +71,7 @@ router.get('/:handle', async (req, res) => {
         res.status(404).json({ error: 'No profile with that handle.' });
         return;
     }
-    const sub = await viewerSub(req);
+    const sub = await resolveViewerSub(req);
     const isOwner = sub && sub === user.authSub;
     if (!user.privacy.isPublic && !isOwner) {
         res.json({ user: { handle: user.handle, displayName: user.displayName }, private: true });

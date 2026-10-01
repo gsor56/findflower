@@ -64,8 +64,6 @@ const userSchema = new Schema({
         showHistory: { type: Boolean, default: true },
         allowDMs: { type: Boolean, default: true },
     },
-    termsAccepted: { type: Boolean, default: false },
-    termsAcceptedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 // Prefix search over handles, for the Botanists column of the search palette,
