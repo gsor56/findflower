@@ -323,7 +323,9 @@ app.use((req, res, next) => {
         next();
         return;
     }
-    res.status(404).json({ error: 'Not found.' });
+    // Fall through to the final 404 handler instead of responding here, so
+    // non-asset paths get the HTML 404 page for browser requests.
+    next();
 });
 
 app.use(express.static(SITE_ROOT, {
