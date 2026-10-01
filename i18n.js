@@ -59,18 +59,18 @@
         'drawer.install.button': { en: 'Install app', es: 'Instalar app', fr: 'Installer l\'app', de: 'App installieren', ja: 'アプリを追加' },
 
         'notice.full': {
-            en: 'Active development on FindFlower is temporarily paused until October 1st for scheduled backend scaling and infrastructure upgrades.',
-            es: 'El desarrollo de FindFlower está pausado temporalmente hasta el 1 de octubre por trabajos previstos de escalado del backend y mejoras de la infraestructura.',
-            fr: 'Le développement de FindFlower est temporairement suspendu jusqu\'au 1er octobre, le temps de mettre le backend à l\'échelle et de moderniser l\'infrastructure.',
-            de: 'Die Arbeit an FindFlower pausiert bis zum 1. Oktober: Das Backend wird skaliert und die Infrastruktur erneuert.',
-            ja: 'FindFlower の開発は、バックエンドの増強とインフラ更新のため 10月1日まで一時休止しています。'
+            en: 'Active development on FindFlower is temporarily paused until November 1st for scheduled backend scaling and infrastructure upgrades.',
+            es: 'El desarrollo de FindFlower está pausado temporalmente hasta el 1 de noviembre por trabajos previstos de escalado del backend y mejoras de la infraestructura.',
+            fr: 'Le développement de FindFlower est temporairement suspendu jusqu\'au 1er novembre, le temps de mettre le backend à l\'échelle et de moderniser l\'infrastructure.',
+            de: 'Die Arbeit an FindFlower pausiert bis zum 1. November: Das Backend wird skaliert und die Infrastruktur erneuert.',
+            ja: 'FindFlower の開発は、バックエンドの増強とインフラ更新のため 11月1日まで一時休止しています。'
         },
         'notice.brief': {
-            en: 'Development is paused until October 1st for backend scaling.',
-            es: 'Desarrollo pausado hasta el 1 de octubre por el escalado del backend.',
-            fr: 'Développement suspendu jusqu\'au 1er octobre pour la mise à l\'échelle du backend.',
-            de: 'Entwicklung bis 1. Oktober pausiert, das Backend wird skaliert.',
-            ja: 'バックエンド増強のため、10月1日まで開発を休止しています。'
+            en: 'Development is paused until November 1st for backend scaling.',
+            es: 'Desarrollo pausado hasta el 1 de noviembre por el escalado del backend.',
+            fr: 'Développement suspendu jusqu\'au 1er novembre pour la mise à l\'échelle du backend.',
+            de: 'Entwicklung bis 1. November pausiert, das Backend wird skaliert.',
+            ja: 'バックエンド増強のため、11月1日まで開発を休止しています。'
         },
         'notice.dismiss': { en: 'Dismiss this notice', es: 'Cerrar este aviso', fr: 'Fermer cet avis', de: 'Hinweis ausblenden', ja: 'この通知を閉じる' },
 
