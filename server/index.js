@@ -145,8 +145,9 @@ app.use(identifyRouter);
 app.use('/api/contributions', contributionsRouter);
 
 // 256KB covers a 280-character bio, a 2000-character post and a capped avatar
-// with room to spare. The default 100KB does not fit the avatar.
-app.use(express.json({ limit: '256kb' }));
+// with room to spare. The default 100KB does not fit the avatar. Applied only
+// to /api routes so the 404 handler can still see Accept: text/html from browsers.
+app.use('/api', express.json({ limit: '256kb' }));
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'findflower', streams: connectionCount() });
