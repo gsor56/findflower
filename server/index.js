@@ -299,6 +299,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// API routes must be mounted before the asset guard, so /api/users/consent and
+// other endpoints are reachable. The guard below returns 404 for anything not
+// in the public asset allowlist, and API routes are deliberately excluded.
 app.use('/api/posts', postsRouter);
 app.use('/api/spaces', spacesRouter);
 app.use('/api/users', usersRouter);
