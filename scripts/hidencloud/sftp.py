@@ -131,6 +131,16 @@ def connect(args):
 def upload(sftp, args):
     bundle = Path(args.bundle)
     desired = json.loads((bundle / 'deployment.json').read_text())
+    if args.command == 'narrow':
+        # An explicit allowlist, so a narrow push can never widen into the
+        # files whose live copies differ from this checkout.
+        wanted_names = {safe_path(name) for name in (args.only or '').split(',') if name}
+        if not wanted_names:
+            raise RuntimeError('narrow requires --only with at least one destination')
+        desired['files'] = [entry for entry in desired['files'] if entry['destination'] in wanted_names]
+        found = {entry['destination'] for entry in desired['files']}
+        if found != wanted_names:
+            raise RuntimeError('Not in the manifest: ' + ', '.join(sorted(wanted_names - found)))
     if args.command == 'showcase':
         desired['files'] = [entry for entry in desired['files'] if entry['destination'] in {
             'how.html', 'scripts/showcase-videos.js', 'manifest.json', 'sw.js',
@@ -214,7 +224,8 @@ def upload(sftp, args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['host-key', 'inspect', 'showcase', 'deploy'])
+    parser.add_argument('command', choices=['host-key', 'inspect', 'showcase', 'narrow', 'deploy'])
+    parser.add_argument('--only', help='narrow: comma-separated remote destinations to push')
     parser.add_argument('--remote-root', default=os.environ.get('SFTP_REMOTE_ROOT', '.'))
     parser.add_argument('--accept-new-host-key', action='store_true')
     parser.add_argument('--bundle', default=str(LOCAL / 'bundle'))
