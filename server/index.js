@@ -233,16 +233,16 @@ app.get('/consent', attachViewer, (req, res) => renderWith(req, res, 'consent', 
 // devices that used to disagree about how many finds existed -- three on the
 // phone, none on the laptop -- now read the same rows on first paint, and the
 // client-side sync that follows only ever adds to them.
-app.get('/dashboard', attachViewer, requireConsent, (req, res) =>
+app.get('/dashboard', attachViewer, requireViewer, requireConsent, (req, res) =>
     renderWith(req, res, 'dashboard', () => dashboardPayload(req)));
 
-app.get('/community', attachViewer, requireConsent, (req, res) =>
+app.get('/community', attachViewer, requireViewer, requireConsent, (req, res) =>
     renderWith(req, res, 'community', () => communityPayload(req)));
 
-app.get('/notifications', attachViewer, requireConsent, (req, res) =>
+app.get('/notifications', attachViewer, requireViewer, requireConsent, (req, res) =>
     renderWith(req, res, 'notifications', () => notificationsPayload(req)));
 
-app.get('/chat', attachViewer, requireConsent, (req, res) =>
+app.get('/chat', attachViewer, requireViewer, requireConsent, (req, res) =>
     renderWith(req, res, 'chat', () => chatPayload(req, req.query.with)));
 
 // The static build's filenames, kept as redirects rather than deleted: they are
