@@ -29,14 +29,22 @@
             });
 
             if (!res.ok) {
-                // 409 means no profile yet - let them use scanner, handle claim will trigger
-                if (res.status === 409) return false;
+                // 409 means no profile yet - consent gate shouldn't show, handle claim comes first
                 return false;
             }
 
             const data = await res.json();
-            // Check if user exists and hasn't accepted terms
-            return data.user && !data.user.termsAccepted;
+            // Only show consent if user has a profile but hasn't accepted terms
+            if (!data.user) return false;
+
+            // If user has accepted terms, mark it locally and don't show modal
+            if (data.user.termsAccepted) {
+                try { localStorage.setItem('ff_terms_accepted', '1'); } catch (x) {}
+                return false;
+            }
+
+            // User exists but hasn't accepted terms
+            return true;
         } catch (err) {
             console.error('[consent-gate] Check failed:', err);
             return false;
@@ -71,7 +79,7 @@
                     <p id="ffConsentError" style="display:none;color:#dc2626;font-size:0.875rem;margin-bottom:1rem;"></p>
 
                     <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-                        <button id="ffConsentAccept" disabled style="flex:1;min-width:120px;padding:0.75rem 1.5rem;background:#1a3622;color:white;border:1px solid black;font-weight:500;font-size:0.875rem;cursor:pointer;transition:background 0.2s;" onmouseover="if(!this.disabled)this.style.background='#262626'" onmouseout="if(!this.disabled)this.style.background='#1a3622'">Accept and continue</button>
+                        <button id="ffConsentAccept" disabled style="flex:1;min-width:120px;padding:0.75rem 1.5rem;background:#737373;color:white;border:1px solid #525252;font-weight:500;font-size:0.875rem;cursor:not-allowed;opacity:0.5;transition:all 0.2s;">Accept and continue</button>
                         <button id="ffConsentDecline" style="flex:1;min-width:120px;padding:0.75rem 1.5rem;background:white;color:#404040;border:1px solid #D4D4D4;font-weight:500;font-size:0.875rem;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#A3A3A3';this.style.color='#171717'" onmouseout="this.style.borderColor='#D4D4D4';this.style.color='#404040'">Exit site</button>
                     </div>
 
@@ -93,8 +101,17 @@
 
         checkbox.addEventListener('change', () => {
             acceptBtn.disabled = !checkbox.checked;
-            acceptBtn.style.opacity = checkbox.checked ? '1' : '0.4';
-            acceptBtn.style.cursor = checkbox.checked ? 'pointer' : 'not-allowed';
+            if (checkbox.checked) {
+                acceptBtn.style.background = '#1a3622';
+                acceptBtn.style.borderColor = 'black';
+                acceptBtn.style.opacity = '1';
+                acceptBtn.style.cursor = 'pointer';
+            } else {
+                acceptBtn.style.background = '#737373';
+                acceptBtn.style.borderColor = '#525252';
+                acceptBtn.style.opacity = '0.5';
+                acceptBtn.style.cursor = 'not-allowed';
+            }
         });
 
         declineBtn.addEventListener('click', () => {
