@@ -89,6 +89,7 @@ userSchema.methods.toPublic = function toPublic() {
             allowDMs: this.privacy.allowDMs,
         },
         createdAt: this.createdAt,
+        termsAccepted: this.termsAccepted === true,
     };
 };
 

@@ -21,7 +21,7 @@ import express from 'express';
 import { connectDb, closeDb } from './db.js';
 import { seedDefaultSpaces } from './models/space.js';
 import { User } from './models/user.js';
-import { oidc, sessionBootstrap, sessionUser } from './session.js';
+import { oidc, sessionBootstrap, sessionUser, bearerAuth } from './session.js';
 import { renderPage } from './lib/ssr.js';
 import { communityPayload, notificationsPayload, chatPayload, dashboardPayload } from './lib/social-data.js';
 import { connectionCount } from './lib/events.js';
@@ -39,7 +39,7 @@ import keysRouter from './routes/keys.js';
 import scansRouter from './routes/scans.js';
 import { preload } from './inference.js';
 import { isPublicAsset } from './lib/public-assets.js';
-import { requireConsent } from './lib.js';
+import { requireConsent, requireViewer } from './lib.js';
 
 // The container's allocation is 24729. Panels of that family publish the
 // number as SERVER_PORT rather than PORT, so both names are read before the
@@ -108,6 +108,12 @@ app.use((req, res, next) => {
 // anything by itself: the public pages are public, and the routes that need a
 // viewer use requireViewer/optionalViewer, which now read the same session.
 app.use(oidc);
+
+// Clients that hold no cookie send an Auth0 access token instead. Mounted
+// immediately after oidc so every route below -- pages and API alike -- sees one
+// viewer through sessionUser(). It is a no-op unless an Authorization header
+// arrives and no cookie session answered, so browser behaviour is unchanged.
+app.use(bearerAuth);
 
 // A route that proves the Node application itself is answering, separate from
 // anything Auth0 does: if this 200s and /login does not, the fault is in the

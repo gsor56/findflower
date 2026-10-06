@@ -18,6 +18,12 @@ my-secrets/
 # Holds a live provider api_key inline; the repo is public.
 proxy/litellm-config.yaml
 
+# Wrangler's local secrets file. `wrangler dev` writes real provider keys and
+# tokens here, and it sits beside the Worker rather than at the root, so the
+# .env rules above do not reach it.
+proxy/.dev.vars
+proxy/.dev.vars.*
+
 # The deployment bundle handed to the host's web dashboard. It carries the
 # .env, whose MONGO_URI holds the live Atlas password, so it stays out of git
 # the same way .env itself does.

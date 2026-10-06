@@ -156,13 +156,13 @@ async function ffAuthHeader() {
     return token ? { Authorization: "Bearer " + token } : {};
 }
 
-// The social API takes the ID token as its bearer, and getIdTokenClaims hands
-// back whichever one the SDK cached at sign-in: it reads that entry without
+// The social API takes an access token as its bearer, and the SDK hands back
+// whichever one it cached at sign-in: getTokenSilently reads that entry without
 // looking at exp, while isAuthenticated stays true for as long as the refresh
 // token lives. So a session older than the token's own lifetime keeps producing
 // a JWT the server refuses as expired, and only writes break, because reading
 // the feed allows anonymous callers. A silent call with the cache off runs the
-// refresh grant, and the SDK stores the new ID token that comes back with it.
+// refresh grant, and the SDK stores the new token that comes back with it.
 const FF_TOKEN_MARGIN_SECONDS = 120;
 
 function ffTokenExpired(raw) {

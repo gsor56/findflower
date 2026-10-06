@@ -2,13 +2,16 @@
 //
 // The browser no longer owns the login flow. express-openid-connect performs
 // the OIDC dance, validates the session cookie on every request, and exposes
-// the user on req.oidc. The API keeps accepting bearer tokens as a fallback for
-// non-browser clients, but same-origin pages use this session.
+// the user on req.oidc. A non-browser client has no cookie to send and no way
+// to get one, so the API also accepts an Auth0 access token as a bearer
+// credential -- see bearerAuth below -- while same-origin pages keep using the
+// session cookie, which always wins when both are present.
 
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { auth } from 'express-openid-connect';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import dotenv from 'dotenv';
 
 // Load local deployment variables before reading any Auth0 setting. `index.js`
@@ -122,18 +125,151 @@ export const oidc = auth({
     },
 });
 
+// The JWT `iss` claim Auth0 mints carries a trailing slash, and both the JWKS
+// document and /userinfo hang off that same base. Normalising it once keeps the
+// three from drifting apart when AUTH0_ISSUER arrives with or without the slash.
+const AUTH0_ISSUER_URL = (() => {
+    const raw = AUTH0_ISSUER || `https://${AUTH0_DOMAIN}/`;
+    return raw.endsWith('/') ? raw : `${raw}/`;
+})();
+
+// ---------------------------------------------------------------------------
+// Bearer credentials for clients that cannot hold a cookie.
+//
+// The native app has no cookie jar for findflower.me, so the session cookie
+// minted above is unreachable from it. It sends the Auth0 access token it
+// obtained through the system browser instead, and this block turns that token
+// into the same { sub, name, email, picture } shape the cookie path produces.
+//
+// It has to be an *access* token, not an ID token: only access tokens carry the
+// https://api.findflower.me audience. The Worker has verified tokens of this
+// shape since /internal/scan shipped, so the issuer, audience and algorithm
+// here are deliberately identical to verifyAuth0Token in proxy/worker.js.
+// ---------------------------------------------------------------------------
+
+const jwks = createRemoteJWKSet(new URL(`${AUTH0_ISSUER_URL}.well-known/jwks.json`));
+
+// Access tokens are deliberately anonymous -- no name, no email, no picture --
+// so the display fields come from /userinfo, which costs a round trip. Ten
+// minutes per sub is short enough that a changed display name shows up in the
+// same session, and long enough that a scanning user is not refetching per
+// request.
+const userInfoCache = new Map();
+const USERINFO_TTL_MS = 10 * 60 * 1000;
+const USERINFO_MAX_ENTRIES = 500;
+const USERINFO_TIMEOUT_MS = 5000;
+
+function bearerToken(req) {
+    const header = req.headers && req.headers.authorization;
+    if (typeof header !== 'string') return null;
+    const match = /^Bearer\s+(\S+)$/i.exec(header.trim());
+    return match ? match[1] : null;
+}
+
+// Every 401 the API returns reads req.authError to choose its message (see
+// authRefusal in lib.js). These are reason strings that vocabulary already
+// understands, so a rejected token explains itself rather than falling through
+// to the generic "Sign-in required."
+function bearerReason(err) {
+    const code = err && err.code ? String(err.code) : '';
+    if (code === 'ERR_JWT_EXPIRED') return 'expired';
+    if (code.startsWith('ERR_JWKS') || err instanceof TypeError) return 'JWKS unavailable';
+    return 'bearer rejected';
+}
+
+function anonymous(sub) {
+    return { sub, name: 'Botanist', email: null, picture: null };
+}
+
+async function fetchProfile(token, sub) {
+    const hit = userInfoCache.get(sub);
+    if (hit && hit.expires > Date.now()) return hit.user;
+
+    let info = null;
+    try {
+        const response = await fetch(`${AUTH0_ISSUER_URL}userinfo`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(USERINFO_TIMEOUT_MS),
+        });
+        if (response.ok) info = await response.json();
+    } catch {
+        info = null;
+    }
+    if (!info || typeof info !== 'object') return anonymous(sub);
+
+    const user = {
+        sub,
+        name: info.name || info.nickname || info.given_name || info.email || 'Botanist',
+        email: info.email || null,
+        picture: info.picture || null,
+    };
+
+    // Oldest out first. A Map iterates in insertion order, and re-inserting on
+    // refresh keeps the order roughly least-recently-cached.
+    if (userInfoCache.size >= USERINFO_MAX_ENTRIES) {
+        const oldest = userInfoCache.keys().next();
+        if (!oldest.done) userInfoCache.delete(oldest.value);
+    }
+    userInfoCache.set(sub, { user, expires: Date.now() + USERINFO_TTL_MS });
+    return user;
+}
+
+/**
+ * Verifies an `Authorization: Bearer <access token>` header and leaves the
+ * identity on `req.bearerUser`. Mounted straight after `oidc`, so the cookie
+ * session is always resolved first and wins: a browser sending both is the
+ * normal case, and its behaviour must not change.
+ *
+ * This never rejects a request by itself. A public page stays public even if a
+ * stale token rides along; the routes that need a viewer answer their own 401,
+ * and they read req.authError to say why.
+ */
+export async function bearerAuth(req, res, next) {
+    req.bearerUser = null;
+
+    if (req.oidc && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
+        next();
+        return;
+    }
+
+    const token = bearerToken(req);
+    if (!token) {
+        next();
+        return;
+    }
+
+    try {
+        const { payload } = await jwtVerify(token, jwks, {
+            issuer: AUTH0_ISSUER_URL,
+            audience: AUTH0_AUDIENCE,
+            algorithms: ['RS256'],
+        });
+        const sub = typeof payload.sub === 'string' ? payload.sub : '';
+        if (!sub) {
+            req.authError = 'bearer rejected';
+        } else {
+            req.bearerUser = await fetchProfile(token, sub);
+        }
+    } catch (err) {
+        req.authError = bearerReason(err);
+    }
+    next();
+}
+
 /** The OIDC identity in the shape the rest of the server uses. */
 export function sessionUser(req) {
     const user = req.oidc && req.oidc.user;
-    if (!user || !user.sub || typeof req.oidc.isAuthenticated !== 'function' || !req.oidc.isAuthenticated()) {
-        return null;
+    if (user && user.sub && typeof req.oidc.isAuthenticated === 'function' && req.oidc.isAuthenticated()) {
+        return {
+            sub: user.sub,
+            name: user.name || user.nickname || user.given_name || user.email || 'Botanist',
+            email: user.email || null,
+            picture: user.picture || null,
+        };
     }
-    return {
-        sub: user.sub,
-        name: user.name || user.nickname || user.given_name || user.email || 'Botanist',
-        email: user.email || null,
-        picture: user.picture || null,
-    };
+    // No cookie session. The only other identity a request can carry is the one
+    // bearerAuth verified, and it is null unless that verification succeeded.
+    return req.bearerUser || null;
 }
 
 /** Values injected into every SSR page. Never put the session secret here. */
