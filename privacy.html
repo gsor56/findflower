@@ -119,7 +119,7 @@
 
             <div class="lg:col-span-4">
                 <p class="reveal-up text-sm text-neutral-400 font-light leading-relaxed">
-                    Last updated 8 July 2026<br>Applies to the FindFlower Beta
+                    Last updated 14 September 2026<br>Applies to the FindFlower Beta
                 </p>
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
@@ -130,8 +130,8 @@
                 </p>
                 <p class="reveal-up border-l-2 border-sage-400 pl-6 text-base">
                     The short version: your photo is sent to the inference service, used to return a
-                    prediction, and not kept afterwards. Feedback leaves your device only when you
-                    press send. Nothing here is sold, and none of it is used for advertising.
+                    prediction, and not kept afterwards. Community posts are public. Nothing here is
+                    sold, and none of it is used for advertising.
                 </p>
             </div>
 
@@ -140,7 +140,15 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <p class="reveal-up">FindFlower is designed to collect as little as possible. During the Beta, the core identification experience requires no account and no personal information.</p>
-                <p class="reveal-up">We collect three narrow categories of data, and only in specific circumstances: <span class="text-neutral-900 font-normal">account details</span> if you sign in for developer access (handled by Auth0, such as your name and email), <span class="text-neutral-900 font-normal">feedback you deliberately submit</span>, and <span class="text-neutral-900 font-normal">basic, anonymous usage information</span> a browser naturally exposes when loading a page. We do not build advertising profiles.</p>
+                <p class="reveal-up">We collect the following categories of data:</p>
+                <ul class="reveal-up space-y-3 list-disc pl-5 marker:text-sage-400">
+                    <li><span class="text-neutral-900 font-normal">Account details</span> if you sign in (handled by Auth0): your name, email address, profile picture, and authentication identifiers.</li>
+                    <li><span class="text-neutral-900 font-normal">Uploaded plant photos</span> sent to our inference service for identification. Images are processed in memory and not stored on disk after the prediction is returned.</li>
+                    <li><span class="text-neutral-900 font-normal">Community posts and chat messages</span> you deliberately submit through the community or chat features. These are stored on our server and visible to other users.</li>
+                    <li><span class="text-neutral-900 font-normal">Server logs</span> that may include IP addresses, request timestamps, browser user-agent strings, and the pages you visit. These are used for security, debugging, and abuse prevention, not for advertising or profiling.</li>
+                    <li><span class="text-neutral-900 font-normal">Feedback and corrections</span> you voluntarily submit about identification results.</li>
+                </ul>
+                <p class="reveal-up">We do not build advertising profiles. We do not sell or rent your personal data to anyone.</p>
             </div>
 
             <div class="lg:col-span-4">
@@ -160,11 +168,35 @@
             </div>
 
             <div class="lg:col-span-4">
+                <h2 id="community" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Community and chat features</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up border-l-2 border-sage-400 pl-6 text-neutral-700">Anything you post in a public community space or chat room is <strong class="text-neutral-900">visible to every other user</strong> of FindFlower. Treat community posts and chat messages as public. Do not share personal information, account credentials, or sensitive data in any public area of the service.</p>
+                <p class="reveal-up">Your handle and display name are shown alongside your posts. Community post text is stored on the FindFlower server. We may retain community data as long as it is needed to operate the service, to comply with legal obligations, or to enforce our terms.</p>
+            </div>
+
+            <div class="lg:col-span-4">
                 <h2 id="sharing" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Sharing with third parties</h2>
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
-                <p class="reveal-up">We do not sell your personal data. We rely on a small number of trusted services strictly to operate the product: <span class="text-neutral-900 font-normal">Auth0</span> for secure sign-in, and <span class="text-neutral-900 font-normal">Wikipedia</span> to fetch the reference summaries shown alongside a result. When context is loaded, a request for the species name is made to Wikipedia, subject to their own privacy terms.</p>
+                <p class="reveal-up">We do not sell your personal data. We rely on a small number of trusted services strictly to operate the product: <span class="text-neutral-900 font-normal">Auth0</span> for secure sign-in, <span class="text-neutral-900 font-normal">MongoDB Atlas</span> for database hosting, and <span class="text-neutral-900 font-normal">Wikipedia</span> to fetch the reference summaries shown alongside a result. When context is loaded, a request for the species name is made to Wikipedia, subject to their own privacy terms.</p>
                 <p class="reveal-up">Beyond these operational providers, your data is not shared. We may disclose information only where genuinely required by law.</p>
+            </div>
+
+            <div class="lg:col-span-4">
+                <h2 id="rights" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Your rights (GDPR, CCPA, and similar laws)</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">Depending on where you live, you may have the right to:</p>
+                <ul class="reveal-up space-y-3 list-disc pl-5 marker:text-sage-400">
+                    <li><span class="text-neutral-900 font-normal">Access</span> the personal data we hold about you.</li>
+                    <li><span class="text-neutral-900 font-normal">Correct</span> inaccurate or incomplete data.</li>
+                    <li><span class="text-neutral-900 font-normal">Delete</span> your account and all associated data.</li>
+                    <li><span class="text-neutral-900 font-normal">Export</span> your data in a portable format.</li>
+                    <li><span class="text-neutral-900 font-normal">Object</span> to or restrict certain processing of your data.</li>
+                </ul>
+                <p class="reveal-up">To exercise any of these rights, or to request complete erasure of your account and all associated data, email <a href="mailto:ibhx800@gmail.com" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">ibhx800@gmail.com</a> or use the <a href="/contact" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">contact page</a>. Include enough detail to identify your account (such as the email you signed in with). We will respond within 30 days.</p>
+                <p class="reveal-up">Data stored locally in your browser (scan history, corrections) is under your direct control. You can export it as JSON or clear it from your <a href="/dashboard" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">dashboard</a> at any time without contacting us.</p>
             </div>
 
             <div class="lg:col-span-4">
@@ -172,7 +204,14 @@
             </div>
             <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
                 <p class="reveal-up">You decide what to share. Feedback is never sent quietly in the background. Everything stored locally can be exported as JSON or erased from your <a href="/dashboard" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">dashboard</a> at any time.</p>
-                <p class="reveal-up">If anything here is unclear, we&rsquo;d rather you ask than wonder. Reach us through the <a href="/contact" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">contact page</a> and a person will respond.</p>
+                <p class="reveal-up">If anything here is unclear, we would rather you ask than wonder. Reach us through the <a href="/contact" class="text-sage-700 border-b border-sage-300 hover:border-sage-600 transition-colors">contact page</a> and a person will respond.</p>
+            </div>
+
+            <div class="lg:col-span-4">
+                <h2 id="changes" class="reveal-up scroll-mt-24 text-2xl md:text-3xl font-medium tracking-tight text-neutral-900 leading-tight">Changes to this policy</h2>
+            </div>
+            <div class="lg:col-span-7 lg:col-start-6 space-y-6 text-lg text-neutral-600 font-light leading-relaxed">
+                <p class="reveal-up">We may update this Privacy Policy from time to time. Material changes will be reflected here with a revised date. Continued use of the service after a change constitutes acceptance of the updated policy.</p>
             </div>
 
             <div class="lg:col-span-7 lg:col-start-6">

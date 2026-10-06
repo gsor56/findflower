@@ -272,5 +272,26 @@
         </footer>
     </noscript></div>
 
+    <dialog id="ffReportDialog" class="w-full max-w-sm p-0 border border-black bg-white backdrop:bg-black/30">
+        <form method="dialog" class="p-5">
+            <h2 class="text-sm font-medium text-neutral-900 mb-1">Report this post</h2>
+            <p class="text-xs text-neutral-500 leading-relaxed mb-4">Select a reason. Reports are reviewed and may lead to content removal or account suspension.</p>
+            <fieldset id="ffReportReasons" class="space-y-2 mb-4">
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffReportReason" value="Harassment or abuse" class="accent-[#1a3622]"> Harassment or abuse</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffReportReason" value="Spam or self-promotion" class="accent-[#1a3622]"> Spam or self-promotion</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffReportReason" value="Illegal content" class="accent-[#1a3622]"> Illegal content</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffReportReason" value="Copyright or IP violation" class="accent-[#1a3622]"> Copyright or IP violation</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffReportReason" value="Misinformation (dangerous plant advice)" class="accent-[#1a3622]"> Misinformation (dangerous plant advice)</label>
+                <label class="flex items-center gap-2 text-sm text-neutral-700 cursor-pointer"><input type="radio" name="ffReportReason" value="Other" class="accent-[#1a3622]"> Other</label>
+            </fieldset>
+            <label for="ffReportDetail" class="block text-xs text-neutral-500 mb-1">Details (optional)</label>
+            <textarea id="ffReportDetail" rows="2" maxlength="500" class="w-full text-sm border border-neutral-200 rounded-none p-2 mb-4 focus:outline-none focus:border-black resize-y" placeholder="Additional context..."></textarea>
+            <div class="flex items-center justify-end gap-2">
+                <button type="button" id="ffReportCancel" class="text-sm text-neutral-500 hover:text-neutral-900 px-3 py-2 transition">Cancel</button>
+                <button type="submit" id="ffReportSubmit" class="text-sm font-medium bg-neutral-900 text-white border border-black rounded-none px-4 py-2 hover:bg-neutral-800 transition disabled:opacity-40" disabled>Submit report</button>
+            </div>
+        </form>
+    </dialog>
+
 </body>
 </html>
