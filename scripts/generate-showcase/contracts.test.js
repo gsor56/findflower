@@ -38,14 +38,20 @@ test('publication refuses a page with a missing target', () => {
   assert.throws(() => replaceFigures(page.replaceAll('scan-ranking.webp', 'removed.webp')), /scan-ranking/);
 });
 
-test('scanner shows the requested runners-up but excludes values displayed as 0.0%', () => {
+test('scanner shows the requested runners-up but drops anything under one percent', () => {
   const source = fs.readFileSync(path.join(root, 'try.html'), 'utf8');
+  // The threshold is declared beside the function rather than inside it, so the
+  // extracted source has to carry it along, and it is read from the page instead of
+  // repeated here so the test cannot drift away from what ships.
+  const threshold = source.match(/const ALT_MIN_CONFIDENCE = ([\d.]+);/)?.[1];
+  assert.ok(threshold);
   const functionSource = source.match(/function alternatives\(ranked, upTo\) \{[\s\S]*?\n        \}/)?.[0];
   assert.ok(functionSource);
-  const alternatives = vm.runInNewContext(`(${functionSource})`);
-  const ranked = [{ name: 'best', p: .984 }, { name: 'second', p: .009 },
-    { name: 'third', p: .003 }, { name: 'fourth', p: .001 }, { name: 'noise', p: .00001 }];
-  assert.equal(JSON.stringify(alternatives(ranked, 5).map(item => item.name)), JSON.stringify(['second', 'third', 'fourth']));
-  assert.equal(alternatives([{ p: .999 }, { p: .0004 }], 4).length, 0);
-  assert.equal(alternatives([{ p: .999 }, { p: .0006 }], 4).length, 1);
+  const alternatives = vm.runInNewContext(
+    `const ALT_MIN_CONFIDENCE = ${threshold};\n${functionSource}\nalternatives;`);
+  const ranked = [{ name: 'best', p: .9 }, { name: 'second', p: .06 }, { name: 'third', p: .03 },
+    { name: 'fourth', p: .005 }, { name: 'noise', p: .00001 }];
+  assert.equal(JSON.stringify(alternatives(ranked, 5).map(item => item.name)), JSON.stringify(['second', 'third']));
+  assert.equal(alternatives([{ p: .999 }, { p: .009 }], 4).length, 0);
+  assert.equal(alternatives([{ p: .999 }, { p: .01 }], 4).length, 1);
 });
