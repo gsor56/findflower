@@ -51,6 +51,7 @@ const secret = configuredSecret || devSecret;
 const AUTH0_BASE_URL = process.env.AUTH0_BASE_URL
     || process.env.FF_PUBLIC_URL
     || (isProduction ? 'https://findflower.me' : `http://localhost:${PORT}`);
+const secureCookies = AUTH0_BASE_URL.startsWith('https://');
 if (isProduction && !configuredSecret) {
     console.warn('[auth] AUTH0_SECRET is not set; using a derived development secret. Set it in HidenCloud before production traffic.');
 }
@@ -117,10 +118,8 @@ export const oidc = auth({
             // security follows the public URL instead, which removes the OIDC
             // warning and keeps the session bound to HTTPS behind Cloudflare.
             // This service is deployed behind HTTPS Cloudflare even though
-            // the HidenCloud origin hop is plaintext. Keep this explicit so a
-            // platform-provided NODE_ENV or forwarded-proto value cannot make
-            // the session cookie insecure in production.
-            secure: true,
+            // the HidenCloud origin hop is plaintext.
+            secure: secureCookies,
         },
     },
 });
