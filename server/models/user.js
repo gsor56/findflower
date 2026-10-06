@@ -89,6 +89,15 @@ userSchema.methods.toPublic = function toPublic() {
             allowDMs: this.privacy.allowDMs,
         },
         createdAt: this.createdAt,
+    };
+};
+
+/** The owner's own shape: the public card plus the fields that describe the
+ *  account to itself. Only GET /api/users/me serves this. Whether somebody has
+ *  accepted the terms is theirs to know, and `:handle` answers strangers. */
+userSchema.methods.toPrivate = function toPrivate() {
+    return {
+        ...this.toPublic(),
         termsAccepted: this.termsAccepted === true,
     };
 };

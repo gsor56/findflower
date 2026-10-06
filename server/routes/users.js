@@ -8,9 +8,10 @@ import { authRefusal, rateLimit, requireViewer, resolveViewerSub } from '../lib.
 
 const router = Router();
 
-/** GET /api/users/me returns the caller's own row, privacy fields included. */
+/** GET /api/users/me returns the caller's own row: the public card plus the
+ *  account-only fields, consent among them. */
 router.get('/me', requireViewer, (req, res) => {
-    res.json({ user: req.viewer.toPublic() });
+    res.json({ user: req.viewer.toPrivate() });
 });
 
 /**
