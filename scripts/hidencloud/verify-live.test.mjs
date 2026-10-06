@@ -88,7 +88,7 @@ test('readiness passes when the running process reports the deployed commit', as
 test('a restart that did not happen fails readiness even though the files are live', async () => {
     await assert.rejects(runCheck('stale-process', path => {
         if (path === '/version') return Response.json({ commit: STALE_COMMIT, builtAt: null, startedAt: null });
-    }, { expectedCommit: DEPLOYED_COMMIT }), /was not restarted/);
+    }, { expectedCommit: DEPLOYED_COMMIT }), /should have restarted the app/);
 });
 
 test('a running build with no version route fails readiness', async () => {

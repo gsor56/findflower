@@ -57,7 +57,7 @@ export function sourceForLive(dest) {
     // must never adopt it - otherwise every deploy would look like a server edit.
     if (dest === 'version.json') return null;
     if (/^(?:routes|lib|views)\//.test(dest) || /^models\/(?!lite\/)/.test(dest)
-        || /^(?:index|auth|db|session|lib|inference)\.js$/.test(dest)
+        || /^(?:index|auth|db|session|lib|inference|supervisor)\.js$/.test(dest)
         || /^package(?:-lock)?\.json$/.test(dest)) {
         return destination('server/' + dest) === dest ? 'server/' + dest : null;
     }

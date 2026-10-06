@@ -13,9 +13,10 @@ async function get(path, options) {
     assert.equal(response.status, 200, `${path}: HTTP ${response.status}`);
     return response;
 }
-// Allow the panel restart and model initialization to finish.
+// Allow the supervisor's restart, the dependency install it may have to run and
+// model initialization to finish: a cold npm ci is minutes, not seconds.
 let healthy = false;
-for (let attempt = 0; attempt < 24; attempt++) {
+for (let attempt = 0; attempt < 60; attempt++) {
     try {
         const response = await fetch(base + '/health', { signal: AbortSignal.timeout(10000) });
         healthy = response.ok && (await response.json()).service === 'findflower';
@@ -35,7 +36,7 @@ for (let attempt = 0; attempt < 24; attempt++) {
     if (healthy) break;
     await new Promise(resolve => setTimeout(resolve, 5000));
 }
-assert.ok(healthy, originOnly ? 'HidenCloud has not loaded the new model/scan routes; check its restart' : 'HidenCloud health check did not recover');
+assert.ok(healthy, originOnly ? 'HidenCloud has not loaded the new model/scan routes; read the panel console for the supervisor' : 'HidenCloud health check did not recover');
 
 // A deploy is only real once the running process has loaded the new commit. An
 // upload without a restart leaves the old process answering, and because the
@@ -45,7 +46,7 @@ const expectedCommit = process.env.EXPECTED_COMMIT;
 if (expectedCommit) {
     let seen = null;
     let last = 'no answer';
-    for (let attempt = 0; attempt < 24; attempt++) {
+    for (let attempt = 0; attempt < 60; attempt++) {
         try {
             const response = await fetch(base + '/version', {
                 cache: 'no-store',
@@ -63,7 +64,8 @@ if (expectedCommit) {
         await new Promise(resolve => setTimeout(resolve, 5000));
     }
     assert.equal(seen && seen.commit, expectedCommit,
-        `HidenCloud is serving ${last}, not ${expectedCommit}. The files may be uploaded but the process was not restarted.`);
+        `HidenCloud is serving ${last}, not ${expectedCommit}. The files are uploaded and the stamp is written, `
+        + 'so the supervisor should have restarted the app: read the panel console for what it logged.');
     console.log(`PASS: live commit ${seen.commit}, built ${seen.builtAt}, process started ${seen.startedAt}`);
 }
 const how = await (await get('/how')).text();

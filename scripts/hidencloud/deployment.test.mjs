@@ -25,7 +25,7 @@ test('deployment excludes credentials, repository metadata, model cache and scra
 });
 
 test('every mapped deployment path has an unambiguous reverse source', () => {
-    for (const source of ['server/index.js','server/routes/identify.js','server/lib/public-assets.js',
+    for (const source of ['server/index.js','server/supervisor.js','server/routes/identify.js','server/lib/public-assets.js',
         'server/package-lock.json','how.html','scripts/showcase-videos.js','assets/dash-engine.mp4',
         'models/lite/group1-shard1of3.bin','scripts/sync-server-to-github.mjs']) {
         assert.equal(sourceForLive(destination(source)), source);
@@ -38,7 +38,7 @@ test('flat server serves model shards and PWA files but refuses backend source a
         '/assets/scan-input.mp4','/manifest.json','/sw.js','/scripts/showcase-videos.js','/.well-known/discord']) {
         assert.ok(isPublicAsset(file, { flat: true }), file);
     }
-    for (const file of ['/index.js','/auth.js','/package.json','/models/user.js','/.env',
+    for (const file of ['/index.js','/supervisor.js','/auth.js','/package.json','/models/user.js','/.env',
         '/assets/../.env','/assets/%2e%2e/.env','/scripts/hidencloud/manifest.mjs',
         '/scripts/sync-server-to-github.mjs','/.hidencloud/backups/how.html']) {
         assert.equal(isPublicAsset(file, { flat: true }), false, file);

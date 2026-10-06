@@ -11,8 +11,6 @@ In **GitHub > Settings > Secrets and variables > Actions**, add these repository
 secrets (never put their values in a committed file):
 
 - `SFTP_PASSWORD`: HidenCloud SFTP password.
-- `HIDENCLOUD_API_KEY`: active HidenCloud Client API key, authorized to restart
-  this server.
 - `CLOUDFLARE_API_TOKEN`: token authorized to deploy the `findflower-proxy` Worker
   and its routes.
 
@@ -22,21 +20,26 @@ Add these repository variables:
   `pat.hidencloud.com:2022`. The local `.hidencloud-local/known_hosts` file holds
   the already-recorded public host key; `ssh-keygen -lf` prints its fingerprint.
 - `SFTP_REMOTE_ROOT`: `/` for the current SFTP account.
-- `HIDENCLOUD_PANEL_URL`: `https://panel.hidencloud.com`.
-- `HIDENCLOUD_SERVER_ID`: server identifier from the Client API/panel, expected
-  to correspond to the SFTP account suffix `9753ee4c`; verify it before use.
 - `CLOUDFLARE_ACCOUNT_ID`: account containing the existing Worker.
 - `HIDENCLOUD_BOOTSTRAP_REVISION`: the known Git revision matching the initial live files.
   This is only needed until the first full deployment writes its server manifest.
 
+No HidenCloud panel credential is stored here. Their client API keys are
+short-lived, so a restart cannot be issued from CI; the supervisor on the
+container does it instead.
+
 The deployment uses Paramiko for **SFTP**, not FTP. SamKirkland's FTP action does
 not speak SFTP on port 2022. The pipeline verifies source mappings, protects
-server edits, uploads checksummed files with backups, restarts the application,
+server edits, uploads checksummed files with backups, writes the stamp that
+makes the supervisor restart, waits for `/version` to report this commit,
 updates the Cloudflare Worker, and verifies the public site.
 
-Configure the server's startup process to install changed dependencies before
-starting Node, for example `npm ci --omit=dev && node index.js`, using the panel's
-supported startup settings. SFTP cannot execute npm or change the running process.
+Set the server's startup command to `node supervisor.js`, using the panel's
+supported startup settings. That process owns the app from then on: it starts
+`index.js`, installs changed dependencies before a restart, restarts the app
+when the deploy writes `.deploy/stamp`, and starts it again if it crashes. SFTP
+cannot execute npm or change the running process, which is why the restart is
+signalled by a file rather than by the panel API.
 
 ## Local commands
 
@@ -111,6 +114,10 @@ runtime caches and deployment backups are outside the sync allowlist.
 
 ```sh
 node proxy/worker.test.mjs
+node server/bearer.test.mjs
+node server/profile.test.mjs
+node server/scans.test.mjs
+node --test server/supervisor.test.mjs
 node scripts/hidencloud/deployment.test.mjs
 node scripts/hidencloud/verify-live.test.mjs
 node scripts/hidencloud/sync.integration.mjs

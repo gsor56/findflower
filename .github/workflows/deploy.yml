@@ -16,13 +16,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # No HidenCloud panel credentials here on purpose. Their client API keys are
+    # short-lived, so a restart cannot be issued from CI; server/supervisor.js runs
+    # on the container instead and restarts the app when it sees the new stamp.
     env:
       SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
       SFTP_HOST_KEY: ${{ vars.SFTP_HOST_KEY }}
       SFTP_REMOTE_ROOT: ${{ vars.SFTP_REMOTE_ROOT || '/' }}
-      HIDENCLOUD_PANEL_URL: ${{ vars.HIDENCLOUD_PANEL_URL }}
-      HIDENCLOUD_SERVER_ID: ${{ vars.HIDENCLOUD_SERVER_ID }}
-      HIDENCLOUD_API_KEY: ${{ secrets.HIDENCLOUD_API_KEY }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       BOOTSTRAP_REVISION: ${{ vars.HIDENCLOUD_BOOTSTRAP_REVISION }}
@@ -45,12 +45,12 @@ jobs:
           # missing name, so each re-run revealed only the next one. The split
           # matters because secrets and variables are separate tabs.
           missing=''
-          for name in SFTP_PASSWORD HIDENCLOUD_API_KEY CLOUDFLARE_API_TOKEN; do
+          for name in SFTP_PASSWORD CLOUDFLARE_API_TOKEN; do
             if [ -z "${!name}" ]; then
               missing="$missing secret:$name"
             fi
           done
-          for name in SFTP_HOST_KEY HIDENCLOUD_PANEL_URL HIDENCLOUD_SERVER_ID CLOUDFLARE_ACCOUNT_ID; do
+          for name in SFTP_HOST_KEY CLOUDFLARE_ACCOUNT_ID; do
             if [ -z "${!name}" ]; then
               missing="$missing variable:$name"
             fi
@@ -75,6 +75,7 @@ jobs:
           node server/bearer.test.mjs
           node server/profile.test.mjs
           node server/scans.test.mjs
+          node --test server/supervisor.test.mjs
           node --test scripts/hidencloud/deployment.test.mjs
           node --test scripts/hidencloud/verify-live.test.mjs
           node scripts/hidencloud/sync.integration.mjs
@@ -105,10 +106,11 @@ jobs:
           fi
           python scripts/hidencloud/sftp.py deploy "${args[@]}"
 
-      - name: Restart backend using HidenCloud panel
-        run: python scripts/hidencloud/restart.py
-
-      - name: Check HidenCloud assets and protected scan route before switching traffic
+      # The upload wrote .deploy/stamp last, so this is where the restart is
+      # proved: the supervisor has to notice the stamp, install dependencies if
+      # the lock moved, and bring the app up on the new commit. Failing here
+      # leaves the Worker on the old files rather than half-switched.
+      - name: Check that HidenCloud restarted onto this commit before switching traffic
         env:
           EXPECTED_COMMIT: ${{ github.sha }}
         run: node scripts/hidencloud/verify-live.mjs --origin-only

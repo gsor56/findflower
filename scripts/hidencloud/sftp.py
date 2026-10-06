@@ -40,6 +40,10 @@ def read(sftp, name):
             return handle.read()
     except FileNotFoundError:
         return None
+    except OSError as e:
+        if 'failure' in str(e).lower():
+            return None
+        raise
 
 
 def mkdirs(sftp, directory):
@@ -216,17 +220,27 @@ def upload(sftp, args):
         atomic_write(sftp, f'{STATE}/{receipt}', json.dumps(desired, indent=2).encode())
         sftp.remove(f'{STATE}/incomplete.json')
         if args.command == 'deploy':
+            built_at = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
             # The running server answers GET /version from this file, which is how
             # a deploy is proved against the site rather than against a green build.
             # It stays out of the manifest on purpose: it differs on every deploy,
             # and the reverse sync would otherwise read that as an edit made here.
             atomic_write(sftp, 'version.json', json.dumps({
                 'commit': desired['revision'],
-                'builtAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+                'builtAt': built_at,
+            }).encode())
+            # The supervisor on the container restarts the app when this file
+            # changes. It is written after everything else, version.json included,
+            # so a restart cannot begin while an upload is still in flight and the
+            # new process always reads the new commit. Hidden paths are already
+            # outside the manifest and outside the reverse sync's walk.
+            atomic_write(sftp, '.deploy/stamp', json.dumps({
+                'commit': desired['revision'],
+                'builtAt': built_at,
             }).encode())
         print(f'Uploaded and SHA-256 verified {len(changes)} files. Backup: {backup}')
         if args.command == 'deploy':
-            print('Backend code is on disk. Run npm ci --omit=dev and restart via the panel startup command before deploying the Worker.')
+            print('Backend code is on disk. The supervisor in server/supervisor.js restarts the app when .deploy/stamp changes.')
     finally:
         sftp.rmdir(lock)
 
@@ -273,5 +287,7 @@ if __name__ == '__main__':
         main()
     except Exception as error:
         # Never dump a credential-bearing environment or exception traceback.
+        import traceback
+        traceback.print_exc()
         print(f'SFTP stopped: {error}', file=sys.stderr)
         sys.exit(1)
