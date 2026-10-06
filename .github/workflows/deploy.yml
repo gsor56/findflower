@@ -49,9 +49,20 @@ jobs:
             fi
           done
 
+      # express, mongoose, ejs and jose come from server/node_modules, so the
+      # server suites cannot run until they are installed. --ignore-scripts
+      # skips onnxruntime-node's postinstall, which downloads a large native
+      # binary that none of the suites below load.
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci --ignore-scripts
+
       - name: Verify routing and deployment safeguards
         run: |
           node proxy/worker.test.mjs
+          node server/bearer.test.mjs
+          node server/profile.test.mjs
+          node server/scans.test.mjs
           node --test scripts/hidencloud/deployment.test.mjs
           node --test scripts/hidencloud/verify-live.test.mjs
           node scripts/hidencloud/sync.integration.mjs
