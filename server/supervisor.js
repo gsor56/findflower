@@ -9,7 +9,7 @@
 
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -210,10 +210,13 @@ export function createSupervisor(options = {}) {
     async function boot() {
         // node_modules installed by the panel's previous startup command matches
         // the lock file on disk, so adopt it rather than spending a cold minute on
-        // npm ci before the app has even started. Any later lock change still
-        // installs, because the stamp cannot change without a new deploy.
+        // npm ci before the app has even started. A lock file younger than the
+        // modules is not the one they were installed from: a deploy uploads it
+        // after they were built, and adopting that would start the app on the
+        // previous dependency set and lose it on the first import that moved.
         const wanted = digestOf(at(config.lock));
-        if (wanted && !installedLock() && existsSync(at(config.modules))) {
+        if (wanted && !installedLock() && existsSync(at(config.modules))
+            && statSync(at(config.modules)).mtimeMs >= statSync(at(config.lock)).mtimeMs) {
             recordLock(wanted);
             log('adopted the existing node_modules for the current lock file');
         }

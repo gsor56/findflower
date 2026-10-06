@@ -4,7 +4,7 @@
 // real dependencies in a temp directory would prove nothing about the logic.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createSupervisor } from './supervisor.js';
@@ -100,6 +100,34 @@ test('a failed dependency install keeps the running app', async () => {
         assert.equal(starts(root).length, 1, 'the old process must survive a failed install');
         assert.ok(lines.some(line => line.includes('npm ci failed')));
     }, { install: async () => !failing });
+});
+
+test('a lock file newer than node_modules is installed instead of adopted', async () => {
+    let installs = 0;
+    await withSupervisor(ALIVE, async ({ root, supervisor, lines }) => {
+        const modules = path.join(root, 'node_modules');
+        mkdirSync(modules, { recursive: true });
+        const older = new Date(Date.now() - 60000);
+        utimesSync(modules, older, older);
+        await supervisor.start();
+        await until(() => starts(root).length === 1);
+        assert.equal(installs, 1, 'a deploy uploads the lock after the modules were built, so it has to install');
+        assert.ok(!lines.some(line => line.includes('adopted')));
+    }, { install: async () => { installs += 1; return true; } });
+});
+
+test('node_modules newer than the lock file is adopted without installing', async () => {
+    let installs = 0;
+    await withSupervisor(ALIVE, async ({ root, supervisor, lines }) => {
+        const lock = path.join(root, 'package-lock.json');
+        const older = new Date(Date.now() - 60000);
+        utimesSync(lock, older, older);
+        mkdirSync(path.join(root, 'node_modules'), { recursive: true });
+        await supervisor.start();
+        await until(() => starts(root).length === 1);
+        assert.equal(installs, 0, 'modules built from this lock file are what the panel installed');
+        assert.ok(lines.some(line => line.includes('adopted the existing node_modules')));
+    }, { install: async () => { installs += 1; return true; } });
 });
 
 test('an app that exits is started again', async () => {
