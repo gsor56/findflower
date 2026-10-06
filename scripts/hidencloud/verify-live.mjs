@@ -36,6 +36,36 @@ for (let attempt = 0; attempt < 24; attempt++) {
     await new Promise(resolve => setTimeout(resolve, 5000));
 }
 assert.ok(healthy, originOnly ? 'HidenCloud has not loaded the new model/scan routes; check its restart' : 'HidenCloud health check did not recover');
+
+// A deploy is only real once the running process has loaded the new commit. An
+// upload without a restart leaves the old process answering, and because the
+// stamp is read at startup it keeps reporting the commit it began with - so a
+// restart that silently did nothing fails here instead of passing quietly.
+const expectedCommit = process.env.EXPECTED_COMMIT;
+if (expectedCommit) {
+    let seen = null;
+    let last = 'no answer';
+    for (let attempt = 0; attempt < 24; attempt++) {
+        try {
+            const response = await fetch(base + '/version', {
+                cache: 'no-store',
+                signal: AbortSignal.timeout(10000),
+            });
+            last = `HTTP ${response.status}`;
+            if (response.ok) {
+                seen = await response.json();
+                last = `commit ${seen.commit}`;
+                if (seen.commit === expectedCommit) break;
+            } else {
+                await response.body?.cancel();
+            }
+        } catch (error) { last = error.message; }
+        await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    assert.equal(seen && seen.commit, expectedCommit,
+        `HidenCloud is serving ${last}, not ${expectedCommit}. The files may be uploaded but the process was not restarted.`);
+    console.log(`PASS: live commit ${seen.commit}, built ${seen.builtAt}, process started ${seen.startedAt}`);
+}
 const how = await (await get('/how')).text();
 assert.equal((how.match(/<video\b[^>]*data-showcase/g) || []).length, 5, 'Expected five showcase videos');
 for (const name of ['dash-engine','scan-correction','scan-input','scan-ranking','species-fields']) {

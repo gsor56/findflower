@@ -52,6 +52,10 @@ export function assertSafeEntry(entry) {
 }
 
 export function sourceForLive(dest) {
+    // The build stamp is written on the container at deploy time and carries a
+    // fresh timestamp every run. It has no source file here, so a reverse sync
+    // must never adopt it - otherwise every deploy would look like a server edit.
+    if (dest === 'version.json') return null;
     if (/^(?:routes|lib|views)\//.test(dest) || /^models\/(?!lite\/)/.test(dest)
         || /^(?:index|auth|db|session|lib|inference)\.js$/.test(dest)
         || /^package(?:-lock)?\.json$/.test(dest)) {

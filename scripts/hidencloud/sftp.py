@@ -215,6 +215,15 @@ def upload(sftp, args):
         receipt = 'showcase.json' if args.command == 'showcase' else 'deployment.json'
         atomic_write(sftp, f'{STATE}/{receipt}', json.dumps(desired, indent=2).encode())
         sftp.remove(f'{STATE}/incomplete.json')
+        if args.command == 'deploy':
+            # The running server answers GET /version from this file, which is how
+            # a deploy is proved against the site rather than against a green build.
+            # It stays out of the manifest on purpose: it differs on every deploy,
+            # and the reverse sync would otherwise read that as an edit made here.
+            atomic_write(sftp, 'version.json', json.dumps({
+                'commit': desired['revision'],
+                'builtAt': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            }).encode())
         print(f'Uploaded and SHA-256 verified {len(changes)} files. Backup: {backup}')
         if args.command == 'deploy':
             print('Backend code is on disk. Run npm ci --omit=dev and restart via the panel startup command before deploying the Worker.')

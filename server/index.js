@@ -15,7 +15,7 @@
 // the browser; the server reasons about text, ids, and one capped staging image.
 
 import path from 'node:path';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { connectDb, closeDb } from './db.js';
@@ -53,6 +53,28 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 // is no level above. Whichever one holds index.html is the static root.
 const REPO_ROOT = path.resolve(HERE, '..');
 const SITE_ROOT = existsSync(path.join(REPO_ROOT, 'index.html')) ? REPO_ROOT : HERE;
+
+// When this process began, to the second. process.uptime() counts from the start
+// of the process, so subtracting it lands on launch rather than module load.
+const STARTED_AT = new Date(Date.now() - Math.round(process.uptime() * 1000)).toISOString();
+
+/** The build stamp the deploy wrote beside index.js. Read once, at startup, on
+ *  purpose: a process that was never restarted must keep answering with the
+ *  commit it actually loaded, because that is the whole point of asking. A
+ *  missing or unreadable stamp is not an error - it means this copy predates the
+ *  stamp - so it answers null and lets the caller compare. */
+function deployedStamp() {
+    try {
+        const stamp = JSON.parse(readFileSync(path.join(SITE_ROOT, 'version.json'), 'utf8'));
+        return {
+            commit: typeof stamp.commit === 'string' ? stamp.commit : null,
+            builtAt: typeof stamp.builtAt === 'string' ? stamp.builtAt : null,
+        };
+    } catch {
+        return { commit: null, builtAt: null };
+    }
+}
+const DEPLOYED = deployedStamp();
 
 // Browsers must be named, not wildcarded: these routes read a session cookie,
 // and `Access-Control-Allow-Origin: *` cannot carry credentials.
@@ -152,6 +174,14 @@ app.use('/api', express.json({ limit: '256kb' }));
 
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'findflower', streams: connectionCount() });
+});
+
+// The commit the container is actually running, so a deploy can be checked
+// against the site instead of against a green tick in Actions. Never cached:
+// a cached answer here is worse than no answer, because it reads as proof.
+app.get('/version', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ ...DEPLOYED, startedAt: STARTED_AT });
 });
 
 /** Hydrate req.viewer from the session cookie for a page render. Unlike
