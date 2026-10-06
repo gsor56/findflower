@@ -5,7 +5,7 @@ const ROOT_FILES = new Set([
     'main.js', 'nav.js', 'prefs.js', 'species.js', 'storage.js', 'sw.js',
     'favicon.svg', 'favicon.ico', 'apple-touch-icon.png', 'icon-192.png',
     'icon-512.png', 'icon-maskable-512.png', 'manifest.json', 'robots.txt',
-    'sitemap.xml', 'trefle-data.json',
+    'sitemap.xml', 'trefle-data.json', '404.html',
 ]);
 
 export function isPublicAsset(urlPath, { flat = false } = {}) {
