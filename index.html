@@ -253,19 +253,8 @@
             text-transform: uppercase;
         }
         .ff-scroll-cue:hover { color: #737373; }
-        .ff-notice__full { display: inline; }
-        .ff-notice__brief { display: none; }
-        @media (max-width: 767px) {
-            .ff-notice__full { display: none; }
-            .ff-notice__brief { display: inline; }
-        }
-        .ff-notice__details {
-            margin-top: 0.375rem;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
+        .ff-notice__details { margin-top: 0.25rem; }
         .ff-notice__details > summary {
-            width: fit-content;
             cursor: pointer;
             color: #3D5341;
             font-weight: 500;
@@ -284,11 +273,11 @@
             padding-top: 0.5rem;
         }
         .ff-notice__details-content p { margin: 0; }
-        
+​
         @media (max-width: 767px) {
             .ff-scroll-cue { margin-top: max(0.25rem, calc(1rem - var(--ff-banner-h, 0px) / 4)); }
         }
-        
+​
         @media (max-width: 359px) {
             .ff-scroll-cue { display: none; }
         }
@@ -417,13 +406,13 @@
                 <path d="M12 10v3.5M12 16.8h.01"/>
             </svg>
             <div class="ff-notice__text">
-                <span class="ff-notice__full">FindFlower remains accessible, but its backend server is no longer running, so some features may not work.</span>
-                <span class="ff-notice__brief">Some features may not work because FindFlower's backend server is no longer running.</span>
+                <span class="ff-notice__full">FindFlower remains available, but some features may not work because its backend server is no longer available.</span>
+                <span class="ff-notice__brief">Some features may not work while FindFlower's backend is offline.</span>
                 <details class="ff-notice__details">
-                    <summary>Read more</summary>
+                    <summary>Read more...</summary>
                     <div class="ff-notice__details-content">
                         <p>FindFlower is an independent botanical technology project created to provide free tools for flower identification and botanical exploration.</p>
-                        <p>Following the discontinuation of its free server hosting provider, the backend infrastructure is no longer available. I currently lack the time and resources to maintain or fund a replacement. As a result, some features that rely on the server may not work.</p>
+                        <p>Following the discontinuation of its free server hosting provider, the backend infrastructure is no longer available. I currently lack the resources and time to maintain and fund replacement infrastructure. Some features that rely on the backend may not work.</p>
                         <p>I'm looking for an individual, team, open-source community, or organisation interested in adopting and maintaining FindFlower.</p>
                         <p>The project is not being offered as a commercial venture. Its original goal has always been to make useful botanical technology accessible to people for free.</p>
                         <p>If you are interested in maintaining the infrastructure, developing the platform, contributing to its research, or helping it find a sustainable home, please reach out.</p>
@@ -431,7 +420,7 @@
                     </div>
                 </details>
             </div>
-            <button id="ffNoticeClose" type="button" class="ff-notice__close" aria-label="Dismiss this notice">
+            <button id="ffNoticeClose" type="button" class="ff-notice__close" aria-label="Dismiss this notice" data-i18n-aria="notice.dismiss">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M6 6l12 12"/>
                     <path d="M18 6 6 18"/>
@@ -1106,4 +1095,3 @@
 ​
 </body>
 </html>
-​
